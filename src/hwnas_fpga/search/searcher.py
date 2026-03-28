@@ -66,17 +66,17 @@ class BaseSearcher:
                 return False
             if (
                 self.constraints.max_dsp is not None
-                and cost_estimate.peak_dsp > self.constraints.max_dsp
+                and cost_estimate.resource_dsp > self.constraints.max_dsp
             ):
                 return False
             if (
                 self.constraints.max_bram is not None
-                and cost_estimate.peak_bram > self.constraints.max_bram
+                and cost_estimate.resource_bram > self.constraints.max_bram
             ):
                 return False
             if (
                 self.constraints.max_lut is not None
-                and cost_estimate.peak_lut > self.constraints.max_lut
+                and cost_estimate.resource_lut > self.constraints.max_lut
             ):
                 return False
             if (
@@ -99,17 +99,17 @@ class BaseSearcher:
         hardware_spec = self.estimator.hardware_spec
         if (
             hardware_spec.max_dsp is not None
-            and cost_estimate.peak_dsp > hardware_spec.max_dsp
+            and cost_estimate.resource_dsp > hardware_spec.max_dsp
         ):
             return False
         if (
             hardware_spec.max_bram is not None
-            and cost_estimate.peak_bram > hardware_spec.max_bram
+            and cost_estimate.resource_bram > hardware_spec.max_bram
         ):
             return False
         if (
             hardware_spec.max_lut is not None
-            and cost_estimate.peak_lut > hardware_spec.max_lut
+            and cost_estimate.resource_lut > hardware_spec.max_lut
         ):
             return False
         if (

@@ -11,10 +11,12 @@ Key design principles:
 
 from __future__ import annotations
 
+import json
+import math
 import pickle
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
-import math
 
 
 # ============================================================================
@@ -232,6 +234,20 @@ class LutTable:
         with open(path, "wb") as f:
             pickle.dump(data, f)
 
+    def save_json(self, path: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """Save a human-readable JSON representation of the LUT."""
+        data = {
+            "entries": [entry.to_dict() for entry in self._index.values()],
+            "duplicates": {
+                str(k): [e.to_dict() for e in v]
+                for k, v in self._duplicates.items()
+            },
+        }
+        if metadata:
+            data["metadata"] = dict(metadata)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
     @classmethod
     def load(cls, path: str) -> "LutTable":
         """从文件加载 LUT"""
@@ -241,6 +257,109 @@ class LutTable:
         lut_table = cls()
         for entry_data in data["entries"]:
             lut_table.add(LutEntry.from_dict(entry_data))
+
+        return lut_table
+
+    @classmethod
+    def load_json(
+        cls,
+        path: str,
+        *,
+        default_clock_mhz: Optional[int] = None,
+    ) -> "LutTable":
+        """Load a LUT from JSON.
+
+        Supports both the structured ``{"entries": [...]}`` format and the
+        legacy analytical ``{"op_k3_e1_cin16_...": {...}}`` mapping.
+        """
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if isinstance(data, dict) and isinstance(data.get("entries"), list):
+            lut_table = cls()
+            for entry_data in data["entries"]:
+                lut_table.add(LutEntry.from_dict(entry_data))
+            return lut_table
+
+        if isinstance(data, dict):
+            return cls._load_legacy_json_map(data, default_clock_mhz=default_clock_mhz)
+
+        raise ValueError(f"Unsupported LUT JSON format: {path}")
+
+    @classmethod
+    def _load_legacy_json_map(
+        cls,
+        payload: Dict[str, Any],
+        *,
+        default_clock_mhz: Optional[int] = None,
+    ) -> "LutTable":
+        lut_table = cls()
+        clock_mhz = float(payload.get("clock_mhz", default_clock_mhz or 200))
+        pattern = re.compile(
+            r"^(?P<op>.+)_k(?P<kernel>\d+)_e(?P<expand>\d+)_cin(?P<cin>\d+)_cout(?P<cout>\d+)_res(?P<res>\d+)_s(?P<stride>\d+)$"
+        )
+
+        for raw_key, raw_metrics in payload.items():
+            if raw_key == "clock_mhz" or not isinstance(raw_metrics, dict):
+                continue
+
+            match = pattern.match(str(raw_key))
+            if match is None:
+                continue
+
+            op = match.group("op")
+            kernel_size = int(match.group("kernel"))
+            expand_ratio = int(match.group("expand"))
+            in_channels = int(match.group("cin"))
+            out_channels = int(match.group("cout"))
+            resolution = int(match.group("res"))
+            stride = int(match.group("stride"))
+
+            if op == "skip" and (kernel_size != 1 or expand_ratio != 1):
+                continue
+
+            lut_op = {
+                "conv": "conv",
+                "dw_pw_conv": "dw_pw_conv",
+                "mbconv": "mbconv",
+                "fused_mbconv": "fused_mbconv",
+                "skip": "skip",
+                "mixconv": "mixconv",
+                "denoise": "denoise",
+                "edge": "edge",
+            }.get(op, op)
+            groups = in_channels if op in {"dw_pw_conv", "mixconv", "denoise", "edge"} else 1
+
+            latency_ms = float(raw_metrics.get("latency_ms", 0.0))
+            power_w = float(raw_metrics.get("power_w", 0.0))
+            energy_mj = raw_metrics.get("energy_mj")
+            if energy_mj is None:
+                energy_mj = power_w * latency_ms
+            cycles = raw_metrics.get("cycles")
+            if cycles is None:
+                cycles = int(round(latency_ms * clock_mhz * 1_000.0))
+
+            lut_table.add(
+                LutEntry(
+                    op_spec=OpSpec(
+                        op=lut_op,
+                        kernel_size=kernel_size,
+                        in_channels=in_channels,
+                        out_channels=out_channels,
+                        stride=stride,
+                        groups=groups,
+                        expand_ratio=expand_ratio,
+                        input_resolution=(resolution, resolution),
+                    ),
+                    latency_ms=latency_ms,
+                    cycles=int(cycles),
+                    dsp=int(raw_metrics.get("dsp", 0)),
+                    bram=int(raw_metrics.get("bram", 0)),
+                    lut=int(raw_metrics.get("lut", 0)),
+                    power_w=power_w,
+                    energy_mj=float(energy_mj),
+                )
+            )
 
         return lut_table
 

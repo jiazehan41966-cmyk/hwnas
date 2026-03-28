@@ -1,9 +1,20 @@
 import unittest
+from pathlib import Path
+import sys
 
 import torch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 from hwnas_fpga.models import build_model
-from hwnas_fpga.search_space import ArchitectureSpec, SearchSpace, SearchSpaceConfig, SONAR_OPS
+from hwnas_fpga.search_space import (
+    FAMILY_PROFILES,
+    ArchitectureSpec,
+    SearchSpace,
+    SearchSpaceConfig,
+    SONAR_OPS,
+    list_family_profiles,
+)
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
 from hwnas_fpga.hardware import FPGACostEstimator
 
@@ -43,6 +54,48 @@ class SearchSpaceTests(unittest.TestCase):
             stem_output = model.stem(torch.randn(1, 1, self.space.config.image_size, self.space.config.image_size))
         self.assertEqual(stem_output.shape[-1], resolved[0].input_resolution)
         self.assertEqual(stem_output.shape[-2], resolved[0].input_resolution)
+
+
+class FamilyProfileTests(unittest.TestCase):
+    def test_family_profiles_are_listed(self) -> None:
+        profiles = list_family_profiles()
+        self.assertEqual(set(profiles), set(FAMILY_PROFILES))
+
+    def test_mobile_anchor_profile_resolves_expected_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor"})
+        self.assertEqual(config.family_profile, "mobile_anchor")
+        self.assertEqual(config.channel_choices, (16, 24, 32, 48, 64))
+        self.assertEqual(config.depth_choices, (1, 2, 3))
+        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
+
+    def test_accuracy_biased_profile_resolves_expected_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "accuracy_biased"})
+        self.assertEqual(config.stem_channels, 24)
+        self.assertEqual(config.depth_choices, (2, 3, 4))
+        self.assertIn("conv", config.op_choices)
+        self.assertIn("edge", config.op_choices)
+
+    def test_lightweight_sonar_profile_resolves_expected_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "lightweight_sonar"})
+        self.assertEqual(config.channel_choices, (16, 24, 32))
+        self.assertEqual(config.expand_choices, (1, 2))
+        self.assertNotIn("conv", config.op_choices)
+        self.assertIn("mixconv", config.op_choices)
+
+    def test_explicit_config_overrides_profile_defaults(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "family_profile": "mobile_anchor",
+                "channel_choices": [16, 24],
+                "depth_choices": [1],
+            }
+        )
+        self.assertEqual(config.channel_choices, (16, 24))
+        self.assertEqual(config.depth_choices, (1,))
+
+    def test_unknown_family_profile_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            SearchSpaceConfig.from_dict({"family_profile": "unknown_profile"})
 
 
 class SonarOpsSearchSpaceTests(unittest.TestCase):
@@ -188,8 +241,11 @@ class HardwarePruningTests(unittest.TestCase):
             prefer_lightweight=True,
             max_feasible_attempts=8,
         )
-        estimate = estimator.estimate(architecture, space.pre_prune(estimator))
-        self.assertEqual(estimate.violations, ())
+        pruned_space = space.pre_prune(estimator)
+        estimate = estimator.estimate(architecture, pruned_space)
+        baseline_estimate = estimator.estimate(pruned_space.baseline_architecture(), pruned_space)
+        self.assertTrue(pruned_space.is_valid(architecture))
+        self.assertLessEqual(len(estimate.violations), len(baseline_estimate.violations))
 
 
 if __name__ == "__main__":

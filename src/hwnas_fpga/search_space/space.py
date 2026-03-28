@@ -31,6 +31,36 @@ HIGH_LUT_OPS = {"mixconv", "edge", "mbconv"}  # 高LUT消耗的算子
 HIGH_DSP_OPS = {"conv", "fused_mbconv"}        # 高DSP消耗的算子
 LIGHTWEIGHT_OPS = {"skip", "dw_pw_conv", "denoise"}  # 轻量级算子
 
+FAMILY_PROFILES: dict[str, dict[str, Any]] = {
+    "mobile_anchor": {
+        "stem_channels": 16,
+        "stage_strides": (1, 2, 2, 2),
+        "channel_choices": (16, 24, 32, 48, 64),
+        "depth_choices": (1, 2, 3),
+        "kernel_choices": (3, 5),
+        "expand_choices": (1, 2, 4),
+        "op_choices": ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"),
+    },
+    "accuracy_biased": {
+        "stem_channels": 24,
+        "stage_strides": (1, 2, 2, 2),
+        "channel_choices": (24, 32, 48, 64, 96),
+        "depth_choices": (2, 3, 4),
+        "kernel_choices": (3, 5),
+        "expand_choices": (2, 4),
+        "op_choices": ("conv", "mbconv", "fused_mbconv", "mixconv", "denoise", "edge"),
+    },
+    "lightweight_sonar": {
+        "stem_channels": 16,
+        "stage_strides": (1, 2, 2, 2),
+        "channel_choices": (16, 24, 32),
+        "depth_choices": (1, 2),
+        "kernel_choices": (3, 5),
+        "expand_choices": (1, 2),
+        "op_choices": ("dw_pw_conv", "skip", "mixconv", "denoise", "edge"),
+    },
+}
+
 
 def _as_int_tuple(values: Union[Sequence[int], Sequence[str]]) -> tuple[int, ...]:
     return tuple(int(value) for value in values)
@@ -38,6 +68,21 @@ def _as_int_tuple(values: Union[Sequence[int], Sequence[str]]) -> tuple[int, ...
 
 def _as_str_tuple(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(str(value) for value in values)
+
+
+def _resolve_family_profile(name: Optional[str]) -> dict[str, Any]:
+    if name is None:
+        return {}
+    normalized = str(name).strip()
+    if not normalized:
+        return {}
+    if normalized not in FAMILY_PROFILES:
+        raise ValueError(f"unsupported family profile: {normalized}")
+    return dict(FAMILY_PROFILES[normalized])
+
+
+def list_family_profiles() -> dict[str, dict[str, Any]]:
+    return {name: dict(values) for name, values in FAMILY_PROFILES.items()}
 
 
 def _weighted_choice(random: Random, values: Sequence[Any], weights: Sequence[float]) -> Any:
@@ -56,6 +101,7 @@ def _weighted_choice(random: Random, values: Sequence[Any], weights: Sequence[fl
 
 @dataclass(frozen=True)
 class SearchSpaceConfig:
+    family_profile: Optional[str] = None
     input_channels: int = 1
     image_size: int = 224
     stem_channels: int = 16
@@ -71,6 +117,8 @@ class SearchSpaceConfig:
     hardware_constraints: Optional[SearchConstraints] = None  # 硬件约束参数
 
     def __post_init__(self) -> None:
+        if self.family_profile is not None and self.family_profile not in FAMILY_PROFILES:
+            raise ValueError(f"unsupported family profile: {self.family_profile}")
         if self.input_channels <= 0:
             raise ValueError("input_channels must be positive")
         if self.image_size <= 0:
@@ -103,6 +151,11 @@ class SearchSpaceConfig:
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "SearchSpaceConfig":
         data = dict(payload)
+        family_profile = data.get("family_profile")
+        profile_defaults = _resolve_family_profile(family_profile)
+        if family_profile is not None:
+            profile_defaults["family_profile"] = str(family_profile)
+        data = {**profile_defaults, **data}
         if "stages" in data and "stage_strides" not in data:
             stage_count = int(data["stages"])
             data["stage_strides"] = tuple([1] + [2] * (stage_count - 1))
@@ -563,7 +616,7 @@ class SearchSpace:
 
             violation_score = (
                 len(estimate.violations),
-                estimate.latency_ms + estimate.energy_mj + estimate.peak_dsp + estimate.peak_lut,
+                estimate.latency_ms + estimate.energy_mj + estimate.resource_dsp + estimate.resource_lut,
             )
             if best_violation_score is None or violation_score < best_violation_score:
                 best_violation_score = violation_score

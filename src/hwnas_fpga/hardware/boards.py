@@ -31,6 +31,17 @@ BOARD_PROFILES: dict[str, HardwareSpec] = {
         memory_bandwidth_gbps=8.0,
         offchip_mem_mb=1024.0,
     ),
+    "alinx_av7k325": HardwareSpec(
+        name="ALINX AV7K325 (XC7K325T-2FFG900I)",
+        clock_mhz=200,
+        max_lut=50_950,
+        max_ff=407_600,
+        max_bram=445,
+        max_dsp=840,
+        max_power_w=12.0,
+        memory_bandwidth_gbps=12.8,
+        offchip_mem_mb=2048.0,
+    ),
 }
 
 BOARD_ALIASES = {
@@ -44,6 +55,11 @@ BOARD_ALIASES = {
     "kintex-7": "kintex7_xc7k325",
     "kintex7_xc7k325": "kintex7_xc7k325",
     "kintex7_xc7k325t": "kintex7_xc7k325",
+    "av7k325": "alinx_av7k325",
+    "av7k3252": "alinx_av7k325",
+    "alinxav7k325": "alinx_av7k325",
+    "alinx_av7k325": "alinx_av7k325",
+    "alinx-av7k325": "alinx_av7k325",
 }
 
 

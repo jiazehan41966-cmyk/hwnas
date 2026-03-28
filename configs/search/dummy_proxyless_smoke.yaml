@@ -11,6 +11,7 @@ dataset:
   num_workers: 0
 
 search_space:
+  family_profile: mobile_anchor
   macro_type: stage_based
   stem_stride: 2
   stage_strides: [1, 2, 2, 2]

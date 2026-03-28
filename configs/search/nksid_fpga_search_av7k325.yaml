@@ -7,20 +7,20 @@ dataset:
   name: nksid
   data_dir: data/NKSID
   input_channels: 1
-  image_size: 64
+  image_size: 224
   num_classes: 8
   fold: 0
-  num_workers: 0
+  num_workers: 4
   normalization: grayscale
 
 search_space:
-  family_profile: mobile_anchor
+  family_profile: lightweight_sonar
   macro_type: stage_based
   stem_stride: 2
   stage_strides: [1, 2, 2, 2]
   stem_channels: 16
-  channel_choices: [16, 24, 32, 48, 64]
-  depth_choices: [1, 2, 3]
+  channel_choices: [16, 24, 32, 48, 64, 96]
+  depth_choices: [1, 2, 3, 4]
   kernel_choices: [3, 5]
   expand_choices: [1, 2, 4]
   op_choices:
@@ -29,6 +29,9 @@ search_space:
     - mbconv
     - fused_mbconv
     - skip
+    - mixconv
+    - denoise
+    - edge
 
 constraints:
   max_latency_ms: 50.0
@@ -42,47 +45,34 @@ constraints:
 
 hardware:
   target: fpga
-  board: zynq7020
-  clock_mhz: 200
+  board: alinx_av7k325
   quantization_bits: 8
   estimator: analytic_lut_then_hls
   lut_path: null
   use_dummy_lut: false
 
 search:
-  method: proxyless
-  num_candidates: 100
-  eval_epochs: 30
+  method: rl
+  num_candidates: 20
+  eval_epochs: 3
   timeout_minutes: null
   controller_hidden: 64
-  controller_lr: 0.005
-  episodes: 80
+  controller_lr: 0.01
+  episodes: 20
   pareto:
     selection_method: rank
     topk: 5
   objective_weights:
     accuracy: 1.0
-    latency: 0.25
-    energy: 0.05
-    resource: 0.12
-  proxyless:
-    warmup_epochs: 5
-    search_epochs: 30
-    weight_lr: 0.025
-    weight_momentum: 0.9
-    weight_decay: 0.0003
-    arch_lr: 0.001
-    arch_weight_decay: 0.0
-    temperature: 1.0
-    stage_channels: [16, 24, 32, 32]
-    stage_depth: 3
-    max_eval_batches: 20
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
 
 training:
   optimizer: adamw
   lr: 0.001
   weight_decay: 0.0001
-  batch_size: 64
+  batch_size: 32
   epochs: 100
 
 deployment:

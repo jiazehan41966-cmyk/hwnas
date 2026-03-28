@@ -1,4 +1,8 @@
 import unittest
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
@@ -57,6 +61,18 @@ class SearchFactoryTests(unittest.TestCase):
         self.assertAlmostEqual(searcher.reward_function.dsp_weight, 0.4)
         self.assertAlmostEqual(searcher.reward_function.bram_weight, 0.4)
         self.assertAlmostEqual(searcher.reward_function.lut_weight, 0.4)
+
+    def test_create_searcher_with_family_profiled_space(self) -> None:
+        profiled_space = SearchSpace(SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor", "num_classes": 8}))
+        searcher = create_searcher(
+            search_space=profiled_space,
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            method="random",
+            seed=7,
+        )
+        self.assertIsInstance(searcher, RandomSearcher)
+        self.assertEqual(profiled_space.config.family_profile, "mobile_anchor")
 
     def test_build_pareto_objectives_from_weights_and_constraints(self) -> None:
         objectives, directions = build_pareto_objectives(

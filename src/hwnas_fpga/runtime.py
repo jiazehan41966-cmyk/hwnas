@@ -75,7 +75,7 @@ def build_constraints(config: dict[str, Any]) -> SearchConstraints:
 def build_hardware_spec(config: dict[str, Any]) -> HardwareSpec:
     hardware_cfg = config.get("hardware", {})
     overrides = {
-        "name": hardware_cfg.get("name") or hardware_cfg.get("board"),
+        "name": hardware_cfg.get("name"),
         "clock_mhz": hardware_cfg.get("clock_mhz"),
         "max_lut": hardware_cfg.get("max_lut"),
         "max_ff": hardware_cfg.get("max_ff"),
@@ -97,23 +97,24 @@ def build_search_space(
     constraints: SearchConstraints,
 ) -> SearchSpace:
     search_cfg = config.get("search_space", {})
-    return SearchSpace(
-        SearchSpaceConfig(
-            input_channels=input_channels,
-            image_size=image_size,
-            stem_channels=search_cfg.get("stem_channels", 16),
-            stem_stride=search_cfg.get("stem_stride", 2),
-            stage_strides=tuple(search_cfg.get("stage_strides", (1, 2, 2, 2))),
-            channel_choices=tuple(search_cfg.get("channel_choices", (16, 24, 32, 48, 64, 96))),
-            depth_choices=tuple(search_cfg.get("depth_choices", (1, 2, 3, 4))),
-            kernel_choices=tuple(search_cfg.get("kernel_choices", (3, 5))),
-            expand_choices=tuple(search_cfg.get("expand_choices", (1, 2, 4))),
-            op_choices=tuple(search_cfg.get("op_choices", DEFAULT_OP_CHOICES)),
-            head_channels=search_cfg.get("head_channels"),
-            num_classes=num_classes,
-            hardware_constraints=constraints,
-        )
-    )
+    payload = {
+        "family_profile": search_cfg.get("family_profile"),
+        "input_channels": input_channels,
+        "image_size": image_size,
+        "stem_channels": search_cfg.get("stem_channels"),
+        "stem_stride": search_cfg.get("stem_stride"),
+        "stage_strides": search_cfg.get("stage_strides"),
+        "channel_choices": search_cfg.get("channel_choices"),
+        "depth_choices": search_cfg.get("depth_choices"),
+        "kernel_choices": search_cfg.get("kernel_choices"),
+        "expand_choices": search_cfg.get("expand_choices"),
+        "op_choices": search_cfg.get("op_choices"),
+        "head_channels": search_cfg.get("head_channels"),
+        "num_classes": num_classes,
+        "hardware_constraints": constraints,
+    }
+    normalized_payload = {key: value for key, value in payload.items() if value is not None}
+    return SearchSpace(SearchSpaceConfig.from_dict(normalized_payload))
 
 
 def load_lut_query_engine(config: dict[str, Any]) -> Optional[LutQueryEngine]:
@@ -126,7 +127,14 @@ def load_lut_query_engine(config: dict[str, Any]) -> Optional[LutQueryEngine]:
             lut_file = (Path.cwd() / lut_file).resolve()
         if not lut_file.exists():
             raise FileNotFoundError(f"LUT table file not found: {lut_file}")
-        return LutQueryEngine(LutTable.load(str(lut_file)))
+        if lut_file.suffix.lower() == ".json":
+            lut_table = LutTable.load_json(
+                str(lut_file),
+                default_clock_mhz=hardware_cfg.get("clock_mhz"),
+            )
+        else:
+            lut_table = LutTable.load(str(lut_file))
+        return LutQueryEngine(lut_table)
     if use_dummy_lut:
         return LutQueryEngine(create_dummy_fpga_lut())
     return None

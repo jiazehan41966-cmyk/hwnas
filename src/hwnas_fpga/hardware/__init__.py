@@ -1,5 +1,6 @@
 """Hardware cost estimation and FPGA measurement hooks."""
 
+from .backbone_cost import BackboneCostEstimate, BackboneCostEstimator, BackboneLayerCost
 from .boards import BOARD_PROFILES, get_board_profile, list_board_profiles, resolve_board_profile
 from .cost import CostEstimate, FPGACostEstimator, LayerCost
 from .lookup_table import (
@@ -15,6 +16,9 @@ from .report_parser import lut_entry_from_report, parse_hls_report, parse_hls_re
 
 __all__ = [
     "BOARD_PROFILES",
+    "BackboneCostEstimate",
+    "BackboneCostEstimator",
+    "BackboneLayerCost",
     "CostEstimate",
     "FPGACostEstimator",
     "LayerCost",

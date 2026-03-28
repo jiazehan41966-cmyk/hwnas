@@ -627,9 +627,9 @@ class RLSearcher:
 
         metrics = {
             "latency_ms": cost_estimate.latency_ms,
-            "dsp": cost_estimate.peak_dsp,
-            "bram": cost_estimate.peak_bram,
-            "lut": cost_estimate.peak_lut,
+            "dsp": cost_estimate.resource_dsp,
+            "bram": cost_estimate.resource_bram,
+            "lut": cost_estimate.resource_lut,
             "power_w": cost_estimate.power_w,
             "energy_mj": cost_estimate.energy_mj,
             "memory_bandwidth_gbps": cost_estimate.memory_bandwidth_gbps,
@@ -708,17 +708,17 @@ class RLSearcher:
                 return False
             if (
                 self.constraints.max_dsp is not None
-                and cost_estimate.peak_dsp > self.constraints.max_dsp
+                and cost_estimate.resource_dsp > self.constraints.max_dsp
             ):
                 return False
             if (
                 self.constraints.max_bram is not None
-                and cost_estimate.peak_bram > self.constraints.max_bram
+                and cost_estimate.resource_bram > self.constraints.max_bram
             ):
                 return False
             if (
                 self.constraints.max_lut is not None
-                and cost_estimate.peak_lut > self.constraints.max_lut
+                and cost_estimate.resource_lut > self.constraints.max_lut
             ):
                 return False
             if (
@@ -738,6 +738,21 @@ class RLSearcher:
                 return False
 
         hardware_spec = self.estimator.hardware_spec
+        if (
+            hardware_spec.max_dsp is not None
+            and cost_estimate.resource_dsp > hardware_spec.max_dsp
+        ):
+            return False
+        if (
+            hardware_spec.max_bram is not None
+            and cost_estimate.resource_bram > hardware_spec.max_bram
+        ):
+            return False
+        if (
+            hardware_spec.max_lut is not None
+            and cost_estimate.resource_lut > hardware_spec.max_lut
+        ):
+            return False
         if (
             hardware_spec.max_power_w is not None
             and cost_estimate.power_w > hardware_spec.max_power_w

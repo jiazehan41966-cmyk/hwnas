@@ -1,0 +1,11 @@
+hardware:
+  board: alinx_av7k325
+  clock_mhz: 200
+  quantization_bits: 8
+  max_lut: 50950
+  max_ff: 407600
+  max_bram: 445
+  max_dsp: 840
+  max_power_w: 12.0
+  memory_bandwidth_gbps: 12.8
+  offchip_mem_mb: 2048.0

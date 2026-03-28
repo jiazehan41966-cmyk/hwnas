@@ -105,17 +105,34 @@ def _resolve_sample_path(root: Path, relative_path: str) -> Path:
     return candidates[0]
 
 
+class AddSpeckleNoise(object):
+    """声呐特有的散斑噪声 (Speckle Noise) 仿真
+    散斑噪声是一种乘性噪声: J = I + I * n
+    """
+    def __init__(self, prob: float = 0.5, variance: float = 0.04):
+        self.prob = prob
+        self.variance = variance
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        if torch.rand(1).item() < self.prob:
+            # tensor 形状通常为 [C, H, W]
+            noise = torch.randn_like(tensor) * (self.variance ** 0.5)
+            noisy_tensor = tensor + tensor * noise
+            return torch.clamp(noisy_tensor, 0.0, 1.0)
+        return tensor
+
 def get_sonar_transforms(
     image_size: int = 224,
     is_training: bool = True,
     normalize: bool = True,
+    output_channels: int = 1,
 ) -> Callable:
     """
     获取声呐图像专用的数据变换。
     
     声呐图像特点：
-    - 单通道灰度图像
-    - 存在斑点噪声
+    - 单通道灰度图像 (支持转为3通道以适配预训练模型)
+    - 存在斑点噪声 (Speckle Noise)
     - 目标边界模糊
     - 主要依赖纹理和几何特征
     
@@ -123,17 +140,30 @@ def get_sonar_transforms(
         image_size: 目标图像尺寸
         is_training: 是否为训练模式（启用数据增强）
         normalize: 是否进行归一化
+        output_channels: 输出通道数 (1或3)
         
     Returns:
         组合的变换函数
     """
     if not HAS_TORCHVISION:
         def _fallback_transform(image: "Image.Image") -> torch.Tensor:
+            if output_channels == 3:
+                image = image.convert('RGB')
+            else:
+                image = image.convert('L')
             resized = image.resize((image_size, image_size))
             array = np.asarray(resized, dtype=np.float32) / 255.0
-            tensor = torch.from_numpy(array).unsqueeze(0)
+            
+            if output_channels == 1:
+                tensor = torch.from_numpy(array).unsqueeze(0)
+            else:
+                tensor = torch.from_numpy(array).permute(2, 0, 1)
+                
             if normalize:
-                tensor = (tensor - 0.5) / 0.5
+                if output_channels == 1:
+                    tensor = (tensor - 0.5) / 0.5
+                else:
+                    tensor = T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(tensor)
             return tensor
 
         return _fallback_transform
@@ -162,10 +192,18 @@ def get_sonar_transforms(
     # 转换为Tensor
     transforms_list.append(T.ToTensor())
     
-    # 归一化（单通道声呐图像）
+    if is_training:
+        # 添加物理仿真的散斑噪声
+        transforms_list.append(AddSpeckleNoise(prob=0.3, variance=0.04))
+    
+    # 归一化
     if normalize:
-        # 使用声呐图像的典型均值和标准差
-        transforms_list.append(T.Normalize(mean=[0.5], std=[0.5]))
+        if output_channels == 1:
+            # 使用声呐图像的典型均值和标准差
+            transforms_list.append(T.Normalize(mean=[0.5], std=[0.5]))
+        else:
+            # ImageNet的均值和标准差
+            transforms_list.append(T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
     
     return T.Compose(transforms_list)
 
@@ -217,6 +255,7 @@ class NKSIDDataset(Dataset):
         fold: int = 0,
         use_kfold: bool = True,
         split: str = "train",  # "train" or "val"
+        output_channels: int = 1, # 1 为灰度图, 3 为 RGB (适配预训练模型)
     ):
         """
         初始化NKSID数据集。
@@ -229,6 +268,7 @@ class NKSIDDataset(Dataset):
             fold: 使用第几折交叉验证 (0-9，共10次5折)
             use_kfold: 是否使用k折交叉验证划分
             split: 数据集划分 ("train" 或 "val")
+            output_channels: 输出通道数 (1或3)
         """
         if not HAS_PIL:
             raise ImportError("PIL is required for image loading. Install with: pip install Pillow")
@@ -240,6 +280,7 @@ class NKSIDDataset(Dataset):
         self.fold = fold
         self.use_kfold = use_kfold
         self.split = split
+        self.output_channels = output_channels
         self.classes = list(self.CLASSES)
         self.label_to_class = {idx: name for idx, name in enumerate(self.classes)}
         
@@ -250,6 +291,7 @@ class NKSIDDataset(Dataset):
             self.transform = get_sonar_transforms(
                 image_size=image_size,
                 is_training=is_training,
+                output_channels=output_channels,
             )
         
         # 加载数据列表
@@ -427,27 +469,34 @@ class NKSIDDataset(Dataset):
         try:
             image = Image.open(img_path)
             
-            # 转换为灰度图（声呐图像通常是单通道）
-            if image.mode != 'L':
-                image = image.convert('L')
+            # 通道适配: 转为灰度或RGB
+            target_mode = 'RGB' if self.output_channels == 3 else 'L'
+            if image.mode != target_mode:
+                image = image.convert(target_mode)
             
             # 应用变换
             if self.transform:
                 image = self.transform(image)
             else:
                 # 默认转换为tensor
-                image = torch.from_numpy(np.array(image)).float().unsqueeze(0) / 255.0
+                image_arr = np.array(image)
+                if self.output_channels == 1:
+                    image_tensor = torch.from_numpy(image_arr).float().unsqueeze(0) / 255.0
+                else:
+                    image_tensor = torch.from_numpy(image_arr).float().permute(2, 0, 1) / 255.0
+                image = image_tensor
             
             return image, label
             
         except Exception as e:
             print(f"[NKSID] 加载图像失败: {img_path}, 错误: {e}")
             # 返回一个空白图像
+            target_mode = 'RGB' if self.output_channels == 3 else 'L'
             if self.transform:
-                dummy = Image.new('L', (self.image_size, self.image_size), 128)
+                dummy = Image.new(target_mode, (self.image_size, self.image_size), 128 if target_mode == 'L' else (128,128,128))
                 return self.transform(dummy), label
             else:
-                return torch.zeros(1, self.image_size, self.image_size), label
+                return torch.zeros(self.output_channels, self.image_size, self.image_size), label
     
     def get_class_distribution(self) -> dict:
         """获取类别分布统计"""

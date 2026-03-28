@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 from math import ceil
@@ -47,6 +47,9 @@ class CostEstimate:
     peak_dsp: int
     peak_bram: int
     peak_lut: int
+    total_dsp: int
+    total_bram: int
+    total_lut: int
     latency_cycles: int
     latency_ms: float
     power_w: float
@@ -56,13 +59,25 @@ class CostEstimate:
     violations: tuple[str, ...]
     per_layer: tuple[LayerCost, ...]
 
+    @property
+    def resource_dsp(self) -> int:
+        return self.total_dsp
+
+    @property
+    def resource_bram(self) -> int:
+        return self.total_bram
+
+    @property
+    def resource_lut(self) -> int:
+        return self.total_lut
+
     def to_candidate_metrics(self) -> CandidateMetrics:
         return CandidateMetrics(
             latency_ms=self.latency_ms,
             energy_mj=self.energy_mj,
-            lut=self.peak_lut,
-            bram=self.peak_bram,
-            dsp=self.peak_dsp,
+            lut=self.resource_lut,
+            bram=self.resource_bram,
+            dsp=self.resource_dsp,
             power_w=self.power_w,
             memory_bandwidth_gbps=self.memory_bandwidth_gbps,
             offchip_mem_mb=self.offchip_mem_mb,
@@ -90,9 +105,8 @@ class FPGACostEstimator:
         self.pipeline_efficiency = pipeline_efficiency
         self.default_dsp_budget = default_dsp_budget
         self.lut_query_engine = lut_query_engine
-        self.lut_hits = 0  # LUT 命中计数
-        self.lut_misses = 0  # LUT 未命中计数
-
+        self.lut_hits = 0  # LUT 鍛戒腑璁℃暟
+        self.lut_misses = 0  # LUT 鏈懡涓鏁?
     def estimate(
         self,
         architecture: ArchitectureSpec,
@@ -115,10 +129,17 @@ class FPGACostEstimator:
         peak_dsp = max((layer.allocated_dsp for layer in per_layer), default=0)
         peak_bram = max((layer.bram_blocks for layer in per_layer), default=0)
         peak_lut = max((layer.lut for layer in per_layer), default=0)
+        total_dsp = sum(layer.allocated_dsp for layer in per_layer)
+        total_bram = sum(layer.bram_blocks for layer in per_layer)
+        total_lut = sum(layer.lut for layer in per_layer)
         latency_cycles = sum(layer.latency_cycles for layer in per_layer)
         latency_ms = latency_cycles / (self.hardware_spec.clock_mhz * 1_000)
         model_size_mb = total_params * self._bytes_per_scalar / (1024**2)
-        power_w = self._estimate_power(peak_dsp=peak_dsp, peak_bram=peak_bram, peak_lut=peak_lut)
+        power_w = self._estimate_power(
+            peak_dsp=peak_dsp,
+            peak_bram=peak_bram,
+            peak_lut=peak_lut,
+        )
         energy_mj = power_w * latency_ms
         total_memory_traffic_bytes = sum(
             layer.activation_bytes + layer.weight_bytes for layer in per_layer
@@ -132,9 +153,9 @@ class FPGACostEstimator:
             latency_ms=latency_ms,
             energy_mj=energy_mj,
             model_size_mb=model_size_mb,
-            peak_dsp=peak_dsp,
-            peak_bram=peak_bram,
-            peak_lut=peak_lut,
+            resource_dsp=total_dsp,
+            resource_bram=total_bram,
+            resource_lut=total_lut,
             power_w=power_w,
             memory_bandwidth_gbps=memory_bandwidth_gbps,
             offchip_mem_mb=offchip_mem_mb,
@@ -150,6 +171,9 @@ class FPGACostEstimator:
             peak_dsp=peak_dsp,
             peak_bram=peak_bram,
             peak_lut=peak_lut,
+            total_dsp=total_dsp,
+            total_bram=total_bram,
+            total_lut=total_lut,
             latency_cycles=latency_cycles,
             latency_ms=latency_ms,
             power_w=power_w,
@@ -273,13 +297,13 @@ class FPGACostEstimator:
         )
 
     def _estimate_block(self, block: ResolvedBlockSpec) -> LayerCost:
-        # 1. 尝试 LUT 查询（如果可用）
+        # 1. 灏濊瘯 LUT 鏌ヨ锛堝鏋滃彲鐢級
         if self.lut_query_engine:
             op_spec = self._block_to_op_spec(block)
             lut_entry = self.lut_query_engine.query(op_spec)
             if lut_entry:
                 self.lut_hits += 1
-                # 计算其他分析指标（params, macs 等）
+                # 璁＄畻鍏朵粬鍒嗘瀽鎸囨爣锛坧arams, macs 绛夛級
                 params, macs = self._block_params_macs(block)
                 weight_bytes = params * self._bytes_per_scalar
                 activation_bytes = self._tensor_bytes(block.output_resolution, block.out_channels)
@@ -304,7 +328,7 @@ class FPGACostEstimator:
                 )
             self.lut_misses += 1
 
-        # 2. 回退到分析模型
+        # 2. 鍥為€€鍒板垎鏋愭ā鍨?
         if block.op == "skip":
             input_bytes = self._tensor_bytes(block.input_resolution, block.in_channels)
             output_bytes = self._tensor_bytes(block.output_resolution, block.out_channels)
@@ -497,10 +521,10 @@ class FPGACostEstimator:
             )
             return fused_params + project_params, fused_macs + project_macs, raw_dsp
 
-        # 声呐专用多尺度卷积 (MixConv)
+        # 澹板憪涓撶敤澶氬昂搴﹀嵎绉?(MixConv)
         if block.op == "mixconv":
-            # MixConv 使用3,5,7三种kernel_size并行
-            # 总参数 = sum(每个kernel的dw参数) + pw参数
+            # MixConv 浣跨敤3,5,7涓夌kernel_size骞惰
+            # 鎬诲弬鏁?= sum(姣忎釜kernel鐨刣w鍙傛暟) + pw鍙傛暟
             dw_params = 0
             dw_macs = 0
             kernel_sizes = (3, 5, 7)
@@ -521,7 +545,7 @@ class FPGACostEstimator:
                 * block.in_channels
                 * block.out_channels
             )
-            # DSP估计：3个并行DW + 1个PW
+            # DSP浼拌锛?涓苟琛孌W + 1涓狿W
             raw_dsp = max(
                 max(
                     self._conv_dsp(
@@ -541,9 +565,9 @@ class FPGACostEstimator:
             )
             return dw_params + pw_params, dw_macs + pw_macs, raw_dsp
 
-        # 声呐专用去噪块 (DenoiseBlock)
+        # 澹板憪涓撶敤鍘诲櫔鍧?(DenoiseBlock)
         if block.op == "denoise":
-            # DW + PW (类似dw_pw_conv但带平滑)
+            # DW + PW (绫讳技dw_pw_conv浣嗗甫骞虫粦)
             dw_params = block.in_channels * block.kernel_size * block.kernel_size
             pw_params = block.in_channels * block.out_channels
             dw_macs = (
@@ -575,10 +599,10 @@ class FPGACostEstimator:
             )
             return dw_params + pw_params, dw_macs + pw_macs, raw_dsp
 
-        # 声呐专用边缘感知块 (EdgeAwareBlock)
+        # 澹板憪涓撶敤杈圭紭鎰熺煡鍧?(EdgeAwareBlock)
         if block.op == "edge":
-            # 4个方向的边缘检测 + 融合PW
-            edge_params = block.in_channels * block.kernel_size * block.kernel_size * 4  # 4个方向
+            # 4涓柟鍚戠殑杈圭紭妫€娴?+ 铻嶅悎PW
+            edge_params = block.in_channels * block.kernel_size * block.kernel_size * 4
             fusion_params = block.in_channels * 4 * block.out_channels
             edge_macs = (
                 block.output_resolution
@@ -646,9 +670,9 @@ class FPGACostEstimator:
             "mbconv": 180,
             "fused_mbconv": 170,
             "skip": 32,
-            "mixconv": 200,  # 声呐专用多尺度卷积，LUT开销略高
-            "denoise": 150,  # 声呐专用去噪块，类似dw_pw_conv但带平滑
-            "edge": 180,     # 声呐专用边缘感知块，多方向检测
+            "mixconv": 200,
+            "denoise": 150,
+            "edge": 180,
         }[block.op]
         return (
             op_bias
@@ -684,20 +708,20 @@ class FPGACostEstimator:
         return _div_up(max(1, min(in_features, 256)) * max(1, min(out_features, 64)), 256 * self._pack_factor)
 
     def _block_to_op_spec(self, block: ResolvedBlockSpec) -> OpSpec:
-        """将 ResolvedBlockSpec 转换为 OpSpec，用于 LUT 查询"""
-        # 映射算子名称
+        """灏?ResolvedBlockSpec 杞崲涓?OpSpec锛岀敤浜?LUT 鏌ヨ"""
+        # 鏄犲皠绠楀瓙鍚嶇О
         op_mapping = {
             "conv": "conv",
-            "dw_pw_conv": "dw_conv",
+            "dw_pw_conv": "dw_pw_conv",
             "mbconv": "mbconv",
             "fused_mbconv": "fused_mbconv",
             "skip": "skip",
-            "mixconv": "dw_conv",      # LUT映射到depthwise conv
-            "denoise": "dw_conv",       # LUT映射到depthwise conv
-            "edge": "dw_conv",         # LUT映射到depthwise conv
+            "mixconv": "mixconv",
+            "denoise": "denoise",
+            "edge": "edge",
         }
 
-        # 确定分组数
+        # 纭畾鍒嗙粍鏁?
         groups = 1
         if block.op in {"dw_pw_conv", "mixconv", "denoise", "edge"}:
             groups = block.in_channels  # depthwise
@@ -714,17 +738,17 @@ class FPGACostEstimator:
         )
 
     def _block_params_macs(self, block: ResolvedBlockSpec) -> tuple[int, int]:
-        """计算 block 的参数量和 MACs"""
+        """璁＄畻 block 鐨勫弬鏁伴噺鍜?MACs"""
         if block.op == "skip":
             return 0, 0
 
-        # 对于声呐专用算子，直接使用 _block_complexity
-        # 这些算子都有有效的复杂度计算
+        # 瀵逛簬澹板憪涓撶敤绠楀瓙锛岀洿鎺ヤ娇鐢?_block_complexity
+        # 杩欎簺绠楀瓙閮芥湁鏈夋晥鐨勫鏉傚害璁＄畻
         params, macs, _ = self._block_complexity(block)
         return params, macs
 
     def get_lut_stats(self) -> dict[str, Any]:
-        """获取 LUT 统计信息"""
+        """鑾峰彇 LUT 缁熻淇℃伅"""
         total = self.lut_hits + self.lut_misses
         return {
             "hits": self.lut_hits,
@@ -739,9 +763,9 @@ class FPGACostEstimator:
         latency_ms: float,
         energy_mj: float,
         model_size_mb: float,
-        peak_dsp: int,
-        peak_bram: int,
-        peak_lut: int,
+        resource_dsp: int,
+        resource_bram: int,
+        resource_lut: int,
         power_w: float,
         memory_bandwidth_gbps: float,
         offchip_mem_mb: float,
@@ -763,11 +787,11 @@ class FPGACostEstimator:
                 and model_size_mb > self.constraints.max_model_size_mb
             ):
                 violations.append("model size exceeds max_model_size_mb")
-            if self.constraints.max_dsp is not None and peak_dsp > self.constraints.max_dsp:
+            if self.constraints.max_dsp is not None and resource_dsp > self.constraints.max_dsp:
                 violations.append("DSP usage exceeds max_dsp")
-            if self.constraints.max_bram is not None and peak_bram > self.constraints.max_bram:
+            if self.constraints.max_bram is not None and resource_bram > self.constraints.max_bram:
                 violations.append("BRAM usage exceeds max_bram")
-            if self.constraints.max_lut is not None and peak_lut > self.constraints.max_lut:
+            if self.constraints.max_lut is not None and resource_lut > self.constraints.max_lut:
                 violations.append("LUT usage exceeds max_lut")
             if self.constraints.max_power_w is not None and power_w > self.constraints.max_power_w:
                 violations.append("power exceeds max_power_w")
@@ -784,10 +808,12 @@ class FPGACostEstimator:
 
         if self.hardware_spec.max_power_w is not None and power_w > self.hardware_spec.max_power_w:
             violations.append("power exceeds hardware max_power_w")
-        if self.hardware_spec.max_bram is not None and peak_bram > self.hardware_spec.max_bram:
+        if self.hardware_spec.max_bram is not None and resource_bram > self.hardware_spec.max_bram:
             violations.append("BRAM usage exceeds hardware max_bram")
-        if self.hardware_spec.max_lut is not None and peak_lut > self.hardware_spec.max_lut:
+        if self.hardware_spec.max_lut is not None and resource_lut > self.hardware_spec.max_lut:
             violations.append("LUT usage exceeds hardware max_lut")
+        if self.hardware_spec.max_dsp is not None and resource_dsp > self.hardware_spec.max_dsp:
+            violations.append("DSP usage exceeds hardware max_dsp")
         if (
             self.hardware_spec.memory_bandwidth_gbps is not None
             and memory_bandwidth_gbps > self.hardware_spec.memory_bandwidth_gbps
@@ -799,3 +825,4 @@ class FPGACostEstimator:
         ):
             violations.append("offchip memory exceeds hardware offchip_mem_mb")
         return tuple(violations)
+

@@ -28,6 +28,7 @@ from hwnas_fpga.search import (
     compute_pareto_ranks,
     create_searcher,
 )
+from hwnas_fpga.search_space import list_family_profiles
 
 
 def _format_optional(value, fmt: str) -> str:
@@ -61,6 +62,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument(
+        "--family-profile",
+        type=str,
+        default=None,
+        choices=tuple(sorted(list_family_profiles().keys())),
+    )
+    parser.add_argument(
         "--search-method",
         type=str,
         default=None,
@@ -76,6 +83,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    config.setdefault("search_space", {})
+    if args.family_profile is not None:
+        config["search_space"]["family_profile"] = args.family_profile
 
     dataset_cfg = config.get("dataset", {})
     project_cfg = config.get("project", {})
@@ -138,6 +148,10 @@ def main() -> None:
             print(f"Using device: {device}")
             print(f"Dataset: {dataset_name}")
             print(f"Search method: {search_method}")
+            print(
+                "Family profile: "
+                f"{config.get('search_space', {}).get('family_profile', 'default')}"
+            )
             if data_dir:
                 print(f"Data dir: {data_dir}")
 
@@ -165,6 +179,7 @@ def main() -> None:
                     "kernel_choices": list(search_space.config.kernel_choices),
                     "expand_choices": list(search_space.config.expand_choices),
                     "op_choices": list(search_space.config.op_choices),
+                    "family_profile": search_space.config.family_profile,
                 }
             )
 
@@ -198,6 +213,7 @@ def main() -> None:
                     "kernel_choices": list(search_space.config.kernel_choices),
                     "expand_choices": list(search_space.config.expand_choices),
                     "op_choices": list(search_space.config.op_choices),
+                    "family_profile": search_space.config.family_profile,
                     "pruned": True,
                 }
             )
@@ -267,6 +283,9 @@ def main() -> None:
             print(f"  Params: {baseline_cost.params:,}")
             print(f"  MACs: {baseline_cost.macs:,}")
             print(f"  Latency: {baseline_cost.latency_ms:.2f}ms")
+            print(f"  Total DSP: {baseline_cost.resource_dsp}")
+            print(f"  Total BRAM: {baseline_cost.resource_bram}")
+            print(f"  Total LUT: {baseline_cost.resource_lut}")
             print(f"  Peak DSP: {baseline_cost.peak_dsp}")
             print(f"  Peak BRAM: {baseline_cost.peak_bram}")
             print(f"  Peak LUT: {baseline_cost.peak_lut}")

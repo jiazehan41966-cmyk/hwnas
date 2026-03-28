@@ -1,8 +1,11 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 import subprocess
 import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwnas_fpga.hardware import (
     LutEntry,
@@ -12,7 +15,8 @@ from hwnas_fpga.hardware import (
     get_board_profile,
     parse_hls_report_text,
 )
-from hwnas_fpga.runtime import load_lut_query_engine
+from hwnas_fpga.interfaces import SearchConstraints
+from hwnas_fpga.runtime import build_search_space, load_lut_query_engine
 
 
 class BoardProfileTests(unittest.TestCase):
@@ -22,6 +26,42 @@ class BoardProfileTests(unittest.TestCase):
         self.assertEqual(profile.max_bram, 140)
         self.assertGreater(profile.memory_bandwidth_gbps, 0.0)
         self.assertGreater(profile.offchip_mem_mb, 0.0)
+
+
+class SearchSpaceRuntimeTests(unittest.TestCase):
+    def test_build_search_space_applies_family_profile_defaults(self) -> None:
+        search_space = build_search_space(
+            {
+                "search_space": {
+                    "family_profile": "mobile_anchor",
+                }
+            },
+            image_size=64,
+            input_channels=1,
+            num_classes=8,
+            constraints=SearchConstraints(),
+        )
+        self.assertEqual(search_space.config.family_profile, "mobile_anchor")
+        self.assertEqual(search_space.config.channel_choices, (16, 24, 32, 48, 64))
+        self.assertEqual(search_space.config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
+
+    def test_build_search_space_explicit_values_override_profile(self) -> None:
+        search_space = build_search_space(
+            {
+                "search_space": {
+                    "family_profile": "lightweight_sonar",
+                    "channel_choices": [16, 24],
+                    "depth_choices": [1],
+                }
+            },
+            image_size=64,
+            input_channels=1,
+            num_classes=8,
+            constraints=SearchConstraints(),
+        )
+        self.assertEqual(search_space.config.family_profile, "lightweight_sonar")
+        self.assertEqual(search_space.config.channel_choices, (16, 24))
+        self.assertEqual(search_space.config.depth_choices, (1,))
 
 
 class LutRuntimeTests(unittest.TestCase):
@@ -58,6 +98,85 @@ class LutRuntimeTests(unittest.TestCase):
                         kernel_size=3,
                         in_channels=16,
                         out_channels=16,
+                        input_resolution=(56, 56),
+                    )
+                )
+            )
+
+    def test_load_lut_query_engine_from_structured_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lut_path = Path(tmpdir) / "fpga_lut.json"
+            lut_path.write_text(
+                json.dumps(
+                    {
+                        "entries": [
+                            {
+                                "op_spec": {
+                                    "op": "conv",
+                                    "kernel_size": 3,
+                                    "in_channels": 16,
+                                    "out_channels": 32,
+                                    "stride": 1,
+                                    "groups": 1,
+                                    "expand_ratio": 1,
+                                    "input_resolution": [56, 56],
+                                },
+                                "latency_ms": 0.2,
+                                "cycles": 40_000,
+                                "dsp": 12,
+                                "bram": 4,
+                                "lut": 256,
+                                "power_w": 3.2,
+                                "energy_mj": 0.64,
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            engine = load_lut_query_engine({"hardware": {"lut_path": str(lut_path), "clock_mhz": 200}})
+            self.assertIsNotNone(engine)
+            self.assertIsNotNone(
+                engine.query(
+                    OpSpec(
+                        op="conv",
+                        kernel_size=3,
+                        in_channels=16,
+                        out_channels=32,
+                        stride=1,
+                        input_resolution=(56, 56),
+                    )
+                )
+            )
+
+    def test_load_lut_query_engine_from_legacy_json_map(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lut_path = Path(tmpdir) / "legacy_lut.json"
+            lut_path.write_text(
+                json.dumps(
+                    {
+                        "clock_mhz": 200,
+                        "conv_k3_e1_cin16_cout32_res56_s1": {
+                            "dsp": 12,
+                            "bram": 4,
+                            "lut": 256,
+                            "latency_ms": 0.2,
+                            "energy_mj": 0.64,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            engine = load_lut_query_engine({"hardware": {"lut_path": str(lut_path), "clock_mhz": 200}})
+            self.assertIsNotNone(engine)
+            self.assertIsNotNone(
+                engine.query(
+                    OpSpec(
+                        op="conv",
+                        kernel_size=3,
+                        in_channels=16,
+                        out_channels=32,
+                        stride=1,
                         input_resolution=(56, 56),
                     )
                 )
@@ -201,6 +320,72 @@ entries:
                     )
                 )
             )
+
+    def test_generate_estimator_lut_cli_generates_json_and_pickle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            config_path = tmp_path / "lut_smoke.yaml"
+            output_json = tmp_path / "analytical_lut.json"
+            output_pkl = tmp_path / "analytical_lut.pkl"
+            summary_json = tmp_path / "summary.json"
+            config_path.write_text(
+                """
+dataset:
+  name: dummy
+  input_channels: 1
+  image_size: 32
+  num_classes: 4
+search_space:
+  stem_channels: 8
+  stem_stride: 2
+  stage_strides: [1, 2]
+  channel_choices: [8, 16]
+  depth_choices: [1, 2]
+  kernel_choices: [3]
+  expand_choices: [1, 2]
+  op_choices:
+    - conv
+    - dw_pw_conv
+    - mbconv
+    - fused_mbconv
+    - skip
+hardware:
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+                """.strip(),
+                encoding="utf-8",
+            )
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve().parents[1] / "generate_estimator_lut.py"),
+                    "--config",
+                    str(config_path),
+                    "--output-json",
+                    str(output_json),
+                    "--output-pkl",
+                    str(output_pkl),
+                    "--summary-json",
+                    str(summary_json),
+                    "--validation-samples",
+                    "2",
+                ],
+                check=True,
+                cwd=str(Path(__file__).resolve().parents[1]),
+            )
+
+            self.assertTrue(output_json.exists())
+            self.assertTrue(output_pkl.exists())
+            self.assertTrue(summary_json.exists())
+
+            engine = load_lut_query_engine({"hardware": {"lut_path": str(output_json), "clock_mhz": 200}})
+            self.assertIsNotNone(engine)
+
+            summary = json.loads(summary_json.read_text(encoding="utf-8"))
+            self.assertGreater(summary["entries_built"], 0)
+            self.assertGreaterEqual(summary["validation"]["lut_stats"]["hit_rate"], 0.99)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,91 @@
+project:
+  name: backbone-baseline
+  seed: 42
+  output_dir: results
+  run_name: null
+
+dataset:
+  name: dummy
+  data_dir: null
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  use_kfold: true
+  valid_size: null
+  split_seed: 42
+  num_train_samples: 128
+  num_val_samples: 64
+
+hardware:
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+  cpu_latency_warmup: 10
+  cpu_latency_runs: 30
+
+constraints:
+  max_latency_ms: null
+  max_energy_mj: null
+  max_model_size_mb: null
+  max_dsp: null
+  max_bram: null
+  max_lut: null
+  max_power_w: null
+  max_memory_bandwidth_gbps: null
+  max_offchip_mem_mb: null
+
+training:
+  optimizer: adamw
+  batch_size: 16
+  epochs: 5
+  lr: 0.001
+  min_lr: 0.00001
+  weight_decay: 0.0001
+  warmup_epochs: 1
+  early_stopping_patience: 3
+  dropout: 0.2
+
+baseline:
+  strict_pretrained: false
+  topk_accuracy: 5
+  selection_metric: macro_f1
+  pool_selection:
+    export_selected_pool: true
+    search_anchor_families:
+      - mobilenet_v2
+      - fbnet_like
+      - shufflenet_v2
+    prefer_pretrained_for_search_anchor: true
+    lightweight_metric: fpga_latency_ms
+    lightweight_max_macro_drop: 0.10
+    role_profile_map:
+      search_anchor: mobile_anchor
+      accuracy_anchor: accuracy_biased
+      lightweight_anchor: lightweight_sonar
+  candidates:
+    - arch_id: simplecnn
+      name: simplecnn
+      display_name: SimpleCNN
+      pretrained: false
+    - arch_id: mobilenet_v2_pretrained
+      name: mobilenet_v2
+      display_name: MobileNetV2 (pretrained)
+      pretrained: true
+    - arch_id: mobilenet_v2_scratch
+      name: mobilenet_v2
+      display_name: MobileNetV2 (scratch)
+      pretrained: false
+    - arch_id: fbnet_like
+      name: fbnet_like
+      display_name: FBNet-like
+      pretrained: false
+    - arch_id: shufflenet_v2
+      name: shufflenet_v2
+      display_name: ShuffleNetV2
+      pretrained: true
+    - arch_id: efficientnet_b0
+      name: efficientnet_b0
+      display_name: EfficientNet-B0
+      pretrained: true

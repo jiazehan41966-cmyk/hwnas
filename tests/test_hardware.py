@@ -25,6 +25,9 @@ class HardwareEstimatorTests(unittest.TestCase):
         self.assertGreater(estimate.macs, 0)
         self.assertGreater(estimate.latency_ms, 0)
         self.assertGreaterEqual(estimate.peak_dsp, 0)
+        self.assertGreaterEqual(estimate.total_dsp, estimate.peak_dsp)
+        self.assertGreaterEqual(estimate.total_bram, estimate.peak_bram)
+        self.assertGreaterEqual(estimate.total_lut, estimate.peak_lut)
         self.assertFalse(estimate.violations)
 
     def test_estimate_includes_explicit_stem_layer(self) -> None:
