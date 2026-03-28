@@ -1,0 +1,803 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+from math import ceil
+from random import Random
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Union
+
+from hwnas_fpga.interfaces import SearchConstraints
+
+if TYPE_CHECKING:
+    from hwnas_fpga.hardware import FPGACostEstimator
+
+
+DEFAULT_STAGE_STRIDES = (1, 2, 2, 2)
+DEFAULT_OP_CHOICES = (
+    "conv",
+    "dw_pw_conv",
+    "mbconv",
+    "fused_mbconv",
+    "skip",
+    "mixconv",  # 声呐专用多尺度卷积
+    "denoise",  # 声呐专用去噪块
+    "edge",     # 声呐专用边缘感知块
+)
+
+# 声呐专用算子集合
+SONAR_OPS = {"mixconv", "denoise", "edge"}
+
+# 硬件驱动剪枝相关的算子分类
+HIGH_LUT_OPS = {"mixconv", "edge", "mbconv"}  # 高LUT消耗的算子
+HIGH_DSP_OPS = {"conv", "fused_mbconv"}        # 高DSP消耗的算子
+LIGHTWEIGHT_OPS = {"skip", "dw_pw_conv", "denoise"}  # 轻量级算子
+
+
+def _as_int_tuple(values: Union[Sequence[int], Sequence[str]]) -> tuple[int, ...]:
+    return tuple(int(value) for value in values)
+
+
+def _as_str_tuple(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(str(value) for value in values)
+
+
+def _weighted_choice(random: Random, values: Sequence[Any], weights: Sequence[float]) -> Any:
+    total = sum(max(0.0, float(weight)) for weight in weights)
+    if total <= 0:
+        return random.choice(tuple(values))
+
+    threshold = random.random() * total
+    cumulative = 0.0
+    for value, weight in zip(values, weights):
+        cumulative += max(0.0, float(weight))
+        if cumulative >= threshold:
+            return value
+    return values[-1]
+
+
+@dataclass(frozen=True)
+class SearchSpaceConfig:
+    input_channels: int = 1
+    image_size: int = 224
+    stem_channels: int = 16
+    stem_stride: int = 2
+    stage_strides: tuple[int, ...] = DEFAULT_STAGE_STRIDES
+    channel_choices: tuple[int, ...] = (16, 24, 32, 48, 64, 96)
+    depth_choices: tuple[int, ...] = (1, 2, 3, 4)
+    kernel_choices: tuple[int, ...] = (3, 5)
+    expand_choices: tuple[int, ...] = (1, 2, 4)
+    op_choices: tuple[str, ...] = DEFAULT_OP_CHOICES
+    head_channels: Optional[int] = None
+    num_classes: Optional[int] = None
+    hardware_constraints: Optional[SearchConstraints] = None  # 硬件约束参数
+
+    def __post_init__(self) -> None:
+        if self.input_channels <= 0:
+            raise ValueError("input_channels must be positive")
+        if self.image_size <= 0:
+            raise ValueError("image_size must be positive")
+        if self.stem_channels <= 0:
+            raise ValueError("stem_channels must be positive")
+        if self.stem_stride <= 0:
+            raise ValueError("stem_stride must be positive")
+        if not self.stage_strides:
+            raise ValueError("stage_strides must not be empty")
+        if any(stride <= 0 for stride in self.stage_strides):
+            raise ValueError("stage_strides must be positive")
+        if any(channel <= 0 for channel in self.channel_choices):
+            raise ValueError("channel_choices must be positive")
+        if any(depth <= 0 for depth in self.depth_choices):
+            raise ValueError("depth_choices must be positive")
+        if any(kernel <= 0 for kernel in self.kernel_choices):
+            raise ValueError("kernel_choices must be positive")
+        if any(expand <= 0 for expand in self.expand_choices):
+            raise ValueError("expand_choices must be positive")
+        # 移除op_choices限制，允许扩展新算子
+        # unsupported = set(self.op_choices) - set(DEFAULT_OP_CHOICES)
+        # if unsupported:
+        #     raise ValueError(f"unsupported op choices: {sorted(unsupported)}")
+
+    @property
+    def stage_count(self) -> int:
+        return len(self.stage_strides)
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "SearchSpaceConfig":
+        data = dict(payload)
+        if "stages" in data and "stage_strides" not in data:
+            stage_count = int(data["stages"])
+            data["stage_strides"] = tuple([1] + [2] * (stage_count - 1))
+        if "stem_stride" in data:
+            data["stem_stride"] = int(data["stem_stride"])
+        if "stage_strides" in data:
+            data["stage_strides"] = _as_int_tuple(data["stage_strides"])
+        if "channel_choices" in data:
+            data["channel_choices"] = _as_int_tuple(data["channel_choices"])
+        if "depth_choices" in data:
+            data["depth_choices"] = _as_int_tuple(data["depth_choices"])
+        if "kernel_choices" in data:
+            data["kernel_choices"] = _as_int_tuple(data["kernel_choices"])
+        if "expand_choices" in data:
+            data["expand_choices"] = _as_int_tuple(data["expand_choices"])
+        if "op_choices" in data:
+            data["op_choices"] = _as_str_tuple(data["op_choices"])
+        return cls(**data)
+
+
+@dataclass(frozen=True)
+class BlockSpec:
+    op: str
+    kernel_size: int = 3
+    expand_ratio: int = 1
+    stride: int = 1
+
+    def to_dict(self) -> dict[str, Union[int, str]]:
+        return {
+            "op": self.op,
+            "kernel_size": self.kernel_size,
+            "expand_ratio": self.expand_ratio,
+            "stride": self.stride,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "BlockSpec":
+        return cls(
+            op=str(payload["op"]),
+            kernel_size=int(payload.get("kernel_size", 3)),
+            expand_ratio=int(payload.get("expand_ratio", 1)),
+            stride=int(payload.get("stride", 1)),
+        )
+
+
+@dataclass(frozen=True)
+class StageSpec:
+    channels: int
+    depth: int
+    stride: int
+    blocks: tuple[BlockSpec, ...]
+
+    def __post_init__(self) -> None:
+        if self.depth <= 0:
+            raise ValueError("depth must be positive")
+        if self.channels <= 0:
+            raise ValueError("channels must be positive")
+        if self.stride <= 0:
+            raise ValueError("stride must be positive")
+        if len(self.blocks) != self.depth:
+            raise ValueError("depth must match the number of blocks")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "channels": self.channels,
+            "depth": self.depth,
+            "stride": self.stride,
+            "blocks": [block.to_dict() for block in self.blocks],
+        }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "StageSpec":
+        blocks = tuple(BlockSpec.from_dict(block) for block in payload["blocks"])
+        return cls(
+            channels=int(payload["channels"]),
+            depth=int(payload.get("depth", len(blocks))),
+            stride=int(payload["stride"]),
+            blocks=blocks,
+        )
+
+
+@dataclass(frozen=True)
+class ArchitectureSpec:
+    input_channels: int
+    stem_channels: int
+    stages: tuple[StageSpec, ...]
+    stem_stride: int = 2
+    head_channels: Optional[int] = None
+    num_classes: Optional[int] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "input_channels": self.input_channels,
+            "stem_channels": self.stem_channels,
+            "stem_stride": self.stem_stride,
+            "head_channels": self.head_channels,
+            "num_classes": self.num_classes,
+            "stages": [stage.to_dict() for stage in self.stages],
+        }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "ArchitectureSpec":
+        return cls(
+            input_channels=int(payload["input_channels"]),
+            stem_channels=int(payload["stem_channels"]),
+            stem_stride=int(payload.get("stem_stride", 2)),
+            stages=tuple(StageSpec.from_dict(stage) for stage in payload["stages"]),
+            head_channels=(
+                None
+                if payload.get("head_channels") is None
+                else int(payload["head_channels"])
+            ),
+            num_classes=(
+                None if payload.get("num_classes") is None else int(payload["num_classes"])
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class ResolvedBlockSpec:
+    stage_index: int
+    block_index: int
+    op: str
+    kernel_size: int
+    expand_ratio: int
+    stride: int
+    in_channels: int
+    out_channels: int
+    input_resolution: int
+    output_resolution: int
+
+
+class SearchSpace:
+    def __init__(self, config: SearchSpaceConfig):
+        self.config = config
+        self._pruned = False  # 标记是否已进行预剪枝
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "SearchSpace":
+        return cls(SearchSpaceConfig.from_dict(payload))
+
+    def pre_prune(self, cost_estimator: "FPGACostEstimator") -> "SearchSpace":
+        """根据FPGA资源约束预判缩减搜索空间。
+
+        策略:
+        1. 用 baseline 架构估计最低资源消耗
+        2. 若 baseline 已违反约束 → 剪掉大通道/深度/高消耗算子
+        3. 返回新的剪枝后搜索空间
+        """
+        constraints = self.config.hardware_constraints
+        if not constraints:
+            pruned_space = SearchSpace(self.config)
+            pruned_space._pruned = True
+            return pruned_space
+
+        print("[硬件驱动空间剪枝] 开始预剪枝...")
+        print(f"  初始: channels={self.config.channel_choices}, "
+              f"depths={self.config.depth_choices}, ops={self.config.op_choices}")
+
+        # 1. 评估 baseline
+        baseline = self.baseline_architecture()
+        try:
+            estimate = cost_estimator.estimate(baseline, self)
+        except Exception as e:
+            print(f"  [警告] Baseline 估计失败: {e}，跳过剪枝")
+            pruned_space = SearchSpace(self.config)
+            pruned_space._pruned = True
+            return pruned_space
+
+        effective_budgets = self._resolve_effective_budgets(cost_estimator)
+        new_channels = self.config.channel_choices
+        new_depths = self.config.depth_choices
+        new_ops = self.config.op_choices
+        new_kernels = self.config.kernel_choices
+        new_expands = self.config.expand_choices
+
+        if estimate.violations:
+            print(f"  Baseline 违反约束: {estimate.violations}")
+        else:
+            print("  Baseline 满足所有约束，执行板卡感知收缩")
+
+        max_dsp = effective_budgets["max_dsp"]
+        max_lut = effective_budgets["max_lut"]
+        max_bram = effective_budgets["max_bram"]
+        max_latency_ms = effective_budgets["max_latency_ms"]
+        max_bw = effective_budgets["max_memory_bandwidth_gbps"]
+
+        tight_board = any(
+            (
+                max_dsp is not None and max_dsp <= 256,
+                max_lut is not None and max_lut <= 60_000,
+                max_bram is not None and max_bram <= 200,
+            )
+        )
+        ultra_tight_board = any(
+            (
+                max_dsp is not None and max_dsp <= 160,
+                max_lut is not None and max_lut <= 40_000,
+                max_bram is not None and max_bram <= 100,
+            )
+        )
+
+        if max_dsp is not None:
+            max_ch = 32 if tight_board else max(16, max_dsp // 3)
+            filtered = tuple(c for c in new_channels if c <= max_ch)
+            new_channels = filtered or (min(new_channels),)
+            if tight_board:
+                new_ops = tuple(op for op in new_ops if op not in HIGH_DSP_OPS)
+
+        if tight_board or (max_lut is not None and max_lut < 80_000):
+            filtered = tuple(op for op in new_ops if op not in HIGH_LUT_OPS)
+            new_ops = filtered or tuple(sorted(LIGHTWEIGHT_OPS & set(new_ops)))
+
+        if tight_board or (max_bw is not None and max_bw <= 4.0):
+            filtered_kernels = tuple(kernel for kernel in new_kernels if kernel <= 3)
+            new_kernels = filtered_kernels or (min(new_kernels),)
+            filtered_expands = tuple(expand for expand in new_expands if expand <= 2)
+            new_expands = filtered_expands or (min(new_expands),)
+
+        if max_latency_ms is not None:
+            max_d = 2 if max_latency_ms <= 50 else 3 if max_latency_ms < 100 else 4
+            filtered = tuple(d for d in new_depths if d <= max_d)
+            new_depths = filtered or (min(new_depths),)
+
+        if tight_board:
+            filtered = tuple(d for d in new_depths if d <= 2)
+            new_depths = filtered or (min(new_depths),)
+
+        if ultra_tight_board:
+            new_channels = tuple(c for c in new_channels if c <= 24) or (min(new_channels),)
+            new_depths = tuple(d for d in new_depths if d <= 2) or (min(new_depths),)
+            new_ops = tuple(op for op in new_ops if op in LIGHTWEIGHT_OPS) or ("dw_pw_conv", "skip")
+            new_kernels = tuple(kernel for kernel in new_kernels if kernel == 3) or (min(new_kernels),)
+            new_expands = tuple(expand for expand in new_expands if expand == 1) or (1,)
+
+        # 3. 兜底保证非空
+        if not new_ops:
+            new_ops = ("dw_pw_conv", "skip")
+        if not new_channels:
+            new_channels = (min(self.config.channel_choices),)
+        if not new_depths:
+            new_depths = (min(self.config.depth_choices),)
+        if not new_kernels:
+            new_kernels = (min(self.config.kernel_choices),)
+        if not new_expands:
+            new_expands = (min(self.config.expand_choices),)
+
+        new_config = replace(
+            self.config,
+            channel_choices=new_channels,
+            depth_choices=new_depths,
+            kernel_choices=new_kernels,
+            expand_choices=new_expands,
+            op_choices=new_ops,
+        )
+
+        reduction = self._calculate_reduction_ratio(self.config, new_config)
+        print(f"  剪枝后: channels={new_config.channel_choices}, "
+              f"depths={new_config.depth_choices}, kernels={new_config.kernel_choices}, "
+              f"expands={new_config.expand_choices}, ops={new_config.op_choices}")
+        print(f"  搜索空间减少了约 {reduction:.1f}%")
+
+        pruned_space = SearchSpace(new_config)
+        pruned_space._pruned = True
+        return pruned_space
+    
+    def _calculate_reduction_ratio(self, old_config: SearchSpaceConfig, new_config: SearchSpaceConfig) -> float:
+        """计算搜索空间缩减比例"""
+        old_size = (
+            len(old_config.channel_choices) *
+            len(old_config.depth_choices) *
+            len(old_config.op_choices)
+        )
+        new_size = (
+            len(new_config.channel_choices) *
+            len(new_config.depth_choices) *
+            len(new_config.op_choices)
+        )
+        
+        if old_size == 0:
+            return 0.0
+        return ((old_size - new_size) / old_size) * 100
+    
+    def is_pruned(self) -> bool:
+        """检查搜索空间是否已进行过预剪枝"""
+        return self._pruned
+
+    def baseline_architecture(self) -> ArchitectureSpec:
+        stages: list[StageSpec] = []
+        current_channels = self.config.stem_channels
+        base_channels = min(self.config.channel_choices)
+        base_depth = min(self.config.depth_choices)
+        base_kernel = min(self.config.kernel_choices)
+        base_expand = min(self.config.expand_choices)
+
+        for stride in self.config.stage_strides:
+            channels = max(base_channels, current_channels)
+            blocks: list[BlockSpec] = []
+            for block_index in range(base_depth):
+                block_stride = stride if block_index == 0 else 1
+                in_channels = current_channels if block_index == 0 else channels
+                valid_ops = self.available_ops(
+                    in_channels=in_channels,
+                    out_channels=channels,
+                    stride=block_stride,
+                )
+                preferred_op = "dw_pw_conv" if "dw_pw_conv" in valid_ops else valid_ops[0]
+                blocks.append(
+                    self._build_block(
+                        op=preferred_op,
+                        stride=block_stride,
+                        kernel_size=base_kernel,
+                        expand_ratio=base_expand,
+                    )
+                )
+            stages.append(
+                StageSpec(
+                    channels=channels,
+                    depth=base_depth,
+                    stride=stride,
+                    blocks=tuple(blocks),
+                )
+            )
+            current_channels = channels
+
+        return ArchitectureSpec(
+            input_channels=self.config.input_channels,
+            stem_channels=self.config.stem_channels,
+            stem_stride=self.config.stem_stride,
+            stages=tuple(stages),
+            head_channels=self.config.head_channels,
+            num_classes=self.config.num_classes,
+        )
+
+    def sample(
+        self,
+        seed: Optional[int] = None,
+        rng: Optional[Random] = None,
+        *,
+        cost_estimator: Optional["FPGACostEstimator"] = None,
+        apply_pruning: bool = True,
+        require_feasible: bool = False,
+        max_feasible_attempts: int = 32,
+        prefer_lightweight: bool = False,
+    ) -> ArchitectureSpec:
+        """
+        从搜索空间采样一个架构。
+        
+        如果提供了cost_estimator且apply_pruning为True，将自动应用预剪枝。
+        
+        Args:
+            seed: 随机种子
+            rng: 随机数生成器
+            cost_estimator: FPGA成本估算器（用于预剪枝）
+            apply_pruning: 是否应用预剪枝
+            
+        Returns:
+            采样的架构规范
+        """
+        # 如果需要且提供cost_estimator，先进行预剪枝
+        sample_space = self
+        if apply_pruning and cost_estimator and not self._pruned:
+            sample_space = self.pre_prune(cost_estimator)
+
+        if require_feasible and cost_estimator is not None:
+            return sample_space._sample_feasible_impl(
+                cost_estimator=cost_estimator,
+                seed=seed,
+                rng=rng,
+                max_attempts=max_feasible_attempts,
+                prefer_lightweight=prefer_lightweight,
+            )
+
+        return sample_space._sample_impl(seed, rng, prefer_lightweight=prefer_lightweight)
+    
+    def _sample_impl(
+        self,
+        seed: Optional[int] = None,
+        rng: Optional[Random] = None,
+        *,
+        prefer_lightweight: bool = False,
+    ) -> ArchitectureSpec:
+        random = rng or Random(seed)
+        stages: list[StageSpec] = []
+        current_channels = self.config.stem_channels
+
+        for stride in self.config.stage_strides:
+            channels = self._choose_channel(random, prefer_lightweight=prefer_lightweight)
+            depth = self._choose_depth(random, prefer_lightweight=prefer_lightweight)
+            blocks: list[BlockSpec] = []
+            for block_index in range(depth):
+                block_stride = stride if block_index == 0 else 1
+                in_channels = current_channels if block_index == 0 else channels
+                valid_ops = self.available_ops(
+                    in_channels=in_channels,
+                    out_channels=channels,
+                    stride=block_stride,
+                )
+                op = self._choose_op(random, valid_ops, prefer_lightweight=prefer_lightweight)
+                kernel_size = (
+                    1 if op == "skip"
+                    else self._choose_kernel(random, prefer_lightweight=prefer_lightweight)
+                )
+                # 声呐专用算子和基础算子不需要expand_ratio
+                if op in {"mbconv", "fused_mbconv"}:
+                    expand_ratio = self._choose_expand(random, prefer_lightweight=prefer_lightweight)
+                else:
+                    expand_ratio = 1
+                blocks.append(
+                    self._build_block(
+                        op=op,
+                        stride=block_stride,
+                        kernel_size=kernel_size,
+                        expand_ratio=expand_ratio,
+                    )
+                )
+            stages.append(
+                StageSpec(
+                    channels=channels,
+                    depth=depth,
+                    stride=stride,
+                    blocks=tuple(blocks),
+                )
+            )
+            current_channels = channels
+
+        return ArchitectureSpec(
+            input_channels=self.config.input_channels,
+            stem_channels=self.config.stem_channels,
+            stem_stride=self.config.stem_stride,
+            stages=tuple(stages),
+            head_channels=self.config.head_channels,
+            num_classes=self.config.num_classes,
+        )
+
+    def _sample_feasible_impl(
+        self,
+        *,
+        cost_estimator: "FPGACostEstimator",
+        seed: Optional[int] = None,
+        rng: Optional[Random] = None,
+        max_attempts: int = 32,
+        prefer_lightweight: bool = True,
+    ) -> ArchitectureSpec:
+        random = rng or Random(seed)
+        best_candidate: Optional[ArchitectureSpec] = None
+        best_violation_score: Optional[tuple[int, float]] = None
+
+        for _ in range(max(1, max_attempts)):
+            architecture = self._sample_impl(
+                seed=None,
+                rng=random,
+                prefer_lightweight=prefer_lightweight,
+            )
+            estimate = cost_estimator.estimate(architecture, self)
+            if not estimate.violations:
+                return architecture
+
+            violation_score = (
+                len(estimate.violations),
+                estimate.latency_ms + estimate.energy_mj + estimate.peak_dsp + estimate.peak_lut,
+            )
+            if best_violation_score is None or violation_score < best_violation_score:
+                best_violation_score = violation_score
+                best_candidate = architecture
+
+        baseline = self.baseline_architecture()
+        baseline_estimate = cost_estimator.estimate(baseline, self)
+        if not baseline_estimate.violations:
+            return baseline
+        if best_candidate is not None:
+            return best_candidate
+        return baseline
+
+    def available_ops(
+        self,
+        *,
+        in_channels: int,
+        out_channels: int,
+        stride: int,
+    ) -> tuple[str, ...]:
+        valid_ops: list[str] = []
+        for op in self.config.op_choices:
+            if op == "skip" and (stride != 1 or in_channels != out_channels):
+                continue
+            valid_ops.append(op)
+        if not valid_ops:
+            raise ValueError("no legal ops available for the requested block placement")
+        return tuple(valid_ops)
+
+    def validate(self, architecture: ArchitectureSpec) -> list[str]:
+        errors: list[str] = []
+        if architecture.input_channels != self.config.input_channels:
+            errors.append(
+                "architecture input_channels does not match the search space configuration"
+            )
+        if architecture.stem_channels != self.config.stem_channels:
+            errors.append(
+                "architecture stem_channels does not match the search space configuration"
+            )
+        if architecture.stem_stride != self.config.stem_stride:
+            errors.append(
+                "architecture stem_stride does not match the search space configuration"
+            )
+        if len(architecture.stages) != self.config.stage_count:
+            errors.append("architecture stage count does not match stage_strides")
+            return errors
+
+        current_channels = architecture.stem_channels
+        current_resolution = max(1, ceil(self.config.image_size / architecture.stem_stride))
+        for stage_index, (stage, expected_stride) in enumerate(
+            zip(architecture.stages, self.config.stage_strides)
+        ):
+            if stage.channels not in self.config.channel_choices:
+                errors.append(f"stage {stage_index} uses unsupported channels={stage.channels}")
+            if stage.depth not in self.config.depth_choices:
+                errors.append(f"stage {stage_index} uses unsupported depth={stage.depth}")
+            if stage.stride != expected_stride:
+                errors.append(
+                    f"stage {stage_index} stride must be {expected_stride}, got {stage.stride}"
+                )
+            if len(stage.blocks) != stage.depth:
+                errors.append(
+                    f"stage {stage_index} depth={stage.depth} does not match block count"
+                )
+                continue
+
+            for block_index, block in enumerate(stage.blocks):
+                block_in_channels = current_channels if block_index == 0 else stage.channels
+                block_stride = stage.stride if block_index == 0 else 1
+                expected_ops = self.available_ops(
+                    in_channels=block_in_channels,
+                    out_channels=stage.channels,
+                    stride=block_stride,
+                )
+                if block.op not in expected_ops:
+                    errors.append(
+                        f"stage {stage_index} block {block_index} op={block.op} is illegal"
+                    )
+                if block.stride != block_stride:
+                    errors.append(
+                        f"stage {stage_index} block {block_index} stride must be {block_stride}"
+                    )
+                if block.op == "skip":
+                    if block.kernel_size != 1:
+                        errors.append(
+                            f"stage {stage_index} block {block_index} skip must use kernel_size=1"
+                        )
+                    if block.expand_ratio != 1:
+                        errors.append(
+                            f"stage {stage_index} block {block_index} skip must use expand_ratio=1"
+                        )
+                else:
+                    if block.kernel_size not in self.config.kernel_choices:
+                        errors.append(
+                            f"stage {stage_index} block {block_index} uses unsupported kernel"
+                        )
+                    if block.op in {"conv", "dw_pw_conv"} and block.expand_ratio != 1:
+                        errors.append(
+                            f"stage {stage_index} block {block_index} expand_ratio must be 1"
+                        )
+                    if block.op in SONAR_OPS and block.expand_ratio != 1:
+                        errors.append(
+                            f"stage {stage_index} block {block_index} "
+                            f"sonar op '{block.op}' must use expand_ratio=1"
+                        )
+                    if (
+                        block.op in {"mbconv", "fused_mbconv"}
+                        and block.expand_ratio not in self.config.expand_choices
+                    ):
+                        errors.append(
+                            f"stage {stage_index} block {block_index} uses unsupported expand_ratio"
+                        )
+
+                current_channels = stage.channels
+                current_resolution = max(1, ceil(current_resolution / block.stride))
+
+        if current_resolution <= 0:
+            errors.append("architecture collapses the feature map resolution")
+        return errors
+
+    def is_valid(self, architecture: ArchitectureSpec) -> bool:
+        return not self.validate(architecture)
+
+    def resolve_blocks(self, architecture: ArchitectureSpec) -> tuple[ResolvedBlockSpec, ...]:
+        errors = self.validate(architecture)
+        if errors:
+            raise ValueError("; ".join(errors))
+
+        resolved: list[ResolvedBlockSpec] = []
+        current_channels = architecture.stem_channels
+        current_resolution = max(1, ceil(self.config.image_size / architecture.stem_stride))
+        for stage_index, stage in enumerate(architecture.stages):
+            for block_index, block in enumerate(stage.blocks):
+                block_in_channels = current_channels if block_index == 0 else stage.channels
+                output_resolution = max(1, ceil(current_resolution / block.stride))
+                resolved.append(
+                    ResolvedBlockSpec(
+                        stage_index=stage_index,
+                        block_index=block_index,
+                        op=block.op,
+                        kernel_size=block.kernel_size,
+                        expand_ratio=block.expand_ratio,
+                        stride=block.stride,
+                        in_channels=block_in_channels,
+                        out_channels=stage.channels,
+                        input_resolution=current_resolution,
+                        output_resolution=output_resolution,
+                    )
+                )
+                current_channels = stage.channels
+                current_resolution = output_resolution
+        return tuple(resolved)
+
+    def _build_block(
+        self,
+        *,
+        op: str,
+        stride: int,
+        kernel_size: int,
+        expand_ratio: int,
+    ) -> BlockSpec:
+        if op == "skip":
+            return BlockSpec(op=op, kernel_size=1, expand_ratio=1, stride=stride)
+        if op in {"conv", "dw_pw_conv"} or op in SONAR_OPS:
+            return BlockSpec(op=op, kernel_size=kernel_size, expand_ratio=1, stride=stride)
+        return BlockSpec(
+            op=op,
+            kernel_size=kernel_size,
+            expand_ratio=expand_ratio,
+            stride=stride,
+        )
+
+    def _resolve_effective_budgets(self, cost_estimator: "FPGACostEstimator") -> dict[str, Optional[float]]:
+        constraints = self.config.hardware_constraints
+        hardware_spec = cost_estimator.hardware_spec
+
+        def _minimum(*values: Optional[float]) -> Optional[float]:
+            filtered = [value for value in values if value is not None]
+            if not filtered:
+                return None
+            return min(filtered)
+
+        return {
+            "max_latency_ms": getattr(constraints, "max_latency_ms", None),
+            "max_dsp": _minimum(getattr(constraints, "max_dsp", None), hardware_spec.max_dsp),
+            "max_bram": _minimum(getattr(constraints, "max_bram", None), hardware_spec.max_bram),
+            "max_lut": _minimum(getattr(constraints, "max_lut", None), hardware_spec.max_lut),
+            "max_memory_bandwidth_gbps": _minimum(
+                getattr(constraints, "max_memory_bandwidth_gbps", None),
+                hardware_spec.memory_bandwidth_gbps,
+            ),
+        }
+
+    def _choose_channel(self, random: Random, *, prefer_lightweight: bool) -> int:
+        if not prefer_lightweight:
+            return random.choice(self.config.channel_choices)
+        weights = [1.0 / max(1, channel) for channel in self.config.channel_choices]
+        return _weighted_choice(random, self.config.channel_choices, weights)
+
+    def _choose_depth(self, random: Random, *, prefer_lightweight: bool) -> int:
+        if not prefer_lightweight:
+            return random.choice(self.config.depth_choices)
+        weights = [1.0 / max(1, depth) for depth in self.config.depth_choices]
+        return _weighted_choice(random, self.config.depth_choices, weights)
+
+    def _choose_kernel(self, random: Random, *, prefer_lightweight: bool) -> int:
+        if not prefer_lightweight:
+            return random.choice(self.config.kernel_choices)
+        weights = [1.0 / max(1, kernel) for kernel in self.config.kernel_choices]
+        return _weighted_choice(random, self.config.kernel_choices, weights)
+
+    def _choose_expand(self, random: Random, *, prefer_lightweight: bool) -> int:
+        if not prefer_lightweight:
+            return random.choice(self.config.expand_choices)
+        weights = [1.0 / max(1, expand) for expand in self.config.expand_choices]
+        return _weighted_choice(random, self.config.expand_choices, weights)
+
+    def _choose_op(
+        self,
+        random: Random,
+        valid_ops: Sequence[str],
+        *,
+        prefer_lightweight: bool,
+    ) -> str:
+        if not prefer_lightweight:
+            return random.choice(tuple(valid_ops))
+        weights = []
+        for op in valid_ops:
+            if op in LIGHTWEIGHT_OPS:
+                weights.append(4.0)
+            elif op in SONAR_OPS:
+                weights.append(1.5)
+            elif op in HIGH_DSP_OPS or op in HIGH_LUT_OPS:
+                weights.append(0.75)
+            else:
+                weights.append(1.0)
+        return _weighted_choice(random, tuple(valid_ops), weights)

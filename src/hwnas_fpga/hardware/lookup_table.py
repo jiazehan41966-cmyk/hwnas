@@ -1,0 +1,584 @@
+"""LUT-based hardware cost estimation.
+
+This module implements a lookup table (LUT) based hardware cost estimator,
+inspired by FBNet's LUT architecture (reference/FBNet/mobile_cv/lut/lib/).
+
+Key design principles:
+- Use operator-level profiling to build LUT tables
+- Support pickle serialization for fast loading/saving
+- Enable fallback to analytical model when LUT misses
+"""
+
+from __future__ import annotations
+
+import pickle
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+import math
+
+
+# ============================================================================
+# Operator Specifications (类似 FBNet 的 OpBase/OpProperty)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class OpSpec:
+    """算子规格定义
+
+    用于唯一标识一个算子实例，作为 LUT 的查询键。
+
+    Attributes:
+        op: 算子类型 (conv, dw_conv, mbconv, fused_mbconv, skip, etc.)
+        kernel_size: 卷积核大小
+        in_channels: 输入通道数
+        out_channels: 输出通道数
+        stride: 步长
+        groups: 分组数 (用于 depthwise conv)
+        expand_ratio: 扩展比 (用于 MBConv)
+        input_resolution: 输入分辨率 (H, W)
+    """
+
+    op: str
+    kernel_size: int
+    in_channels: int
+    out_channels: int
+    stride: int = 1
+    groups: int = 1
+    expand_ratio: int = 1
+    input_resolution: Tuple[int, int] = (224, 224)
+
+    def __post_init__(self):
+        # 确保关键参数是整数（用于哈希）
+        if isinstance(self.input_resolution, (list, tuple)):
+            object.__setattr__(self, "input_resolution", tuple(self.input_resolution))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式"""
+        return {
+            "op": self.op,
+            "kernel_size": self.kernel_size,
+            "in_channels": self.in_channels,
+            "out_channels": self.out_channels,
+            "stride": self.stride,
+            "groups": self.groups,
+            "expand_ratio": self.expand_ratio,
+            "input_resolution": self.input_resolution,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpSpec":
+        """从字典创建"""
+        return cls(
+            op=data["op"],
+            kernel_size=data["kernel_size"],
+            in_channels=data["in_channels"],
+            out_channels=data["out_channels"],
+            stride=data.get("stride", 1),
+            groups=data.get("groups", 1),
+            expand_ratio=data.get("expand_ratio", 1),
+            input_resolution=tuple(data.get("input_resolution", (224, 224))),
+        )
+
+    def __hash__(self) -> int:
+        # 基于 frozenset 实现哈希（类似 FBNet 的 OpProperty）
+        return hash(
+            (
+                self.op,
+                self.kernel_size,
+                self.in_channels,
+                self.out_channels,
+                self.stride,
+                self.groups,
+                self.expand_ratio,
+                self.input_resolution,
+            )
+        )
+
+
+# ============================================================================
+# LUT Entry Definition (类似 FBNet 的 LutItem)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class LutEntry:
+    """LUT 条目
+
+    每个条目包含一个算子的硬件代价信息。
+
+    Attributes:
+        op_spec: 算子规格
+        latency_ms: 延迟（毫秒）
+        cycles: 时钟周期数
+        dsp: DSP 使用量
+        bram: BRAM 使用量（块数）
+        lut: LUT 使用量
+        power_w: 功耗（瓦特）
+        energy_mj: 能耗（毫焦耳）
+    """
+
+    op_spec: OpSpec
+    latency_ms: float = 0.0
+    cycles: int = 0
+    dsp: int = 0
+    bram: int = 0
+    lut: int = 0
+    power_w: float = 0.0
+    energy_mj: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式"""
+        return {
+            "op_spec": self.op_spec.to_dict(),
+            "latency_ms": self.latency_ms,
+            "cycles": self.cycles,
+            "dsp": self.dsp,
+            "bram": self.bram,
+            "lut": self.lut,
+            "power_w": self.power_w,
+            "energy_mj": self.energy_mj,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "LutEntry":
+        """从字典创建"""
+        return cls(
+            op_spec=OpSpec.from_dict(data["op_spec"]),
+            latency_ms=data["latency_ms"],
+            cycles=data["cycles"],
+            dsp=data["dsp"],
+            bram=data["bram"],
+            lut=data["lut"],
+            power_w=data["power_w"],
+            energy_mj=data["energy_mj"],
+        )
+
+
+# ============================================================================
+# LUT Table (类似 FBNet 的 LutTable)
+# ============================================================================
+
+
+class LutTable:
+    """LUT 查找表
+
+    基于 OpSpec 到 LutEntry 的映射，支持：
+    - 快速查询（O(1)）
+    - Pickle 序列化
+    - 重复条目处理
+    - 统计信息查询
+
+    Example:
+        >>> lut_table = LutTable()
+        >>> entry = LutEntry(op_spec=..., latency_ms=1.5, dsp=32, bram=2, lut=100)
+        >>> lut_table.add(entry)
+        >>> result = lut_table.query(op_spec)
+    """
+
+    def __init__(self, entries: Optional[List[LutEntry]] = None):
+        self._index: Dict[OpSpec, LutEntry] = {}
+        self._duplicates: Dict[OpSpec, List[LutEntry]] = {}
+
+        if entries:
+            for entry in entries:
+                self.add(entry)
+
+    def add(self, entry: LutEntry) -> "LutTable":
+        """添加一个 LUT 条目"""
+        if entry.op_spec in self._index:
+            # 处理重复条目（类似 FBNet 的去重逻辑）
+            if entry.op_spec not in self._duplicates:
+                self._duplicates[entry.op_spec] = [self._index[entry.op_spec]]
+            self._duplicates[entry.op_spec].append(entry)
+            # 保留第一个（或可以改为平均）
+        else:
+            self._index[entry.op_spec] = entry
+        return self
+
+    def extend(self, entries: List[LutEntry]) -> "LutTable":
+        """批量添加条目"""
+        for entry in entries:
+            self.add(entry)
+        return self
+
+    def query(self, op_spec: OpSpec) -> Optional[LutEntry]:
+        """查询 LUT
+
+        Returns:
+            LutEntry 如果找到，否则返回 None
+        """
+        return self._index.get(op_spec)
+
+    def contains(self, op_spec: OpSpec) -> bool:
+        """检查 LUT 中是否包含该算子"""
+        return op_spec in self._index
+
+    def __len__(self) -> int:
+        return len(self._index)
+
+    def __contains__(self, op_spec: OpSpec) -> bool:
+        return self.contains(op_spec)
+
+    def save(self, path: str) -> None:
+        """保存 LUT 到文件"""
+        data = {
+            "entries": [entry.to_dict() for entry in self._index.values()],
+            "duplicates": {
+                str(k): [e.to_dict() for e in v]
+                for k, v in self._duplicates.items()
+            },
+        }
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
+
+    @classmethod
+    def load(cls, path: str) -> "LutTable":
+        """从文件加载 LUT"""
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+
+        lut_table = cls()
+        for entry_data in data["entries"]:
+            lut_table.add(LutEntry.from_dict(entry_data))
+
+        return lut_table
+
+    def get_stats(self) -> Dict[str, Any]:
+        """获取 LUT 统计信息"""
+        return {
+            "total_entries": len(self._index),
+            "duplicate_specs": len(self._duplicates),
+            "duplicate_count": sum(len(v) for v in self._duplicates.values()),
+        }
+
+
+# ============================================================================
+# LUT Query Engine (类似 FBNet 的 LutQuery)
+# ============================================================================
+
+
+class LutQueryEngine:
+    """LUT 查询引擎
+
+    支持高级查询功能：
+    - 插值查询（当精确匹配不存在时）
+    - 范围查询
+    - 统计汇总
+
+    Attributes:
+        lut_table: LUT 查找表
+        enable_interpolation: 是否启用插值
+    """
+
+    def __init__(self, lut_table: LutTable, enable_interpolation: bool = False):
+        self.lut_table = lut_table
+        self.enable_interpolation = enable_interpolation
+
+    def query(self, op_spec: OpSpec) -> Optional[LutEntry]:
+        """查询算子的硬件代价
+
+        Args:
+            op_spec: 算子规格
+
+        Returns:
+            LutEntry 如果找到，否则尝试插值或返回 None
+        """
+        # 1. 精确匹配
+        entry = self.lut_table.query(op_spec)
+        if entry is not None:
+            return entry
+
+        # 2. 插值查询（如果启用）
+        if self.enable_interpolation:
+            return self._interpolate_query(op_spec)
+
+        return None
+
+    def _interpolate_query(self, op_spec: OpSpec) -> Optional[LutEntry]:
+        """插值查询（基于邻近条目）
+
+        当精确匹配不存在时，从相近的条目插值估算。
+        例如：查询 conv(16, 32) 可以从 conv(16, 24) 和 conv(16, 48) 插值。
+        """
+        # 找到相同 op、kernel_size、stride、groups 的所有条目
+        candidates = [
+            (k, v)
+            for k, v in self.lut_table._index.items()
+            if k.op == op_spec.op
+            and k.kernel_size == op_spec.kernel_size
+            and k.stride == op_spec.stride
+            and k.groups == op_spec.groups
+            and k.expand_ratio == op_spec.expand_ratio
+        ]
+
+        if not candidates:
+            return None
+
+        # 按通道数排序
+        candidates.sort(key=lambda x: x[0].out_channels)
+
+        # 找到插值范围
+        lower = None
+        upper = None
+
+        for spec, entry in candidates:
+            if spec.out_channels <= op_spec.out_channels:
+                lower = (spec, entry)
+            else:
+                upper = (spec, entry)
+                break
+
+        # 简单线性插值
+        if lower and upper:
+            lower_spec, lower_entry = lower
+            upper_spec, upper_entry = upper
+
+            # 插值系数
+            t = (op_spec.out_channels - lower_spec.out_channels) / (
+                upper_spec.out_channels - lower_spec.out_channels
+            )
+
+            # 对每个指标进行插值
+            interpolated = LutEntry(
+                op_spec=op_spec,
+                latency_ms=lower_entry.latency_ms + t * (upper_entry.latency_ms - lower_entry.latency_ms),
+                cycles=int(lower_entry.cycles + t * (upper_entry.cycles - lower_entry.cycles)),
+                dsp=int(lower_entry.dsp + t * (upper_entry.dsp - lower_entry.dsp)),
+                bram=int(lower_entry.bram + t * (upper_entry.bram - lower_entry.bram)),
+                lut=int(lower_entry.lut + t * (upper_entry.lut - lower_entry.lut)),
+                power_w=lower_entry.power_w + t * (upper_entry.power_w - lower_entry.power_w),
+                energy_mj=lower_entry.energy_mj + t * (upper_entry.energy_mj - lower_entry.energy_mj),
+            )
+            return interpolated
+
+        # 只有下界或上界，直接返回最近邻
+        return (lower or upper)[1] if lower or upper else None
+
+
+# ============================================================================
+# LUT Builder - 用于从 profiling 数据构建 LUT
+# ============================================================================
+
+
+class LutBuilder:
+    """LUT 构建器
+
+    用于从硬件 profiling 数据或仿真结果构建 LUT 表。
+    可以集成 Vivado HLS、Vitis 等工具的输出。
+
+    Example:
+        builder = LutBuilder()
+        builder.add_profiling_result(...)
+        lut_table = builder.build()
+    """
+
+    def __init__(self):
+        self._entries: List[LutEntry] = []
+
+    def add_profiling_result(
+        self,
+        op: str,
+        kernel_size: int,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+        groups: int = 1,
+        expand_ratio: int = 1,
+        input_resolution: Tuple[int, int] = (224, 224),
+        latency_ms: float = 0.0,
+        cycles: int = 0,
+        dsp: int = 0,
+        bram: int = 0,
+        lut: int = 0,
+        power_w: float = 0.0,
+    ) -> "LutBuilder":
+        """添加 profiling 结果
+
+        Args:
+            op: 算子类型
+            kernel_size: 卷积核大小
+            in_channels: 输入通道数
+            out_channels: 输出通道数
+            stride: 步长
+            groups: 分组数
+            expand_ratio: 扩展比
+            input_resolution: 输入分辨率
+            latency_ms: 延迟（毫秒）
+            cycles: 时钟周期数
+            dsp: DSP 使用量
+            bram: BRAM 使用量
+            lut: LUT 使用量
+            power_w: 功耗（瓦特）
+        """
+        op_spec = OpSpec(
+            op=op,
+            kernel_size=kernel_size,
+            in_channels=in_channels,
+            out_channels=out_channels,
+            stride=stride,
+            groups=groups,
+            expand_ratio=expand_ratio,
+            input_resolution=input_resolution,
+        )
+
+        energy_mj = latency_ms * power_w if power_w > 0 else 0.0
+
+        entry = LutEntry(
+            op_spec=op_spec,
+            latency_ms=latency_ms,
+            cycles=cycles,
+            dsp=dsp,
+            bram=bram,
+            lut=lut,
+            power_w=power_w,
+            energy_mj=energy_mj,
+        )
+
+        self._entries.append(entry)
+        return self
+
+    def build(self) -> LutTable:
+        """构建 LUT 表"""
+        return LutTable(entries=self._entries)
+
+    def save_to_file(self, path: str) -> None:
+        """直接构建并保存到文件"""
+        lut_table = self.build()
+        lut_table.save(path)
+
+
+# ============================================================================
+# 预定义的 FPGA LUT 表（基于公开数据或分析模型生成）
+# ============================================================================
+
+
+def create_dummy_fpga_lut() -> LutTable:
+    """创建一个虚拟的 FPGA LUT 表
+
+    用于快速测试和原型开发。实际使用时应该从：
+    1. HW-NAS-Bench 提取真实数据
+    2. Vivado HLS profiling
+    3. FPGA 板卡实测
+    """
+    builder = LutBuilder()
+
+    # 基本参数范围
+    kernel_sizes = [3, 5]
+    channel_choices = [16, 24, 32, 48, 64, 96]
+    stride_options = [1, 2]
+
+    # 生成虚拟数据（基于分析模型的近似值）
+    for kernel_size in kernel_sizes:
+        for in_ch in channel_choices:
+            for out_ch in channel_choices:
+                for stride in stride_options:
+                    # Conv
+                    macs = in_ch * out_ch * kernel_size * kernel_size * 224 * 224 // (stride * stride)
+                    latency_ms = macs / (200e6) * 0.01  # 假设 200MHz，效率 1%
+                    dsp = min(512, (out_ch // 8) * kernel_size)
+                    bram = math.ceil((in_ch + out_ch) * kernel_size * kernel_size / 1024)
+                    lut = int(macs / 1000 * kernel_size)
+
+                    builder.add_profiling_result(
+                        op="conv",
+                        kernel_size=kernel_size,
+                        in_channels=in_ch,
+                        out_channels=out_ch,
+                        stride=stride,
+                        latency_ms=latency_ms,
+                        cycles=int(latency_ms * 200e6),
+                        dsp=dsp,
+                        bram=bram,
+                        lut=lut,
+                        power_w=2.0 + dsp * 0.01,
+                    )
+
+                    # Depthwise Conv
+                    dw_macs = in_ch * kernel_size * kernel_size * 224 * 224 // (stride * stride)
+                    dw_latency = dw_macs / (200e6) * 0.01
+                    dw_dsp = min(512, in_ch // 4)
+                    dw_bram = math.ceil((in_ch + out_ch) * kernel_size * kernel_size / 1024)
+                    dw_lut = int(dw_macs / 1000 * kernel_size)
+
+                    builder.add_profiling_result(
+                        op="dw_conv",
+                        kernel_size=kernel_size,
+                        in_channels=in_ch,
+                        out_channels=out_ch,
+                        stride=stride,
+                        groups=in_ch,
+                        latency_ms=dw_latency,
+                        cycles=int(dw_latency * 200e6),
+                        dsp=dw_dsp,
+                        bram=dw_bram,
+                        lut=dw_lut,
+                        power_w=1.5 + dw_dsp * 0.01,
+                    )
+
+    # MBConv
+    for kernel_size in [3, 5]:
+        for in_ch in [16, 24, 32, 48, 64]:
+            for out_ch in [16, 24, 32, 48, 64, 96]:
+                for expand in [1, 2, 4, 6]:
+                    hidden_ch = in_ch * expand
+                    # Simplified estimation
+                    macs = (
+                        in_ch * hidden_ch  # expand
+                        + hidden_ch * kernel_size * kernel_size  # dw
+                        + hidden_ch * out_ch  # project
+                    ) * 224 * 224
+                    latency_ms = macs / (200e6) * 0.01
+                    dsp = min(512, (hidden_ch // 8) * kernel_size)
+                    bram = math.ceil((hidden_ch + out_ch) * kernel_size * kernel_size / 1024)
+                    lut = int(macs / 1000 * kernel_size)
+
+                    builder.add_profiling_result(
+                        op="mbconv",
+                        kernel_size=kernel_size,
+                        in_channels=in_ch,
+                        out_channels=out_ch,
+                        stride=1,
+                        expand_ratio=expand,
+                        latency_ms=latency_ms,
+                        cycles=int(latency_ms * 200e6),
+                        dsp=dsp,
+                        bram=bram,
+                        lut=lut,
+                        power_w=2.5 + dsp * 0.01,
+                    )
+
+                    # Fused MBConv
+                    fused_latency = latency_ms * 0.8  # 稍快
+                    builder.add_profiling_result(
+                        op="fused_mbconv",
+                        kernel_size=kernel_size,
+                        in_channels=in_ch,
+                        out_channels=out_ch,
+                        stride=1,
+                        expand_ratio=expand,
+                        latency_ms=fused_latency,
+                        cycles=int(fused_latency * 200e6),
+                        dsp=dsp,
+                        bram=int(bram * 0.9),
+                        lut=int(lut * 0.9),
+                        power_w=2.3 + dsp * 0.01,
+                    )
+
+    # Skip
+    for ch in channel_choices:
+        builder.add_profiling_result(
+            op="skip",
+            kernel_size=1,
+            in_channels=ch,
+            out_channels=ch,
+            stride=1,
+            latency_ms=0.01,
+            cycles=int(0.01 * 200e6),
+            dsp=0,
+            bram=math.ceil(ch / 1024),
+            lut=32,
+            power_w=0.1,
+        )
+
+    return builder.build()

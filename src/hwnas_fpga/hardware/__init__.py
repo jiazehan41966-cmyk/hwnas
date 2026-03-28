@@ -1,0 +1,36 @@
+"""Hardware cost estimation and FPGA measurement hooks."""
+
+from .boards import BOARD_PROFILES, get_board_profile, list_board_profiles, resolve_board_profile
+from .cost import CostEstimate, FPGACostEstimator, LayerCost
+from .lookup_table import (
+    LutBuilder,
+    LutEntry,
+    LutQueryEngine,
+    LutTable,
+    OpSpec,
+    create_dummy_fpga_lut,
+)
+from .lut_pipeline import build_lut_from_manifest, load_lut_manifest, save_lut_from_manifest
+from .report_parser import lut_entry_from_report, parse_hls_report, parse_hls_report_text
+
+__all__ = [
+    "BOARD_PROFILES",
+    "CostEstimate",
+    "FPGACostEstimator",
+    "LayerCost",
+    "LutBuilder",
+    "LutEntry",
+    "LutQueryEngine",
+    "LutTable",
+    "OpSpec",
+    "build_lut_from_manifest",
+    "create_dummy_fpga_lut",
+    "get_board_profile",
+    "load_lut_manifest",
+    "list_board_profiles",
+    "lut_entry_from_report",
+    "parse_hls_report",
+    "parse_hls_report_text",
+    "resolve_board_profile",
+    "save_lut_from_manifest",
+]

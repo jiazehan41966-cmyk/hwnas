@@ -1,0 +1,105 @@
+project:
+  name: nksid-fpga-hwnas
+  seed: 42
+  output_dir: results
+
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 64
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  normalization: grayscale
+  # 对齐官方“从train划分valid”的语义：这里不走kfold，直接从全量样本随机切分验证集
+  use_kfold: false
+  valid_size: 0.2
+  split_seed: 42
+
+search_space:
+  macro_type: stage_based
+  stem_stride: 2
+  stage_strides: [1, 2, 2, 2]
+  stem_channels: 16
+  channel_choices: [16, 24, 32, 48, 64]
+  depth_choices: [1, 2, 3]
+  kernel_choices: [3, 5]
+  expand_choices: [1, 2, 4]
+  op_choices:
+    - conv
+    - dw_pw_conv
+    - mbconv
+    - fused_mbconv
+    - skip
+
+constraints:
+  max_latency_ms: 50.0
+  max_power_w: 20.0
+  max_model_size_mb: null
+  max_dsp: 500
+  max_bram: 1800
+  max_lut: 100000
+  max_memory_bandwidth_gbps: 3.0
+  max_offchip_mem_mb: 128.0
+
+hardware:
+  target: fpga
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+  estimator: analytic_lut_then_hls
+  lut_path: null
+  use_dummy_lut: false
+
+search:
+  method: proxyless
+  num_candidates: 120
+  eval_epochs: 120
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.005
+  episodes: 120
+  pareto:
+    selection_method: rank
+    topk: 5
+  # 兼容其它搜索器；Proxyless若启用grad_reg_loss_type会优先使用官方reg语义
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.25
+    energy: 0.05
+    resource: 0.12
+  proxyless:
+    # MIT官方默认
+    warmup_epochs: 40
+    search_epochs: 120
+    weight_lr: 0.025
+    weight_momentum: 0.9
+    weight_decay: 0.0003
+    arch_lr: 0.001
+    arch_weight_decay: 0.0
+    temperature: 1.0
+    stage_channels: [16, 24, 32, 32]
+    stage_depth: 3
+    max_eval_batches: 20
+
+    # 对齐 MIT Proxyless 梯度正则配置
+    # add#linear => grad_reg_loss_lambda
+    # mul#log    => grad_reg_loss_alpha, grad_reg_loss_beta
+    grad_reg_loss_type: mul#log
+    grad_reg_loss_alpha: 0.2
+    grad_reg_loss_beta: 0.3
+    target_hardware: latency_ms
+    # 对齐ref_value语义：未显式给出时，代码会回退到约束上限（这里是50ms）
+    ref_value: 50.0
+
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 64
+  epochs: 100
+
+deployment:
+  export_format: onnx
+  run_hls_validation: false

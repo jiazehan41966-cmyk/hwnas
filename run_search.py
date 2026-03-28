@@ -1,0 +1,463 @@
+#!/usr/bin/env python3
+"""HW-NAS 搜索入口脚本."""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import torch
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from hwnas_fpga.experiment import ExperimentTracker
+from hwnas_fpga.runtime import (
+    build_constraints,
+    build_cost_estimator,
+    build_hardware_spec,
+    build_search_space,
+    create_data_pipeline,
+    load_config,
+    pick,
+)
+from hwnas_fpga.search import (
+    ParetoFrontSelector,
+    build_pareto_objectives,
+    compute_hypervolume,
+    compute_pareto_front,
+    compute_pareto_ranks,
+    create_searcher,
+)
+
+
+def _format_optional(value, fmt: str) -> str:
+    if value is None:
+        return "n/a"
+    return format(value, fmt)
+
+
+def _candidate_to_dict(candidate):
+    return {
+        "arch_id": candidate.arch_id,
+        "encoding": candidate.encoding,
+        "metrics": candidate.metrics.__dict__,
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="HW-NAS FPGA Sonar Search")
+    parser.add_argument("--config", type=str, default=None, help="YAML config path")
+    parser.add_argument("--dataset", type=str, default=None, choices=("dummy", "nksid"))
+    parser.add_argument("--data-dir", type=str, default=None, help="Dataset root directory")
+    parser.add_argument("--fold", type=int, default=None, help="NKSID k-fold split index")
+    parser.add_argument("--num-workers", type=int, default=None)
+    parser.add_argument("--num-candidates", type=int, default=None)
+    parser.add_argument("--episodes", type=int, default=None)
+    parser.add_argument("--train-epochs", type=int, default=None)
+    parser.add_argument("--timeout-minutes", type=int, default=None)
+    parser.add_argument("--num-classes", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--image-size", type=int, default=None)
+    parser.add_argument("--device", type=str, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument(
+        "--search-method",
+        type=str,
+        default=None,
+        choices=("random", "rl", "proxyless"),
+    )
+    parser.add_argument("--controller-hidden", type=int, default=None)
+    parser.add_argument("--controller-lr", type=float, default=None)
+    parser.add_argument("--output-dir", type=str, default=None, help="Run artifact root directory")
+    parser.add_argument("--run-name", type=str, default=None, help="Optional explicit run directory name")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    config = load_config(args.config)
+
+    dataset_cfg = config.get("dataset", {})
+    project_cfg = config.get("project", {})
+    training_cfg = config.get("training", {})
+    search_cfg = config.get("search", {})
+
+    seed = pick(args.seed, project_cfg.get("seed"), 42)
+    torch.manual_seed(seed)
+
+    dataset_name = pick(args.dataset, dataset_cfg.get("name"), "dummy")
+    if dataset_name not in {"dummy", "nksid"}:
+        dataset_name = "dummy"
+
+    search_method = pick(args.search_method, search_cfg.get("method"), "random")
+    if search_method not in {"random", "rl", "proxyless"}:
+        raise ValueError(f"Unsupported search method: {search_method}")
+
+    _default_device = (
+        "cuda" if torch.cuda.is_available()
+        else "mps" if torch.backends.mps.is_available()
+        else "cpu"
+    )
+    device = pick(args.device, None, _default_device)
+    image_size = pick(args.image_size, dataset_cfg.get("image_size"), 224)
+    input_channels = dataset_cfg.get("input_channels", 1)
+    batch_size = pick(args.batch_size, training_cfg.get("batch_size"), 32)
+    num_workers = pick(args.num_workers, dataset_cfg.get("num_workers"), 0)
+    fold = pick(args.fold, dataset_cfg.get("fold"), 0)
+    data_dir = pick(args.data_dir, dataset_cfg.get("data_dir"), None)
+    use_kfold = bool(dataset_cfg.get("use_kfold", True))
+    valid_size = dataset_cfg.get("valid_size")
+    split_seed = int(dataset_cfg.get("split_seed", seed))
+    num_candidates = pick(args.num_candidates, search_cfg.get("num_candidates"), 20)
+    num_episodes = pick(args.episodes, search_cfg.get("episodes"), 20)
+    train_epochs = pick(args.train_epochs, search_cfg.get("eval_epochs"), 3)
+    timeout_minutes = pick(args.timeout_minutes, search_cfg.get("timeout_minutes"), None)
+    num_classes = pick(args.num_classes, dataset_cfg.get("num_classes"), None)
+    output_dir = pick(args.output_dir, project_cfg.get("output_dir"), "results")
+    run_name = pick(args.run_name, project_cfg.get("run_name"), None)
+    controller_hidden = pick(args.controller_hidden, search_cfg.get("controller_hidden"), 64)
+    controller_lr = pick(args.controller_lr, search_cfg.get("controller_lr"), 0.01)
+
+    output_root = Path(output_dir).expanduser()
+    if not output_root.is_absolute():
+        output_root = (Path.cwd() / output_root).resolve()
+
+    tracker = ExperimentTracker(
+        output_root=output_root,
+        project_name=project_cfg.get("name", "hwnas"),
+        script_name="run_search",
+        search_method=search_method,
+        dataset_name=dataset_name,
+        run_name=run_name,
+    )
+    tracker.save_config(config, vars(args))
+
+    try:
+        with tracker.capture_console():
+            print(f"Run dir: {tracker.root_dir}")
+            print(f"Using device: {device}")
+            print(f"Dataset: {dataset_name}")
+            print(f"Search method: {search_method}")
+            if data_dir:
+                print(f"Data dir: {data_dir}")
+
+            constraints = build_constraints(config)
+            hardware_spec = build_hardware_spec(config)
+
+            print("\n=== Creating Search Space ===")
+            search_space = build_search_space(
+                config,
+                image_size=image_size,
+                input_channels=input_channels,
+                num_classes=num_classes,
+                constraints=constraints,
+            )
+            print(f"Search space created with {search_space.config.stage_count} stages")
+            tracker.write_search_space_summary(
+                {
+                    "input_channels": search_space.config.input_channels,
+                    "image_size": search_space.config.image_size,
+                    "stem_channels": search_space.config.stem_channels,
+                    "stem_stride": search_space.config.stem_stride,
+                    "stage_strides": list(search_space.config.stage_strides),
+                    "channel_choices": list(search_space.config.channel_choices),
+                    "depth_choices": list(search_space.config.depth_choices),
+                    "kernel_choices": list(search_space.config.kernel_choices),
+                    "expand_choices": list(search_space.config.expand_choices),
+                    "op_choices": list(search_space.config.op_choices),
+                }
+            )
+
+            print("\n=== Creating Hardware Estimator ===")
+            estimator = build_cost_estimator(
+                config,
+                hardware_spec=hardware_spec,
+                constraints=constraints,
+            )
+            print(
+                "Hardware profile: "
+                f"{hardware_spec.name}, clock={hardware_spec.clock_mhz}MHz, "
+                f"LUT={hardware_spec.max_lut}, DSP={hardware_spec.max_dsp}, "
+                f"BRAM={hardware_spec.max_bram}, BW={hardware_spec.memory_bandwidth_gbps}GB/s, "
+                f"Off-chip={hardware_spec.offchip_mem_mb}MB"
+            )
+            if estimator.lut_query_engine is not None:
+                print("LUT query engine enabled")
+
+            print("\n=== Hardware-Driven Pruning ===")
+            search_space = search_space.pre_prune(estimator)
+            tracker.write_pruned_search_space_summary(
+                {
+                    "input_channels": search_space.config.input_channels,
+                    "image_size": search_space.config.image_size,
+                    "stem_channels": search_space.config.stem_channels,
+                    "stem_stride": search_space.config.stem_stride,
+                    "stage_strides": list(search_space.config.stage_strides),
+                    "channel_choices": list(search_space.config.channel_choices),
+                    "depth_choices": list(search_space.config.depth_choices),
+                    "kernel_choices": list(search_space.config.kernel_choices),
+                    "expand_choices": list(search_space.config.expand_choices),
+                    "op_choices": list(search_space.config.op_choices),
+                    "pruned": True,
+                }
+            )
+
+            print("\n=== Creating Data Loaders ===")
+            train_loader, val_loader, class_weights, resolved_num_classes = create_data_pipeline(
+                dataset_name=dataset_name,
+                data_dir=data_dir,
+                batch_size=batch_size,
+                image_size=image_size,
+                num_classes=num_classes,
+                input_channels=input_channels,
+                fold=fold,
+                num_workers=num_workers,
+                device=device,
+                use_kfold=use_kfold,
+                valid_size=valid_size,
+                split_seed=split_seed,
+            )
+            print(f"Train samples: {len(train_loader.dataset)}, Val samples: {len(val_loader.dataset)}")
+            print(f"Num classes: {resolved_num_classes}")
+            if dataset_name == "nksid":
+                split_mode = "kfold" if use_kfold and valid_size is None else "random_valid_split"
+                print(
+                    f"NKSID split mode: {split_mode}, "
+                    f"fold={fold}, valid_size={valid_size}, split_seed={split_seed}"
+                )
+            tracker.write_dataset_summary(
+                {
+                    "dataset": dataset_name,
+                    "data_dir": data_dir,
+                    "fold": fold,
+                    "use_kfold": use_kfold,
+                    "valid_size": valid_size,
+                    "split_seed": split_seed,
+                    "image_size": image_size,
+                    "batch_size": batch_size,
+                    "train_samples": len(train_loader.dataset),
+                    "val_samples": len(val_loader.dataset),
+                    "num_classes": resolved_num_classes,
+                    "class_weights": None if class_weights is None else class_weights.tolist(),
+                }
+            )
+
+            print("\n=== Creating Searcher ===")
+            objective_weights = search_cfg.get("objective_weights", {})
+            proxyless_cfg = search_cfg.get("proxyless", {})
+            searcher = create_searcher(
+                search_space=search_space,
+                cost_estimator=estimator,
+                constraints=constraints,
+                method=search_method,
+                seed=seed,
+                controller_hidden_dim=controller_hidden,
+                controller_lr=controller_lr,
+                train_epochs_per_arch=train_epochs,
+                device=device,
+                reward_weights=objective_weights,
+                proxyless_cfg=proxyless_cfg,
+            )
+            print(f"Searcher created (method={search_method}, seed={seed})")
+
+            print("\n=== Testing Baseline Architecture ===")
+            baseline_arch = search_space.baseline_architecture()
+            baseline_cost = estimator.estimate(baseline_arch, search_space)
+            print("Baseline architecture:")
+            print(f"  Params: {baseline_cost.params:,}")
+            print(f"  MACs: {baseline_cost.macs:,}")
+            print(f"  Latency: {baseline_cost.latency_ms:.2f}ms")
+            print(f"  Peak DSP: {baseline_cost.peak_dsp}")
+            print(f"  Peak BRAM: {baseline_cost.peak_bram}")
+            print(f"  Peak LUT: {baseline_cost.peak_lut}")
+            print(f"  Power: {baseline_cost.power_w:.2f}W")
+            print(f"  Memory BW: {baseline_cost.memory_bandwidth_gbps:.3f}GB/s")
+            print(f"  Off-chip Mem: {baseline_cost.offchip_mem_mb:.3f}MB")
+            print(f"  Violations: {baseline_cost.violations}")
+            tracker.write_baseline(
+                architecture=baseline_arch.to_dict(),
+                cost_estimate=baseline_cost,
+            )
+
+            print("\n=== Starting Search ===")
+            if search_method == "rl":
+                print(f"Episodes: {num_episodes}")
+                best_candidate = searcher.search(
+                    train_loader=train_loader,
+                    val_loader=val_loader,
+                    num_classes=resolved_num_classes,
+                    num_episodes=num_episodes,
+                    timeout_minutes=timeout_minutes,
+                    device=device,
+                    verbose=True,
+                    class_weights=class_weights,
+                    artifact_tracker=tracker,
+                )
+            elif timeout_minutes:
+                print(f"Search timeout: {timeout_minutes} minutes")
+                best_candidate = searcher.search_with_timeout(
+                    train_loader=train_loader,
+                    val_loader=val_loader,
+                    num_classes=resolved_num_classes,
+                    timeout_minutes=timeout_minutes,
+                    train_epochs=train_epochs,
+                    device=device,
+                    verbose=True,
+                    class_weights=class_weights,
+                    artifact_tracker=tracker,
+                )
+            else:
+                if search_method == "proxyless":
+                    print(
+                        "Proxyless search: "
+                        f"warmup={proxyless_cfg.get('warmup_epochs', 10)}, "
+                        f"search_epochs={proxyless_cfg.get('search_epochs', train_epochs)}, "
+                        f"grad_reg={proxyless_cfg.get('grad_reg_loss_type')}, "
+                        f"target={proxyless_cfg.get('target_hardware', 'latency_ms')}, "
+                        f"ref={proxyless_cfg.get('ref_value')}"
+                    )
+                else:
+                    print(f"Number of candidates to evaluate: {num_candidates}")
+                best_candidate = searcher.search(
+                    train_loader=train_loader,
+                    val_loader=val_loader,
+                    num_classes=resolved_num_classes,
+                    num_candidates=num_candidates,
+                    train_epochs=train_epochs,
+                    device=device,
+                    verbose=True,
+                    class_weights=class_weights,
+                    artifact_tracker=tracker,
+                )
+
+            pareto_cfg = search_cfg.get("pareto", {})
+            pareto_topk = int(pareto_cfg.get("topk", 5))
+            pareto_method = pareto_cfg.get("selection_method", "rank")
+            pareto_objectives, pareto_directions = build_pareto_objectives(
+                objective_weights,
+                constraints,
+            )
+            pareto_front = compute_pareto_front(
+                searcher.feasible_candidates,
+                objectives=pareto_objectives,
+                directions=pareto_directions,
+            )
+            selector = ParetoFrontSelector(
+                objectives=pareto_objectives,
+                directions=pareto_directions,
+                selection_method=pareto_method,
+            )
+            pareto = selector.select(searcher.feasible_candidates, k=pareto_topk)
+            pareto_ranks = compute_pareto_ranks(
+                searcher.feasible_candidates,
+                objectives=pareto_objectives,
+                directions=pareto_directions,
+            )
+            hypervolume = 0.0
+            if pareto_front:
+                reference_point = selector._default_reference_point(pareto_front)
+                hypervolume = compute_hypervolume(
+                    pareto_front,
+                    reference_point=reference_point,
+                    objectives=pareto_objectives,
+                    directions=pareto_directions,
+                )
+            pareto_summary = {
+                "objectives": pareto_objectives,
+                "directions": pareto_directions,
+                "selection_method": pareto_method,
+                "pareto_front_size": len(pareto_front),
+                "hypervolume": hypervolume,
+                "selected_topk": [_candidate_to_dict(candidate) for candidate in pareto],
+                "ranks": [
+                    {"arch_id": candidate.arch_id, "rank": rank}
+                    for candidate, rank in zip(searcher.feasible_candidates, pareto_ranks)
+                ],
+            }
+            (tracker.results_dir / "pareto_selection.json").write_text(
+                json.dumps(pareto_summary, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            lut_stats = estimator.get_lut_stats()
+
+            print("\n=== Search Results ===")
+            if best_candidate:
+                print(f"Best architecture: {best_candidate.arch_id}")
+                print(f"  Accuracy: {best_candidate.metrics.accuracy:.4f}")
+                print(f"  Latency: {best_candidate.metrics.latency_ms:.2f}ms")
+                print(f"  DSP: {best_candidate.metrics.dsp}")
+                print(f"  BRAM: {best_candidate.metrics.bram}")
+                print(f"  LUT: {best_candidate.metrics.lut}")
+                print(f"  Power: {_format_optional(best_candidate.metrics.power_w, '.2f')}W")
+                print(f"  Energy: {_format_optional(best_candidate.metrics.energy_mj, '.2f')}mJ")
+                print(
+                    f"  Memory BW: "
+                    f"{_format_optional(best_candidate.metrics.memory_bandwidth_gbps, '.3f')}GB/s"
+                )
+                print(
+                    f"  Off-chip Mem: "
+                    f"{_format_optional(best_candidate.metrics.offchip_mem_mb, '.3f')}MB"
+                )
+                if pareto_front:
+                    print(
+                        f"\nPareto front: {len(pareto_front)} candidates, "
+                        f"selection={pareto_method}, hypervolume={hypervolume:.4f}"
+                    )
+                if pareto:
+                    print(f"\n=== Top {len(pareto)} Candidates (Pareto Selected) ===")
+                    for index, candidate in enumerate(pareto, start=1):
+                        print(
+                            f"{index}. {candidate.arch_id}: "
+                            f"Acc={candidate.metrics.accuracy:.4f}, "
+                            f"Lat={candidate.metrics.latency_ms:.2f}ms"
+                        )
+            else:
+                print("No feasible architecture found!")
+
+            print(
+                "LUT usage summary: "
+                f"hits={lut_stats['hits']}, misses={lut_stats['misses']}, "
+                f"hit_rate={lut_stats['hit_rate']:.3f}"
+            )
+
+            tracker.finalize(
+                status="completed",
+                candidates=searcher.evaluated_candidates,
+                feasible_candidates=searcher.feasible_candidates,
+                infeasible_candidates=searcher.infeasible_candidates,
+                best_candidate=best_candidate,
+                pareto_candidates=pareto,
+                extra={
+                    "device": device,
+                    "search_method": search_method,
+                    "search_summary": searcher.get_search_summary(),
+                    "timeout_minutes": timeout_minutes,
+                    "num_candidates": num_candidates,
+                    "num_episodes": num_episodes,
+                    "train_epochs": train_epochs,
+                    "objective_weights": objective_weights,
+                    "proxyless": proxyless_cfg if search_method == "proxyless" else None,
+                    "hardware_spec": {
+                        "name": hardware_spec.name,
+                        "clock_mhz": hardware_spec.clock_mhz,
+                        "max_lut": hardware_spec.max_lut,
+                        "max_ff": hardware_spec.max_ff,
+                        "max_bram": hardware_spec.max_bram,
+                        "max_dsp": hardware_spec.max_dsp,
+                        "max_power_w": hardware_spec.max_power_w,
+                        "memory_bandwidth_gbps": hardware_spec.memory_bandwidth_gbps,
+                        "offchip_mem_mb": hardware_spec.offchip_mem_mb,
+                    },
+                    "lut_stats": lut_stats,
+                    "pareto_summary": pareto_summary,
+                },
+            )
+
+            print("\n=== Done ===")
+    except Exception as exc:
+        tracker.mark_failed(str(exc))
+        raise
+
+
+if __name__ == "__main__":
+    main()

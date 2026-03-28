@@ -1,0 +1,211 @@
+"""Build LUT tables from Vivado/Vitis HLS profiling manifests."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Optional
+
+import yaml
+
+from hwnas_fpga.hardware.lookup_table import LutEntry, LutTable, OpSpec
+from hwnas_fpga.hardware.report_parser import parse_hls_report
+
+
+_SPEC_KEYS = {
+    "op",
+    "kernel_size",
+    "in_channels",
+    "out_channels",
+    "stride",
+    "groups",
+    "expand_ratio",
+    "input_resolution",
+}
+
+_METRIC_KEYS = {
+    "latency_ms",
+    "latency_ns",
+    "cycles",
+    "dsp",
+    "bram",
+    "lut",
+    "ff",
+    "power_w",
+    "energy_mj",
+}
+
+
+def load_lut_manifest(path: str | Path) -> dict[str, Any]:
+    """Load a YAML/JSON manifest describing profiled operator reports."""
+    manifest_path = Path(path).expanduser().resolve()
+    suffix = manifest_path.suffix.lower()
+    text = manifest_path.read_text(encoding="utf-8")
+
+    if suffix == ".json":
+        payload = json.loads(text)
+    else:
+        payload = yaml.safe_load(text)
+
+    if not isinstance(payload, dict):
+        raise ValueError(f"LUT manifest must contain a mapping: {manifest_path}")
+
+    entries = payload.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError(f"LUT manifest must define a non-empty 'entries' list: {manifest_path}")
+
+    payload["_manifest_path"] = str(manifest_path)
+    return payload
+
+
+def build_lut_from_manifest(
+    path: str | Path,
+    *,
+    default_clock_mhz: Optional[int] = None,
+) -> tuple[LutTable, dict[str, Any]]:
+    """Build a LUT table from a profiling manifest."""
+    manifest = load_lut_manifest(path)
+    manifest_path = Path(manifest["_manifest_path"])
+    manifest_clock = manifest.get("clock_mhz", default_clock_mhz)
+    table = LutTable()
+    processed_entries: list[dict[str, Any]] = []
+
+    for index, raw_entry in enumerate(manifest["entries"]):
+        if not isinstance(raw_entry, dict):
+            raise ValueError(f"Manifest entry #{index} must be a mapping")
+
+        lut_entry = _build_lut_entry(
+            raw_entry,
+            manifest_dir=manifest_path.parent,
+            manifest_clock_mhz=manifest_clock,
+        )
+        table.add(lut_entry)
+        processed_entries.append(
+            {
+                "index": index,
+                "op": lut_entry.op_spec.op,
+                "report": str(_resolve_report_path(raw_entry, manifest_path.parent)) if _get_report_path(raw_entry) else None,
+                "latency_ms": lut_entry.latency_ms,
+                "dsp": lut_entry.dsp,
+                "bram": lut_entry.bram,
+                "lut": lut_entry.lut,
+            }
+        )
+
+    summary = {
+        "manifest_path": str(manifest_path),
+        "clock_mhz": manifest_clock,
+        "entries_requested": len(manifest["entries"]),
+        "entries_built": len(table),
+        "table_stats": table.get_stats(),
+        "entries": processed_entries,
+    }
+    return table, summary
+
+
+def save_lut_from_manifest(
+    path: str | Path,
+    output_path: str | Path,
+    *,
+    default_clock_mhz: Optional[int] = None,
+) -> dict[str, Any]:
+    """Build and save a LUT table from a profiling manifest."""
+    table, summary = build_lut_from_manifest(path, default_clock_mhz=default_clock_mhz)
+    output_file = Path(output_path).expanduser().resolve()
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    table.save(str(output_file))
+    summary["output_path"] = str(output_file)
+    return summary
+
+
+def _build_lut_entry(
+    raw_entry: dict[str, Any],
+    *,
+    manifest_dir: Path,
+    manifest_clock_mhz: Optional[int],
+) -> LutEntry:
+    op_spec = _parse_op_spec(raw_entry)
+    metrics = _collect_metrics(raw_entry, manifest_dir)
+    clock_mhz = raw_entry.get("clock_mhz", manifest_clock_mhz)
+
+    latency_ms = metrics.get("latency_ms")
+    if latency_ms is None:
+        cycles = int(metrics.get("cycles") or 0)
+        latency_ns = metrics.get("latency_ns")
+        if cycles > 0:
+            if clock_mhz is None:
+                raise ValueError(
+                    f"Clock must be provided for LUT entry {op_spec} when only cycles are available"
+                )
+            latency_ms = cycles / (float(clock_mhz) * 1_000.0)
+        elif latency_ns is not None:
+            latency_ms = float(latency_ns) / 1_000_000.0
+        else:
+            latency_ms = 0.0
+
+    power_w = float(metrics.get("power_w") or 0.0)
+    energy_mj = metrics.get("energy_mj")
+    if energy_mj is None:
+        energy_mj = power_w * float(latency_ms)
+
+    return LutEntry(
+        op_spec=op_spec,
+        latency_ms=float(latency_ms),
+        cycles=int(metrics.get("cycles") or 0),
+        dsp=int(metrics.get("dsp") or 0),
+        bram=int(metrics.get("bram") or 0),
+        lut=int(metrics.get("lut") or 0),
+        power_w=power_w,
+        energy_mj=float(energy_mj),
+    )
+
+
+def _parse_op_spec(raw_entry: dict[str, Any]) -> OpSpec:
+    spec_payload = raw_entry.get("op_spec")
+    if spec_payload is None:
+        spec_payload = {key: raw_entry[key] for key in _SPEC_KEYS if key in raw_entry}
+    if not isinstance(spec_payload, dict):
+        raise ValueError("Manifest entry 'op_spec' must be a mapping")
+    if "op" not in spec_payload:
+        raise ValueError("Manifest entry must define operator fields or an 'op_spec' mapping")
+    return OpSpec.from_dict(spec_payload)
+
+
+def _collect_metrics(raw_entry: dict[str, Any], manifest_dir: Path) -> dict[str, Any]:
+    metrics: dict[str, Any] = {}
+    report_path = _resolve_report_path(raw_entry, manifest_dir)
+    if report_path is not None:
+        metrics.update(parse_hls_report(report_path))
+
+    raw_metrics = raw_entry.get("metrics", {})
+    if raw_metrics:
+        if not isinstance(raw_metrics, dict):
+            raise ValueError("Manifest entry 'metrics' must be a mapping")
+        metrics.update(raw_metrics)
+
+    for key in _METRIC_KEYS:
+        if key in raw_entry:
+            metrics[key] = raw_entry[key]
+
+    return metrics
+
+
+def _get_report_path(raw_entry: dict[str, Any]) -> Optional[str]:
+    for key in ("report", "report_path", "path"):
+        value = raw_entry.get(key)
+        if value:
+            return str(value)
+    return None
+
+
+def _resolve_report_path(raw_entry: dict[str, Any], manifest_dir: Path) -> Optional[Path]:
+    raw_path = _get_report_path(raw_entry)
+    if raw_path is None:
+        return None
+
+    report_path = Path(raw_path).expanduser()
+    if not report_path.is_absolute():
+        report_path = (manifest_dir / report_path).resolve()
+    if not report_path.exists():
+        raise FileNotFoundError(f"Profiling report not found: {report_path}")
+    return report_path

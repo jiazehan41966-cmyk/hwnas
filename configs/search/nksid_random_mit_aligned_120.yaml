@@ -1,0 +1,80 @@
+project:
+  name: nksid-fpga-hwnas
+  seed: 42
+  output_dir: results
+
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 64
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  normalization: grayscale
+  use_kfold: false
+  valid_size: 0.2
+  split_seed: 42
+
+search_space:
+  macro_type: stage_based
+  stem_stride: 2
+  stage_strides: [1, 2, 2, 2]
+  stem_channels: 16
+  channel_choices: [16, 24, 32, 48, 64]
+  depth_choices: [1, 2, 3]
+  kernel_choices: [3, 5]
+  expand_choices: [1, 2, 4]
+  op_choices:
+    - conv
+    - dw_pw_conv
+    - mbconv
+    - fused_mbconv
+    - skip
+
+constraints:
+  max_latency_ms: 50.0
+  max_power_w: 20.0
+  max_model_size_mb: null
+  max_dsp: 500
+  max_bram: 1800
+  max_lut: 100000
+  max_memory_bandwidth_gbps: 3.0
+  max_offchip_mem_mb: 128.0
+
+hardware:
+  target: fpga
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+  estimator: analytic_lut_then_hls
+  lut_path: null
+  use_dummy_lut: false
+
+search:
+  method: random
+  num_candidates: 120
+  eval_epochs: 10
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.005
+  episodes: 120
+  pareto:
+    selection_method: rank
+    topk: 5
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.25
+    energy: 0.05
+    resource: 0.12
+
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 64
+  epochs: 100
+
+deployment:
+  export_format: onnx
+  run_hls_validation: false

@@ -1,0 +1,36 @@
+clock_mhz: 200
+entries:
+  - op: conv
+    kernel_size: 3
+    in_channels: 16
+    out_channels: 32
+    stride: 1
+    groups: 1
+    expand_ratio: 1
+    input_resolution: [56, 56]
+    report: ../../reports/hls/conv3x3_c16_c32.rpt
+
+  - op_spec:
+      op: dw_conv
+      kernel_size: 5
+      in_channels: 32
+      out_channels: 32
+      stride: 2
+      groups: 32
+      expand_ratio: 1
+      input_resolution: [56, 56]
+    report: ../../reports/hls/dw5x5_c32_s2.rpt
+
+  - op: mbconv
+    kernel_size: 3
+    in_channels: 32
+    out_channels: 64
+    stride: 1
+    expand_ratio: 4
+    input_resolution: [28, 28]
+    metrics:
+      cycles: 120000
+      dsp: 64
+      bram: 10
+      lut: 4200
+      power_w: 3.2

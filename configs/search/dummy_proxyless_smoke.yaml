@@ -1,0 +1,65 @@
+project:
+  name: dummy-proxyless-smoke
+  seed: 42
+  output_dir: results
+
+dataset:
+  name: dummy
+  input_channels: 1
+  image_size: 64
+  num_classes: 8
+  num_workers: 0
+
+search_space:
+  macro_type: stage_based
+  stem_stride: 2
+  stage_strides: [1, 2, 2, 2]
+  stem_channels: 16
+  channel_choices: [16, 24, 32]
+  depth_choices: [1, 2]
+  kernel_choices: [3, 5]
+  expand_choices: [1, 2]
+  op_choices:
+    - dw_pw_conv
+    - mbconv
+    - fused_mbconv
+    - skip
+
+constraints:
+  max_latency_ms: 50.0
+  max_power_w: 20.0
+  max_dsp: 500
+  max_bram: 1800
+  max_lut: 100000
+
+hardware:
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+  lut_path: null
+  use_dummy_lut: false
+
+search:
+  method: proxyless
+  num_candidates: 20
+  eval_epochs: 2
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.05
+    resource: 0.1
+  pareto:
+    selection_method: rank
+    topk: 3
+  proxyless:
+    warmup_epochs: 1
+    search_epochs: 2
+    weight_lr: 0.02
+    arch_lr: 0.001
+    stage_channels: [16, 16, 24, 24]
+    stage_depth: 2
+    max_eval_batches: 4
+
+training:
+  batch_size: 16
+  epochs: 10

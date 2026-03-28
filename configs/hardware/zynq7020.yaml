@@ -1,0 +1,11 @@
+hardware:
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+  max_lut: 53200
+  max_ff: 106400
+  max_bram: 140
+  max_dsp: 220
+  max_power_w: 5.0
+  memory_bandwidth_gbps: 4.2
+  offchip_mem_mb: 512.0
