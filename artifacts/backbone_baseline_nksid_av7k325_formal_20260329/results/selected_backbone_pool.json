@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-03-29T01:10:57",
+  "dataset": "nksid",
+  "board": "ALINX AV7K325 (XC7K325T-2FFG900I)",
+  "selection_metric": "macro_f1",
+  "roles": {
+    "accuracy_anchor": {
+      "arch_id": "efficientnet_b0",
+      "display_name": "EfficientNet-B0",
+      "backbone": "efficientnet_b0",
+      "pretrained_requested": true,
+      "pretrained_loaded": true,
+      "macro_f1": 0.9800851310935444,
+      "top1": 0.9903846153846154,
+      "top5": 1.0,
+      "weighted_f1": 0.9905534492308518,
+      "cpu_latency_ms": 17.117732266585033,
+      "fpga_latency_ms": 9.76726,
+      "params": 4017220,
+      "macs": 377319648,
+      "peak_dsp": 256,
+      "peak_bram": 12,
+      "peak_lut": 10478,
+      "power_w": 7.8836,
+      "feasible": true,
+      "violations": []
+    },
+    "search_anchor": {
+      "arch_id": "shufflenet_v2",
+      "display_name": "ShuffleNetV2",
+      "backbone": "shufflenet_v2",
+      "pretrained_requested": true,
+      "pretrained_loaded": true,
+      "macro_f1": 0.9748007604431406,
+      "top1": 0.9884615384615385,
+      "top5": 1.0,
+      "weighted_f1": 0.9882392748005455,
+      "cpu_latency_ms": 13.85316343512386,
+      "fpga_latency_ms": 3.226885,
+      "params": 1261372,
+      "macs": 138473176,
+      "peak_dsp": 256,
+      "peak_bram": 3,
+      "peak_lut": 8838,
+      "power_w": 7.3936,
+      "feasible": true,
+      "violations": []
+    },
+    "lightweight_anchor": {
+      "arch_id": "shufflenet_v2",
+      "display_name": "ShuffleNetV2",
+      "backbone": "shufflenet_v2",
+      "pretrained_requested": true,
+      "pretrained_loaded": true,
+      "macro_f1": 0.9748007604431406,
+      "top1": 0.9884615384615385,
+      "top5": 1.0,
+      "weighted_f1": 0.9882392748005455,
+      "cpu_latency_ms": 13.85316343512386,
+      "fpga_latency_ms": 3.226885,
+      "params": 1261372,
+      "macs": 138473176,
+      "peak_dsp": 256,
+      "peak_bram": 3,
+      "peak_lut": 8838,
+      "power_w": 7.3936,
+      "feasible": true,
+      "violations": []
+    }
+  },
+  "recommended_profiles": {
+    "mobile_anchor": {
+      "source_role": "search_anchor",
+      "source_arch_id": "shufflenet_v2",
+      "source_backbone": "shufflenet_v2"
+    },
+    "accuracy_biased": {
+      "source_role": "accuracy_anchor",
+      "source_arch_id": "efficientnet_b0",
+      "source_backbone": "efficientnet_b0"
+    },
+    "lightweight_sonar": {
+      "source_role": "lightweight_anchor",
+      "source_arch_id": "shufflenet_v2",
+      "source_backbone": "shufflenet_v2"
+    }
+  }
+}

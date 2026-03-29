@@ -73,11 +73,36 @@ baseline:
 
             summary_path = tmp_path / "test-results" / "cli-smoke" / "results" / "backbone_summary.json"
             selected_pool_path = tmp_path / "test-results" / "cli-smoke" / "results" / "selected_backbone_pool.json"
+            protocol_path = tmp_path / "test-results" / "cli-smoke" / "results" / "experiment_protocol.json"
+            backbone_result_path = (
+                tmp_path / "test-results" / "cli-smoke" / "results" / "backbones" / "simplecnn.json"
+            )
             self.assertTrue(summary_path.exists())
             self.assertTrue(selected_pool_path.exists())
+            self.assertTrue(protocol_path.exists())
+            self.assertTrue(backbone_result_path.exists())
             payload = json.loads(summary_path.read_text(encoding="utf-8"))
             self.assertEqual(len(payload), 1)
             self.assertEqual(payload[0]["arch_id"], "simplecnn")
+
+            protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+            self.assertIn("training_strategy", protocol)
+            self.assertIn("candidate_blueprints", protocol)
+            self.assertEqual(protocol["candidate_blueprints"][0]["stage_count"], 3)
+
+            backbone_result = json.loads(backbone_result_path.read_text(encoding="utf-8"))
+            self.assertIn("architecture_summary", backbone_result)
+            self.assertIn("training_strategy", backbone_result)
+            self.assertEqual(backbone_result["architecture_summary"]["stage_count"], 3)
+            self.assertEqual(
+                backbone_result["architecture_summary"]["stages"][0]["output_resolution"],
+                32,
+            )
+            self.assertEqual(
+                backbone_result["training_strategy"]["selection"]["selection_metric"],
+                "macro_f1",
+            )
+
             selected_pool = json.loads(selected_pool_path.read_text(encoding="utf-8"))
             self.assertIn("roles", selected_pool)
             self.assertIn("accuracy_anchor", selected_pool["roles"])

@@ -1,0 +1,10 @@
+{
+  "project_name": "backbone-baseline-nksid-av7k325",
+  "script_name": "run_backbone_baseline",
+  "search_method": "backbone_baseline",
+  "dataset_name": "nksid",
+  "run_name": "backbone_nksid_av7k325_gpu_formal_20260329_000614",
+  "created_at": "2026-03-28T16:06:17Z",
+  "status": "completed",
+  "finished_at": "2026-03-28T17:10:57Z"
+}

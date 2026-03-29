@@ -36,6 +36,128 @@ from hwnas_fpga.runtime import (
 from hwnas_fpga.training import create_optimizer
 
 
+BACKBONE_ARCHITECTURE_BLUEPRINTS: dict[str, dict[str, Any]] = {
+    "simplecnn": {
+        "stem": None,
+        "stages": (
+            {
+                "stage_name": "conv16",
+                "block_type": "conv_bn_relu",
+                "depth": 1,
+                "channels": 16,
+                "stride": 1,
+                "downsample_location": "stage_end",
+                "downsample_op": "maxpool2d",
+                "downsample_stride": 2,
+            },
+            {
+                "stage_name": "conv32",
+                "block_type": "conv_bn_relu",
+                "depth": 1,
+                "channels": 32,
+                "stride": 1,
+                "downsample_location": "stage_end",
+                "downsample_op": "maxpool2d",
+                "downsample_stride": 2,
+            },
+            {
+                "stage_name": "conv64",
+                "block_type": "conv_bn_relu",
+                "depth": 1,
+                "channels": 64,
+                "stride": 1,
+                "downsample_location": None,
+                "downsample_op": None,
+                "downsample_stride": 1,
+            },
+        ),
+        "head": {
+            "pooling": "adaptive_avg_pool_4x4",
+            "classifier_hidden_dim": 80,
+        },
+    },
+    "mobilenet_v2": {
+        "stem": {
+            "out_channels": 32,
+            "stride": 2,
+            "block_type": "conv_bn_relu6",
+        },
+        "stages": (
+            {"stage_name": "ir16", "block_type": "inverted_residual", "depth": 1, "channels": 16, "stride": 1, "expand": 1, "kernel": 3},
+            {"stage_name": "ir24", "block_type": "inverted_residual", "depth": 2, "channels": 24, "stride": 2, "expand": 6, "kernel": 3},
+            {"stage_name": "ir32", "block_type": "inverted_residual", "depth": 3, "channels": 32, "stride": 2, "expand": 6, "kernel": 3},
+            {"stage_name": "ir64", "block_type": "inverted_residual", "depth": 4, "channels": 64, "stride": 2, "expand": 6, "kernel": 3},
+            {"stage_name": "ir96", "block_type": "inverted_residual", "depth": 3, "channels": 96, "stride": 1, "expand": 6, "kernel": 3},
+            {"stage_name": "ir160", "block_type": "inverted_residual", "depth": 3, "channels": 160, "stride": 2, "expand": 6, "kernel": 3},
+            {"stage_name": "ir320", "block_type": "inverted_residual", "depth": 1, "channels": 320, "stride": 1, "expand": 6, "kernel": 3},
+        ),
+        "head": {
+            "out_channels": 1280,
+            "pooling": "adaptive_avg_pool_1x1",
+        },
+    },
+    "fbnet_like": {
+        "stem": {
+            "out_channels": 16,
+            "stride": 2,
+            "block_type": "conv_bn_relu",
+        },
+        "stages": (
+            {"stage_name": "fb16", "block_type": "fbnet_bottleneck", "depth": 1, "channels": 16, "stride": 1, "expand": 1, "kernel": 3, "groups": 1},
+            {"stage_name": "fb24", "block_type": "fbnet_bottleneck", "depth": 4, "channels": 24, "stride": 2, "expand": 3, "kernel": 3, "groups": 2},
+            {"stage_name": "fb32", "block_type": "fbnet_bottleneck", "depth": 4, "channels": 32, "stride": 2, "expand": 3, "kernel": 5, "groups": 2},
+            {"stage_name": "fb64", "block_type": "fbnet_bottleneck", "depth": 4, "channels": 64, "stride": 2, "expand": 4, "kernel": 5, "groups": 2},
+            {"stage_name": "fb112", "block_type": "fbnet_bottleneck", "depth": 4, "channels": 112, "stride": 1, "expand": 4, "kernel": 5, "groups": 2},
+            {"stage_name": "fb184", "block_type": "fbnet_bottleneck", "depth": 4, "channels": 184, "stride": 2, "expand": 6, "kernel": 5, "groups": 4},
+        ),
+        "head": {
+            "out_channels": 1280,
+            "pooling": "adaptive_avg_pool_1x1",
+        },
+    },
+    "shufflenet_v2": {
+        "stem": {
+            "out_channels": 24,
+            "stride": 2,
+            "block_type": "conv_bn_relu",
+            "post_stem_downsample": {
+                "op": "maxpool2d",
+                "stride": 2,
+            },
+        },
+        "stages": (
+            {"stage_name": "shuffle116", "block_type": "shuffle_stage", "depth": 4, "channels": 116, "stride": 2},
+            {"stage_name": "shuffle232", "block_type": "shuffle_stage", "depth": 8, "channels": 232, "stride": 2},
+            {"stage_name": "shuffle464", "block_type": "shuffle_stage", "depth": 4, "channels": 464, "stride": 2},
+        ),
+        "head": {
+            "out_channels": 1024,
+            "pooling": "adaptive_avg_pool_1x1",
+        },
+    },
+    "efficientnet_b0": {
+        "stem": {
+            "out_channels": 32,
+            "stride": 2,
+            "block_type": "conv_bn_silu",
+        },
+        "stages": (
+            {"stage_name": "mb16", "block_type": "mbconv", "depth": 1, "channels": 16, "stride": 1, "expand": 1, "kernel": 3},
+            {"stage_name": "mb24", "block_type": "mbconv", "depth": 2, "channels": 24, "stride": 2, "expand": 6, "kernel": 3},
+            {"stage_name": "mb40", "block_type": "mbconv", "depth": 2, "channels": 40, "stride": 2, "expand": 6, "kernel": 5},
+            {"stage_name": "mb80", "block_type": "mbconv", "depth": 3, "channels": 80, "stride": 2, "expand": 6, "kernel": 3},
+            {"stage_name": "mb112", "block_type": "mbconv", "depth": 3, "channels": 112, "stride": 1, "expand": 6, "kernel": 5},
+            {"stage_name": "mb192", "block_type": "mbconv", "depth": 4, "channels": 192, "stride": 2, "expand": 6, "kernel": 5},
+            {"stage_name": "mb320", "block_type": "mbconv", "depth": 1, "channels": 320, "stride": 1, "expand": 6, "kernel": 3},
+        ),
+        "head": {
+            "out_channels": 1280,
+            "pooling": "adaptive_avg_pool_1x1",
+        },
+    },
+}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="HW-NAS backbone baseline experiment")
     parser.add_argument("--config", type=str, default="configs/backbone_baseline.yaml")
@@ -65,6 +187,10 @@ def parse_args() -> argparse.Namespace:
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def div_up(value: int, divisor: int) -> int:
+    return int(math.ceil(float(value) / float(max(1, divisor))))
 
 
 def set_seed(seed: int) -> None:
@@ -252,6 +378,223 @@ def build_scheduler(
     if warmup_epochs > 0:
         return LinearLR(optimizer, start_factor=0.2, end_factor=1.0, total_iters=warmup_epochs)
     return CosineAnnealingLR(optimizer, T_max=max(1, epochs), eta_min=min_lr)
+
+
+def build_architecture_summary(
+    *,
+    arch_id: str,
+    display_name: str,
+    backbone_name: str,
+    input_channels: int,
+    image_size: int,
+    num_classes: int,
+    pretrained_requested: bool,
+    pretrained_loaded: Optional[bool],
+) -> dict[str, Any]:
+    blueprint = BACKBONE_ARCHITECTURE_BLUEPRINTS.get(backbone_name)
+    if blueprint is None:
+        return {
+            "arch_id": arch_id,
+            "display_name": display_name,
+            "backbone": backbone_name,
+            "input_channels": input_channels,
+            "input_resolution": image_size,
+            "stage_count": None,
+            "stages": [],
+            "downsample_positions": [],
+            "notes": "No architecture blueprint registered for this backbone.",
+            "pretrained_requested": pretrained_requested,
+            "pretrained_loaded": pretrained_loaded,
+        }
+
+    summary: dict[str, Any] = {
+        "arch_id": arch_id,
+        "display_name": display_name,
+        "backbone": backbone_name,
+        "input_channels": input_channels,
+        "input_resolution": image_size,
+        "pretrained_requested": pretrained_requested,
+        "pretrained_loaded": pretrained_loaded,
+        "stage_count": len(tuple(blueprint.get("stages", ()))),
+        "downsample_positions": [],
+        "notes": "Macro-architecture summary used for downstream anchor selection and later search-space design.",
+    }
+
+    current_resolution = int(image_size)
+    stem_cfg = blueprint.get("stem")
+    if stem_cfg is not None:
+        stem_stride = int(stem_cfg.get("stride", 1))
+        stem_output = div_up(current_resolution, stem_stride)
+        stem_summary: dict[str, Any] = {
+            "block_type": stem_cfg.get("block_type"),
+            "out_channels": int(stem_cfg.get("out_channels", 0)),
+            "width": int(stem_cfg.get("out_channels", 0)),
+            "stride": stem_stride,
+            "input_resolution": current_resolution,
+            "output_resolution": stem_output,
+        }
+        if stem_stride > 1:
+            summary["downsample_positions"].append("stem")
+        current_resolution = stem_output
+
+        post_stem_cfg = stem_cfg.get("post_stem_downsample")
+        if post_stem_cfg is not None:
+            post_stride = int(post_stem_cfg.get("stride", 1))
+            post_output = div_up(current_resolution, post_stride)
+            stem_summary["post_stem_downsample"] = {
+                "op": post_stem_cfg.get("op"),
+                "stride": post_stride,
+                "input_resolution": current_resolution,
+                "output_resolution": post_output,
+            }
+            if post_stride > 1:
+                summary["downsample_positions"].append("stem_post_downsample")
+            current_resolution = post_output
+
+        summary["stem"] = stem_summary
+    else:
+        summary["stem"] = None
+
+    stages: list[dict[str, Any]] = []
+    for stage_index, stage_cfg in enumerate(blueprint.get("stages", ()), start=1):
+        stage_input = current_resolution
+        stage_stride = int(stage_cfg.get("stride", 1))
+        downsample_location = stage_cfg.get("downsample_location")
+        downsample_op = stage_cfg.get("downsample_op")
+        output_resolution = stage_input
+
+        if stage_stride > 1:
+            output_resolution = div_up(stage_input, stage_stride)
+            summary["downsample_positions"].append(f"stage_{stage_index}")
+        elif int(stage_cfg.get("downsample_stride", 1)) > 1:
+            extra_stride = int(stage_cfg["downsample_stride"])
+            output_resolution = div_up(stage_input, extra_stride)
+            summary["downsample_positions"].append(f"stage_{stage_index}_{downsample_location or 'downsample'}")
+        else:
+            extra_stride = 1
+
+        stage_summary: dict[str, Any] = {
+            "stage_index": stage_index,
+            "stage_name": stage_cfg.get("stage_name", f"stage_{stage_index}"),
+            "block_type": stage_cfg.get("block_type"),
+            "depth": int(stage_cfg.get("depth", 1)),
+            "out_channels": int(stage_cfg.get("channels", 0)),
+            "width": int(stage_cfg.get("channels", 0)),
+            "stride": stage_stride,
+            "input_resolution": stage_input,
+            "output_resolution": output_resolution,
+            "downsample": output_resolution != stage_input,
+            "downsample_location": downsample_location or ("stage_start" if stage_stride > 1 else None),
+            "downsample_op": downsample_op,
+        }
+        if "expand" in stage_cfg:
+            stage_summary["expand_ratio"] = int(stage_cfg["expand"])
+        if "kernel" in stage_cfg:
+            stage_summary["kernel_size"] = int(stage_cfg["kernel"])
+        if "groups" in stage_cfg:
+            stage_summary["groups"] = int(stage_cfg["groups"])
+        if stage_stride <= 1 and extra_stride > 1:
+            stage_summary["downsample_stride"] = extra_stride
+
+        stages.append(stage_summary)
+        current_resolution = output_resolution
+
+    summary["stages"] = stages
+    summary["head"] = {
+        **dict(blueprint.get("head", {})),
+        "num_classes": num_classes,
+        "input_resolution": current_resolution,
+    }
+    return summary
+
+
+def build_training_strategy_summary(
+    *,
+    dataset_name: str,
+    dataset_cfg: dict[str, Any],
+    training_cfg: dict[str, Any],
+    batch_size: int,
+    image_size: int,
+    input_channels: int,
+    fold: int,
+    class_weights: Optional[torch.Tensor],
+    topk: int,
+) -> dict[str, Any]:
+    warmup_epochs = int(training_cfg.get("warmup_epochs", 0))
+    epochs = int(training_cfg.get("epochs", 10))
+    if warmup_epochs > 0 and epochs > warmup_epochs:
+        scheduler_name = "linear_warmup_plus_cosine_decay"
+    elif warmup_epochs > 0:
+        scheduler_name = "linear_warmup"
+    else:
+        scheduler_name = "cosine_annealing"
+
+    augmentation_profile = []
+    if dataset_name == "nksid":
+        augmentation_profile = [
+            "resize",
+            "random_horizontal_flip",
+            "random_vertical_flip",
+            "random_rotation",
+            "random_affine",
+            "color_jitter",
+            "speckle_noise",
+            "normalize",
+        ]
+
+    return {
+        "framework": "supervised single-backbone baseline screening",
+        "purpose": "train each backbone independently, rank them by macro_f1 under hardware constraints, and export anchors for later search/selection.",
+        "downstream_use": {
+            "accuracy_anchor": "strongest feasible backbone by macro_f1/top1",
+            "search_anchor": "mobile backbone family used to seed later search",
+            "lightweight_anchor": "latency-oriented backbone within a small macro_f1 drop",
+        },
+        "dataset_protocol": {
+            "dataset": dataset_name,
+            "batch_size": batch_size,
+            "fold": fold,
+            "use_kfold": bool(dataset_cfg.get("use_kfold", True)),
+            "input_channels": input_channels,
+            "input_resolution": image_size,
+            "augmentation_profile": augmentation_profile,
+        },
+        "loss": {
+            "name": "cross_entropy",
+            "class_balancing": {
+                "enabled": class_weights is not None,
+                "method": "inverse_frequency_class_weights" if class_weights is not None else None,
+            },
+        },
+        "optimizer": {
+            "name": str(training_cfg.get("optimizer", "adamw")),
+            "lr": float(training_cfg.get("lr", 0.001)),
+            "weight_decay": float(training_cfg.get("weight_decay", 0.0001)),
+        },
+        "scheduler": {
+            "name": scheduler_name,
+            "warmup_epochs": warmup_epochs,
+            "min_lr": float(training_cfg.get("min_lr", 1.0e-5)),
+        },
+        "selection": {
+            "selection_metric": str(training_cfg.get("selection_metric", "macro_f1")),
+            "early_stopping_patience": training_cfg.get("early_stopping_patience"),
+            "max_epochs_per_backbone": epochs,
+            "checkpoint_policy": "keep best epoch by selection metric",
+        },
+        "validation": {
+            "run_every": "epoch",
+            "metrics": ["loss", "top1", f"top{topk}", "macro_f1", "weighted_f1"],
+        },
+        "execution_order": [
+            "estimate hardware cost for the candidate",
+            "train candidate backbone",
+            "validate every epoch",
+            "early-stop if the selection metric stalls",
+            "save per-backbone JSON and checkpoint",
+            "export run-level best backbone and selected pool",
+        ],
+    }
 
 
 def train_one_epoch(
@@ -721,6 +1064,42 @@ def main() -> None:
             candidates = resolve_candidates(baseline_cfg, args.candidate)
             print(f"Backbone candidates: {[candidate.arch_id for candidate in candidates]}")
 
+            training_strategy = build_training_strategy_summary(
+                dataset_name=str(dataset_name),
+                dataset_cfg=dataset_cfg,
+                training_cfg=training_cfg,
+                batch_size=batch_size,
+                image_size=image_size,
+                input_channels=input_channels,
+                fold=fold,
+                class_weights=class_weights,
+                topk=topk,
+            )
+            candidate_blueprints = [
+                build_architecture_summary(
+                    arch_id=candidate.arch_id,
+                    display_name=candidate.display_name,
+                    backbone_name=str(candidate.name),
+                    input_channels=input_channels,
+                    image_size=image_size,
+                    num_classes=resolved_num_classes,
+                    pretrained_requested=bool(candidate.pretrained),
+                    pretrained_loaded=None,
+                )
+                for candidate in candidates
+            ]
+            write_json(
+                tracker.results_dir / "experiment_protocol.json",
+                {
+                    "generated_at": datetime.now().isoformat(timespec="seconds"),
+                    "dataset": dataset_name,
+                    "input_resolution": image_size,
+                    "input_channels": input_channels,
+                    "training_strategy": training_strategy,
+                    "candidate_blueprints": candidate_blueprints,
+                },
+            )
+
             backbone_results_dir = tracker.results_dir / "backbones"
             backbone_results_dir.mkdir(parents=True, exist_ok=True)
             summary_rows: list[dict[str, Any]] = []
@@ -767,12 +1146,24 @@ def main() -> None:
                     class_names=class_names,
                     topk=topk,
                 )
+                architecture_summary = build_architecture_summary(
+                    arch_id=candidate.arch_id,
+                    display_name=candidate.display_name,
+                    backbone_name=str(build_metadata["name"]),
+                    input_channels=input_channels,
+                    image_size=image_size,
+                    num_classes=resolved_num_classes,
+                    pretrained_requested=bool(candidate.pretrained),
+                    pretrained_loaded=bool(build_metadata.get("pretrained_loaded", False)),
+                )
 
                 result = {
                     "arch_id": candidate.arch_id,
                     "display_name": candidate.display_name,
                     "candidate": candidate.to_dict(),
                     "build_metadata": build_metadata,
+                    "architecture_summary": architecture_summary,
+                    "training_strategy": deepcopy(training_strategy),
                     "train_summary": train_summary,
                     "history": history,
                     "evaluation": evaluation,

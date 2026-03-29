@@ -1,0 +1,7 @@
+arch_id,display_name,backbone,pretrained_requested,pretrained_loaded,params,macs,cpu_latency_ms,top1,top5,macro_f1,weighted_f1,peak_dsp,peak_bram,peak_lut,fpga_latency_ms,power_w,feasible,violations
+simplecnn,SimpleCNN,simplecnn,False,False,106056,122913408,4.1843,0.9154,1.0000,0.8133,0.9146,256,19,5096,7.2679,6.9332,True,
+mobilenet_v2_pretrained,MobileNetV2 (pretrained),mobilenet_v2,True,True,2233544,292279168,13.7828,0.9827,1.0000,0.9622,0.9831,256,5,9862,8.5121,7.6344,True,
+mobilenet_v2_scratch,MobileNetV2 (scratch),mobilenet_v2,False,False,2233544,292279168,12.4531,0.9596,1.0000,0.9013,0.9577,256,5,9862,8.5121,7.6344,True,
+fbnet_like,FBNet-like,fbnet_like,False,False,1054536,153016464,16.1348,0.9750,1.0000,0.9511,0.9747,256,10,10094,6.5793,7.7708,True,
+shufflenet_v2,ShuffleNetV2,shufflenet_v2,True,True,1261372,138473176,13.8532,0.9885,1.0000,0.9748,0.9882,256,3,8838,3.2269,7.3936,True,
+efficientnet_b0,EfficientNet-B0,efficientnet_b0,True,True,4017220,377319648,17.1177,0.9904,1.0000,0.9801,0.9906,256,12,10478,9.7673,7.8836,True,
