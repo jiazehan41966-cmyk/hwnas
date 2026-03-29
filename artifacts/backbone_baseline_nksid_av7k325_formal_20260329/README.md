@@ -30,4 +30,5 @@
 - `ShuffleNetV2` is the strongest deployment-oriented backbone in this run: near-best accuracy with the lowest FPGA latency.
 - `EfficientNet-B0` is the pure accuracy winner, but it is slower and larger than `ShuffleNetV2`.
 - `MobileNetV2 pretrained` clearly outperforms `MobileNetV2 scratch`, indicating pretrained initialization matters on NKSID.
+- The structured rerun with `experiment_protocol.json` and per-backbone `architecture_summary` exports was synced separately under `artifacts/backbone_baseline_nksid_av7k325_formal_structured_20260329_011516`.
 - Checkpoints were intentionally excluded from the repository sync to avoid committing large binary artifacts.

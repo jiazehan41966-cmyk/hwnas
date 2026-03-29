@@ -1,0 +1,2079 @@
+{
+  "arch_id": "mobilenet_v2_pretrained",
+  "display_name": "MobileNetV2 (pretrained)",
+  "candidate": {
+    "arch_id": "mobilenet_v2_pretrained",
+    "name": "mobilenet_v2",
+    "display_name": "MobileNetV2 (pretrained)",
+    "pretrained": true
+  },
+  "build_metadata": {
+    "name": "mobilenet_v2",
+    "num_classes": 8,
+    "input_channels": 1,
+    "pretrained_requested": true,
+    "pretrained_loaded": true
+  },
+  "architecture_summary": {
+    "arch_id": "mobilenet_v2_pretrained",
+    "display_name": "MobileNetV2 (pretrained)",
+    "backbone": "mobilenet_v2",
+    "input_channels": 1,
+    "input_resolution": 224,
+    "pretrained_requested": true,
+    "pretrained_loaded": true,
+    "stage_count": 7,
+    "downsample_positions": [
+      "stem",
+      "stage_2",
+      "stage_3",
+      "stage_4",
+      "stage_6"
+    ],
+    "notes": "Macro-architecture summary used for downstream anchor selection and later search-space design.",
+    "stem": {
+      "block_type": "conv_bn_relu6",
+      "out_channels": 32,
+      "width": 32,
+      "stride": 2,
+      "input_resolution": 224,
+      "output_resolution": 112
+    },
+    "stages": [
+      {
+        "stage_index": 1,
+        "stage_name": "ir16",
+        "block_type": "inverted_residual",
+        "depth": 1,
+        "out_channels": 16,
+        "width": 16,
+        "stride": 1,
+        "input_resolution": 112,
+        "output_resolution": 112,
+        "downsample": false,
+        "downsample_location": null,
+        "downsample_op": null,
+        "expand_ratio": 1,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 2,
+        "stage_name": "ir24",
+        "block_type": "inverted_residual",
+        "depth": 2,
+        "out_channels": 24,
+        "width": 24,
+        "stride": 2,
+        "input_resolution": 112,
+        "output_resolution": 56,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 3,
+        "stage_name": "ir32",
+        "block_type": "inverted_residual",
+        "depth": 3,
+        "out_channels": 32,
+        "width": 32,
+        "stride": 2,
+        "input_resolution": 56,
+        "output_resolution": 28,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 4,
+        "stage_name": "ir64",
+        "block_type": "inverted_residual",
+        "depth": 4,
+        "out_channels": 64,
+        "width": 64,
+        "stride": 2,
+        "input_resolution": 28,
+        "output_resolution": 14,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 5,
+        "stage_name": "ir96",
+        "block_type": "inverted_residual",
+        "depth": 3,
+        "out_channels": 96,
+        "width": 96,
+        "stride": 1,
+        "input_resolution": 14,
+        "output_resolution": 14,
+        "downsample": false,
+        "downsample_location": null,
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 6,
+        "stage_name": "ir160",
+        "block_type": "inverted_residual",
+        "depth": 3,
+        "out_channels": 160,
+        "width": 160,
+        "stride": 2,
+        "input_resolution": 14,
+        "output_resolution": 7,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 7,
+        "stage_name": "ir320",
+        "block_type": "inverted_residual",
+        "depth": 1,
+        "out_channels": 320,
+        "width": 320,
+        "stride": 1,
+        "input_resolution": 7,
+        "output_resolution": 7,
+        "downsample": false,
+        "downsample_location": null,
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      }
+    ],
+    "head": {
+      "out_channels": 1280,
+      "pooling": "adaptive_avg_pool_1x1",
+      "num_classes": 8,
+      "input_resolution": 7
+    }
+  },
+  "training_strategy": {
+    "framework": "supervised single-backbone baseline screening",
+    "purpose": "train each backbone independently, rank them by macro_f1 under hardware constraints, and export anchors for later search/selection.",
+    "downstream_use": {
+      "accuracy_anchor": "strongest feasible backbone by macro_f1/top1",
+      "search_anchor": "mobile backbone family used to seed later search",
+      "lightweight_anchor": "latency-oriented backbone within a small macro_f1 drop"
+    },
+    "dataset_protocol": {
+      "dataset": "nksid",
+      "batch_size": 64,
+      "fold": 0,
+      "use_kfold": true,
+      "input_channels": 1,
+      "input_resolution": 224,
+      "augmentation_profile": [
+        "resize",
+        "random_horizontal_flip",
+        "random_vertical_flip",
+        "random_rotation",
+        "random_affine",
+        "color_jitter",
+        "speckle_noise",
+        "normalize"
+      ]
+    },
+    "loss": {
+      "name": "cross_entropy",
+      "class_balancing": {
+        "enabled": true,
+        "method": "inverse_frequency_class_weights"
+      }
+    },
+    "optimizer": {
+      "name": "adamw",
+      "lr": 0.001,
+      "weight_decay": 0.0001
+    },
+    "scheduler": {
+      "name": "linear_warmup_plus_cosine_decay",
+      "warmup_epochs": 5,
+      "min_lr": 1e-05
+    },
+    "selection": {
+      "selection_metric": "macro_f1",
+      "early_stopping_patience": 20,
+      "max_epochs_per_backbone": 240,
+      "checkpoint_policy": "keep best epoch by selection metric"
+    },
+    "validation": {
+      "run_every": "epoch",
+      "metrics": [
+        "loss",
+        "top1",
+        "top5",
+        "macro_f1",
+        "weighted_f1"
+      ]
+    },
+    "execution_order": [
+      "estimate hardware cost for the candidate",
+      "train candidate backbone",
+      "validate every epoch",
+      "early-stop if the selection metric stalls",
+      "save per-backbone JSON and checkpoint",
+      "export run-level best backbone and selected pool"
+    ]
+  },
+  "train_summary": {
+    "best_epoch": 20,
+    "epochs_completed": 40,
+    "train_time_sec": 2002.771889792988,
+    "selection_metric": "macro_f1",
+    "best_macro_f1": 0.9545325697390148,
+    "best_top1": 0.9788461538461538,
+    "best_top5": 1.0,
+    "best_val_loss": 0.10323837039132532
+  },
+  "history": {
+    "train_loss": [
+      1.7297540507432558,
+      1.061798542098426,
+      0.6646771543385247,
+      0.5034393679828489,
+      0.4410832562387473,
+      0.39657106573489603,
+      0.37856087115587483,
+      0.3507670160484246,
+      0.24787633829476097,
+      0.28256298711769456,
+      0.278742266983206,
+      0.26304353905053834,
+      0.24698792886154164,
+      0.2536543735902993,
+      0.17089065457447744,
+      0.18882560822002423,
+      0.1063688906548304,
+      0.11296012620301717,
+      0.1269893347506416,
+      0.09990022831379258,
+      0.14626082484501568,
+      0.12868939059429868,
+      0.12452298317337297,
+      0.24583108002621046,
+      0.3148177873821104,
+      0.20749055769722632,
+      0.3963828564940831,
+      0.23465728732763044,
+      0.12359603231841175,
+      0.1331547362872914,
+      0.12829224807936404,
+      0.09938988217468425,
+      0.1228744377811565,
+      0.1233955369884762,
+      0.06788448810676875,
+      0.05834472483547176,
+      0.09723431634608769,
+      0.08102006364070166,
+      0.06418657503244021,
+      0.04760157405036827
+    ],
+    "train_acc": [
+      0.48020982355746306,
+      0.698140200286123,
+      0.7835002384358608,
+      0.8454935622317596,
+      0.87172150691464,
+      0.899380066762041,
+      0.9012875536480687,
+      0.905102527420124,
+      0.9318073438245112,
+      0.9284692417739628,
+      0.9294229852169766,
+      0.916070577014783,
+      0.9303767286599904,
+      0.9365760610395804,
+      0.9537434430138293,
+      0.9537434430138293,
+      0.9766332856461611,
+      0.9704339532665713,
+      0.9732951835956127,
+      0.9713876967095851,
+      0.966618979494516,
+      0.9628040057224606,
+      0.9632808774439676,
+      0.9227467811158798,
+      0.9284692417739628,
+      0.9232236528373867,
+      0.8731521220791607,
+      0.905102527420124,
+      0.9675727229375298,
+      0.9632808774439676,
+      0.9651883643299952,
+      0.9699570815450643,
+      0.9637577491654745,
+      0.9670958512160229,
+      0.9804482594182165,
+      0.983309489747258,
+      0.9761564139246542,
+      0.977110157367668,
+      0.977110157367668,
+      0.9847401049117788
+    ],
+    "val_loss": [
+      1.8523066263932448,
+      1.099520283478957,
+      0.4591048048092769,
+      0.5868872637932118,
+      0.3969557869892854,
+      0.3783191853847641,
+      0.2715336092389547,
+      0.24575361659607062,
+      0.5471824429929256,
+      0.2489914408513309,
+      0.2098001773110949,
+      0.16537295657281692,
+      0.26294239186323604,
+      0.17276883254257533,
+      0.10974559260962101,
+      0.20163513962179422,
+      0.1580057929055049,
+      0.13451048313425137,
+      0.12854360656526226,
+      0.10323837039132532,
+      0.30603873821405264,
+      0.16669556360978346,
+      0.0851140516416098,
+      0.22543352959999957,
+      3.5417045689546143,
+      0.2047333382929747,
+      0.4395199212890405,
+      0.15135039549607496,
+      0.1321607781144289,
+      0.15795832257717848,
+      0.13167702003668708,
+      0.15180253024714496,
+      0.1510173575522808,
+      0.1292099538223388,
+      0.10725664051357084,
+      0.07467775367325745,
+      0.16484775766730309,
+      0.12786538149588383,
+      0.11275884098230073,
+      0.10934274687986964
+    ],
+    "val_top1": [
+      0.41923076923076924,
+      0.5096153846153846,
+      0.825,
+      0.7903846153846154,
+      0.8365384615384616,
+      0.825,
+      0.9307692307692308,
+      0.9230769230769231,
+      0.9057692307692308,
+      0.9461538461538461,
+      0.9192307692307692,
+      0.9442307692307692,
+      0.9134615384615384,
+      0.9461538461538461,
+      0.9615384615384616,
+      0.9384615384615385,
+      0.948076923076923,
+      0.9634615384615385,
+      0.9615384615384616,
+      0.9788461538461538,
+      0.8980769230769231,
+      0.9576923076923077,
+      0.975,
+      0.925,
+      0.4980769230769231,
+      0.9423076923076923,
+      0.8807692307692307,
+      0.9461538461538461,
+      0.9576923076923077,
+      0.948076923076923,
+      0.9653846153846154,
+      0.9576923076923077,
+      0.9615384615384616,
+      0.9596153846153846,
+      0.9673076923076923,
+      0.9807692307692307,
+      0.9538461538461539,
+      0.9730769230769231,
+      0.9730769230769231,
+      0.9673076923076923
+    ],
+    "val_top5": [
+      0.7730769230769231,
+      0.948076923076923,
+      1.0,
+      1.0,
+      0.9980769230769231,
+      0.9980769230769231,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.9961538461538462,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "val_macro_f1": [
+      0.355783953919322,
+      0.4410415789135625,
+      0.6893081356128234,
+      0.7000781594215122,
+      0.7468394590029154,
+      0.7265934109210259,
+      0.8616545156402025,
+      0.830842278113795,
+      0.8024713762133958,
+      0.8766588706963818,
+      0.8647244986233719,
+      0.8953326055632232,
+      0.8463554391889606,
+      0.907714380771605,
+      0.9136226090531084,
+      0.8425848252661244,
+      0.8935194825351163,
+      0.9268906221492429,
+      0.9125114463096728,
+      0.9545325697390148,
+      0.7877728126935685,
+      0.9183523209604026,
+      0.9475052320280869,
+      0.8456282901226146,
+      0.48685658615326144,
+      0.8864139820507605,
+      0.7638610535204031,
+      0.86817866485557,
+      0.9127528373629712,
+      0.8557119028188415,
+      0.9238447643973197,
+      0.9146740361956649,
+      0.9121162090870951,
+      0.9153429575027598,
+      0.9325963338631312,
+      0.9541841945266716,
+      0.9097820537717397,
+      0.9404875841755083,
+      0.9456966480129742,
+      0.933965268361624
+    ],
+    "val_weighted_f1": [
+      0.3661225126139777,
+      0.5493794264652206,
+      0.8336601427573168,
+      0.8227218475820091,
+      0.852408891288397,
+      0.8522347651321416,
+      0.9338072472957387,
+      0.9311395703863315,
+      0.9108655109133966,
+      0.9448132908270027,
+      0.9281933271458779,
+      0.9494166982242447,
+      0.9206103047661308,
+      0.9497061377297598,
+      0.9628775971663014,
+      0.9444533868647632,
+      0.9520436578764455,
+      0.9648691984898882,
+      0.9638824367661492,
+      0.9794620436815804,
+      0.9108780139814755,
+      0.9590130512263805,
+      0.9754036474972876,
+      0.9316633709636823,
+      0.44787409204780837,
+      0.9436575708833981,
+      0.9001231167202861,
+      0.9490563417239665,
+      0.9589561337807615,
+      0.9520081549273024,
+      0.9655585780170367,
+      0.9600264631339859,
+      0.9617472575992938,
+      0.9601959018387003,
+      0.9690115058774075,
+      0.9806340081934507,
+      0.9551974867447068,
+      0.9724756035266795,
+      0.9734312264903047,
+      0.9675693723185965
+    ],
+    "lr": [
+      0.0002,
+      0.00036,
+      0.0005200000000000001,
+      0.00068,
+      0.0008400000000000001,
+      0.001,
+      0.0009999557683891371,
+      0.000999823081461338,
+      0.0009996019629295583,
+      0.0009992924523106823,
+      0.0009988946049184608,
+      0.0009984084918536248,
+      0.0009978341999911803,
+      0.0009971718319648818,
+      0.0009964215061488897,
+      0.0009955833566366163,
+      0.0009946575332167608,
+      0.0009936442013465403,
+      0.0009925435421221204,
+      0.0009913557522462505,
+      0.0009900810439931107,
+      0.0009887196451703756,
+      0.0009872717990785014,
+      0.0009857377644672454,
+      0.0009841178154894237,
+      0.0009824122416519164,
+      0.0009806213477639284,
+      0.000978745453882517,
+      0.0009767848952553914,
+      0.0009747400222610016,
+      0.0009726112003459195,
+      0.000970398809959529,
+      0.0009681032464860346,
+      0.0009657249201738012,
+      0.0009632642560620368,
+      0.0009607216939048319,
+      0.0009580976880925701,
+      0.0009553927075707221,
+      0.0009526072357560389,
+      0.000949741770450158
+    ]
+  },
+  "evaluation": {
+    "accuracy": 0.9788461538461538,
+    "macro_f1": 0.9545325697390148,
+    "weighted_f1": 0.9794620436815804,
+    "per_class": [
+      {
+        "class_index": 0,
+        "class_name": "big_propeller",
+        "support": 40,
+        "precision": 0.926829268292683,
+        "recall": 0.95,
+        "f1": 0.9382716049382716
+      },
+      {
+        "class_index": 1,
+        "class_name": "cylinder",
+        "support": 57,
+        "precision": 0.9811320754716981,
+        "recall": 0.9122807017543859,
+        "f1": 0.9454545454545454
+      },
+      {
+        "class_index": 2,
+        "class_name": "fishing_net",
+        "support": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "class_index": 3,
+        "class_name": "floats",
+        "support": 190,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "class_index": 4,
+        "class_name": "iron_pipeline",
+        "support": 22,
+        "precision": 0.9565217391304348,
+        "recall": 1.0,
+        "f1": 0.9777777777777777
+      },
+      {
+        "class_index": 5,
+        "class_name": "small_propeller",
+        "support": 18,
+        "precision": 0.7272727272727273,
+        "recall": 0.8888888888888888,
+        "f1": 0.7999999999999999
+      },
+      {
+        "class_index": 6,
+        "class_name": "soft_pipeline",
+        "support": 23,
+        "precision": 1.0,
+        "recall": 0.9565217391304348,
+        "f1": 0.9777777777777777
+      },
+      {
+        "class_index": 7,
+        "class_name": "tire",
+        "support": 166,
+        "precision": 1.0,
+        "recall": 0.9939759036144579,
+        "f1": 0.9969788519637462
+      }
+    ],
+    "confusion_matrix": [
+      [
+        38,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        52,
+        0,
+        0,
+        0,
+        4,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        190,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        22,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        16,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        22,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        165
+      ]
+    ],
+    "loss": 0.10323837039132532,
+    "top1": 0.9788461538461538,
+    "top5": 1.0,
+    "num_samples": 520
+  },
+  "cost_estimate": {
+    "params": 2233544,
+    "macs": 292279168,
+    "model_size_mb": 2.1300735473632812,
+    "cpu_latency_ms": 116.49051006534137,
+    "peak_activation_bytes": 1204224,
+    "peak_weight_bytes": 409600,
+    "peak_buffer_bytes": 1205760,
+    "peak_dsp": 256,
+    "peak_bram": 5,
+    "peak_lut": 9862,
+    "latency_cycles": 1702426,
+    "latency_ms": 8.51213,
+    "power_w": 7.6344,
+    "energy_mj": 64.98500527200001,
+    "memory_bandwidth_gbps": 1.0429295605212794,
+    "offchip_mem_mb": 0.0,
+    "feasible": true,
+    "violations": [],
+    "per_layer": [
+      {
+        "name": "features.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1,
+          224,
+          224
+        ],
+        "output_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "params": 288,
+        "macs": 3612672,
+        "weight_bytes": 288,
+        "activation_bytes": 401408,
+        "ideal_dsp": 16,
+        "allocated_dsp": 16,
+        "bram_blocks": 1,
+        "lut": 760,
+        "latency_cycles": 161280
+      },
+      {
+        "name": "features.1.conv.0.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "params": 288,
+        "macs": 3612672,
+        "weight_bytes": 288,
+        "activation_bytes": 401408,
+        "ideal_dsp": 16,
+        "allocated_dsp": 16,
+        "bram_blocks": 3,
+        "lut": 736,
+        "latency_cycles": 161280
+      },
+      {
+        "name": "features.1.conv.1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          16,
+          112,
+          112
+        ],
+        "params": 512,
+        "macs": 6422528,
+        "weight_bytes": 512,
+        "activation_bytes": 200704,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 1,
+        "lut": 1560,
+        "latency_cycles": 71680
+      },
+      {
+        "name": "features.2.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          16,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          96,
+          112,
+          112
+        ],
+        "params": 1536,
+        "macs": 19267584,
+        "weight_bytes": 1536,
+        "activation_bytes": 1204224,
+        "ideal_dsp": 128,
+        "allocated_dsp": 128,
+        "bram_blocks": 1,
+        "lut": 3032,
+        "latency_cycles": 107520
+      },
+      {
+        "name": "features.2.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          96,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          96,
+          56,
+          56
+        ],
+        "params": 864,
+        "macs": 2709504,
+        "weight_bytes": 864,
+        "activation_bytes": 301056,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 1168,
+        "latency_cycles": 60481
+      },
+      {
+        "name": "features.2.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          96,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "params": 2304,
+        "macs": 7225344,
+        "weight_bytes": 2304,
+        "activation_bytes": 75264,
+        "ideal_dsp": 96,
+        "allocated_dsp": 96,
+        "bram_blocks": 1,
+        "lut": 2056,
+        "latency_cycles": 53761
+      },
+      {
+        "name": "features.3.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "params": 3456,
+        "macs": 10838016,
+        "weight_bytes": 3456,
+        "activation_bytes": 451584,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 4264,
+        "latency_cycles": 40321
+      },
+      {
+        "name": "features.3.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "params": 1296,
+        "macs": 4064256,
+        "weight_bytes": 1296,
+        "activation_bytes": 451584,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 5,
+        "lut": 1360,
+        "latency_cycles": 90720
+      },
+      {
+        "name": "features.3.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "params": 3456,
+        "macs": 10838016,
+        "weight_bytes": 3456,
+        "activation_bytes": 75264,
+        "ideal_dsp": 96,
+        "allocated_dsp": 96,
+        "bram_blocks": 1,
+        "lut": 2056,
+        "latency_cycles": 80641
+      },
+      {
+        "name": "features.4.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "params": 3456,
+        "macs": 10838016,
+        "weight_bytes": 3456,
+        "activation_bytes": 451584,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 4264,
+        "latency_cycles": 40321
+      },
+      {
+        "name": "features.4.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          28,
+          28
+        ],
+        "params": 1296,
+        "macs": 1016064,
+        "weight_bytes": 1296,
+        "activation_bytes": 112896,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 3,
+        "lut": 1304,
+        "latency_cycles": 22680
+      },
+      {
+        "name": "features.4.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          144,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          32,
+          28,
+          28
+        ],
+        "params": 4608,
+        "macs": 3612672,
+        "weight_bytes": 4608,
+        "activation_bytes": 25088,
+        "ideal_dsp": 128,
+        "allocated_dsp": 128,
+        "bram_blocks": 1,
+        "lut": 2608,
+        "latency_cycles": 20160
+      },
+      {
+        "name": "features.5.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          32,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "params": 6144,
+        "macs": 4816896,
+        "weight_bytes": 6144,
+        "activation_bytes": 150528,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5552,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.5.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "params": 1728,
+        "macs": 1354752,
+        "weight_bytes": 1728,
+        "activation_bytes": 150528,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 1496,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.5.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          32,
+          28,
+          28
+        ],
+        "params": 6144,
+        "macs": 4816896,
+        "weight_bytes": 6144,
+        "activation_bytes": 25088,
+        "ideal_dsp": 128,
+        "allocated_dsp": 128,
+        "bram_blocks": 1,
+        "lut": 2608,
+        "latency_cycles": 26880
+      },
+      {
+        "name": "features.6.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          32,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "params": 6144,
+        "macs": 4816896,
+        "weight_bytes": 6144,
+        "activation_bytes": 150528,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5552,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.6.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "params": 1728,
+        "macs": 1354752,
+        "weight_bytes": 1728,
+        "activation_bytes": 150528,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 1496,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.6.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          32,
+          28,
+          28
+        ],
+        "params": 6144,
+        "macs": 4816896,
+        "weight_bytes": 6144,
+        "activation_bytes": 25088,
+        "ideal_dsp": 128,
+        "allocated_dsp": 128,
+        "bram_blocks": 1,
+        "lut": 2608,
+        "latency_cycles": 26880
+      },
+      {
+        "name": "features.7.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          32,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "params": 6144,
+        "macs": 4816896,
+        "weight_bytes": 6144,
+        "activation_bytes": 150528,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5552,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.7.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          192,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          192,
+          14,
+          14
+        ],
+        "params": 1728,
+        "macs": 338688,
+        "weight_bytes": 1728,
+        "activation_bytes": 37632,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 3,
+        "lut": 1468,
+        "latency_cycles": 7561
+      },
+      {
+        "name": "features.7.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "params": 12288,
+        "macs": 2408448,
+        "weight_bytes": 12288,
+        "activation_bytes": 12544,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5012,
+        "latency_cycles": 6720
+      },
+      {
+        "name": "features.8.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 75264,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6292,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.8.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 3456,
+        "macs": 677376,
+        "weight_bytes": 3456,
+        "activation_bytes": 75264,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 2236,
+        "latency_cycles": 15121
+      },
+      {
+        "name": "features.8.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 12544,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5012,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.9.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 75264,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6292,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.9.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 3456,
+        "macs": 677376,
+        "weight_bytes": 3456,
+        "activation_bytes": 75264,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 2236,
+        "latency_cycles": 15121
+      },
+      {
+        "name": "features.9.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 12544,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5012,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.10.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 75264,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6292,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.10.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 3456,
+        "macs": 677376,
+        "weight_bytes": 3456,
+        "activation_bytes": 75264,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 2236,
+        "latency_cycles": 15121
+      },
+      {
+        "name": "features.10.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 12544,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5012,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.11.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          64,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 24576,
+        "macs": 4816896,
+        "weight_bytes": 24576,
+        "activation_bytes": 75264,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6292,
+        "latency_cycles": 13440
+      },
+      {
+        "name": "features.11.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "params": 3456,
+        "macs": 677376,
+        "weight_bytes": 3456,
+        "activation_bytes": 75264,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 2236,
+        "latency_cycles": 15121
+      },
+      {
+        "name": "features.11.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          384,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          96,
+          14,
+          14
+        ],
+        "params": 36864,
+        "macs": 7225344,
+        "weight_bytes": 36864,
+        "activation_bytes": 18816,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5140,
+        "latency_cycles": 20160
+      },
+      {
+        "name": "features.12.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          96,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "params": 55296,
+        "macs": 10838016,
+        "weight_bytes": 55296,
+        "activation_bytes": 112896,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 7060,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.12.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "params": 5184,
+        "macs": 1016064,
+        "weight_bytes": 5184,
+        "activation_bytes": 112896,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 5,
+        "lut": 3004,
+        "latency_cycles": 22680
+      },
+      {
+        "name": "features.12.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          96,
+          14,
+          14
+        ],
+        "params": 55296,
+        "macs": 10838016,
+        "weight_bytes": 55296,
+        "activation_bytes": 18816,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5140,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.13.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          96,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "params": 55296,
+        "macs": 10838016,
+        "weight_bytes": 55296,
+        "activation_bytes": 112896,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 7060,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.13.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "params": 5184,
+        "macs": 1016064,
+        "weight_bytes": 5184,
+        "activation_bytes": 112896,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 5,
+        "lut": 3004,
+        "latency_cycles": 22680
+      },
+      {
+        "name": "features.13.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          96,
+          14,
+          14
+        ],
+        "params": 55296,
+        "macs": 10838016,
+        "weight_bytes": 55296,
+        "activation_bytes": 18816,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5140,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.14.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          96,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "params": 55296,
+        "macs": 10838016,
+        "weight_bytes": 55296,
+        "activation_bytes": 112896,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 7060,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.14.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          576,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          576,
+          7,
+          7
+        ],
+        "params": 5184,
+        "macs": 254016,
+        "weight_bytes": 5184,
+        "activation_bytes": 28224,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 3,
+        "lut": 2990,
+        "latency_cycles": 5670
+      },
+      {
+        "name": "features.14.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          576,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          160,
+          7,
+          7
+        ],
+        "params": 92160,
+        "macs": 4515840,
+        "weight_bytes": 92160,
+        "activation_bytes": 7840,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5382,
+        "latency_cycles": 12600
+      },
+      {
+        "name": "features.15.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          160,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "params": 153600,
+        "macs": 7526400,
+        "weight_bytes": 153600,
+        "activation_bytes": 47040,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 8582,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.15.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "params": 8640,
+        "macs": 423360,
+        "weight_bytes": 8640,
+        "activation_bytes": 47040,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 4526,
+        "latency_cycles": 9450
+      },
+      {
+        "name": "features.15.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          160,
+          7,
+          7
+        ],
+        "params": 153600,
+        "macs": 7526400,
+        "weight_bytes": 153600,
+        "activation_bytes": 7840,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5382,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.16.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          160,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "params": 153600,
+        "macs": 7526400,
+        "weight_bytes": 153600,
+        "activation_bytes": 47040,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 8582,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.16.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "params": 8640,
+        "macs": 423360,
+        "weight_bytes": 8640,
+        "activation_bytes": 47040,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 4526,
+        "latency_cycles": 9450
+      },
+      {
+        "name": "features.16.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          160,
+          7,
+          7
+        ],
+        "params": 153600,
+        "macs": 7526400,
+        "weight_bytes": 153600,
+        "activation_bytes": 7840,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5382,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.17.conv.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          160,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "params": 153600,
+        "macs": 7526400,
+        "weight_bytes": 153600,
+        "activation_bytes": 47040,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 8582,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.17.conv.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "params": 8640,
+        "macs": 423360,
+        "weight_bytes": 8640,
+        "activation_bytes": 47040,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 4526,
+        "latency_cycles": 9450
+      },
+      {
+        "name": "features.17.conv.2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          960,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          320,
+          7,
+          7
+        ],
+        "params": 307200,
+        "macs": 15052800,
+        "weight_bytes": 307200,
+        "activation_bytes": 15680,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6022,
+        "latency_cycles": 42000
+      },
+      {
+        "name": "features.18.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          320,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1280,
+          7,
+          7
+        ],
+        "params": 409600,
+        "macs": 20070400,
+        "weight_bytes": 409600,
+        "activation_bytes": 62720,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9862,
+        "latency_cycles": 56000
+      },
+      {
+        "name": "classifier.1",
+        "op": "linear",
+        "input_shape": [
+          1,
+          1280
+        ],
+        "output_shape": [
+          1,
+          8
+        ],
+        "params": 10248,
+        "macs": 10240,
+        "weight_bytes": 10248,
+        "activation_bytes": 8,
+        "ideal_dsp": 4,
+        "allocated_dsp": 4,
+        "bram_blocks": 3,
+        "lut": 136,
+        "latency_cycles": 1829
+      }
+    ]
+  }
+}

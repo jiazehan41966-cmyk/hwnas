@@ -1,0 +1,31 @@
+{
+  "dataset": "nksid",
+  "data_dir": "data/NKSID",
+  "fold": 0,
+  "image_size": 224,
+  "input_channels": 1,
+  "batch_size": 64,
+  "train_samples": 2097,
+  "val_samples": 520,
+  "num_classes": 8,
+  "class_names": [
+    "big_propeller",
+    "cylinder",
+    "fishing_net",
+    "floats",
+    "iron_pipeline",
+    "small_propeller",
+    "soft_pipeline",
+    "tire"
+  ],
+  "class_weights": [
+    0.442504346370697,
+    0.31224334239959717,
+    4.5080132484436035,
+    0.0947808250784874,
+    0.8014246225357056,
+    0.9490554332733154,
+    0.7840023040771484,
+    0.10797636955976486
+  ]
+}

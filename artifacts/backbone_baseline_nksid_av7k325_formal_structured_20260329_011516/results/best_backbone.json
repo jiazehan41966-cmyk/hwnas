@@ -1,0 +1,2940 @@
+{
+  "arch_id": "efficientnet_b0",
+  "display_name": "EfficientNet-B0",
+  "candidate": {
+    "arch_id": "efficientnet_b0",
+    "name": "efficientnet_b0",
+    "display_name": "EfficientNet-B0",
+    "pretrained": true
+  },
+  "build_metadata": {
+    "name": "efficientnet_b0",
+    "num_classes": 8,
+    "input_channels": 1,
+    "pretrained_requested": true,
+    "pretrained_loaded": true
+  },
+  "architecture_summary": {
+    "arch_id": "efficientnet_b0",
+    "display_name": "EfficientNet-B0",
+    "backbone": "efficientnet_b0",
+    "input_channels": 1,
+    "input_resolution": 224,
+    "pretrained_requested": true,
+    "pretrained_loaded": true,
+    "stage_count": 7,
+    "downsample_positions": [
+      "stem",
+      "stage_2",
+      "stage_3",
+      "stage_4",
+      "stage_6"
+    ],
+    "notes": "Macro-architecture summary used for downstream anchor selection and later search-space design.",
+    "stem": {
+      "block_type": "conv_bn_silu",
+      "out_channels": 32,
+      "width": 32,
+      "stride": 2,
+      "input_resolution": 224,
+      "output_resolution": 112
+    },
+    "stages": [
+      {
+        "stage_index": 1,
+        "stage_name": "mb16",
+        "block_type": "mbconv",
+        "depth": 1,
+        "out_channels": 16,
+        "width": 16,
+        "stride": 1,
+        "input_resolution": 112,
+        "output_resolution": 112,
+        "downsample": false,
+        "downsample_location": null,
+        "downsample_op": null,
+        "expand_ratio": 1,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 2,
+        "stage_name": "mb24",
+        "block_type": "mbconv",
+        "depth": 2,
+        "out_channels": 24,
+        "width": 24,
+        "stride": 2,
+        "input_resolution": 112,
+        "output_resolution": 56,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 3,
+        "stage_name": "mb40",
+        "block_type": "mbconv",
+        "depth": 2,
+        "out_channels": 40,
+        "width": 40,
+        "stride": 2,
+        "input_resolution": 56,
+        "output_resolution": 28,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 5
+      },
+      {
+        "stage_index": 4,
+        "stage_name": "mb80",
+        "block_type": "mbconv",
+        "depth": 3,
+        "out_channels": 80,
+        "width": 80,
+        "stride": 2,
+        "input_resolution": 28,
+        "output_resolution": 14,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      },
+      {
+        "stage_index": 5,
+        "stage_name": "mb112",
+        "block_type": "mbconv",
+        "depth": 3,
+        "out_channels": 112,
+        "width": 112,
+        "stride": 1,
+        "input_resolution": 14,
+        "output_resolution": 14,
+        "downsample": false,
+        "downsample_location": null,
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 5
+      },
+      {
+        "stage_index": 6,
+        "stage_name": "mb192",
+        "block_type": "mbconv",
+        "depth": 4,
+        "out_channels": 192,
+        "width": 192,
+        "stride": 2,
+        "input_resolution": 14,
+        "output_resolution": 7,
+        "downsample": true,
+        "downsample_location": "stage_start",
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 5
+      },
+      {
+        "stage_index": 7,
+        "stage_name": "mb320",
+        "block_type": "mbconv",
+        "depth": 1,
+        "out_channels": 320,
+        "width": 320,
+        "stride": 1,
+        "input_resolution": 7,
+        "output_resolution": 7,
+        "downsample": false,
+        "downsample_location": null,
+        "downsample_op": null,
+        "expand_ratio": 6,
+        "kernel_size": 3
+      }
+    ],
+    "head": {
+      "out_channels": 1280,
+      "pooling": "adaptive_avg_pool_1x1",
+      "num_classes": 8,
+      "input_resolution": 7
+    }
+  },
+  "training_strategy": {
+    "framework": "supervised single-backbone baseline screening",
+    "purpose": "train each backbone independently, rank them by macro_f1 under hardware constraints, and export anchors for later search/selection.",
+    "downstream_use": {
+      "accuracy_anchor": "strongest feasible backbone by macro_f1/top1",
+      "search_anchor": "mobile backbone family used to seed later search",
+      "lightweight_anchor": "latency-oriented backbone within a small macro_f1 drop"
+    },
+    "dataset_protocol": {
+      "dataset": "nksid",
+      "batch_size": 64,
+      "fold": 0,
+      "use_kfold": true,
+      "input_channels": 1,
+      "input_resolution": 224,
+      "augmentation_profile": [
+        "resize",
+        "random_horizontal_flip",
+        "random_vertical_flip",
+        "random_rotation",
+        "random_affine",
+        "color_jitter",
+        "speckle_noise",
+        "normalize"
+      ]
+    },
+    "loss": {
+      "name": "cross_entropy",
+      "class_balancing": {
+        "enabled": true,
+        "method": "inverse_frequency_class_weights"
+      }
+    },
+    "optimizer": {
+      "name": "adamw",
+      "lr": 0.001,
+      "weight_decay": 0.0001
+    },
+    "scheduler": {
+      "name": "linear_warmup_plus_cosine_decay",
+      "warmup_epochs": 5,
+      "min_lr": 1e-05
+    },
+    "selection": {
+      "selection_metric": "macro_f1",
+      "early_stopping_patience": 20,
+      "max_epochs_per_backbone": 240,
+      "checkpoint_policy": "keep best epoch by selection metric"
+    },
+    "validation": {
+      "run_every": "epoch",
+      "metrics": [
+        "loss",
+        "top1",
+        "top5",
+        "macro_f1",
+        "weighted_f1"
+      ]
+    },
+    "execution_order": [
+      "estimate hardware cost for the candidate",
+      "train candidate backbone",
+      "validate every epoch",
+      "early-stop if the selection metric stalls",
+      "save per-backbone JSON and checkpoint",
+      "export run-level best backbone and selected pool"
+    ]
+  },
+  "train_summary": {
+    "best_epoch": 37,
+    "epochs_completed": 57,
+    "train_time_sec": 2682.6865142480237,
+    "selection_metric": "macro_f1",
+    "best_macro_f1": 0.9856336701745994,
+    "best_top1": 0.9942307692307693,
+    "best_top5": 1.0,
+    "best_val_loss": 0.047532491124450016
+  },
+  "history": {
+    "train_loss": [
+      1.6665910019099173,
+      0.874829119026064,
+      0.5817740984513297,
+      0.49093794635095994,
+      0.4360623471669828,
+      0.31507491614202343,
+      0.31552372896279046,
+      0.25361479009454113,
+      0.2796520504231787,
+      0.2708590381419482,
+      0.17380815122274768,
+      0.16445532036100505,
+      0.1354237139495032,
+      0.1083592245009722,
+      0.14987814926680462,
+      0.1811080608671486,
+      0.13555438003272288,
+      0.12565252675177885,
+      0.28939396639664966,
+      0.24617803300001193,
+      0.17205958032130514,
+      0.09641285542652729,
+      0.08383070283849636,
+      0.06267530703806115,
+      0.06632878087038191,
+      0.04733625246397529,
+      0.08159691898856608,
+      0.0756646958088727,
+      0.04780211471443979,
+      0.03634535263234311,
+      0.03556936425008111,
+      0.03598397159322734,
+      0.03768234371758809,
+      0.03709172005429828,
+      0.042370216239689645,
+      0.032126000056218254,
+      0.06807474321212742,
+      0.09122431331878625,
+      0.04494042544988547,
+      0.035343734214404794,
+      0.04068767955161642,
+      0.036357481735209994,
+      0.06172268662351225,
+      0.0712081761724277,
+      0.056510160213916374,
+      0.02263198544226434,
+      0.03597821546234386,
+      0.07031140250496257,
+      0.05778104016096782,
+      0.073731536201113,
+      0.04922240890800583,
+      0.06298253828731601,
+      0.03275506290605822,
+      0.01938078270245363,
+      0.015430175398623427,
+      0.056635272874362305,
+      0.019705760551409587
+    ],
+    "train_acc": [
+      0.4296614210777301,
+      0.7582260371959942,
+      0.8383404864091559,
+      0.8640915593705293,
+      0.8984263233190272,
+      0.9070100143061517,
+      0.9170243204577968,
+      0.9275154983309489,
+      0.9294229852169766,
+      0.9289461134954697,
+      0.9508822126847878,
+      0.9585121602288984,
+      0.966618979494516,
+      0.9737720553171197,
+      0.966142107773009,
+      0.9523128278493085,
+      0.971864568431092,
+      0.9723414401525989,
+      0.9337148307105388,
+      0.9298998569384835,
+      0.9465903671912256,
+      0.9790176442536958,
+      0.9766332856461611,
+      0.9828326180257511,
+      0.9814020028612304,
+      0.9871244635193133,
+      0.9828326180257511,
+      0.9794945159752027,
+      0.9876013352408202,
+      0.9876013352408202,
+      0.9880782069623272,
+      0.9909394372913686,
+      0.989031950405341,
+      0.9885550786838341,
+      0.9871244635193133,
+      0.9914163090128756,
+      0.983309489747258,
+      0.9756795422031473,
+      0.9852169766332857,
+      0.9871244635193133,
+      0.9861707200762995,
+      0.989031950405341,
+      0.9814020028612304,
+      0.9847401049117788,
+      0.9871244635193133,
+      0.9918931807343825,
+      0.9904625655698617,
+      0.9895088221268479,
+      0.9871244635193133,
+      0.9823557463042442,
+      0.9904625655698617,
+      0.9866475917978064,
+      0.9923700524558894,
+      0.9961850262279447,
+      0.994277539341917,
+      0.9909394372913686,
+      0.9923700524558894
+    ],
+    "val_loss": [
+      1.6648859959382278,
+      1.52490857060139,
+      0.7541986717627599,
+      0.23032471551918066,
+      0.21771318279206753,
+      0.12796397635068457,
+      0.29836056476029066,
+      0.11102976364155229,
+      0.13311605364299164,
+      0.15697470806189812,
+      0.13070094896337162,
+      0.08483491726219654,
+      0.0775829012846001,
+      0.12494762738978561,
+      0.1446535537552056,
+      0.12498307523945607,
+      0.13578489529721152,
+      0.1960011110927623,
+      0.3333494401895083,
+      0.1193558490047088,
+      0.06630858400693307,
+      0.07477830448546088,
+      0.07075997348471831,
+      0.03709240221561721,
+      0.039839243700799463,
+      0.09485668653192428,
+      0.10705313163315833,
+      0.06609585585583073,
+      0.05940593311455674,
+      0.0745744424406439,
+      0.07749703799222166,
+      0.0933691661193734,
+      0.05441618034898196,
+      0.03742951884409054,
+      0.08611156707472849,
+      0.07390828359762404,
+      0.047532491124450016,
+      0.04295534298821272,
+      0.0870088378361498,
+      0.05389427896566653,
+      0.09263327784764652,
+      0.07391566599159292,
+      0.050320968952459785,
+      0.08277753168143905,
+      0.04966562710559139,
+      0.041817382886802076,
+      0.050652497070705765,
+      0.03640394284800725,
+      0.12506407932736552,
+      0.0758785857174259,
+      0.05073094919879133,
+      0.07093304047862498,
+      0.03780415655889486,
+      0.04534456315444774,
+      0.0780451811428625,
+      0.08481830072094873,
+      0.07746043181117644
+    ],
+    "val_top1": [
+      0.4153846153846154,
+      0.41346153846153844,
+      0.7153846153846154,
+      0.9096153846153846,
+      0.9384615384615385,
+      0.9519230769230769,
+      0.875,
+      0.9596153846153846,
+      0.95,
+      0.9442307692307692,
+      0.9557692307692308,
+      0.9730769230769231,
+      0.9692307692307692,
+      0.9711538461538461,
+      0.9653846153846154,
+      0.9711538461538461,
+      0.9538461538461539,
+      0.9211538461538461,
+      0.8980769230769231,
+      0.9653846153846154,
+      0.9807692307692307,
+      0.9769230769230769,
+      0.975,
+      0.9846153846153847,
+      0.9903846153846154,
+      0.9846153846153847,
+      0.9711538461538461,
+      0.9807692307692307,
+      0.9826923076923076,
+      0.9826923076923076,
+      0.9807692307692307,
+      0.9788461538461538,
+      0.9846153846153847,
+      0.9884615384615385,
+      0.9826923076923076,
+      0.9865384615384616,
+      0.9942307692307693,
+      0.9846153846153847,
+      0.9865384615384616,
+      0.9865384615384616,
+      0.9769230769230769,
+      0.9903846153846154,
+      0.9846153846153847,
+      0.9865384615384616,
+      0.9923076923076923,
+      0.9923076923076923,
+      0.9846153846153847,
+      0.9903846153846154,
+      0.9826923076923076,
+      0.9769230769230769,
+      0.9865384615384616,
+      0.9807692307692307,
+      0.9923076923076923,
+      0.9903846153846154,
+      0.9903846153846154,
+      0.9846153846153847,
+      0.9846153846153847
+    ],
+    "val_top5": [
+      0.8923076923076924,
+      0.875,
+      0.9923076923076923,
+      0.9980769230769231,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.9980769230769231,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "val_macro_f1": [
+      0.31522806388584873,
+      0.37607514470822523,
+      0.679117149270332,
+      0.8460912687366662,
+      0.8876726504172155,
+      0.899830307513053,
+      0.8531409089222431,
+      0.9224023151037858,
+      0.9129636856818293,
+      0.9016748911393111,
+      0.9256488429444559,
+      0.9465690372187447,
+      0.9322824919799299,
+      0.9307435621188629,
+      0.9199076924443852,
+      0.9382358244150676,
+      0.9178006070288642,
+      0.8430600173600182,
+      0.781457169911656,
+      0.9298396006828894,
+      0.9542893692564746,
+      0.9479772784883964,
+      0.9475160344989414,
+      0.9640173968415956,
+      0.9748197312356603,
+      0.9679187904451756,
+      0.9351600320133183,
+      0.9569961274876291,
+      0.9615289069557362,
+      0.9686504669302833,
+      0.9587310312574164,
+      0.9542043246958263,
+      0.9674541791573937,
+      0.9752295352559205,
+      0.9629095135044252,
+      0.9694672570337464,
+      0.9856336701745994,
+      0.9746636134763912,
+      0.971424815332138,
+      0.9736756797416775,
+      0.9607291479444667,
+      0.9795350429734758,
+      0.9681007074394814,
+      0.9687626814369295,
+      0.9820627289377291,
+      0.9819412427113487,
+      0.9664405640291467,
+      0.9776538248337029,
+      0.9583834028304324,
+      0.950580383085682,
+      0.9682541706296094,
+      0.9607514151056952,
+      0.9851539375293763,
+      0.9795776562707081,
+      0.9763649614526807,
+      0.9672161773047601,
+      0.9686091903117903
+    ],
+    "val_weighted_f1": [
+      0.4137170247968924,
+      0.39934645097744775,
+      0.7392659142424091,
+      0.9123664157254903,
+      0.9439166751123272,
+      0.9524932924865149,
+      0.8894500617167403,
+      0.96274753626471,
+      0.9554189172055798,
+      0.9505701661550261,
+      0.9572972584098848,
+      0.9751928185967524,
+      0.9707823870993916,
+      0.9698382563278314,
+      0.9651038042746759,
+      0.9709085440046165,
+      0.9538681678940372,
+      0.9312417543247988,
+      0.9138056374557824,
+      0.9661814743340176,
+      0.9811054077501447,
+      0.9776226735262448,
+      0.9767890409464345,
+      0.9851186872723098,
+      0.990411718730303,
+      0.9848096102713516,
+      0.971998102395031,
+      0.9819369799121382,
+      0.9832282329233549,
+      0.9831061440976755,
+      0.9815806945424359,
+      0.9799351321410597,
+      0.9852663724424666,
+      0.9891559050022618,
+      0.9830710374877125,
+      0.9867464726353844,
+      0.9943002226188067,
+      0.98492514167625,
+      0.9865619392049596,
+      0.9866607880460123,
+      0.9774076255847629,
+      0.9905187134792759,
+      0.984897443997104,
+      0.986389250834197,
+      0.9926086573682728,
+      0.9924724225147835,
+      0.9849957996778106,
+      0.9908241910528497,
+      0.9826872714469472,
+      0.9773882590988703,
+      0.9868187383754725,
+      0.9816796939717808,
+      0.9924893498153147,
+      0.9905378801021855,
+      0.9905209528016546,
+      0.9848204301755179,
+      0.9845843201867298
+    ],
+    "lr": [
+      0.0002,
+      0.00036,
+      0.0005200000000000001,
+      0.00068,
+      0.0008400000000000001,
+      0.001,
+      0.0009999557683891371,
+      0.000999823081461338,
+      0.0009996019629295583,
+      0.0009992924523106823,
+      0.0009988946049184608,
+      0.0009984084918536248,
+      0.0009978341999911803,
+      0.0009971718319648818,
+      0.0009964215061488897,
+      0.0009955833566366163,
+      0.0009946575332167608,
+      0.0009936442013465403,
+      0.0009925435421221204,
+      0.0009913557522462505,
+      0.0009900810439931107,
+      0.0009887196451703756,
+      0.0009872717990785014,
+      0.0009857377644672454,
+      0.0009841178154894237,
+      0.0009824122416519164,
+      0.0009806213477639284,
+      0.000978745453882517,
+      0.0009767848952553914,
+      0.0009747400222610016,
+      0.0009726112003459195,
+      0.000970398809959529,
+      0.0009681032464860346,
+      0.0009657249201738012,
+      0.0009632642560620368,
+      0.0009607216939048319,
+      0.0009580976880925701,
+      0.0009553927075707221,
+      0.0009526072357560389,
+      0.000949741770450158,
+      0.0009467968237506408,
+      0.0009437729219594524,
+      0.0009406706054889054,
+      0.0009374904287650802,
+      0.0009342329601287414,
+      0.0009308987817337686,
+      0.0009274884894431165,
+      0.0009240026927223266,
+      0.0009204420145306076,
+      0.0009168070912095033,
+      0.000913098572369171,
+      0.0009093171207722864,
+      0.0009054634122155987,
+      0.0009015381354091579,
+      0.0008975419918532311,
+      0.0008934756957129368,
+      0.0008893399736906125
+    ]
+  },
+  "evaluation": {
+    "accuracy": 0.9942307692307693,
+    "macro_f1": 0.9856336701745994,
+    "weighted_f1": 0.9943002226188067,
+    "per_class": [
+      {
+        "class_index": 0,
+        "class_name": "big_propeller",
+        "support": 40,
+        "precision": 0.975,
+        "recall": 0.975,
+        "f1": 0.975
+      },
+      {
+        "class_index": 1,
+        "class_name": "cylinder",
+        "support": 57,
+        "precision": 1.0,
+        "recall": 0.9824561403508771,
+        "f1": 0.9911504424778761
+      },
+      {
+        "class_index": 2,
+        "class_name": "fishing_net",
+        "support": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "class_index": 3,
+        "class_name": "floats",
+        "support": 190,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "class_index": 4,
+        "class_name": "iron_pipeline",
+        "support": 22,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "class_index": 5,
+        "class_name": "small_propeller",
+        "support": 18,
+        "precision": 0.8947368421052632,
+        "recall": 0.9444444444444444,
+        "f1": 0.918918918918919
+      },
+      {
+        "class_index": 6,
+        "class_name": "soft_pipeline",
+        "support": 23,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "class_index": 7,
+        "class_name": "tire",
+        "support": 166,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    ],
+    "confusion_matrix": [
+      [
+        39,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        56,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        190,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        22,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        17,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        23,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        166
+      ]
+    ],
+    "loss": 0.047532491124450016,
+    "top1": 0.9942307692307693,
+    "top5": 1.0,
+    "num_samples": 520
+  },
+  "cost_estimate": {
+    "params": 4017220,
+    "macs": 377319648,
+    "model_size_mb": 3.8311195373535156,
+    "cpu_latency_ms": 200.69651366599524,
+    "peak_activation_bytes": 1204224,
+    "peak_weight_bytes": 409600,
+    "peak_buffer_bytes": 1205760,
+    "peak_dsp": 256,
+    "peak_bram": 12,
+    "peak_lut": 10478,
+    "latency_cycles": 1953452,
+    "latency_ms": 9.76726,
+    "power_w": 7.8836,
+    "energy_mj": 77.00117093600001,
+    "memory_bandwidth_gbps": 1.097774401418617,
+    "offchip_mem_mb": 0.0,
+    "feasible": true,
+    "violations": [],
+    "per_layer": [
+      {
+        "name": "features.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1,
+          224,
+          224
+        ],
+        "output_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "params": 288,
+        "macs": 3612672,
+        "weight_bytes": 288,
+        "activation_bytes": 401408,
+        "ideal_dsp": 16,
+        "allocated_dsp": 16,
+        "bram_blocks": 1,
+        "lut": 760,
+        "latency_cycles": 161280
+      },
+      {
+        "name": "features.1.0.block.0.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "params": 288,
+        "macs": 3612672,
+        "weight_bytes": 288,
+        "activation_bytes": 401408,
+        "ideal_dsp": 16,
+        "allocated_dsp": 16,
+        "bram_blocks": 3,
+        "lut": 736,
+        "latency_cycles": 161280
+      },
+      {
+        "name": "features.1.0.block.1.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          32,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          8,
+          1,
+          1
+        ],
+        "params": 264,
+        "macs": 256,
+        "weight_bytes": 264,
+        "activation_bytes": 8,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 1,
+        "lut": 730,
+        "latency_cycles": 6
+      },
+      {
+        "name": "features.1.0.block.1.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          8,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          32,
+          1,
+          1
+        ],
+        "params": 288,
+        "macs": 256,
+        "weight_bytes": 288,
+        "activation_bytes": 32,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 1,
+        "lut": 826,
+        "latency_cycles": 6
+      },
+      {
+        "name": "features.1.0.block.2.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          32,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          16,
+          112,
+          112
+        ],
+        "params": 512,
+        "macs": 6422528,
+        "weight_bytes": 512,
+        "activation_bytes": 200704,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 1,
+        "lut": 1560,
+        "latency_cycles": 71680
+      },
+      {
+        "name": "features.2.0.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          16,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          96,
+          112,
+          112
+        ],
+        "params": 1536,
+        "macs": 19267584,
+        "weight_bytes": 1536,
+        "activation_bytes": 1204224,
+        "ideal_dsp": 128,
+        "allocated_dsp": 128,
+        "bram_blocks": 1,
+        "lut": 3032,
+        "latency_cycles": 107520
+      },
+      {
+        "name": "features.2.0.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          96,
+          112,
+          112
+        ],
+        "output_shape": [
+          1,
+          96,
+          56,
+          56
+        ],
+        "params": 864,
+        "macs": 2709504,
+        "weight_bytes": 864,
+        "activation_bytes": 301056,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 1168,
+        "latency_cycles": 60481
+      },
+      {
+        "name": "features.2.0.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          96,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          4,
+          1,
+          1
+        ],
+        "params": 388,
+        "macs": 384,
+        "weight_bytes": 388,
+        "activation_bytes": 4,
+        "ideal_dsp": 16,
+        "allocated_dsp": 16,
+        "bram_blocks": 1,
+        "lut": 426,
+        "latency_cycles": 18
+      },
+      {
+        "name": "features.2.0.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          4,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          96,
+          1,
+          1
+        ],
+        "params": 480,
+        "macs": 384,
+        "weight_bytes": 480,
+        "activation_bytes": 96,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 1,
+        "lut": 1082,
+        "latency_cycles": 9
+      },
+      {
+        "name": "features.2.0.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          96,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "params": 2304,
+        "macs": 7225344,
+        "weight_bytes": 2304,
+        "activation_bytes": 75264,
+        "ideal_dsp": 96,
+        "allocated_dsp": 96,
+        "bram_blocks": 1,
+        "lut": 2056,
+        "latency_cycles": 53761
+      },
+      {
+        "name": "features.2.1.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "params": 3456,
+        "macs": 10838016,
+        "weight_bytes": 3456,
+        "activation_bytes": 451584,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 4264,
+        "latency_cycles": 40321
+      },
+      {
+        "name": "features.2.1.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "params": 1296,
+        "macs": 4064256,
+        "weight_bytes": 1296,
+        "activation_bytes": 451584,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 5,
+        "lut": 1360,
+        "latency_cycles": 90720
+      },
+      {
+        "name": "features.2.1.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          144,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          6,
+          1,
+          1
+        ],
+        "params": 870,
+        "macs": 864,
+        "weight_bytes": 870,
+        "activation_bytes": 6,
+        "ideal_dsp": 24,
+        "allocated_dsp": 24,
+        "bram_blocks": 1,
+        "lut": 578,
+        "latency_cycles": 26
+      },
+      {
+        "name": "features.2.1.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          6,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          144,
+          1,
+          1
+        ],
+        "params": 1008,
+        "macs": 864,
+        "weight_bytes": 1008,
+        "activation_bytes": 144,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 1,
+        "lut": 1274,
+        "latency_cycles": 20
+      },
+      {
+        "name": "features.2.1.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "params": 3456,
+        "macs": 10838016,
+        "weight_bytes": 3456,
+        "activation_bytes": 75264,
+        "ideal_dsp": 96,
+        "allocated_dsp": 96,
+        "bram_blocks": 1,
+        "lut": 2056,
+        "latency_cycles": 80641
+      },
+      {
+        "name": "features.3.0.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          24,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "params": 3456,
+        "macs": 10838016,
+        "weight_bytes": 3456,
+        "activation_bytes": 451584,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 4264,
+        "latency_cycles": 40321
+      },
+      {
+        "name": "features.3.0.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          144,
+          56,
+          56
+        ],
+        "output_shape": [
+          1,
+          144,
+          28,
+          28
+        ],
+        "params": 3600,
+        "macs": 2822400,
+        "weight_bytes": 3600,
+        "activation_bytes": 112896,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 2456,
+        "latency_cycles": 31501
+      },
+      {
+        "name": "features.3.0.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          144,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          6,
+          1,
+          1
+        ],
+        "params": 870,
+        "macs": 864,
+        "weight_bytes": 870,
+        "activation_bytes": 6,
+        "ideal_dsp": 24,
+        "allocated_dsp": 24,
+        "bram_blocks": 1,
+        "lut": 578,
+        "latency_cycles": 26
+      },
+      {
+        "name": "features.3.0.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          6,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          144,
+          1,
+          1
+        ],
+        "params": 1008,
+        "macs": 864,
+        "weight_bytes": 1008,
+        "activation_bytes": 144,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 1,
+        "lut": 1274,
+        "latency_cycles": 20
+      },
+      {
+        "name": "features.3.0.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          144,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          40,
+          28,
+          28
+        ],
+        "params": 5760,
+        "macs": 4515840,
+        "weight_bytes": 5760,
+        "activation_bytes": 31360,
+        "ideal_dsp": 160,
+        "allocated_dsp": 160,
+        "bram_blocks": 1,
+        "lut": 3216,
+        "latency_cycles": 20160
+      },
+      {
+        "name": "features.3.1.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          40,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          240,
+          28,
+          28
+        ],
+        "params": 9600,
+        "macs": 7526400,
+        "weight_bytes": 9600,
+        "activation_bytes": 188160,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5744,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.3.1.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          240,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          240,
+          28,
+          28
+        ],
+        "params": 6000,
+        "macs": 4704000,
+        "weight_bytes": 6000,
+        "activation_bytes": 188160,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 9,
+        "lut": 3224,
+        "latency_cycles": 52500
+      },
+      {
+        "name": "features.3.1.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          240,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          10,
+          1,
+          1
+        ],
+        "params": 2410,
+        "macs": 2400,
+        "weight_bytes": 2410,
+        "activation_bytes": 10,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 1,
+        "lut": 882,
+        "latency_cycles": 43
+      },
+      {
+        "name": "features.3.1.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          10,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          240,
+          1,
+          1
+        ],
+        "params": 2640,
+        "macs": 2400,
+        "weight_bytes": 2640,
+        "activation_bytes": 240,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 1,
+        "lut": 2234,
+        "latency_cycles": 27
+      },
+      {
+        "name": "features.3.1.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          240,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          40,
+          28,
+          28
+        ],
+        "params": 9600,
+        "macs": 7526400,
+        "weight_bytes": 9600,
+        "activation_bytes": 31360,
+        "ideal_dsp": 160,
+        "allocated_dsp": 160,
+        "bram_blocks": 1,
+        "lut": 3216,
+        "latency_cycles": 33600
+      },
+      {
+        "name": "features.4.0.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          40,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          240,
+          28,
+          28
+        ],
+        "params": 9600,
+        "macs": 7526400,
+        "weight_bytes": 9600,
+        "activation_bytes": 188160,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5744,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.4.0.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          240,
+          28,
+          28
+        ],
+        "output_shape": [
+          1,
+          240,
+          14,
+          14
+        ],
+        "params": 2160,
+        "macs": 423360,
+        "weight_bytes": 2160,
+        "activation_bytes": 47040,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 3,
+        "lut": 1660,
+        "latency_cycles": 9450
+      },
+      {
+        "name": "features.4.0.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          240,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          10,
+          1,
+          1
+        ],
+        "params": 2410,
+        "macs": 2400,
+        "weight_bytes": 2410,
+        "activation_bytes": 10,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 1,
+        "lut": 882,
+        "latency_cycles": 43
+      },
+      {
+        "name": "features.4.0.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          10,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          240,
+          1,
+          1
+        ],
+        "params": 2640,
+        "macs": 2400,
+        "weight_bytes": 2640,
+        "activation_bytes": 240,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 1,
+        "lut": 2234,
+        "latency_cycles": 27
+      },
+      {
+        "name": "features.4.0.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          240,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          80,
+          14,
+          14
+        ],
+        "params": 19200,
+        "macs": 3763200,
+        "weight_bytes": 19200,
+        "activation_bytes": 15680,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5076,
+        "latency_cycles": 10500
+      },
+      {
+        "name": "features.4.1.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          80,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "params": 38400,
+        "macs": 7526400,
+        "weight_bytes": 38400,
+        "activation_bytes": 94080,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6676,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.4.1.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "params": 4320,
+        "macs": 846720,
+        "weight_bytes": 4320,
+        "activation_bytes": 94080,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 2620,
+        "latency_cycles": 18900
+      },
+      {
+        "name": "features.4.1.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          480,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          20,
+          1,
+          1
+        ],
+        "params": 9620,
+        "macs": 9600,
+        "weight_bytes": 9620,
+        "activation_bytes": 20,
+        "ideal_dsp": 80,
+        "allocated_dsp": 80,
+        "bram_blocks": 1,
+        "lut": 1642,
+        "latency_cycles": 86
+      },
+      {
+        "name": "features.4.1.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          20,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          480,
+          1,
+          1
+        ],
+        "params": 10080,
+        "macs": 9600,
+        "weight_bytes": 10080,
+        "activation_bytes": 480,
+        "ideal_dsp": 160,
+        "allocated_dsp": 160,
+        "bram_blocks": 1,
+        "lut": 4922,
+        "latency_cycles": 43
+      },
+      {
+        "name": "features.4.1.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          80,
+          14,
+          14
+        ],
+        "params": 38400,
+        "macs": 7526400,
+        "weight_bytes": 38400,
+        "activation_bytes": 15680,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5076,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.4.2.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          80,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "params": 38400,
+        "macs": 7526400,
+        "weight_bytes": 38400,
+        "activation_bytes": 94080,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6676,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.4.2.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "params": 4320,
+        "macs": 846720,
+        "weight_bytes": 4320,
+        "activation_bytes": 94080,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 4,
+        "lut": 2620,
+        "latency_cycles": 18900
+      },
+      {
+        "name": "features.4.2.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          480,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          20,
+          1,
+          1
+        ],
+        "params": 9620,
+        "macs": 9600,
+        "weight_bytes": 9620,
+        "activation_bytes": 20,
+        "ideal_dsp": 80,
+        "allocated_dsp": 80,
+        "bram_blocks": 1,
+        "lut": 1642,
+        "latency_cycles": 86
+      },
+      {
+        "name": "features.4.2.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          20,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          480,
+          1,
+          1
+        ],
+        "params": 10080,
+        "macs": 9600,
+        "weight_bytes": 10080,
+        "activation_bytes": 480,
+        "ideal_dsp": 160,
+        "allocated_dsp": 160,
+        "bram_blocks": 1,
+        "lut": 4922,
+        "latency_cycles": 43
+      },
+      {
+        "name": "features.4.2.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          80,
+          14,
+          14
+        ],
+        "params": 38400,
+        "macs": 7526400,
+        "weight_bytes": 38400,
+        "activation_bytes": 15680,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5076,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.5.0.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          80,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "params": 38400,
+        "macs": 7526400,
+        "weight_bytes": 38400,
+        "activation_bytes": 94080,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6676,
+        "latency_cycles": 21000
+      },
+      {
+        "name": "features.5.0.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "params": 12000,
+        "macs": 2352000,
+        "weight_bytes": 12000,
+        "activation_bytes": 94080,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 9,
+        "lut": 5116,
+        "latency_cycles": 26250
+      },
+      {
+        "name": "features.5.0.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          480,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          20,
+          1,
+          1
+        ],
+        "params": 9620,
+        "macs": 9600,
+        "weight_bytes": 9620,
+        "activation_bytes": 20,
+        "ideal_dsp": 80,
+        "allocated_dsp": 80,
+        "bram_blocks": 1,
+        "lut": 1642,
+        "latency_cycles": 86
+      },
+      {
+        "name": "features.5.0.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          20,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          480,
+          1,
+          1
+        ],
+        "params": 10080,
+        "macs": 9600,
+        "weight_bytes": 10080,
+        "activation_bytes": 480,
+        "ideal_dsp": 160,
+        "allocated_dsp": 160,
+        "bram_blocks": 1,
+        "lut": 4922,
+        "latency_cycles": 43
+      },
+      {
+        "name": "features.5.0.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          480,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          112,
+          14,
+          14
+        ],
+        "params": 53760,
+        "macs": 10536960,
+        "weight_bytes": 53760,
+        "activation_bytes": 21952,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5204,
+        "latency_cycles": 29401
+      },
+      {
+        "name": "features.5.1.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          112,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "params": 75264,
+        "macs": 14751744,
+        "weight_bytes": 75264,
+        "activation_bytes": 131712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 7444,
+        "latency_cycles": 41160
+      },
+      {
+        "name": "features.5.1.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "params": 16800,
+        "macs": 3292800,
+        "weight_bytes": 16800,
+        "activation_bytes": 131712,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 12,
+        "lut": 6652,
+        "latency_cycles": 36750
+      },
+      {
+        "name": "features.5.1.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          672,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          28,
+          1,
+          1
+        ],
+        "params": 18844,
+        "macs": 18816,
+        "weight_bytes": 18844,
+        "activation_bytes": 28,
+        "ideal_dsp": 112,
+        "allocated_dsp": 112,
+        "bram_blocks": 1,
+        "lut": 2250,
+        "latency_cycles": 121
+      },
+      {
+        "name": "features.5.1.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          28,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          672,
+          1,
+          1
+        ],
+        "params": 19488,
+        "macs": 18816,
+        "weight_bytes": 19488,
+        "activation_bytes": 672,
+        "ideal_dsp": 224,
+        "allocated_dsp": 224,
+        "bram_blocks": 1,
+        "lut": 6842,
+        "latency_cycles": 61
+      },
+      {
+        "name": "features.5.1.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          112,
+          14,
+          14
+        ],
+        "params": 75264,
+        "macs": 14751744,
+        "weight_bytes": 75264,
+        "activation_bytes": 21952,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5204,
+        "latency_cycles": 41160
+      },
+      {
+        "name": "features.5.2.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          112,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "params": 75264,
+        "macs": 14751744,
+        "weight_bytes": 75264,
+        "activation_bytes": 131712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 7444,
+        "latency_cycles": 41160
+      },
+      {
+        "name": "features.5.2.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "params": 16800,
+        "macs": 3292800,
+        "weight_bytes": 16800,
+        "activation_bytes": 131712,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 12,
+        "lut": 6652,
+        "latency_cycles": 36750
+      },
+      {
+        "name": "features.5.2.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          672,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          28,
+          1,
+          1
+        ],
+        "params": 18844,
+        "macs": 18816,
+        "weight_bytes": 18844,
+        "activation_bytes": 28,
+        "ideal_dsp": 112,
+        "allocated_dsp": 112,
+        "bram_blocks": 1,
+        "lut": 2250,
+        "latency_cycles": 121
+      },
+      {
+        "name": "features.5.2.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          28,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          672,
+          1,
+          1
+        ],
+        "params": 19488,
+        "macs": 18816,
+        "weight_bytes": 19488,
+        "activation_bytes": 672,
+        "ideal_dsp": 224,
+        "allocated_dsp": 224,
+        "bram_blocks": 1,
+        "lut": 6842,
+        "latency_cycles": 61
+      },
+      {
+        "name": "features.5.2.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          112,
+          14,
+          14
+        ],
+        "params": 75264,
+        "macs": 14751744,
+        "weight_bytes": 75264,
+        "activation_bytes": 21952,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5204,
+        "latency_cycles": 41160
+      },
+      {
+        "name": "features.6.0.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          112,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "params": 75264,
+        "macs": 14751744,
+        "weight_bytes": 75264,
+        "activation_bytes": 131712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 7444,
+        "latency_cycles": 41160
+      },
+      {
+        "name": "features.6.0.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          672,
+          14,
+          14
+        ],
+        "output_shape": [
+          1,
+          672,
+          7,
+          7
+        ],
+        "params": 16800,
+        "macs": 823200,
+        "weight_bytes": 16800,
+        "activation_bytes": 32928,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 6638,
+        "latency_cycles": 9188
+      },
+      {
+        "name": "features.6.0.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          672,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          28,
+          1,
+          1
+        ],
+        "params": 18844,
+        "macs": 18816,
+        "weight_bytes": 18844,
+        "activation_bytes": 28,
+        "ideal_dsp": 112,
+        "allocated_dsp": 112,
+        "bram_blocks": 1,
+        "lut": 2250,
+        "latency_cycles": 121
+      },
+      {
+        "name": "features.6.0.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          28,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          672,
+          1,
+          1
+        ],
+        "params": 19488,
+        "macs": 18816,
+        "weight_bytes": 19488,
+        "activation_bytes": 672,
+        "ideal_dsp": 224,
+        "allocated_dsp": 224,
+        "bram_blocks": 1,
+        "lut": 6842,
+        "latency_cycles": 61
+      },
+      {
+        "name": "features.6.0.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          672,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "params": 129024,
+        "macs": 6322176,
+        "weight_bytes": 129024,
+        "activation_bytes": 9408,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5510,
+        "latency_cycles": 17640
+      },
+      {
+        "name": "features.6.1.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 56448,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9350,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.6.1.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 28800,
+        "macs": 1411200,
+        "weight_bytes": 28800,
+        "activation_bytes": 56448,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 10,
+        "lut": 10478,
+        "latency_cycles": 15751
+      },
+      {
+        "name": "features.6.1.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "params": 55344,
+        "macs": 55296,
+        "weight_bytes": 55344,
+        "activation_bytes": 48,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 3770,
+        "latency_cycles": 206
+      },
+      {
+        "name": "features.6.1.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "params": 56448,
+        "macs": 55296,
+        "weight_bytes": 56448,
+        "activation_bytes": 1152,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9338,
+        "latency_cycles": 155
+      },
+      {
+        "name": "features.6.1.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 9408,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5510,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.6.2.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 56448,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9350,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.6.2.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 28800,
+        "macs": 1411200,
+        "weight_bytes": 28800,
+        "activation_bytes": 56448,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 10,
+        "lut": 10478,
+        "latency_cycles": 15751
+      },
+      {
+        "name": "features.6.2.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "params": 55344,
+        "macs": 55296,
+        "weight_bytes": 55344,
+        "activation_bytes": 48,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 3770,
+        "latency_cycles": 206
+      },
+      {
+        "name": "features.6.2.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "params": 56448,
+        "macs": 55296,
+        "weight_bytes": 56448,
+        "activation_bytes": 1152,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9338,
+        "latency_cycles": 155
+      },
+      {
+        "name": "features.6.2.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 9408,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5510,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.6.3.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 56448,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9350,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.6.3.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 28800,
+        "macs": 1411200,
+        "weight_bytes": 28800,
+        "activation_bytes": 56448,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 10,
+        "lut": 10478,
+        "latency_cycles": 15751
+      },
+      {
+        "name": "features.6.3.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "params": 55344,
+        "macs": 55296,
+        "weight_bytes": 55344,
+        "activation_bytes": 48,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 3770,
+        "latency_cycles": 206
+      },
+      {
+        "name": "features.6.3.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "params": 56448,
+        "macs": 55296,
+        "weight_bytes": 56448,
+        "activation_bytes": 1152,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9338,
+        "latency_cycles": 155
+      },
+      {
+        "name": "features.6.3.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 9408,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5510,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.7.0.block.0.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          192,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 221184,
+        "macs": 10838016,
+        "weight_bytes": 221184,
+        "activation_bytes": 56448,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9350,
+        "latency_cycles": 30241
+      },
+      {
+        "name": "features.7.0.block.1.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "params": 10368,
+        "macs": 508032,
+        "weight_bytes": 10368,
+        "activation_bytes": 56448,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 5,
+        "lut": 5294,
+        "latency_cycles": 11340
+      },
+      {
+        "name": "features.7.0.block.2.fc1",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "params": 55344,
+        "macs": 55296,
+        "weight_bytes": 55344,
+        "activation_bytes": 48,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 3770,
+        "latency_cycles": 206
+      },
+      {
+        "name": "features.7.0.block.2.fc2",
+        "op": "conv",
+        "input_shape": [
+          1,
+          48,
+          1,
+          1
+        ],
+        "output_shape": [
+          1,
+          1152,
+          1,
+          1
+        ],
+        "params": 56448,
+        "macs": 55296,
+        "weight_bytes": 56448,
+        "activation_bytes": 1152,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9338,
+        "latency_cycles": 155
+      },
+      {
+        "name": "features.7.0.block.3.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1152,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          320,
+          7,
+          7
+        ],
+        "params": 368640,
+        "macs": 18063360,
+        "weight_bytes": 368640,
+        "activation_bytes": 15680,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6022,
+        "latency_cycles": 50400
+      },
+      {
+        "name": "features.8.0",
+        "op": "conv",
+        "input_shape": [
+          1,
+          320,
+          7,
+          7
+        ],
+        "output_shape": [
+          1,
+          1280,
+          7,
+          7
+        ],
+        "params": 409600,
+        "macs": 20070400,
+        "weight_bytes": 409600,
+        "activation_bytes": 62720,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 9862,
+        "latency_cycles": 56000
+      },
+      {
+        "name": "classifier.1",
+        "op": "linear",
+        "input_shape": [
+          1,
+          1280
+        ],
+        "output_shape": [
+          1,
+          8
+        ],
+        "params": 10248,
+        "macs": 10240,
+        "weight_bytes": 10248,
+        "activation_bytes": 8,
+        "ideal_dsp": 4,
+        "allocated_dsp": 4,
+        "bram_blocks": 3,
+        "lut": 136,
+        "latency_cycles": 1829
+      }
+    ]
+  }
+}
