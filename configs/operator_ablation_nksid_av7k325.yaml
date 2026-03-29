@@ -1,0 +1,71 @@
+project:
+  name: operator-ablation-nksid-av7k325
+  seed: 42
+  output_dir: results
+  run_name: null
+
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  use_kfold: true
+  valid_size: null
+  split_seed: 42
+
+hardware:
+  board: alinx_av7k325
+  clock_mhz: 200
+  quantization_bits: 8
+  cpu_latency_warmup: 10
+  cpu_latency_runs: 30
+
+constraints:
+  max_latency_ms: 50.0
+  max_energy_mj: null
+  max_model_size_mb: null
+  max_dsp: 840
+  max_bram: 445
+  max_lut: 50950
+  max_power_w: 12.0
+  max_memory_bandwidth_gbps: 3.0
+  max_offchip_mem_mb: 128.0
+
+training:
+  optimizer: adamw
+  batch_size: 64
+  epochs: 120
+  lr: 0.001
+  min_lr: 0.00001
+  weight_decay: 0.0001
+  warmup_epochs: 5
+  early_stopping_patience: 15
+  dropout: 0.2
+
+ablation:
+  macro_template: fbnet_like
+  selected_backbone_pool:
+    path: null
+    role: search_anchor
+    role_to_macro_template: {}
+    backbone_to_macro_template:
+      mobilenet_v2: mobilenet_v2_like
+      fbnet_like: fbnet_like
+      shufflenet_v2: mobilenet_v2_like
+      efficientnet_b0: mobilenet_v2_like
+      simplecnn: mobilenet_v2_like
+  selection_metric: macro_f1
+  topk_accuracy: 5
+  single_ops:
+    - dw_pw_conv
+    - mbconv
+    - fused_mbconv
+    - mixconv
+    - denoise
+    - edge
+  retention:
+    keep_margin: 0.02
+    conditional_margin: 0.05

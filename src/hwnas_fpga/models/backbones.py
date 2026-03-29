@@ -100,6 +100,69 @@ FBNET_LIKE_STAGE_SPECS = (
     {"channels": 184, "depth": 4, "stride": 2, "expand": 6, "kernel": 5, "groups": 4},
 )
 
+MOBILENET_V2_LIKE_STAGE_SPECS = (
+    {"channels": 24, "depth": 2, "stride": 1, "expand": 1, "kernel": 3},
+    {"channels": 32, "depth": 3, "stride": 2, "expand": 6, "kernel": 3},
+    {"channels": 64, "depth": 4, "stride": 2, "expand": 6, "kernel": 5},
+    {"channels": 96, "depth": 3, "stride": 2, "expand": 6, "kernel": 5},
+)
+
+FBNET_V1_STAGE_SPECS = (
+    {"channels": 24, "depth": 2, "stride": 1, "expand": 3, "kernel": 3},
+    {"channels": 32, "depth": 4, "stride": 2, "expand": 3, "kernel": 5},
+    {"channels": 64, "depth": 4, "stride": 2, "expand": 4, "kernel": 5},
+    {"channels": 112, "depth": 4, "stride": 2, "expand": 4, "kernel": 5},
+)
+
+MACRO_TEMPLATES: dict[str, dict[str, Any]] = {
+    "mobilenet_v2_like": {
+        "display_name": "MobileNetV2-like",
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": 1280,
+        "stages": MOBILENET_V2_LIKE_STAGE_SPECS,
+    },
+    "fbnet_like": {
+        "display_name": "FBNet-like",
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": 1280,
+        "stages": FBNET_V1_STAGE_SPECS,
+    },
+}
+
+
+def normalize_macro_template_name(name: str) -> str:
+    normalized = str(name).strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "mobilenetv2_like": "mobilenet_v2_like",
+        "mobilenet_like": "mobilenet_v2_like",
+        "mobile_anchor": "mobilenet_v2_like",
+        "mobilenet_v2_like": "mobilenet_v2_like",
+        "fbnet": "fbnet_like",
+        "fbnet_like": "fbnet_like",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def get_macro_template(name: str) -> dict[str, Any]:
+    normalized = normalize_macro_template_name(name)
+    if normalized not in MACRO_TEMPLATES:
+        raise ValueError(f"Unsupported macro template: {name}")
+    template = MACRO_TEMPLATES[normalized]
+    return {
+        "name": normalized,
+        "display_name": template["display_name"],
+        "stem_channels": int(template["stem_channels"]),
+        "stem_stride": int(template["stem_stride"]),
+        "head_channels": int(template["head_channels"]),
+        "stages": tuple(dict(stage) for stage in template["stages"]),
+    }
+
+
+def list_macro_templates() -> dict[str, dict[str, Any]]:
+    return {name: get_macro_template(name) for name in MACRO_TEMPLATES}
+
 
 def _resolve_group_count(desired_groups: int, *channel_dims: int) -> int:
     if desired_groups <= 1:
