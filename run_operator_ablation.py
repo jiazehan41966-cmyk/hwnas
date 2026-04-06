@@ -448,9 +448,208 @@ def _normalize_mapping(mapping: Any) -> dict[str, str | None]:
     return normalized
 
 
+def _resolve_optional_path(raw_path: Any, *, base_dir: Optional[Path] = None) -> Optional[Path]:
+    if raw_path is None:
+        return None
+    value = str(raw_path).strip()
+    if not value:
+        return None
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        anchor = Path.cwd() if base_dir is None else base_dir
+        path = (anchor / path).resolve()
+    return path
+
+
+def _infer_transition_stride(input_resolution: Any, output_resolution: Any) -> int:
+    input_size = int(input_resolution)
+    output_size = int(output_resolution)
+    if input_size <= 0 or output_size <= 0:
+        raise ValueError("resolution values must be positive")
+    if input_size == output_size:
+        return 1
+    for stride in range(1, max(2, input_size) + 1):
+        if (input_size + stride - 1) // stride == output_size:
+            return stride
+    return max(1, round(input_size / output_size))
+
+
 def _template_head_channels(template: dict[str, Any]) -> Optional[int]:
     head_channels = template.get("head_channels")
     return None if head_channels is None else int(head_channels)
+
+
+def _match_blueprint(
+    *,
+    blueprints: Sequence[dict[str, Any]],
+    role_payload: dict[str, Any],
+) -> Optional[dict[str, Any]]:
+    target_arch_id = str(role_payload.get("arch_id", "")).strip()
+    target_display_name = str(role_payload.get("display_name", "")).strip().lower()
+    target_backbone = str(role_payload.get("backbone", "")).strip().lower()
+
+    if target_arch_id:
+        for blueprint in blueprints:
+            if str(blueprint.get("arch_id", "")).strip() == target_arch_id:
+                return blueprint
+
+    for blueprint in blueprints:
+        if target_display_name and str(blueprint.get("display_name", "")).strip().lower() == target_display_name:
+            return blueprint
+
+    for blueprint in blueprints:
+        if target_backbone and str(blueprint.get("backbone", "")).strip().lower() == target_backbone:
+            return blueprint
+
+    return None
+
+
+def build_template_from_architecture_summary(
+    architecture_summary: dict[str, Any],
+) -> tuple[dict[str, Any], list[str]]:
+    arch_id = str(architecture_summary.get("arch_id", "macro_anchor")).strip() or "macro_anchor"
+    display_name = str(architecture_summary.get("display_name", arch_id))
+    input_resolution = int(architecture_summary.get("input_resolution", 224))
+    raw_stages = [dict(stage) for stage in architecture_summary.get("stages", [])]
+    if not raw_stages:
+        raise ValueError("architecture summary does not contain any stages")
+
+    warnings: list[str] = []
+    stem_cfg = architecture_summary.get("stem")
+    if isinstance(stem_cfg, dict):
+        stem_output_resolution = int(stem_cfg.get("output_resolution", input_resolution))
+        post_stem = stem_cfg.get("post_stem_downsample")
+        if isinstance(post_stem, dict):
+            stem_output_resolution = int(post_stem.get("output_resolution", stem_output_resolution))
+            warnings.append(
+                "Collapsed stem and post_stem_downsample into a single effective stem stride for operator ablation."
+            )
+        stem_channels = int(stem_cfg.get("out_channels", stem_cfg.get("width", 0)))
+        stem_stride = _infer_transition_stride(input_resolution, stem_output_resolution)
+    else:
+        promoted_stage = raw_stages.pop(0)
+        if not raw_stages:
+            raise ValueError("need at least one stage after promoting an implicit stem")
+        stem_channels = int(promoted_stage.get("out_channels", promoted_stage.get("width", 0)))
+        stem_stride = _infer_transition_stride(
+            promoted_stage.get("input_resolution", input_resolution),
+            promoted_stage.get("output_resolution", input_resolution),
+        )
+        warnings.append(
+            "Backbone blueprint has no explicit stem; promoted the first stage to an implicit stem for operator ablation."
+        )
+
+    if stem_channels <= 0:
+        raise ValueError("resolved stem_channels must be positive")
+
+    template_stages: list[dict[str, Any]] = []
+    for stage in raw_stages:
+        stage_name = str(stage.get("stage_name", f"stage_{len(template_stages) + 1}"))
+        input_size = int(stage.get("input_resolution", input_resolution))
+        output_size = int(stage.get("output_resolution", input_size))
+        stage_stride = _infer_transition_stride(input_size, output_size)
+        downsample_location = stage.get("downsample_location")
+        if stage_stride > 1 and downsample_location not in {None, "stage_start"}:
+            warnings.append(
+                f"{stage_name} downsamples at {downsample_location}; approximated as a first-block stride={stage_stride} transition."
+            )
+        if stage.get("groups") is not None:
+            warnings.append(
+                f"{stage_name} exposes grouped pointwise structure (groups={stage['groups']}), "
+                "which operator ablation currently approximates with standard searchable blocks."
+            )
+
+        template_stage = {
+            "stage_name": stage_name,
+            "channels": int(stage.get("out_channels", stage.get("width", 0))),
+            "depth": int(stage.get("depth", 1)),
+            "stride": stage_stride,
+            "expand": int(stage.get("expand_ratio", 1)),
+            "kernel": int(stage.get("kernel_size", 3)),
+        }
+        template_stages.append(template_stage)
+
+    head_cfg = architecture_summary.get("head", {})
+    head_channels = None
+    if isinstance(head_cfg, dict):
+        if head_cfg.get("out_channels") is not None:
+            head_channels = int(head_cfg["out_channels"])
+        elif head_cfg.get("classifier_hidden_dim") is not None:
+            head_channels = int(head_cfg["classifier_hidden_dim"])
+
+    return (
+        {
+            "name": f"{arch_id}_blueprint",
+            "display_name": f"{display_name} Blueprint",
+            "stem_channels": stem_channels,
+            "stem_stride": stem_stride,
+            "head_channels": head_channels,
+            "stages": tuple(template_stages),
+        },
+        warnings,
+    )
+
+
+def resolve_structured_macro_template(
+    *,
+    pool_path: Path,
+    pool_cfg: dict[str, Any],
+    role_payload: dict[str, Any],
+) -> Optional[tuple[dict[str, Any], dict[str, Any]]]:
+    prefer_structured = bool(pool_cfg.get("prefer_structured_blueprint", True))
+    if not prefer_structured:
+        return None
+
+    results_dir = pool_path.parent
+    experiment_protocol_path = _resolve_optional_path(
+        pool_cfg.get("experiment_protocol_path"),
+        base_dir=Path.cwd(),
+    )
+    if experiment_protocol_path is None:
+        experiment_protocol_path = results_dir / "experiment_protocol.json"
+
+    if experiment_protocol_path.exists():
+        protocol_payload = _load_json(experiment_protocol_path)
+        raw_blueprints = protocol_payload.get("candidate_blueprints", [])
+        if isinstance(raw_blueprints, list):
+            blueprints = [item for item in raw_blueprints if isinstance(item, dict)]
+            matched_blueprint = _match_blueprint(blueprints=blueprints, role_payload=role_payload)
+            if matched_blueprint is not None:
+                template, warnings = build_template_from_architecture_summary(matched_blueprint)
+                return template, {
+                    "macro_template_source": "experiment_protocol",
+                    "macro_template_source_path": str(experiment_protocol_path),
+                    "macro_blueprint_arch_id": matched_blueprint.get("arch_id"),
+                    "macro_blueprint_display_name": matched_blueprint.get("display_name"),
+                    "macro_blueprint_backbone": matched_blueprint.get("backbone"),
+                    "macro_template_warnings": warnings,
+                }
+
+    backbone_results_dir = _resolve_optional_path(
+        pool_cfg.get("backbone_results_dir"),
+        base_dir=Path.cwd(),
+    )
+    if backbone_results_dir is None:
+        backbone_results_dir = results_dir / "backbones"
+
+    target_arch_id = str(role_payload.get("arch_id", "")).strip()
+    if target_arch_id:
+        backbone_result_path = backbone_results_dir / f"{target_arch_id}.json"
+        if backbone_result_path.exists():
+            result_payload = _load_json(backbone_result_path)
+            architecture_summary = result_payload.get("architecture_summary")
+            if isinstance(architecture_summary, dict):
+                template, warnings = build_template_from_architecture_summary(architecture_summary)
+                return template, {
+                    "macro_template_source": "backbone_result",
+                    "macro_template_source_path": str(backbone_result_path),
+                    "macro_blueprint_arch_id": architecture_summary.get("arch_id"),
+                    "macro_blueprint_display_name": architecture_summary.get("display_name"),
+                    "macro_blueprint_backbone": architecture_summary.get("backbone"),
+                    "macro_template_warnings": warnings,
+                }
+
+    return None
 
 
 def resolve_macro_template_selection(
@@ -489,6 +688,28 @@ def resolve_macro_template_selection(
                 f"Role '{selected_pool_role}' must map to an object in selected_backbone_pool.json"
             )
 
+        base_selection = {
+            "selected_backbone_pool_path": str(pool_path),
+            "selected_backbone_pool_role": selected_pool_role,
+            "selected_backbone_pool_arch_id": role_payload.get("arch_id"),
+            "selected_backbone_pool_display_name": role_payload.get("display_name"),
+            "selected_backbone_pool_backbone": role_payload.get("backbone"),
+        }
+
+        structured_resolution = resolve_structured_macro_template(
+            pool_path=pool_path,
+            pool_cfg=pool_cfg,
+            role_payload=role_payload,
+        )
+        if structured_resolution is not None:
+            template, structured_meta = structured_resolution
+            return template, {
+                "macro_template": template["name"],
+                "macro_template_display_name": template["display_name"],
+                **base_selection,
+                **structured_meta,
+            }
+
         role_to_template = {
             **DEFAULT_ROLE_TO_MACRO_TEMPLATE,
             **_normalize_mapping(pool_cfg.get("role_to_macro_template")),
@@ -515,11 +736,7 @@ def resolve_macro_template_selection(
             "macro_template": template["name"],
             "macro_template_display_name": template["display_name"],
             "macro_template_source": "selected_backbone_pool",
-            "selected_backbone_pool_path": str(pool_path),
-            "selected_backbone_pool_role": selected_pool_role,
-            "selected_backbone_pool_arch_id": role_payload.get("arch_id"),
-            "selected_backbone_pool_display_name": role_payload.get("display_name"),
-            "selected_backbone_pool_backbone": role_payload.get("backbone"),
+            **base_selection,
             "selected_backbone_pool_resolution_rule": resolution_rule,
         }
 
@@ -633,6 +850,10 @@ def main() -> None:
                     f"{template_selection.get('selected_backbone_pool_backbone')} "
                     f"({template_selection.get('selected_backbone_pool_display_name')})"
                 )
+            if template_selection.get("macro_template_source_path"):
+                print(f"Macro template source path: {template_selection['macro_template_source_path']}")
+            for warning in template_selection.get("macro_template_warnings", []):
+                print(f"Macro template warning: {warning}")
             print(f"Operator ablation candidates: {[candidate.arch_id for candidate in candidates]}")
 
             train_loader, val_loader, class_weights, resolved_num_classes, class_names = (

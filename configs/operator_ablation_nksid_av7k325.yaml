@@ -50,6 +50,9 @@ ablation:
   selected_backbone_pool:
     path: null
     role: search_anchor
+    prefer_structured_blueprint: true
+    experiment_protocol_path: null
+    backbone_results_dir: null
     role_to_macro_template: {}
     backbone_to_macro_template:
       mobilenet_v2: mobilenet_v2_like

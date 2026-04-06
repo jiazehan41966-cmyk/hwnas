@@ -6,7 +6,12 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from hwnas_fpga.models import build_backbone, default_backbone_candidates
+from hwnas_fpga.models import (
+    build_backbone,
+    default_backbone_candidates,
+    get_macro_template,
+    list_macro_templates,
+)
 
 
 class BackboneBuildTests(unittest.TestCase):
@@ -34,6 +39,19 @@ class BackboneBuildTests(unittest.TestCase):
                 outputs = model(torch.randn(2, 1, 64, 64))
                 self.assertEqual(outputs.shape, (2, 4))
                 self.assertFalse(metadata["pretrained_loaded"])
+
+    def test_macro_templates_are_available(self) -> None:
+        templates = list_macro_templates()
+        self.assertIn("mobilenet_v2_like", templates)
+        self.assertIn("fbnet_like", templates)
+
+        fbnet_template = get_macro_template("fbnet_like")
+        self.assertEqual(fbnet_template["display_name"], "FBNet-like")
+        self.assertEqual(len(fbnet_template["stages"]), 4)
+
+        mobilenet_template = get_macro_template("mobile_anchor")
+        self.assertEqual(mobilenet_template["name"], "mobilenet_v2_like")
+        self.assertEqual(len(mobilenet_template["stages"]), 4)
 
 
 if __name__ == "__main__":
