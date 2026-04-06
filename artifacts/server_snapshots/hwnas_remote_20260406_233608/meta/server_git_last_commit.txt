@@ -1,0 +1,35 @@
+40aaa8a feat: add FPGA backbone baseline and LUT support
+ configs/backbone_baseline.yaml                     |  91 +++
+ configs/backbone_baseline_nksid_av7k325.yaml       |  89 +++
+ configs/backbone_baseline_nksid_av7k325_quick.yaml |  89 +++
+ configs/hardware/alinx_av7k325.yaml                |  11 +
+ configs/search/dummy_proxyless_smoke.yaml          |   1 +
+ configs/search/nksid_fpga_search.yaml              |   1 +
+ configs/search/nksid_fpga_search_av7k325.yaml      |  80 ++
+ configs/search/nksid_proxyless_cpu_runnable.yaml   |   1 +
+ configs/search/nksid_proxyless_mit_aligned.yaml    |   1 +
+ generate_estimator_lut.py                          | 435 +++++++++++
+ run_backbone_baseline.py                           | 864 +++++++++++++++++++++
+ run_search.py                                      |  19 +
+ src/hwnas_fpga/data/dataset.py                     |  75 +-
+ src/hwnas_fpga/hardware/__init__.py                |   4 +
+ src/hwnas_fpga/hardware/backbone_cost.py           | 448 +++++++++++
+ src/hwnas_fpga/hardware/boards.py                  |  16 +
+ src/hwnas_fpga/hardware/cost.py                    | 117 +--
+ src/hwnas_fpga/hardware/lookup_table.py            | 121 ++-
+ src/hwnas_fpga/models/__init__.py                  |  12 +
+ src/hwnas_fpga/models/backbones.py                 | 479 ++++++++++++
+ src/hwnas_fpga/runtime.py                          |  46 +-
+ src/hwnas_fpga/search/rl_searcher.py               |  27 +-
+ src/hwnas_fpga/search/searcher.py                  |  12 +-
+ src/hwnas_fpga/search_space/__init__.py            |   4 +
+ src/hwnas_fpga/search_space/space.py               |  55 +-
+ tests/test_backbone_baseline.py                    |  93 +++
+ tests/test_backbone_cost.py                        |  38 +
+ tests/test_backbones.py                            |  40 +
+ tests/test_board_profiles_av7k325.py               |  39 +
+ tests/test_hardware.py                             |   3 +
+ tests/test_runtime.py                              | 187 ++++-
+ tests/test_search.py                               |  16 +
+ tests/test_search_space.py                         |  62 +-
+ 33 files changed, 3481 insertions(+), 95 deletions(-)

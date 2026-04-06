@@ -1,0 +1,59 @@
+{
+  "finished_at": "2026-03-29T02:12:14Z",
+  "status": "completed",
+  "total_evaluated": 0,
+  "feasible": 0,
+  "infeasible": 0,
+  "best_candidate": null,
+  "extra": {
+    "macro_template": "shufflenet_v2_blueprint",
+    "macro_template_selection": {
+      "macro_template": "shufflenet_v2_blueprint",
+      "macro_template_display_name": "ShuffleNetV2 Blueprint",
+      "selected_backbone_pool_path": "E:\\1\\hwnas\\hwnas\\artifacts\\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\\results\\selected_backbone_pool.json",
+      "selected_backbone_pool_role": "search_anchor",
+      "selected_backbone_pool_arch_id": "shufflenet_v2",
+      "selected_backbone_pool_display_name": "ShuffleNetV2",
+      "selected_backbone_pool_backbone": "shufflenet_v2",
+      "macro_template_source": "experiment_protocol",
+      "macro_template_source_path": "E:\\1\\hwnas\\hwnas\\artifacts\\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\\results\\experiment_protocol.json",
+      "macro_blueprint_arch_id": "shufflenet_v2",
+      "macro_blueprint_display_name": "ShuffleNetV2",
+      "macro_blueprint_backbone": "shufflenet_v2",
+      "macro_template_warnings": [
+        "Collapsed stem and post_stem_downsample into a single effective stem stride for operator ablation."
+      ]
+    },
+    "operator_candidates": [
+      {
+        "arch_id": "dw_pw_conv_only",
+        "display_name": "DW-PW Conv only",
+        "stage_ops": [
+          "dw_pw_conv",
+          "dw_pw_conv",
+          "dw_pw_conv"
+        ],
+        "use_skip_connections": false,
+        "category": "single",
+        "notes": "single-operator macro template"
+      }
+    ],
+    "best_operator_candidate": "dw_pw_conv_only",
+    "retention_table": [
+      {
+        "op": "dw_pw_conv",
+        "display_name": "DW-PW Conv",
+        "status": "conditional",
+        "best_macro_f1": 0.0898783294679927,
+        "best_top1": 0.17692307692307693,
+        "best_fpga_latency_ms": 0.309335,
+        "best_cpu_latency_ms": 4.054290000203764,
+        "feasible_runs": 0,
+        "total_runs": 1,
+        "best_candidate": "dw_pw_conv_only",
+        "macro_gap_to_best": 0.0,
+        "rationale": "competitive enough to keep as a stage-limited option"
+      }
+    ]
+  }
+}

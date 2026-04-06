@@ -1,0 +1,10 @@
+{
+  "project_name": "operator-ablation-nksid-av7k325",
+  "script_name": "run_operator_ablation",
+  "search_method": "operator_ablation",
+  "dataset_name": "nksid",
+  "run_name": "operator_ablation_structured_search_anchor_smoke_20260329",
+  "created_at": "2026-03-29T02:12:04Z",
+  "status": "completed",
+  "finished_at": "2026-03-29T02:12:14Z"
+}

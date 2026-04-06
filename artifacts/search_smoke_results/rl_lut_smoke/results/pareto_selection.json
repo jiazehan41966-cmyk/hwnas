@@ -1,0 +1,23 @@
+{
+  "objectives": [
+    "accuracy",
+    "latency_ms",
+    "energy_mj",
+    "dsp",
+    "bram",
+    "lut"
+  ],
+  "directions": [
+    "max",
+    "min",
+    "min",
+    "min",
+    "min",
+    "min"
+  ],
+  "selection_method": "rank",
+  "pareto_front_size": 0,
+  "hypervolume": 0.0,
+  "selected_topk": [],
+  "ranks": []
+}

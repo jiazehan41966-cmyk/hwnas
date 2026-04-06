@@ -1,0 +1,4 @@
+op,display_name,status,best_macro_f1,best_top1,best_fpga_latency_ms,best_cpu_latency_ms,feasible_runs,total_runs,best_candidate,macro_gap_to_best,rationale
+dw_pw_conv,DW-PW Conv,drop,0.0898783294679927,0.17692307692307693,0.309335,4.272786666600344,0,1,dw_pw_conv_only,0.24959160482167708,clearly behind the best operator set under the fixed macro template
+mbconv,MBConv,conditional,0.33946993428966976,0.5923076923076923,0.309335,5.224170000049829,0,1,mbconv_only,0.0,competitive enough to keep as a stage-limited option
+mixconv,MixConv,drop,0.1269617579195435,0.19615384615384615,0.393505,10.332013333390933,0,1,mixconv_only,0.21250817637012626,clearly behind the best operator set under the fixed macro template

@@ -1,0 +1,25 @@
+{
+  "config": "configs/operator_ablation_nksid_av7k325.yaml",
+  "dataset": null,
+  "data_dir": null,
+  "device": "cpu",
+  "epochs": 1,
+  "batch_size": 32,
+  "image_size": 64,
+  "num_classes": null,
+  "fold": null,
+  "num_workers": null,
+  "seed": null,
+  "output_dir": "artifacts",
+  "run_name": "operator_ablation_structured_search_anchor_compare_smoke_20260329",
+  "macro_template": null,
+  "selected_backbone_pool": "artifacts/backbone_baseline_nksid_av7k325_formal_structured_20260329_011516/results/selected_backbone_pool.json",
+  "pool_role": "search_anchor",
+  "candidate": [
+    "dw_pw_conv_only",
+    "mbconv_only",
+    "mixconv_only"
+  ],
+  "cpu_latency_runs": null,
+  "cpu_latency_warmup": null
+}

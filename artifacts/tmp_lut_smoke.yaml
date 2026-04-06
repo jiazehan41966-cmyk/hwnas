@@ -1,0 +1,23 @@
+﻿dataset:
+  name: dummy
+  input_channels: 1
+  image_size: 32
+  num_classes: 4
+search_space:
+  stem_channels: 8
+  stem_stride: 2
+  stage_strides: [1, 2]
+  channel_choices: [8, 16]
+  depth_choices: [1, 2]
+  kernel_choices: [3]
+  expand_choices: [1, 2]
+  op_choices:
+    - conv
+    - dw_pw_conv
+    - mbconv
+    - fused_mbconv
+    - skip
+hardware:
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8

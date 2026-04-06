@@ -1,0 +1,44 @@
+[
+  {
+    "op": "dw_pw_conv",
+    "display_name": "DW-PW Conv",
+    "status": "drop",
+    "best_macro_f1": 0.0898783294679927,
+    "best_top1": 0.17692307692307693,
+    "best_fpga_latency_ms": 0.309335,
+    "best_cpu_latency_ms": 4.272786666600344,
+    "feasible_runs": 0,
+    "total_runs": 1,
+    "best_candidate": "dw_pw_conv_only",
+    "macro_gap_to_best": 0.24959160482167708,
+    "rationale": "clearly behind the best operator set under the fixed macro template"
+  },
+  {
+    "op": "mbconv",
+    "display_name": "MBConv",
+    "status": "conditional",
+    "best_macro_f1": 0.33946993428966976,
+    "best_top1": 0.5923076923076923,
+    "best_fpga_latency_ms": 0.309335,
+    "best_cpu_latency_ms": 5.224170000049829,
+    "feasible_runs": 0,
+    "total_runs": 1,
+    "best_candidate": "mbconv_only",
+    "macro_gap_to_best": 0.0,
+    "rationale": "competitive enough to keep as a stage-limited option"
+  },
+  {
+    "op": "mixconv",
+    "display_name": "MixConv",
+    "status": "drop",
+    "best_macro_f1": 0.1269617579195435,
+    "best_top1": 0.19615384615384615,
+    "best_fpga_latency_ms": 0.393505,
+    "best_cpu_latency_ms": 10.332013333390933,
+    "feasible_runs": 0,
+    "total_runs": 1,
+    "best_candidate": "mixconv_only",
+    "macro_gap_to_best": 0.21250817637012626,
+    "rationale": "clearly behind the best operator set under the fixed macro template"
+  }
+]

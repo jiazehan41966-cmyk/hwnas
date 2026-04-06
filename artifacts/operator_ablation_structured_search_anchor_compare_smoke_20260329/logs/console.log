@@ -1,0 +1,33 @@
+Run dir: E:\1\hwnas\hwnas\artifacts\operator_ablation_structured_search_anchor_compare_smoke_20260329
+Using device: cpu
+Dataset: nksid
+Image size: 64
+Input channels: 1
+Board: ALINX AV7K325 (XC7K325T-2FFG900I) @ 200MHz
+Macro template: ShuffleNetV2 Blueprint (shufflenet_v2_blueprint)
+Macro template source: experiment_protocol
+Selected backbone pool: search_anchor -> shufflenet_v2 (ShuffleNetV2)
+Macro template source path: E:\1\hwnas\hwnas\artifacts\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\results\experiment_protocol.json
+Macro template warning: Collapsed stem and post_stem_downsample into a single effective stem stride for operator ablation.
+Operator ablation candidates: ['dw_pw_conv_only', 'mbconv_only', 'mixconv_only']
+[NKSID] 加载完成: 2097 张图片, 8 个类别
+  折数: 0, 划分: train
+[NKSID] 加载完成: 520 张图片, 8 个类别
+  折数: 0, 划分: val
+
+=== Candidate: DW-PW Conv only (dw_pw_conv_only) ===
+Complexity: params=1,734,440, macs=13,296,672, cpu_latency=4.27ms, fpga_latency=0.31ms
+Hardware: DSP=256, BRAM=104, LUT=6588, power=8.76W, feasible=False
+Epoch 1/1: train_loss=2.0405, train_acc=0.1884, val_loss=1.9032, val_top1=0.1769, val_macro_f1=0.0899, lr=0.001000
+
+=== Candidate: MBConv only (mbconv_only) ===
+Complexity: params=1,734,440, macs=13,296,672, cpu_latency=5.22ms, fpga_latency=0.31ms
+Hardware: DSP=256, BRAM=104, LUT=6588, power=8.76W, feasible=False
+Epoch 1/1: train_loss=1.8539, train_acc=0.3739, val_loss=1.3816, val_top1=0.5923, val_macro_f1=0.3395, lr=0.001000
+
+=== Candidate: MixConv only (mixconv_only) ===
+Complexity: params=1,804,648, macs=14,393,888, cpu_latency=10.33ms, fpga_latency=0.39ms
+Hardware: DSP=256, BRAM=104, LUT=6588, power=8.76W, feasible=False
+Epoch 1/1: train_loss=2.0030, train_acc=0.2966, val_loss=1.5736, val_top1=0.1962, val_macro_f1=0.1270, lr=0.001000
+
+Selected operator candidate: MBConv only (macro_f1=0.3395, feasible=False)

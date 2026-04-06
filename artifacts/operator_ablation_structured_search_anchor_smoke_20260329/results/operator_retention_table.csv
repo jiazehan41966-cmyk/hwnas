@@ -1,0 +1,2 @@
+op,display_name,status,best_macro_f1,best_top1,best_fpga_latency_ms,best_cpu_latency_ms,feasible_runs,total_runs,best_candidate,macro_gap_to_best,rationale
+dw_pw_conv,DW-PW Conv,conditional,0.0898783294679927,0.17692307692307693,0.309335,4.054290000203764,0,1,dw_pw_conv_only,0.0,competitive enough to keep as a stage-limited option

@@ -1,0 +1,34 @@
+{
+  "input_channels": 1,
+  "image_size": 224,
+  "stem_channels": 16,
+  "stem_stride": 2,
+  "stage_strides": [
+    1,
+    2,
+    2,
+    2
+  ],
+  "channel_choices": [
+    16,
+    24,
+    32
+  ],
+  "depth_choices": [
+    1,
+    2
+  ],
+  "kernel_choices": [
+    3
+  ],
+  "expand_choices": [
+    1,
+    2
+  ],
+  "op_choices": [
+    "dw_pw_conv",
+    "skip"
+  ],
+  "family_profile": null,
+  "pruned": true
+}
