@@ -32,6 +32,15 @@ HIGH_DSP_OPS = {"conv", "fused_mbconv"}        # 高DSP消耗的算子
 LIGHTWEIGHT_OPS = {"skip", "dw_pw_conv", "denoise"}  # 轻量级算子
 
 FAMILY_PROFILES: dict[str, dict[str, Any]] = {
+    "small": {
+        "stem_channels": 16,
+        "stage_strides": (1, 2, 2, 2),
+        "channel_choices": (16, 24, 32),
+        "depth_choices": (1, 2),
+        "kernel_choices": (3,),
+        "expand_choices": (1, 2),
+        "op_choices": ("dw_pw_conv", "mbconv", "skip"),
+    },
     "mobile_anchor": {
         "stem_channels": 16,
         "stage_strides": (1, 2, 2, 2),

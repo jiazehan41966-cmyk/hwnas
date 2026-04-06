@@ -140,9 +140,11 @@ class RandomSearcher(BaseSearcher):
         cost_estimator: FPGACostEstimator,
         constraints: Optional[SearchConstraints] = None,
         seed: int = 42,
+        eval_early_stopping_patience: Optional[int] = 2,
     ):
         super().__init__(search_space, cost_estimator, constraints)
         self.rng = random.Random(seed)
+        self.eval_early_stopping_patience = eval_early_stopping_patience
 
     def sample_candidate(self) -> ArchitectureSpec:
         """采样一个候选架构"""
@@ -196,7 +198,9 @@ class RandomSearcher(BaseSearcher):
                     device=device,
                     val_loader=val_loader,
                     class_weights=class_weights,
-                    early_stopping_patience=2 if val_loader is not None else None,
+                    early_stopping_patience=(
+                        self.eval_early_stopping_patience if val_loader is not None else None
+                    ),
                 )
                 candidate.metrics.accuracy = accuracy
                 self.last_trained_model = model
@@ -435,6 +439,7 @@ def create_searcher(
             cost_estimator=cost_estimator,
             constraints=constraints,
             seed=seed,
+            eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
         )
     if method == "rl":
         from .rl_searcher import RLSearcher
@@ -449,6 +454,7 @@ def create_searcher(
             device=kwargs.get("device", "cpu"),
             seed=seed,
             reward_weights=kwargs.get("reward_weights"),
+            eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
         )
     if method == "proxyless":
         from .proxyless_searcher import ProxylessSearcher

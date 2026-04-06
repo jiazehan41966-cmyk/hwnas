@@ -68,6 +68,14 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.depth_choices, (1, 2, 3))
         self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
 
+    def test_small_profile_resolves_expected_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "small"})
+        self.assertEqual(config.family_profile, "small")
+        self.assertEqual(config.channel_choices, (16, 24, 32))
+        self.assertEqual(config.depth_choices, (1, 2))
+        self.assertEqual(config.kernel_choices, (3,))
+        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "skip"))
+
     def test_accuracy_biased_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "accuracy_biased"})
         self.assertEqual(config.stem_channels, 24)

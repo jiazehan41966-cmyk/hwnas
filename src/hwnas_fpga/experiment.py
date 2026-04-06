@@ -95,6 +95,7 @@ class ExperimentTracker:
         search_method: str,
         dataset_name: str,
         run_name: Optional[str] = None,
+        resume: bool = False,
     ) -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         if run_name:
@@ -126,15 +127,29 @@ class ExperimentTracker:
 
         self.console_log_path = self.logs_dir / "console.log"
         self.candidates_jsonl_path = self.results_dir / "candidates.jsonl"
-        self._run_state: dict[str, Any] = {
-            "project_name": project_name,
-            "script_name": script_name,
-            "search_method": search_method,
-            "dataset_name": dataset_name,
-            "run_name": folder_name,
-            "created_at": _utc_timestamp(),
-            "status": "running",
-        }
+        run_info_path = self.root_dir / "run_info.json"
+        if resume and run_info_path.exists():
+            try:
+                self._run_state = json.loads(run_info_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                self._run_state = {}
+        else:
+            self._run_state = {}
+        self._run_state.update(
+            {
+                "project_name": project_name,
+                "script_name": script_name,
+                "search_method": search_method,
+                "dataset_name": dataset_name,
+                "run_name": folder_name,
+                "created_at": self._run_state.get("created_at", _utc_timestamp()),
+                "status": "running",
+            }
+        )
+        if resume:
+            self._run_state["resumed_at"] = _utc_timestamp()
+            self._run_state.pop("finished_at", None)
+            self._run_state.pop("error", None)
         self._write_json(self.root_dir / "run_info.json", self._run_state)
 
     def capture_console(self) -> ConsoleCapture:

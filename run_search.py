@@ -11,6 +11,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from hwnas_fpga.experiment import ExperimentTracker
+from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate
 from hwnas_fpga.runtime import (
     build_constraints,
     build_cost_estimator,
@@ -45,6 +46,96 @@ def _candidate_to_dict(candidate):
     }
 
 
+def _candidate_from_dict(payload: dict | None) -> SearchCandidate | None:
+    if payload is None:
+        return None
+    return SearchCandidate(
+        arch_id=payload["arch_id"],
+        encoding=payload["encoding"],
+        metrics=CandidateMetrics(**payload.get("metrics", {})),
+    )
+
+
+def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) -> int:
+    candidates_path = tracker.results_dir / "candidates.jsonl"
+    search_state_path = tracker.checkpoints_dir / "search_state.json"
+    controller_latest_path = tracker.checkpoints_dir / "controller_latest.pt"
+    controller_best_path = tracker.checkpoints_dir / "controller_best.pt"
+
+    if not candidates_path.exists():
+        raise FileNotFoundError(f"Missing resume candidates log: {candidates_path}")
+    if not search_state_path.exists():
+        raise FileNotFoundError(f"Missing resume search state: {search_state_path}")
+    if not controller_latest_path.exists():
+        raise FileNotFoundError(f"Missing resume controller checkpoint: {controller_latest_path}")
+
+    records = [
+        json.loads(line)
+        for line in candidates_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    search_state = json.loads(search_state_path.read_text(encoding="utf-8"))
+    latest_ckpt = torch.load(controller_latest_path, map_location=device)
+    best_ckpt = (
+        torch.load(controller_best_path, map_location=device)
+        if controller_best_path.exists()
+        else {}
+    )
+
+    searcher.evaluated_candidates.clear()
+    searcher.feasible_candidates.clear()
+    searcher.infeasible_candidates.clear()
+    for record in records:
+        candidate = _candidate_from_dict(record.get("candidate"))
+        if candidate is None:
+            continue
+        searcher.evaluated_candidates.append(candidate)
+        if record.get("feasible", True):
+            searcher.feasible_candidates.append(candidate)
+        else:
+            searcher.infeasible_candidates.append(candidate)
+
+    searcher.best_candidate = _candidate_from_dict(search_state.get("best_candidate"))
+    searcher.best_reward = float(best_ckpt.get("best_reward", float("-inf")))
+    searcher.baseline = float(latest_ckpt.get("baseline", searcher.baseline))
+    searcher.controller.load_state_dict(latest_ckpt["controller_state_dict"])
+    searcher.controller_optimizer.load_state_dict(latest_ckpt["optimizer_state_dict"])
+
+    stats = {
+        "max_accuracy": 0.0,
+        "max_latency": 1.0,
+        "max_energy": 1.0,
+        "max_dsp": 1.0,
+        "max_bram": 1.0,
+        "max_lut": 1.0,
+    }
+    for record in records:
+        candidate = record.get("candidate", {})
+        metrics = candidate.get("metrics", {})
+        accuracy = metrics.get("accuracy")
+        latency = metrics.get("latency_ms")
+        energy = metrics.get("energy_mj")
+        dsp = metrics.get("dsp")
+        bram = metrics.get("bram")
+        lut = metrics.get("lut")
+        if accuracy is not None:
+            stats["max_accuracy"] = max(stats["max_accuracy"], float(accuracy))
+        if latency is not None:
+            stats["max_latency"] = max(stats["max_latency"], float(latency))
+        if energy is not None:
+            stats["max_energy"] = max(stats["max_energy"], float(energy))
+        if dsp is not None:
+            stats["max_dsp"] = max(stats["max_dsp"], float(dsp))
+        if bram is not None:
+            stats["max_bram"] = max(stats["max_bram"], float(bram))
+        if lut is not None:
+            stats["max_lut"] = max(stats["max_lut"], float(lut))
+    searcher.reward_function._stats.update(stats)
+
+    resumed_episode = int(latest_ckpt.get("episode", len(records) - 1)) + 1
+    return resumed_episode
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="HW-NAS FPGA Sonar Search")
     parser.add_argument("--config", type=str, default=None, help="YAML config path")
@@ -77,6 +168,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--controller-lr", type=float, default=None)
     parser.add_argument("--output-dir", type=str, default=None, help="Run artifact root directory")
     parser.add_argument("--run-name", type=str, default=None, help="Optional explicit run directory name")
+    parser.add_argument("--resume", action="store_true", help="Resume an interrupted run")
     return parser.parse_args()
 
 
@@ -121,6 +213,7 @@ def main() -> None:
     num_candidates = pick(args.num_candidates, search_cfg.get("num_candidates"), 20)
     num_episodes = pick(args.episodes, search_cfg.get("episodes"), 20)
     train_epochs = pick(args.train_epochs, search_cfg.get("eval_epochs"), 3)
+    eval_early_stopping_patience = search_cfg.get("eval_early_stopping_patience", 2)
     timeout_minutes = pick(args.timeout_minutes, search_cfg.get("timeout_minutes"), None)
     num_classes = pick(args.num_classes, dataset_cfg.get("num_classes"), None)
     output_dir = pick(args.output_dir, project_cfg.get("output_dir"), "results")
@@ -139,6 +232,7 @@ def main() -> None:
         search_method=search_method,
         dataset_name=dataset_name,
         run_name=run_name,
+        resume=args.resume,
     )
     tracker.save_config(config, vars(args))
 
@@ -270,11 +364,22 @@ def main() -> None:
                 controller_hidden_dim=controller_hidden,
                 controller_lr=controller_lr,
                 train_epochs_per_arch=train_epochs,
+                eval_early_stopping_patience=eval_early_stopping_patience,
                 device=device,
                 reward_weights=objective_weights,
                 proxyless_cfg=proxyless_cfg,
             )
             print(f"Searcher created (method={search_method}, seed={seed})")
+            resume_episode = 0
+            if args.resume:
+                if search_method != "rl":
+                    raise ValueError("Resume is currently only supported for RL search")
+                resume_episode = _restore_rl_resume_state(searcher, tracker, device)
+                print(
+                    "Resume state restored: "
+                    f"{len(searcher.evaluated_candidates)} evaluated, "
+                    f"next episode={resume_episode}"
+                )
 
             print("\n=== Testing Baseline Architecture ===")
             baseline_arch = search_space.baseline_architecture()
@@ -306,6 +411,7 @@ def main() -> None:
                     val_loader=val_loader,
                     num_classes=resolved_num_classes,
                     num_episodes=num_episodes,
+                    start_episode=resume_episode,
                     timeout_minutes=timeout_minutes,
                     device=device,
                     verbose=True,
@@ -454,6 +560,7 @@ def main() -> None:
                     "num_candidates": num_candidates,
                     "num_episodes": num_episodes,
                     "train_epochs": train_epochs,
+                    "eval_early_stopping_patience": eval_early_stopping_patience,
                     "objective_weights": objective_weights,
                     "proxyless": proxyless_cfg if search_method == "proxyless" else None,
                     "hardware_spec": {

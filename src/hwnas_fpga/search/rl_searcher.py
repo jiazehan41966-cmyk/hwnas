@@ -434,11 +434,13 @@ class RLSearcher:
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         seed: int = 42,
         reward_weights: Optional[Dict[str, float]] = None,
+        eval_early_stopping_patience: Optional[int] = 2,
     ):
         self.search_space = search_space
         self.estimator = cost_estimator
         self.constraints = constraints
         self.train_epochs_per_arch = train_epochs_per_arch
+        self.eval_early_stopping_patience = eval_early_stopping_patience
         self.device = device
         self.seed = seed
 
@@ -649,7 +651,9 @@ class RLSearcher:
                     device=self.device,
                     val_loader=val_loader,
                     class_weights=class_weights,
-                    early_stopping_patience=2 if val_loader is not None else None,
+                    early_stopping_patience=(
+                        self.eval_early_stopping_patience if val_loader is not None else None
+                    ),
                 )
                 self.last_trained_model = model
                 self.last_training_history = history
@@ -839,6 +843,7 @@ class RLSearcher:
         val_loader: Optional[DataLoader],
         num_classes: int,
         num_episodes: int = 100,
+        start_episode: int = 0,
         timeout_minutes: Optional[int] = None,
         device: str = "cpu",
         verbose: bool = True,
@@ -860,13 +865,15 @@ class RLSearcher:
         if verbose:
             print(f"Starting RL NAS with {num_episodes} episodes...")
             print(f"Device: {self.device}")
+            if start_episode:
+                print(f"Resuming from episode {start_episode}")
             if timeout_minutes is not None:
                 print(f"Timeout: {timeout_minutes} minutes")
 
         start_time = datetime.now()
         timeout_seconds = None if timeout_minutes is None else timeout_minutes * 60
 
-        for episode in range(num_episodes):
+        for episode in range(start_episode, num_episodes):
             if timeout_seconds is not None:
                 elapsed = (datetime.now() - start_time).total_seconds()
                 if elapsed >= timeout_seconds:
@@ -990,6 +997,7 @@ class RLSearcher:
         num_classes: int,
         timeout_minutes: int = 60,
         num_episodes: int = 10_000,
+        start_episode: int = 0,
         device: str = "cpu",
         verbose: bool = True,
         class_weights: Optional[torch.Tensor] = None,
@@ -1000,6 +1008,7 @@ class RLSearcher:
             val_loader=val_loader,
             num_classes=num_classes,
             num_episodes=num_episodes,
+            start_episode=start_episode,
             timeout_minutes=timeout_minutes,
             device=device,
             verbose=verbose,
