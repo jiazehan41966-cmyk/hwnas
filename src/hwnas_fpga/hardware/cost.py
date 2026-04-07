@@ -114,9 +114,15 @@ class FPGACostEstimator:
     ) -> CostEstimate:
         resolved_blocks = search_space.resolve_blocks(architecture)
         stem_layer = self._estimate_stem(architecture, search_space)
+        stem_pool_layer = self._estimate_stem_pool(architecture, search_space)
         block_layers = tuple(self._estimate_block(block) for block in resolved_blocks)
-        head_layer = self._estimate_head(architecture, resolved_blocks, search_space)
-        per_layer = (stem_layer,) + block_layers + ((head_layer,) if head_layer is not None else ())
+        head_layers = self._estimate_head_layers(architecture, resolved_blocks, search_space)
+        per_layer = (
+            (stem_layer,)
+            + ((stem_pool_layer,) if stem_pool_layer is not None else ())
+            + block_layers
+            + head_layers
+        )
 
         total_params = sum(layer.params for layer in per_layer)
         total_macs = sum(layer.macs for layer in per_layer)
@@ -235,14 +241,58 @@ class FPGACostEstimator:
             latency_cycles=base_cost.latency_cycles,
         )
 
-    def _estimate_head(
+    def _estimate_stem_pool(
+        self,
+        architecture: ArchitectureSpec,
+        search_space: SearchSpace,
+    ) -> Optional[LayerCost]:
+        if architecture.post_stem_downsample_stride <= 1:
+            return None
+
+        input_resolution = max(1, _div_up(search_space.config.image_size, architecture.stem_stride))
+        output_resolution = max(
+            1,
+            _div_up(input_resolution, architecture.post_stem_downsample_stride),
+        )
+        input_bytes = self._tensor_bytes(input_resolution, architecture.stem_channels)
+        output_bytes = self._tensor_bytes(output_resolution, architecture.stem_channels)
+        bram_blocks = _div_up(input_bytes + output_bytes, BRAM_BLOCK_BYTES)
+        lut = 48 + architecture.stem_channels * 2 + output_resolution
+        latency_cycles = max(
+            1,
+            _div_up(
+                output_resolution * output_resolution * architecture.stem_channels,
+                max(1, self._pack_factor * 8),
+            ),
+        )
+
+        return LayerCost(
+            stage_index=-1,
+            block_index=-2,
+            op="stem_pool",
+            input_resolution=input_resolution,
+            output_resolution=output_resolution,
+            in_channels=architecture.stem_channels,
+            out_channels=architecture.stem_channels,
+            params=0,
+            macs=0,
+            weight_bytes=0,
+            activation_bytes=output_bytes,
+            ideal_dsp=0,
+            allocated_dsp=0,
+            bram_blocks=bram_blocks,
+            lut=lut,
+            latency_cycles=latency_cycles,
+        )
+
+    def _estimate_head_layers(
         self,
         architecture: ArchitectureSpec,
         resolved_blocks: tuple[ResolvedBlockSpec, ...],
         search_space: SearchSpace,
-    ) -> Optional[LayerCost]:
+    ) -> tuple[LayerCost, ...]:
         if architecture.num_classes is None or architecture.num_classes <= 0:
-            return None
+            return ()
 
         if resolved_blocks:
             final_channels = resolved_blocks[-1].out_channels
@@ -250,6 +300,48 @@ class FPGACostEstimator:
         else:
             final_channels = architecture.stem_channels
             final_resolution = max(1, _div_up(search_space.config.image_size, architecture.stem_stride))
+            final_resolution = max(
+                1,
+                _div_up(final_resolution, architecture.post_stem_downsample_stride),
+            )
+
+        head_layers: list[LayerCost] = []
+
+        if architecture.head_conv_channels is not None and architecture.head_conv_channels > 0:
+            conv_block = ResolvedBlockSpec(
+                stage_index=len(architecture.stages),
+                block_index=-2,
+                op="conv",
+                kernel_size=1,
+                expand_ratio=1,
+                stride=1,
+                in_channels=final_channels,
+                out_channels=architecture.head_conv_channels,
+                input_resolution=final_resolution,
+                output_resolution=final_resolution,
+            )
+            conv_cost = self._estimate_block(conv_block)
+            head_layers.append(
+                LayerCost(
+                    stage_index=len(architecture.stages),
+                    block_index=-2,
+                    op="head_conv1x1",
+                    input_resolution=final_resolution,
+                    output_resolution=final_resolution,
+                    in_channels=final_channels,
+                    out_channels=architecture.head_conv_channels,
+                    params=conv_cost.params,
+                    macs=conv_cost.macs,
+                    weight_bytes=conv_cost.weight_bytes,
+                    activation_bytes=conv_cost.activation_bytes,
+                    ideal_dsp=conv_cost.ideal_dsp,
+                    allocated_dsp=conv_cost.allocated_dsp,
+                    bram_blocks=conv_cost.bram_blocks,
+                    lut=conv_cost.lut,
+                    latency_cycles=conv_cost.latency_cycles,
+                )
+            )
+            final_channels = architecture.head_conv_channels
 
         hidden_channels = architecture.head_channels if architecture.head_channels and architecture.head_channels > 0 else None
         if hidden_channels is not None:
@@ -277,24 +369,27 @@ class FPGACostEstimator:
         bram_blocks = _div_up(pooled_bytes + activation_bytes + weight_bytes, BRAM_BLOCK_BYTES)
         lut = lut_bias + allocated_dsp * 10 + output_channels * 4
 
-        return LayerCost(
-            stage_index=len(architecture.stages),
-            block_index=-1,
-            op="head_fc",
-            input_resolution=final_resolution,
-            output_resolution=1,
-            in_channels=final_channels,
-            out_channels=output_channels,
-            params=params,
-            macs=macs,
-            weight_bytes=weight_bytes,
-            activation_bytes=activation_bytes,
-            ideal_dsp=allocated_dsp,
-            allocated_dsp=allocated_dsp,
-            bram_blocks=bram_blocks,
-            lut=lut,
-            latency_cycles=latency_cycles,
+        head_layers.append(
+            LayerCost(
+                stage_index=len(architecture.stages),
+                block_index=-1,
+                op="head_fc",
+                input_resolution=final_resolution,
+                output_resolution=1,
+                in_channels=final_channels,
+                out_channels=output_channels,
+                params=params,
+                macs=macs,
+                weight_bytes=weight_bytes,
+                activation_bytes=activation_bytes,
+                ideal_dsp=allocated_dsp,
+                allocated_dsp=allocated_dsp,
+                bram_blocks=bram_blocks,
+                lut=lut,
+                latency_cycles=latency_cycles,
+            )
         )
+        return tuple(head_layers)
 
     def _estimate_block(self, block: ResolvedBlockSpec) -> LayerCost:
         # 1. 灏濊瘯 LUT 鏌ヨ锛堝鏋滃彲鐢級

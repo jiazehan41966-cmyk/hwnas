@@ -511,22 +511,41 @@ class StemBlock(nn.Module):
 class HeadBlock(nn.Module):
     """Head: 全局平均池化 + 分类层"""
 
-    def __init__(self, in_channels: int, num_classes: int, head_channels: Optional[int] = None):
+    def __init__(
+        self,
+        in_channels: int,
+        num_classes: int,
+        head_channels: Optional[int] = None,
+        conv_head_channels: Optional[int] = None,
+    ):
         super().__init__()
         self.num_classes = num_classes
+
+        classifier_in_channels = in_channels
+        if conv_head_channels and conv_head_channels > 0:
+            self.conv_head = nn.Sequential(
+                nn.Conv2d(in_channels, conv_head_channels, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(conv_head_channels),
+                nn.ReLU(inplace=True),
+            )
+            classifier_in_channels = conv_head_channels
+        else:
+            self.conv_head = None
 
         # 全局平均池化
         self.gap = nn.AdaptiveAvgPool2d(1)
 
         # 可选的额外全连接层
         if head_channels and head_channels > 0:
-            self.fc1 = nn.Linear(in_channels, head_channels)
+            self.fc1 = nn.Linear(classifier_in_channels, head_channels)
             self.fc2 = nn.Linear(head_channels, num_classes)
             self.relu = nn.ReLU(inplace=True)
         else:
-            self.fc = nn.Linear(in_channels, num_classes)
+            self.fc = nn.Linear(classifier_in_channels, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.conv_head is not None:
+            x = self.conv_head(x)
         x = self.gap(x)
         x = x.flatten(1)
 
@@ -635,6 +654,11 @@ class HWNASModel(nn.Module):
             stem_channels=arch.stem_channels,
             stride=arch.stem_stride,
         )
+        self.post_stem_downsample = (
+            nn.MaxPool2d(kernel_size=3, stride=arch.post_stem_downsample_stride, padding=1)
+            if arch.post_stem_downsample_stride > 1
+            else None
+        )
 
         # Stages
         self.stages = nn.ModuleList()
@@ -652,10 +676,12 @@ class HWNASModel(nn.Module):
             current_channels = stage_spec.channels
 
         # Head
+        resolved_head_channels = arch.head_channels if head_channels is None else head_channels
         self.head = HeadBlock(
             in_channels=current_channels,
             num_classes=num_classes,
-            head_channels=head_channels,
+            head_channels=resolved_head_channels,
+            conv_head_channels=arch.head_conv_channels,
         )
 
         # 保存架构信息
@@ -663,6 +689,8 @@ class HWNASModel(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.stem(x)
+        if self.post_stem_downsample is not None:
+            x = self.post_stem_downsample(x)
 
         for stage_blocks in self.stages:
             for block in stage_blocks:

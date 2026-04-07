@@ -1,7 +1,8 @@
 project:
-  name: nksid-fpga-hwnas-mobile-anchor
+  name: nksid-random-baseline-mobile-anchor-shufflenet-av7k325
   seed: 42
   output_dir: results
+  run_name: random_baseline_mobile_anchor_shufflenet_av7k325_200
 
 dataset:
   name: nksid
@@ -10,7 +11,7 @@ dataset:
   image_size: 224
   num_classes: 8
   fold: 0
-  num_workers: 4
+  num_workers: 0
   normalization: grayscale
 
 search_space:
@@ -54,13 +55,11 @@ hardware:
   use_dummy_lut: false
 
 search:
-  method: rl
-  num_candidates: 20
+  method: random
+  num_candidates: 200
   eval_epochs: 3
+  eval_early_stopping_patience: 2
   timeout_minutes: null
-  controller_hidden: 64
-  controller_lr: 0.01
-  episodes: 20
   selection_metric: macro_f1
   pareto:
     selection_method: rank
@@ -76,7 +75,7 @@ training:
   lr: 0.001
   weight_decay: 0.0001
   batch_size: 32
-  epochs: 100
+  epochs: 200
 
 deployment:
   export_format: onnx

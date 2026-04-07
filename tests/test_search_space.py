@@ -17,6 +17,7 @@ from hwnas_fpga.search_space import (
 )
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
 from hwnas_fpga.hardware import FPGACostEstimator
+from hwnas_fpga.search_space import probe_search_space
 
 
 class SearchSpaceTests(unittest.TestCase):
@@ -74,21 +75,26 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.channel_choices, (16, 24, 32))
         self.assertEqual(config.depth_choices, (1, 2))
         self.assertEqual(config.kernel_choices, (3,))
-        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "skip"))
+        self.assertEqual(config.op_choices, ("dw_pw_conv", "skip"))
 
     def test_accuracy_biased_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "accuracy_biased"})
         self.assertEqual(config.stem_channels, 24)
+        self.assertEqual(config.channel_choices, (24, 32, 48, 64, 80))
         self.assertEqual(config.depth_choices, (2, 3, 4))
-        self.assertIn("conv", config.op_choices)
-        self.assertIn("edge", config.op_choices)
+        self.assertEqual(config.expand_choices, (2, 4, 6))
+        self.assertNotIn("conv", config.op_choices)
+        self.assertNotIn("edge", config.op_choices)
+        self.assertIn("denoise", config.op_choices)
 
     def test_lightweight_sonar_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "lightweight_sonar"})
         self.assertEqual(config.channel_choices, (16, 24, 32))
         self.assertEqual(config.expand_choices, (1, 2))
+        self.assertEqual(config.kernel_choices, (3,))
         self.assertNotIn("conv", config.op_choices)
-        self.assertIn("mixconv", config.op_choices)
+        self.assertNotIn("mixconv", config.op_choices)
+        self.assertIn("denoise", config.op_choices)
 
     def test_explicit_config_overrides_profile_defaults(self) -> None:
         config = SearchSpaceConfig.from_dict(
@@ -104,6 +110,30 @@ class FamilyProfileTests(unittest.TestCase):
     def test_unknown_family_profile_raises(self) -> None:
         with self.assertRaises(ValueError):
             SearchSpaceConfig.from_dict({"family_profile": "unknown_profile"})
+
+    def test_stage_specific_choices_and_shuffle_head_are_derived(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "stem_channels": 24,
+                "stem_stride": 2,
+                "post_stem_downsample_stride": 2,
+                "stage_strides": [2, 2, 2],
+                "stage_base_channels": [116, 232, 464],
+                "width_multipliers": [0.5, 0.75, 1.0, 1.25],
+                "stage_depth_choices": [[3, 4, 5], [6, 7, 8, 9], [3, 4, 5]],
+                "kernel_choices": [3, 5],
+                "expand_choices": [1, 2, 4, 6],
+                "op_choices": ["dw_pw_conv", "mbconv", "fused_mbconv", "skip"],
+                "head_conv_channels": 1024,
+            }
+        )
+        self.assertEqual(config.stage_count, 3)
+        self.assertEqual(config.stage_channel_choices[0], (58, 87, 116, 145))
+        self.assertEqual(config.stage_channel_choices[1], (116, 174, 232, 290))
+        self.assertEqual(config.stage_channel_choices[2], (232, 348, 464, 580))
+        self.assertEqual(config.depth_choices_for_stage(1), (6, 7, 8, 9))
+        self.assertEqual(config.post_stem_downsample_stride, 2)
+        self.assertEqual(config.head_conv_channels, 1024)
 
 
 class SonarOpsSearchSpaceTests(unittest.TestCase):
@@ -222,7 +252,9 @@ class HardwarePruningTests(unittest.TestCase):
         self.assertEqual(pruned.config.depth_choices, (1, 2))
         self.assertEqual(pruned.config.kernel_choices, (3,))
         self.assertNotIn("conv", pruned.config.op_choices)
-        self.assertNotIn("fused_mbconv", pruned.config.op_choices)
+        self.assertNotIn("mixconv", pruned.config.op_choices)
+        self.assertNotIn("edge", pruned.config.op_choices)
+        self.assertIn("fused_mbconv", pruned.config.op_choices)
 
     def test_require_feasible_sampling_falls_back_to_feasible_architecture(self) -> None:
         constraints = SearchConstraints(
@@ -254,6 +286,81 @@ class HardwarePruningTests(unittest.TestCase):
         baseline_estimate = estimator.estimate(pruned_space.baseline_architecture(), pruned_space)
         self.assertTrue(pruned_space.is_valid(architecture))
         self.assertLessEqual(len(estimate.violations), len(baseline_estimate.violations))
+
+
+class SearchSpaceProbeTests(unittest.TestCase):
+    def test_probe_summary_counts_all_samples(self) -> None:
+        constraints = SearchConstraints(max_latency_ms=50.0, max_dsp=220, max_bram=140, max_lut=53_200)
+        space = SearchSpace(SearchSpaceConfig.from_dict({"family_profile": "lightweight_sonar", "num_classes": 8, "hardware_constraints": constraints}))
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="zynq7020",
+                clock_mhz=200,
+                max_lut=53_200,
+                max_bram=140,
+                max_dsp=220,
+                memory_bandwidth_gbps=4.2,
+                offchip_mem_mb=128.0,
+            ),
+            constraints=constraints,
+        )
+
+        records, summary = probe_search_space(space.pre_prune(estimator), estimator, num_samples=12, seed=7)
+        self.assertEqual(len(records), 12)
+        self.assertEqual(summary["total_samples"], 12)
+        self.assertEqual(summary["feasible_samples"] + summary["infeasible_samples"], 12)
+        self.assertGreaterEqual(summary["feasible_ratio"], 0.0)
+        self.assertLessEqual(summary["feasible_ratio"], 1.0)
+        self.assertIsNotNone(summary["metrics_all"]["latency_ms"])
+
+    def test_probe_reports_violations_under_tight_constraints(self) -> None:
+        constraints = SearchConstraints(max_latency_ms=0.001, max_dsp=10, max_bram=2, max_lut=500)
+        space = SearchSpace(SearchSpaceConfig(hardware_constraints=constraints, num_classes=8))
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="tiny-fpga",
+                clock_mhz=200,
+                max_lut=500,
+                max_bram=2,
+                max_dsp=10,
+                offchip_mem_mb=1.0,
+            ),
+            constraints=constraints,
+        )
+
+        _records, summary = probe_search_space(space, estimator, num_samples=6, seed=11)
+        self.assertEqual(summary["feasible_samples"], 0)
+        self.assertGreater(summary["infeasible_samples"], 0)
+        self.assertTrue(summary["violation_counts"])
+
+    def test_resolve_blocks_after_post_stem_downsample(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 24,
+                "stem_stride": 2,
+                "post_stem_downsample_stride": 2,
+                "stage_strides": [2, 2, 2],
+                "stage_base_channels": [116, 232, 464],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[4], [8], [4]],
+                "kernel_choices": [3],
+                "expand_choices": [1],
+                "op_choices": ["dw_pw_conv"],
+                "head_conv_channels": 1024,
+                "num_classes": 8,
+            }
+        )
+        space = SearchSpace(config)
+        architecture = space.baseline_architecture()
+        resolved = space.resolve_blocks(architecture)
+        self.assertEqual(resolved[0].input_resolution, 56)
+        model = build_model(architecture, num_classes=8)
+        with torch.no_grad():
+            stem_output = model.stem(torch.randn(1, 1, 224, 224))
+            pooled = model.post_stem_downsample(stem_output)
+        self.assertEqual(pooled.shape[-1], resolved[0].input_resolution)
 
 
 if __name__ == "__main__":

@@ -31,6 +31,10 @@ class SearchConstraints:
 @dataclass
 class CandidateMetrics:
     accuracy: Optional[float] = None
+    macro_f1: Optional[float] = None
+    weighted_f1: Optional[float] = None
+    top1: Optional[float] = None
+    top5: Optional[float] = None
     latency_ms: Optional[float] = None
     energy_mj: Optional[float] = None
     lut: Optional[int] = None

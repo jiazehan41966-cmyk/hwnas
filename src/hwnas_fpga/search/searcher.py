@@ -24,6 +24,17 @@ if TYPE_CHECKING:
     from hwnas_fpga.experiment import ExperimentTracker
 
 
+def _metric_display_name(selection_metric: str) -> str:
+    normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"macro_f1", "f1"}:
+        return "MacroF1"
+    if normalized in {"accuracy", "top1"}:
+        return "Top1"
+    if normalized == "weighted_f1":
+        return "WeightedF1"
+    return selection_metric
+
+
 class BaseSearcher:
     """搜索器基类"""
 
@@ -141,10 +152,12 @@ class RandomSearcher(BaseSearcher):
         constraints: Optional[SearchConstraints] = None,
         seed: int = 42,
         eval_early_stopping_patience: Optional[int] = 2,
+        selection_metric: str = "macro_f1",
     ):
         super().__init__(search_space, cost_estimator, constraints)
         self.rng = random.Random(seed)
         self.eval_early_stopping_patience = eval_early_stopping_patience
+        self.selection_metric = selection_metric
 
     def sample_candidate(self) -> ArchitectureSpec:
         """采样一个候选架构"""
@@ -201,8 +214,14 @@ class RandomSearcher(BaseSearcher):
                     early_stopping_patience=(
                         self.eval_early_stopping_patience if val_loader is not None else None
                     ),
+                    selection_metric=self.selection_metric,
                 )
                 candidate.metrics.accuracy = accuracy
+                best_eval = dict(history.get("best_eval") or {})
+                candidate.metrics.macro_f1 = best_eval.get("macro_f1")
+                candidate.metrics.weighted_f1 = best_eval.get("weighted_f1")
+                candidate.metrics.top1 = best_eval.get("top1")
+                candidate.metrics.top5 = best_eval.get("top5")
                 self.last_trained_model = model
                 self.last_training_history = history
             except Exception as e:
@@ -233,6 +252,7 @@ class RandomSearcher(BaseSearcher):
         """执行随机搜索"""
         best_candidate = None
         best_accuracy = 0.0
+        metric_label = _metric_display_name(self.selection_metric)
 
         for i in range(num_candidates):
             # 采样架构
@@ -263,7 +283,7 @@ class RandomSearcher(BaseSearcher):
                 lat = candidate.metrics.latency_ms
                 print(
                     f"[{i+1}/{num_candidates}] {candidate.arch_id}: "
-                    f"Acc={acc:.4f}, Lat={lat:.2f}ms"
+                    f"{metric_label}={acc:.4f}, Lat={lat:.2f}ms"
                 )
 
                 if acc > best_accuracy:
@@ -275,7 +295,7 @@ class RandomSearcher(BaseSearcher):
                             model_state_dict=self.last_trained_model.state_dict(),
                             history=self.last_training_history,
                             extra={
-                                "selection_metric": "accuracy",
+                                "selection_metric": self.selection_metric,
                                 "best_accuracy": best_accuracy,
                                 "iteration": i + 1,
                             },
@@ -296,7 +316,7 @@ class RandomSearcher(BaseSearcher):
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if best_candidate:
-                print(f"Best accuracy: {best_accuracy:.4f}")
+                print(f"Best {metric_label}: {best_accuracy:.4f}")
 
         return best_candidate
 
@@ -319,6 +339,7 @@ class RandomSearcher(BaseSearcher):
         best_candidate = None
         best_accuracy = 0.0
         iteration = 0
+        metric_label = _metric_display_name(self.selection_metric)
 
         while True:
             # 检查是否超时
@@ -357,7 +378,7 @@ class RandomSearcher(BaseSearcher):
                 remaining = timeout_seconds - elapsed
                 print(
                     f"[{iteration}] {candidate.arch_id}: "
-                    f"Acc={acc:.4f}, Lat={lat:.2f}ms, Remaining={remaining:.1f}s"
+                    f"{metric_label}={acc:.4f}, Lat={lat:.2f}ms, Remaining={remaining:.1f}s"
                 )
 
                 if acc > best_accuracy:
@@ -369,7 +390,7 @@ class RandomSearcher(BaseSearcher):
                             model_state_dict=self.last_trained_model.state_dict(),
                             history=self.last_training_history,
                             extra={
-                                "selection_metric": "accuracy",
+                                "selection_metric": self.selection_metric,
                                 "best_accuracy": best_accuracy,
                                 "iteration": iteration,
                                 "mode": "timeout",
@@ -395,7 +416,7 @@ class RandomSearcher(BaseSearcher):
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if best_candidate:
-                print(f"Best accuracy: {best_accuracy:.4f}")
+                print(f"Best {metric_label}: {best_accuracy:.4f}")
 
         return best_candidate
 
@@ -440,6 +461,7 @@ def create_searcher(
             constraints=constraints,
             seed=seed,
             eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
         )
     if method == "rl":
         from .rl_searcher import RLSearcher
@@ -455,6 +477,7 @@ def create_searcher(
             seed=seed,
             reward_weights=kwargs.get("reward_weights"),
             eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
         )
     if method == "proxyless":
         from .proxyless_searcher import ProxylessSearcher

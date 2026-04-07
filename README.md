@@ -13,6 +13,9 @@ python3 run_search.py --search-method rl --episodes 3 --train-epochs 1 --batch-s
 # 完整搜索
 python3 run_search.py --config configs/search/nksid_fpga_search.yaml
 
+# A1: 搜索空间可行率验证（随机采样，不训练）
+python3 run_search_space_probe.py --config configs/search/nksid_fpga_search_lightweight_sonar_av7k325.yaml --num-samples 200
+
 # 指定结果目录
 python3 run_search.py --config configs/search/nksid_fpga_search.yaml --output-dir results
 

@@ -318,6 +318,9 @@ class RewardFunction:
         bram_weight: float = 0.1,
         lut_weight: float = 0.1,
         constraint_penalty: float = 10.0,
+        infeasible_penalty_mode: str = "fixed",
+        infeasible_base_penalty: float = 1.0,
+        infeasible_penalty_scale: float = 5.0,
     ):
         self.accuracy_weight = accuracy_weight
         self.latency_weight = latency_weight
@@ -326,6 +329,16 @@ class RewardFunction:
         self.bram_weight = bram_weight
         self.lut_weight = lut_weight
         self.constraint_penalty = constraint_penalty
+        normalized_penalty_mode = str(infeasible_penalty_mode or "fixed").strip().lower()
+        if normalized_penalty_mode in {"gradient", "gradual"}:
+            normalized_penalty_mode = "violation_ratio"
+        if normalized_penalty_mode not in {"fixed", "violation_ratio"}:
+            raise ValueError(
+                "infeasible_penalty_mode must be one of: fixed, violation_ratio"
+            )
+        self.infeasible_penalty_mode = normalized_penalty_mode
+        self.infeasible_base_penalty = infeasible_base_penalty
+        self.infeasible_penalty_scale = infeasible_penalty_scale
 
         # 用于归一化的统计信息
         self._stats = {
@@ -346,6 +359,7 @@ class RewardFunction:
         bram: int,
         lut: int,
         is_feasible: bool = True,
+        constraint_violation_ratio: Optional[float] = None,
     ) -> float:
         """计算奖励
 
@@ -362,6 +376,19 @@ class RewardFunction:
         """
         # 如果不可行，给一个大的惩罚
         if not is_feasible:
+            if self.infeasible_penalty_mode == "violation_ratio":
+                violation_ratio = max(
+                    0.0,
+                    float(
+                        1.0
+                        if constraint_violation_ratio is None
+                        else constraint_violation_ratio
+                    ),
+                )
+                return -(
+                    self.infeasible_base_penalty
+                    + self.infeasible_penalty_scale * violation_ratio
+                )
             return -self.constraint_penalty
 
         # 更新统计信息（指数移动平均）
@@ -434,13 +461,16 @@ class RLSearcher:
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         seed: int = 42,
         reward_weights: Optional[Dict[str, float]] = None,
+        reward_cfg: Optional[Dict[str, Any]] = None,
         eval_early_stopping_patience: Optional[int] = 2,
+        selection_metric: str = "macro_f1",
     ):
         self.search_space = search_space
         self.estimator = cost_estimator
         self.constraints = constraints
         self.train_epochs_per_arch = train_epochs_per_arch
         self.eval_early_stopping_patience = eval_early_stopping_patience
+        self.selection_metric = selection_metric
         self.device = device
         self.seed = seed
 
@@ -466,6 +496,7 @@ class RLSearcher:
 
         # 奖励函数
         reward_weights = reward_weights or {}
+        reward_cfg = reward_cfg or {}
         resource_weight = float(reward_weights.get("resource", 0.1))
         self.reward_function = RewardFunction(
             accuracy_weight=float(reward_weights.get("accuracy", 1.0)),
@@ -474,6 +505,10 @@ class RLSearcher:
             dsp_weight=float(reward_weights.get("dsp", resource_weight)),
             bram_weight=float(reward_weights.get("bram", resource_weight)),
             lut_weight=float(reward_weights.get("lut", resource_weight)),
+            constraint_penalty=float(reward_cfg.get("constraint_penalty", 10.0)),
+            infeasible_penalty_mode=str(reward_cfg.get("infeasible_penalty_mode", "fixed")),
+            infeasible_base_penalty=float(reward_cfg.get("infeasible_base_penalty", 1.0)),
+            infeasible_penalty_scale=float(reward_cfg.get("infeasible_penalty_scale", 5.0)),
         )
 
         # Baseline（用于减少方差）
@@ -490,6 +525,93 @@ class RLSearcher:
         self.last_training_history = None
         self.last_cost_estimate = None
 
+    @staticmethod
+    def _tightest_limit(
+        primary_limit: Optional[float],
+        secondary_limit: Optional[float],
+    ) -> Optional[float]:
+        if primary_limit is None:
+            return secondary_limit
+        if secondary_limit is None:
+            return primary_limit
+        return min(float(primary_limit), float(secondary_limit))
+
+    @staticmethod
+    def _violation_ratio(value: Optional[float], limit: Optional[float]) -> float:
+        if value is None or limit is None:
+            return 0.0
+        limit = float(limit)
+        if limit <= 0:
+            return 0.0
+        value = float(value)
+        if value <= limit:
+            return 0.0
+        return (value - limit) / limit
+
+    def _compute_constraint_violation_ratio(self, cost_estimate) -> float:
+        constraints = self.constraints
+        hardware_spec = self.estimator.hardware_spec
+        violation_ratios = [
+            self._violation_ratio(
+                cost_estimate.latency_ms,
+                getattr(constraints, "max_latency_ms", None),
+            ),
+            self._violation_ratio(
+                cost_estimate.energy_mj,
+                getattr(constraints, "max_energy_mj", None),
+            ),
+            self._violation_ratio(
+                cost_estimate.model_size_mb,
+                getattr(constraints, "max_model_size_mb", None),
+            ),
+            self._violation_ratio(
+                cost_estimate.resource_dsp,
+                self._tightest_limit(
+                    getattr(constraints, "max_dsp", None),
+                    getattr(hardware_spec, "max_dsp", None),
+                ),
+            ),
+            self._violation_ratio(
+                cost_estimate.resource_bram,
+                self._tightest_limit(
+                    getattr(constraints, "max_bram", None),
+                    getattr(hardware_spec, "max_bram", None),
+                ),
+            ),
+            self._violation_ratio(
+                cost_estimate.resource_lut,
+                self._tightest_limit(
+                    getattr(constraints, "max_lut", None),
+                    getattr(hardware_spec, "max_lut", None),
+                ),
+            ),
+            self._violation_ratio(
+                cost_estimate.power_w,
+                self._tightest_limit(
+                    getattr(constraints, "max_power_w", None),
+                    getattr(hardware_spec, "max_power_w", None),
+                ),
+            ),
+            self._violation_ratio(
+                cost_estimate.memory_bandwidth_gbps,
+                self._tightest_limit(
+                    getattr(constraints, "max_memory_bandwidth_gbps", None),
+                    getattr(hardware_spec, "memory_bandwidth_gbps", None),
+                ),
+            ),
+            self._violation_ratio(
+                cost_estimate.offchip_mem_mb,
+                self._tightest_limit(
+                    getattr(constraints, "max_offchip_mem_mb", None),
+                    getattr(hardware_spec, "offchip_mem_mb", None),
+                ),
+            ),
+        ]
+        max_violation_ratio = max(violation_ratios, default=0.0)
+        if max_violation_ratio <= 0.0 and getattr(cost_estimate, "violations", ()):
+            return 1.0
+        return max_violation_ratio
+
     def generate_architecture(self) -> ArchitectureSpec:
         """使用控制器生成一个架构"""
         stage_count = self.search_space.config.stage_count
@@ -501,13 +623,22 @@ class RLSearcher:
         current_channels = self.search_space.config.stem_channels
 
         for stage_idx in range(stage_count):
+            stage_channel_choices = self.search_space.config.channel_choices_for_stage(stage_idx)
+            stage_depth_choices = self.search_space.config.depth_choices_for_stage(stage_idx)
+
             # 采样通道数
             channel_idx = self.controller.sample(stage_idx, 0)["channel"]
             channels = self.action_space.channel_actions[channel_idx]
+            if channels not in stage_channel_choices:
+                channels = random.choice(stage_channel_choices)
+                channel_idx = self.action_space.channel_to_index(channels)
 
             # 采样深度
             depth_idx = self.controller.sample(stage_idx, 0)["depth"]
             depth = self.action_space.depth_actions[depth_idx]
+            if depth not in stage_depth_choices:
+                depth = random.choice(stage_depth_choices)
+                depth_idx = self.action_space.depth_to_index(depth)
 
             # 采样该stage的所有block
             blocks = []
@@ -597,6 +728,8 @@ class RLSearcher:
             stem_channels=self.search_space.config.stem_channels,
             stages=tuple(stages),
             stem_stride=self.search_space.config.stem_stride,
+            post_stem_downsample_stride=self.search_space.config.post_stem_downsample_stride,
+            head_conv_channels=self.search_space.config.head_conv_channels,
             head_channels=self.search_space.config.head_channels,
             num_classes=self.search_space.config.num_classes,
         )
@@ -654,6 +787,7 @@ class RLSearcher:
                     early_stopping_patience=(
                         self.eval_early_stopping_patience if val_loader is not None else None
                     ),
+                    selection_metric=self.selection_metric,
                 )
                 self.last_trained_model = model
                 self.last_training_history = history
@@ -664,11 +798,17 @@ class RLSearcher:
         # 4. 记录候选
         from hwnas_fpga.interfaces import SearchCandidate, CandidateMetrics
 
+        best_eval = dict(self.last_training_history.get("best_eval") or {}) if self.last_training_history else {}
+
         candidate = SearchCandidate(
             arch_id=arch_id,
             encoding=architecture.to_dict(),
             metrics=CandidateMetrics(
                 accuracy=accuracy,
+                macro_f1=best_eval.get("macro_f1"),
+                weighted_f1=best_eval.get("weighted_f1"),
+                top1=best_eval.get("top1"),
+                top5=best_eval.get("top5"),
                 latency_ms=metrics["latency_ms"],
                 dsp=metrics["dsp"],
                 bram=metrics["bram"],
@@ -985,7 +1125,11 @@ class RLSearcher:
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if self.best_candidate:
                 print(f"Best candidate: {self.best_candidate.arch_id}")
-                print(f"  Accuracy: {self.best_candidate.metrics.accuracy:.4f}")
+                print(f"  Score ({self.selection_metric}): {self.best_candidate.metrics.accuracy:.4f}")
+                if self.best_candidate.metrics.macro_f1 is not None:
+                    print(f"  Macro-F1: {self.best_candidate.metrics.macro_f1:.4f}")
+                if self.best_candidate.metrics.top1 is not None:
+                    print(f"  Top-1: {self.best_candidate.metrics.top1:.4f}")
                 print(f"  Latency: {self.best_candidate.metrics.latency_ms:.2f}ms")
 
         return self.best_candidate

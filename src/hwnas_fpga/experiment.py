@@ -301,6 +301,10 @@ class ExperimentTracker:
         fieldnames = [
             "arch_id",
             "accuracy",
+            "macro_f1",
+            "weighted_f1",
+            "top1",
+            "top5",
             "latency_ms",
             "energy_mj",
             "lut",
@@ -319,6 +323,10 @@ class ExperimentTracker:
                     {
                         "arch_id": row["arch_id"],
                         "accuracy": metrics.get("accuracy"),
+                        "macro_f1": metrics.get("macro_f1"),
+                        "weighted_f1": metrics.get("weighted_f1"),
+                        "top1": metrics.get("top1"),
+                        "top5": metrics.get("top5"),
                         "latency_ms": metrics.get("latency_ms"),
                         "energy_mj": metrics.get("energy_mj"),
                         "lut": metrics.get("lut"),

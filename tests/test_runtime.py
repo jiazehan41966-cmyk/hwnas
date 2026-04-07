@@ -63,6 +63,32 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
         self.assertEqual(search_space.config.channel_choices, (16, 24))
         self.assertEqual(search_space.config.depth_choices, (1,))
 
+    def test_build_search_space_supports_stage_specific_mobile_anchor(self) -> None:
+        search_space = build_search_space(
+            {
+                "search_space": {
+                    "family_profile": "mobile_anchor",
+                    "stem_channels": 24,
+                    "stem_stride": 2,
+                    "post_stem_downsample_stride": 2,
+                    "stage_strides": [2, 2, 2],
+                    "stage_base_channels": [116, 232, 464],
+                    "width_multipliers": [0.5, 0.75, 1.0, 1.25],
+                    "stage_depth_choices": [[3, 4, 5], [6, 7, 8, 9], [3, 4, 5]],
+                    "kernel_choices": [3, 5],
+                    "head_conv_channels": 1024,
+                }
+            },
+            image_size=224,
+            input_channels=1,
+            num_classes=8,
+            constraints=SearchConstraints(),
+        )
+        self.assertEqual(search_space.config.stage_count, 3)
+        self.assertEqual(search_space.config.stage_channel_choices[0], (58, 87, 116, 145))
+        self.assertEqual(search_space.config.post_stem_downsample_stride, 2)
+        self.assertEqual(search_space.config.head_conv_channels, 1024)
+
 
 class LutRuntimeTests(unittest.TestCase):
     def test_load_lut_query_engine_from_file(self) -> None:

@@ -152,6 +152,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image-size", type=int, default=None)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--lut", type=str, default=None, help="Path to LUT json file for zero-latency evaluation")
     parser.add_argument(
         "--family-profile",
         type=str,
@@ -178,6 +179,10 @@ def main() -> None:
     config.setdefault("search_space", {})
     if args.family_profile is not None:
         config["search_space"]["family_profile"] = args.family_profile
+        
+    if args.lut is not None:
+        config.setdefault("hardware", {})
+        config["hardware"]["lut_path"] = args.lut
 
     dataset_cfg = config.get("dataset", {})
     project_cfg = config.get("project", {})
@@ -267,12 +272,34 @@ def main() -> None:
                     "image_size": search_space.config.image_size,
                     "stem_channels": search_space.config.stem_channels,
                     "stem_stride": search_space.config.stem_stride,
+                    "post_stem_downsample_stride": search_space.config.post_stem_downsample_stride,
                     "stage_strides": list(search_space.config.stage_strides),
+                    "stage_base_channels": (
+                        None
+                        if search_space.config.stage_base_channels is None
+                        else list(search_space.config.stage_base_channels)
+                    ),
+                    "width_multipliers": (
+                        None
+                        if search_space.config.width_multipliers is None
+                        else list(search_space.config.width_multipliers)
+                    ),
+                    "stage_channel_choices": (
+                        None
+                        if search_space.config.stage_channel_choices is None
+                        else [list(group) for group in search_space.config.stage_channel_choices]
+                    ),
+                    "stage_depth_choices": (
+                        None
+                        if search_space.config.stage_depth_choices is None
+                        else [list(group) for group in search_space.config.stage_depth_choices]
+                    ),
                     "channel_choices": list(search_space.config.channel_choices),
                     "depth_choices": list(search_space.config.depth_choices),
                     "kernel_choices": list(search_space.config.kernel_choices),
                     "expand_choices": list(search_space.config.expand_choices),
                     "op_choices": list(search_space.config.op_choices),
+                    "head_conv_channels": search_space.config.head_conv_channels,
                     "family_profile": search_space.config.family_profile,
                 }
             )
@@ -301,12 +328,34 @@ def main() -> None:
                     "image_size": search_space.config.image_size,
                     "stem_channels": search_space.config.stem_channels,
                     "stem_stride": search_space.config.stem_stride,
+                    "post_stem_downsample_stride": search_space.config.post_stem_downsample_stride,
                     "stage_strides": list(search_space.config.stage_strides),
+                    "stage_base_channels": (
+                        None
+                        if search_space.config.stage_base_channels is None
+                        else list(search_space.config.stage_base_channels)
+                    ),
+                    "width_multipliers": (
+                        None
+                        if search_space.config.width_multipliers is None
+                        else list(search_space.config.width_multipliers)
+                    ),
+                    "stage_channel_choices": (
+                        None
+                        if search_space.config.stage_channel_choices is None
+                        else [list(group) for group in search_space.config.stage_channel_choices]
+                    ),
+                    "stage_depth_choices": (
+                        None
+                        if search_space.config.stage_depth_choices is None
+                        else [list(group) for group in search_space.config.stage_depth_choices]
+                    ),
                     "channel_choices": list(search_space.config.channel_choices),
                     "depth_choices": list(search_space.config.depth_choices),
                     "kernel_choices": list(search_space.config.kernel_choices),
                     "expand_choices": list(search_space.config.expand_choices),
                     "op_choices": list(search_space.config.op_choices),
+                    "head_conv_channels": search_space.config.head_conv_channels,
                     "family_profile": search_space.config.family_profile,
                     "pruned": True,
                 }
@@ -354,6 +403,7 @@ def main() -> None:
 
             print("\n=== Creating Searcher ===")
             objective_weights = search_cfg.get("objective_weights", {})
+            selection_metric = str(search_cfg.get("selection_metric", "macro_f1"))
             proxyless_cfg = search_cfg.get("proxyless", {})
             searcher = create_searcher(
                 search_space=search_space,
@@ -368,8 +418,9 @@ def main() -> None:
                 device=device,
                 reward_weights=objective_weights,
                 proxyless_cfg=proxyless_cfg,
+                selection_metric=selection_metric,
             )
-            print(f"Searcher created (method={search_method}, seed={seed})")
+            print(f"Searcher created (method={search_method}, seed={seed}, selection_metric={selection_metric})")
             resume_episode = 0
             if args.resume:
                 if search_method != "rl":
@@ -508,7 +559,13 @@ def main() -> None:
             print("\n=== Search Results ===")
             if best_candidate:
                 print(f"Best architecture: {best_candidate.arch_id}")
-                print(f"  Accuracy: {best_candidate.metrics.accuracy:.4f}")
+                print(f"  Score ({selection_metric}): {best_candidate.metrics.accuracy:.4f}")
+                if best_candidate.metrics.macro_f1 is not None:
+                    print(f"  Macro-F1: {best_candidate.metrics.macro_f1:.4f}")
+                if best_candidate.metrics.top1 is not None:
+                    print(f"  Top-1: {best_candidate.metrics.top1:.4f}")
+                if best_candidate.metrics.top5 is not None:
+                    print(f"  Top-5: {best_candidate.metrics.top5:.4f}")
                 print(f"  Latency: {best_candidate.metrics.latency_ms:.2f}ms")
                 print(f"  DSP: {best_candidate.metrics.dsp}")
                 print(f"  BRAM: {best_candidate.metrics.bram}")
@@ -533,7 +590,7 @@ def main() -> None:
                     for index, candidate in enumerate(pareto, start=1):
                         print(
                             f"{index}. {candidate.arch_id}: "
-                            f"Acc={candidate.metrics.accuracy:.4f}, "
+                            f"{selection_metric}={candidate.metrics.accuracy:.4f}, "
                             f"Lat={candidate.metrics.latency_ms:.2f}ms"
                         )
             else:
@@ -561,6 +618,7 @@ def main() -> None:
                     "num_episodes": num_episodes,
                     "train_epochs": train_epochs,
                     "eval_early_stopping_patience": eval_early_stopping_patience,
+                    "selection_metric": selection_metric,
                     "objective_weights": objective_weights,
                     "proxyless": proxyless_cfg if search_method == "proxyless" else None,
                     "hardware_spec": {
