@@ -1,7 +1,14 @@
 project:
-  name: nksid-fpga-hwnas-accuracy-biased
+  name: nksid-fpga-hwnas-accuracy-biased-mobilenet-v2
   seed: 42
   output_dir: results
+
+anchor_source:
+  source_run_name: backbone_nksid_av7k325_fair_scratch_seed42_gpu_20260417
+  selected_backbone_pool: results/backbone_nksid_av7k325_fair_scratch_seed42_gpu_20260417/results/selected_backbone_pool.json
+  source_role: accuracy_anchor
+  source_arch_id: mobilenet_v2_scratch
+  source_backbone: mobilenet_v2
 
 dataset:
   name: nksid
@@ -17,8 +24,27 @@ search_space:
   family_profile: accuracy_biased
   macro_type: stage_based
   stem_stride: 2
-  stage_strides: [1, 2, 2, 2]
-  stem_channels: 24
+  post_stem_downsample_stride: 1
+  stage_strides: [1, 2, 2, 2, 1, 2, 1]
+  stem_channels: 32
+  stage_base_channels: [16, 24, 32, 64, 96, 160, 320]
+  width_multipliers: [1.0, 1.25]
+  stage_depth_choices:
+    - [1, 2]
+    - [2, 3, 4]
+    - [3, 4]
+    - [4, 5]
+    - [3, 4]
+    - [3, 4]
+    - [1, 2]
+  kernel_choices: [3, 5]
+  expand_choices: [3, 6]
+  op_choices:
+    - mbconv
+    - fused_mbconv
+    - skip
+    - denoise
+  head_conv_channels: 1280
 
 constraints:
   max_latency_ms: 50.0

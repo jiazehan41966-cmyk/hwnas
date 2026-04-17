@@ -65,9 +65,15 @@ class FamilyProfileTests(unittest.TestCase):
     def test_mobile_anchor_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor"})
         self.assertEqual(config.family_profile, "mobile_anchor")
-        self.assertEqual(config.channel_choices, (16, 24, 32, 48, 64))
-        self.assertEqual(config.depth_choices, (1, 2, 3))
+        self.assertEqual(config.stem_channels, 32)
+        self.assertEqual(config.post_stem_downsample_stride, 1)
+        self.assertEqual(config.stage_strides, (1, 2, 2, 2, 1, 2, 1))
+        self.assertEqual(config.stage_base_channels, (16, 24, 32, 64, 96, 160, 320))
+        self.assertEqual(config.width_multipliers, (0.75, 1.0, 1.25))
+        self.assertEqual(config.depth_choices_for_stage(3), (3, 4, 5))
+        self.assertEqual(config.expand_choices, (1, 3, 6))
         self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
+        self.assertEqual(config.head_conv_channels, 1280)
 
     def test_small_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "small"})
@@ -79,33 +85,52 @@ class FamilyProfileTests(unittest.TestCase):
 
     def test_accuracy_biased_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "accuracy_biased"})
-        self.assertEqual(config.stem_channels, 24)
-        self.assertEqual(config.channel_choices, (24, 32, 48, 64, 80))
-        self.assertEqual(config.depth_choices, (2, 3, 4))
-        self.assertEqual(config.expand_choices, (2, 4, 6))
+        self.assertEqual(config.stem_channels, 32)
+        self.assertEqual(config.post_stem_downsample_stride, 1)
+        self.assertEqual(config.stage_strides, (1, 2, 2, 2, 1, 2, 1))
+        self.assertEqual(config.stage_base_channels, (16, 24, 32, 64, 96, 160, 320))
+        self.assertEqual(config.width_multipliers, (1.0, 1.25))
+        self.assertEqual(config.depth_choices_for_stage(3), (4, 5))
+        self.assertEqual(config.expand_choices, (3, 6))
         self.assertNotIn("conv", config.op_choices)
         self.assertNotIn("edge", config.op_choices)
         self.assertIn("denoise", config.op_choices)
+        self.assertEqual(config.head_conv_channels, 1280)
 
     def test_lightweight_sonar_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "lightweight_sonar"})
-        self.assertEqual(config.channel_choices, (16, 24, 32))
-        self.assertEqual(config.expand_choices, (1, 2))
+        self.assertEqual(config.stem_channels, 24)
+        self.assertEqual(config.post_stem_downsample_stride, 2)
+        self.assertEqual(config.stage_strides, (2, 2, 2))
+        self.assertEqual(config.stage_base_channels, (24, 48, 96))
+        self.assertEqual(config.width_multipliers, (0.5, 0.75, 1.0))
+        self.assertEqual(config.depth_choices_for_stage(1), (2, 3, 4))
+        self.assertEqual(config.expand_choices, (1, 2, 4))
         self.assertEqual(config.kernel_choices, (3,))
         self.assertNotIn("conv", config.op_choices)
         self.assertNotIn("mixconv", config.op_choices)
         self.assertIn("denoise", config.op_choices)
+        self.assertEqual(config.head_conv_channels, 1024)
 
     def test_explicit_config_overrides_profile_defaults(self) -> None:
         config = SearchSpaceConfig.from_dict(
             {
                 "family_profile": "mobile_anchor",
-                "channel_choices": [16, 24],
-                "depth_choices": [1],
+                "stage_channel_choices": [
+                    [16, 24],
+                    [24, 32],
+                    [32, 48],
+                    [48, 64],
+                    [64, 96],
+                    [96, 160],
+                    [160, 320],
+                ],
+                "stage_depth_choices": [[1], [1], [1], [1], [1], [1], [1]],
             }
         )
-        self.assertEqual(config.channel_choices, (16, 24))
-        self.assertEqual(config.depth_choices, (1,))
+        self.assertEqual(config.stage_channel_choices[0], (16, 24))
+        self.assertEqual(config.stage_channel_choices[-1], (160, 320))
+        self.assertEqual(config.depth_choices_for_stage(0), (1,))
 
     def test_unknown_family_profile_raises(self) -> None:
         with self.assertRaises(ValueError):

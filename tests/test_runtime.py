@@ -19,6 +19,7 @@ from hwnas_fpga.interfaces import SearchConstraints
 from hwnas_fpga.runtime import (
     build_search_space,
     load_anchor_profile_from_pool,
+    load_config,
     load_lut_query_engine,
 )
 
@@ -46,16 +47,18 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
             constraints=SearchConstraints(),
         )
         self.assertEqual(search_space.config.family_profile, "mobile_anchor")
-        self.assertEqual(search_space.config.channel_choices, (16, 24, 32, 48, 64))
+        self.assertEqual(search_space.config.stage_base_channels, (16, 24, 32, 64, 96, 160, 320))
+        self.assertEqual(search_space.config.width_multipliers, (0.75, 1.0, 1.25))
         self.assertEqual(search_space.config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
+        self.assertEqual(search_space.config.head_conv_channels, 1280)
 
     def test_build_search_space_explicit_values_override_profile(self) -> None:
         search_space = build_search_space(
             {
                 "search_space": {
                     "family_profile": "lightweight_sonar",
-                    "channel_choices": [16, 24],
-                    "depth_choices": [1],
+                    "stage_channel_choices": [[16, 24], [24, 32], [32, 48]],
+                    "stage_depth_choices": [[1], [1], [1]],
                 }
             },
             image_size=64,
@@ -64,8 +67,9 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
             constraints=SearchConstraints(),
         )
         self.assertEqual(search_space.config.family_profile, "lightweight_sonar")
-        self.assertEqual(search_space.config.channel_choices, (16, 24))
-        self.assertEqual(search_space.config.depth_choices, (1,))
+        self.assertEqual(search_space.config.stage_channel_choices[0], (16, 24))
+        self.assertEqual(search_space.config.stage_channel_choices[2], (32, 48))
+        self.assertEqual(search_space.config.depth_choices_for_stage(0), (1,))
 
     def test_build_search_space_supports_stage_specific_mobile_anchor(self) -> None:
         search_space = build_search_space(
@@ -92,6 +96,42 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
         self.assertEqual(search_space.config.stage_channel_choices[0], (58, 87, 116, 145))
         self.assertEqual(search_space.config.post_stem_downsample_stride, 2)
         self.assertEqual(search_space.config.head_conv_channels, 1024)
+
+    def test_canonical_anchor_configs_build_expected_spaces(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        config_expectations = [
+            (
+                repo_root / "configs" / "search" / "nksid_fpga_search_mobile_anchor_av7k325.yaml",
+                "mobile_anchor",
+                7,
+                1280,
+            ),
+            (
+                repo_root / "configs" / "search" / "nksid_fpga_search_accuracy_biased_av7k325.yaml",
+                "accuracy_biased",
+                7,
+                1280,
+            ),
+            (
+                repo_root / "configs" / "search" / "nksid_fpga_search_lightweight_sonar_av7k325.yaml",
+                "lightweight_sonar",
+                3,
+                1024,
+            ),
+        ]
+        for config_path, profile_name, expected_stage_count, expected_head in config_expectations:
+            with self.subTest(config=config_path.name):
+                config = load_config(str(config_path))
+                search_space = build_search_space(
+                    config,
+                    image_size=224,
+                    input_channels=1,
+                    num_classes=8,
+                    constraints=SearchConstraints(),
+                )
+                self.assertEqual(search_space.config.family_profile, profile_name)
+                self.assertEqual(search_space.config.stage_count, expected_stage_count)
+                self.assertEqual(search_space.config.head_conv_channels, expected_head)
 
     def test_load_anchor_profile_from_pool_resolves_expected_role(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

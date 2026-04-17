@@ -4,6 +4,11 @@ project:
   output_dir: results
   run_name: rl_mobile_anchor_shufflenet_av7k325_200
 
+status:
+  deprecated: true
+  replaced_by: configs/search/nksid_rl_mobile_anchor_mobilenet_v2_av7k325_200.yaml
+  reason: superseded by the fair scratch-only macro backbone rerun on 2026-04-17
+
 dataset:
   name: nksid
   data_dir: data/NKSID
