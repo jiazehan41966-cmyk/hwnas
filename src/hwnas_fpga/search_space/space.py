@@ -604,7 +604,10 @@ class SearchSpace:
         for stage_index, stride in enumerate(self.config.stage_strides):
             stage_channel_choices = self.config.channel_choices_for_stage(stage_index)
             stage_depth_choices = self.config.depth_choices_for_stage(stage_index)
-            channels = max(min(stage_channel_choices), current_channels)
+            if self.config.stage_base_channels is not None:
+                channels = self.config.stage_base_channels[stage_index]
+            else:
+                channels = min(stage_channel_choices)
             base_depth = min(stage_depth_choices)
             blocks: list[BlockSpec] = []
             for block_index in range(base_depth):

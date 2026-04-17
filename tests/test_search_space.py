@@ -75,6 +75,13 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
         self.assertEqual(config.head_conv_channels, 1280)
 
+    def test_mobile_anchor_baseline_architecture_tracks_anchor_channels(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor", "num_classes": 8})
+        space = SearchSpace(config)
+        architecture = space.baseline_architecture()
+        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (16, 24, 32, 64, 96, 160, 320))
+        self.assertEqual(space.validate(architecture), [])
+
     def test_small_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "small"})
         self.assertEqual(config.family_profile, "small")
