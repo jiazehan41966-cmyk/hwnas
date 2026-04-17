@@ -18,6 +18,7 @@ from hwnas_fpga.runtime import (
     build_hardware_spec,
     build_search_space,
     create_data_pipeline,
+    load_anchor_profile_from_pool,
     load_config,
     pick,
 )
@@ -54,6 +55,25 @@ def _candidate_from_dict(payload: dict | None) -> SearchCandidate | None:
         encoding=payload["encoding"],
         metrics=CandidateMetrics(**payload.get("metrics", {})),
     )
+
+
+def _resolve_family_profile(args: argparse.Namespace, config: dict) -> tuple[str | None, str | None]:
+    search_space_cfg = config.setdefault("search_space", {})
+
+    if args.family_profile is not None:
+        search_space_cfg["family_profile"] = args.family_profile
+        return str(args.family_profile), "cli"
+
+    if args.backbone_pool is not None and search_space_cfg.get("family_profile") is None:
+        resolved_profile = load_anchor_profile_from_pool(args.backbone_pool, args.anchor_role)
+        if resolved_profile is not None:
+            search_space_cfg["family_profile"] = resolved_profile
+            return resolved_profile, "pool"
+
+    existing_profile = search_space_cfg.get("family_profile")
+    if existing_profile is not None:
+        return str(existing_profile), "config"
+    return None, None
 
 
 def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) -> int:
@@ -160,6 +180,22 @@ def parse_args() -> argparse.Namespace:
         choices=tuple(sorted(list_family_profiles().keys())),
     )
     parser.add_argument(
+        "--backbone-pool",
+        type=str,
+        default=None,
+        help=(
+            "Path to selected_backbone_pool.json produced by run_backbone_baseline. "
+            "If provided, resolves --anchor-role to a family_profile automatically."
+        ),
+    )
+    parser.add_argument(
+        "--anchor-role",
+        type=str,
+        default="search_anchor",
+        choices=("search_anchor", "accuracy_anchor", "lightweight_anchor"),
+        help="Which anchor role to use from the backbone pool (default: search_anchor).",
+    )
+    parser.add_argument(
         "--search-method",
         type=str,
         default=None,
@@ -176,10 +212,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    config.setdefault("search_space", {})
-    if args.family_profile is not None:
-        config["search_space"]["family_profile"] = args.family_profile
-        
+    family_profile, family_profile_source = _resolve_family_profile(args, config)
+
     if args.lut is not None:
         config.setdefault("hardware", {})
         config["hardware"]["lut_path"] = args.lut
@@ -247,10 +281,12 @@ def main() -> None:
             print(f"Using device: {device}")
             print(f"Dataset: {dataset_name}")
             print(f"Search method: {search_method}")
-            print(
-                "Family profile: "
-                f"{config.get('search_space', {}).get('family_profile', 'default')}"
-            )
+            print(f"Family profile: {family_profile or 'default'}")
+            if family_profile_source == "pool":
+                print(
+                    "[backbone-pool] "
+                    f"anchor_role={args.anchor_role!r} -> family_profile={family_profile!r}"
+                )
             if data_dir:
                 print(f"Data dir: {data_dir}")
 
@@ -403,6 +439,7 @@ def main() -> None:
 
             print("\n=== Creating Searcher ===")
             objective_weights = search_cfg.get("objective_weights", {})
+            reward_cfg = dict(search_cfg.get("reward_cfg") or {})
             selection_metric = str(search_cfg.get("selection_metric", "macro_f1"))
             proxyless_cfg = search_cfg.get("proxyless", {})
             searcher = create_searcher(
@@ -417,10 +454,19 @@ def main() -> None:
                 eval_early_stopping_patience=eval_early_stopping_patience,
                 device=device,
                 reward_weights=objective_weights,
+                reward_cfg=reward_cfg,
                 proxyless_cfg=proxyless_cfg,
                 selection_metric=selection_metric,
             )
             print(f"Searcher created (method={search_method}, seed={seed}, selection_metric={selection_metric})")
+            if search_method == "rl" and reward_cfg:
+                print(
+                    "RL reward config: "
+                    f"constraint_penalty={reward_cfg.get('constraint_penalty', 10.0)}, "
+                    f"mode={reward_cfg.get('infeasible_penalty_mode', 'fixed')}, "
+                    f"base={reward_cfg.get('infeasible_base_penalty', 1.0)}, "
+                    f"scale={reward_cfg.get('infeasible_penalty_scale', 5.0)}"
+                )
             resume_episode = 0
             if args.resume:
                 if search_method != "rl":
@@ -620,6 +666,7 @@ def main() -> None:
                     "eval_early_stopping_patience": eval_early_stopping_patience,
                     "selection_metric": selection_metric,
                     "objective_weights": objective_weights,
+                    "reward_cfg": reward_cfg if search_method == "rl" else None,
                     "proxyless": proxyless_cfg if search_method == "proxyless" else None,
                     "hardware_spec": {
                         "name": hardware_spec.name,

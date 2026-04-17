@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Optional
 
@@ -86,6 +87,30 @@ def build_hardware_spec(config: dict[str, Any]) -> HardwareSpec:
         "offchip_mem_mb": hardware_cfg.get("offchip_mem_mb"),
     }
     return resolve_board_profile(hardware_cfg.get("board"), overrides=overrides)
+
+
+def load_anchor_profile_from_pool(
+    pool_path: str | Path,
+    anchor_role: str = "search_anchor",
+) -> Optional[str]:
+    """从 selected_backbone_pool.json 中解析指定锚点对应的 family_profile 名。
+
+    pool JSON 结构:
+        recommended_profiles:
+            mobile_anchor:      {source_role: "search_anchor", ...}
+            accuracy_biased:    {source_role: "accuracy_anchor", ...}
+            lightweight_sonar:  {source_role: "lightweight_anchor", ...}
+
+    返回 profile 名（如 "mobile_anchor"），找不到时返回 None。
+    """
+    path = Path(pool_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"backbone pool not found: {path}")
+    pool: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    for profile_name, info in pool.get("recommended_profiles", {}).items():
+        if info.get("source_role") == anchor_role:
+            return str(profile_name)
+    return None
 
 
 def build_search_space(

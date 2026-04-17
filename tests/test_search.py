@@ -62,6 +62,30 @@ class SearchFactoryTests(unittest.TestCase):
         self.assertAlmostEqual(searcher.reward_function.bram_weight, 0.4)
         self.assertAlmostEqual(searcher.reward_function.lut_weight, 0.4)
 
+    def test_create_rl_searcher_with_reward_cfg(self) -> None:
+        searcher = create_searcher(
+            search_space=self.search_space,
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            method="rl",
+            seed=3,
+            controller_hidden_dim=16,
+            controller_lr=0.001,
+            train_epochs_per_arch=1,
+            device="cpu",
+            reward_cfg={
+                "constraint_penalty": 3.5,
+                "infeasible_penalty_mode": "gradient",
+                "infeasible_base_penalty": 0.8,
+                "infeasible_penalty_scale": 2.2,
+            },
+        )
+        self.assertIsInstance(searcher, RLSearcher)
+        self.assertAlmostEqual(searcher.reward_function.constraint_penalty, 3.5)
+        self.assertEqual(searcher.reward_function.infeasible_penalty_mode, "violation_ratio")
+        self.assertAlmostEqual(searcher.reward_function.infeasible_base_penalty, 0.8)
+        self.assertAlmostEqual(searcher.reward_function.infeasible_penalty_scale, 2.2)
+
     def test_create_searcher_with_family_profiled_space(self) -> None:
         profiled_space = SearchSpace(SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor", "num_classes": 8}))
         searcher = create_searcher(

@@ -16,7 +16,11 @@ from hwnas_fpga.hardware import (
     parse_hls_report_text,
 )
 from hwnas_fpga.interfaces import SearchConstraints
-from hwnas_fpga.runtime import build_search_space, load_lut_query_engine
+from hwnas_fpga.runtime import (
+    build_search_space,
+    load_anchor_profile_from_pool,
+    load_lut_query_engine,
+)
 
 
 class BoardProfileTests(unittest.TestCase):
@@ -88,6 +92,30 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
         self.assertEqual(search_space.config.stage_channel_choices[0], (58, 87, 116, 145))
         self.assertEqual(search_space.config.post_stem_downsample_stride, 2)
         self.assertEqual(search_space.config.head_conv_channels, 1024)
+
+    def test_load_anchor_profile_from_pool_resolves_expected_role(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pool_path = Path(tmpdir) / "selected_backbone_pool.json"
+            pool_path.write_text(
+                json.dumps(
+                    {
+                        "recommended_profiles": {
+                            "mobile_anchor": {"source_role": "search_anchor"},
+                            "accuracy_biased": {"source_role": "accuracy_anchor"},
+                            "lightweight_sonar": {"source_role": "lightweight_anchor"},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                load_anchor_profile_from_pool(pool_path, "search_anchor"),
+                "mobile_anchor",
+            )
+            self.assertEqual(
+                load_anchor_profile_from_pool(pool_path, "accuracy_anchor"),
+                "accuracy_biased",
+            )
 
 
 class LutRuntimeTests(unittest.TestCase):

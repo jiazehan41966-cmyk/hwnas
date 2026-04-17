@@ -595,7 +595,7 @@ class SearchableStage(nn.Module):
 
 
 class ProxylessSuperNet(nn.Module):
-    """The overarching ProxylessNAS supernet connecting the stem, stages, and head."""
+    """ProxylessNAS-style supernet over the repo's stage-based search space."""
 
     def __init__(
         self,
@@ -603,6 +603,8 @@ class ProxylessSuperNet(nn.Module):
         search_space: SearchSpace,
         num_classes: int,
         cost_estimator: Optional[FPGACostEstimator] = None,
+        stage_channels: Optional[Sequence[int]] = None,
+        stage_depth: Optional[int | Sequence[int]] = None,
         temperature: float = 1.0,
     ) -> None:
         super().__init__()
@@ -610,118 +612,209 @@ class ProxylessSuperNet(nn.Module):
         self.config = search_space.config
         self.num_classes = int(num_classes)
         self.cost_estimator = cost_estimator
+        self.stage_count = self.config.stage_count
         self.temperature = max(1e-4, float(temperature))
+
+        self.stage_channel_choices = self._resolve_stage_channel_choices(stage_channels)
+        self.stage_depth_choices = self._resolve_stage_depth_choices(stage_depth)
 
         self.stem = StemBlock(
             in_channels=self.config.input_channels,
             stem_channels=self.config.stem_channels,
             stride=self.config.stem_stride,
         )
-
-        self.post_stem_downsample = None
-        if getattr(self.config, "post_stem_downsample_stride", 1) > 1:
-            self.post_stem_downsample = nn.MaxPool2d(
+        self.post_stem_downsample = (
+            nn.MaxPool2d(
                 kernel_size=3,
                 stride=self.config.post_stem_downsample_stride,
                 padding=1,
             )
+            if self.config.post_stem_downsample_stride > 1
+            else None
+        )
 
-        stem_out_res = math.ceil(self.config.image_size / self.config.stem_stride)
-        if self.post_stem_downsample is not None:
-            stem_out_res = math.ceil(stem_out_res / self.config.post_stem_downsample_stride)
+        self.stages = nn.ModuleList()
+        self._mixed_ops: list[MixedOp] = []
+        self._build_stages()
 
-        self.searchable_stages = nn.ModuleList()
-        current_res = stem_out_res
+        final_channels = max(self.stage_channel_choices[-1]) if self.stage_channel_choices else self.config.stem_channels
+        self.head = HeadBlock(
+            in_channels=final_channels,
+            num_classes=self.num_classes,
+            head_channels=self.config.head_channels,
+            conv_head_channels=self.config.head_conv_channels,
+        )
 
-        stage_base_channels = getattr(self.config, "stage_base_channels", None)
-        width_multipliers = getattr(self.config, "width_multipliers", [1.0])
-        stage_depth_choices = getattr(self.config, "stage_depth_choices", None)
+    def _resolve_stage_channel_choices(
+        self,
+        stage_channels: Optional[Sequence[int]],
+    ) -> tuple[tuple[int, ...], ...]:
+        resolved: list[tuple[int, ...]] = []
+        if stage_channels is None:
+            for stage_idx in range(self.stage_count):
+                resolved.append(tuple(int(choice) for choice in self.config.channel_choices_for_stage(stage_idx)))
+            return tuple(resolved)
 
-        for stage_idx in range(self.config.stage_count):
-            if stage_base_channels and width_multipliers:
-                base_c = stage_base_channels[stage_idx]
-                out_choices = [int(base_c * w) for w in width_multipliers]
-                if stage_idx == 0:
-                    in_choices = [self.config.stem_channels]
-                else:
-                    prev_base = stage_base_channels[stage_idx - 1]
-                    in_choices = [int(prev_base * w) for w in width_multipliers]
-            else:
-                out_choices = self.config.channel_choices
-                in_choices = [self.config.stem_channels] if stage_idx == 0 else self.config.channel_choices
+        requested = [int(channel) for channel in stage_channels]
+        if len(requested) != self.stage_count:
+            raise ValueError(
+                f"stage_channels length {len(requested)} != stage_count {self.stage_count}"
+            )
+        for stage_idx, channel in enumerate(requested):
+            allowed = tuple(int(choice) for choice in self.config.channel_choices_for_stage(stage_idx))
+            nearest = min(allowed, key=lambda candidate: abs(candidate - channel))
+            resolved.append((int(nearest),))
+        return tuple(resolved)
 
-            if stage_depth_choices:
-                depth_choices = stage_depth_choices[stage_idx]
-            else:
-                depth_choices = self.config.depth_choices
+    def _resolve_stage_depth_choices(
+        self,
+        stage_depth: Optional[int | Sequence[int]],
+    ) -> tuple[tuple[int, ...], ...]:
+        resolved: list[tuple[int, ...]] = []
+        if stage_depth is None:
+            for stage_idx in range(self.stage_count):
+                resolved.append(tuple(int(choice) for choice in self.config.depth_choices_for_stage(stage_idx)))
+            return tuple(resolved)
 
+        if isinstance(stage_depth, Sequence) and not isinstance(stage_depth, (str, bytes)):
+            requested = [int(depth) for depth in stage_depth]
+            if len(requested) != self.stage_count:
+                raise ValueError(
+                    f"stage_depth length {len(requested)} != stage_count {self.stage_count}"
+                )
+        else:
+            requested = [int(stage_depth)] * self.stage_count
+
+        for stage_idx, depth in enumerate(requested):
+            allowed = tuple(int(choice) for choice in self.config.depth_choices_for_stage(stage_idx))
+            nearest = min(allowed, key=lambda candidate: abs(candidate - depth))
+            resolved.append((int(nearest),))
+        return tuple(resolved)
+
+    def _build_stages(self) -> None:
+        current_resolution = max(1, math.ceil(self.config.image_size / self.config.stem_stride))
+        current_resolution = max(
+            1,
+            math.ceil(current_resolution / self.config.post_stem_downsample_stride),
+        )
+        prev_channel_choices: tuple[int, ...] = (int(self.config.stem_channels),)
+
+        for stage_idx in range(self.stage_count):
             stage = SearchableStage(
                 search_space=self.search_space,
                 stage_idx=stage_idx,
-                input_channel_choices=in_channels,
-                output_channel_choices=out_choices,
-                depth_choices=depth_choices,
-                input_resolution=current_res,
+                input_channel_choices=prev_channel_choices,
+                output_channel_choices=self.stage_channel_choices[stage_idx],
+                depth_choices=self.stage_depth_choices[stage_idx],
+                input_resolution=current_resolution,
                 cost_estimator=self.cost_estimator,
                 temperature=self.temperature,
             )
-            self.searchable_stages.append(stage)
-            current_res = stage.output_resolution
+            self.stages.append(stage)
+            self._mixed_ops.extend(stage._mixed_ops)
+            prev_channel_choices = self.stage_channel_choices[stage_idx]
+            current_resolution = stage.output_resolution
 
-        self.head = HeadBlock(
-            in_channels=max(out_choices),
-            num_classes=self.num_classes,
-            head_channels=self.config.head_channels,
-            conv_head_channels=getattr(self.config, "head_conv_channels", None),
-        )
+    @property
+    def mixed_ops(self) -> list[MixedOp]:
+        return self._mixed_ops
 
-    def set_mode(self, mode: str) -> None:
-        for stage in self.searchable_stages:
+    def set_forward_mode(self, mode: str) -> None:
+        for stage in self.stages:
             stage.set_mode(mode)
 
-    def sample_single(self, rng: Random) -> None:
-        for stage in self.searchable_stages:
+    def sample_single_paths(self, rng: Random) -> None:
+        for stage in self.stages:
             stage.sample_single(rng)
 
-    def sample_pair(self, rng: Random) -> None:
-        for stage in self.searchable_stages:
+    def sample_pair_paths(self, rng: Random) -> None:
+        for stage in self.stages:
             stage.sample_pair(rng)
 
-    def activate_argmax(self) -> None:
-        for stage in self.searchable_stages:
+    def activate_argmax_paths(self) -> None:
+        for stage in self.stages:
             stage.activate_argmax()
 
     def expected_hardware_metrics(self) -> dict[str, torch.Tensor]:
-        totals = None
-        device = next(self.parameters()).device
-        prev_channel_probs = torch.ones(1, device=device)
+        if not self.stages:
+            device = next(self.parameters()).device
+            zero = torch.zeros((), device=device)
+            return {
+                "latency_ms": zero,
+                "dsp": zero,
+                "bram": zero,
+                "lut": zero,
+                "energy_proxy_mj": zero,
+            }
 
-        for stage in self.searchable_stages:
-            stage_metrics = stage.expected_hardware_metrics(prev_channel_probs)
-            if totals is None:
-                totals = stage_metrics
-            else:
-                for key in totals:
-                    totals[key] = totals[key] + stage_metrics[key]
+        device = next(self.parameters()).device
+        totals = {
+            "latency_ms": torch.zeros((), device=device),
+            "dsp": torch.zeros((), device=device),
+            "bram": torch.zeros((), device=device),
+            "lut": torch.zeros((), device=device),
+        }
+
+        prev_channel_probs = torch.ones(1, device=device)
+        for stage in self.stages:
+            stage_totals = stage.expected_hardware_metrics(prev_channel_probs)
+            for key in totals:
+                totals[key] = totals[key] + stage_totals[key]
             prev_channel_probs = stage.channel_gate.probabilities()
-            
+
+        power_proxy = 2.5 + 0.012 * totals["dsp"] + 0.018 * totals["bram"] + 0.0002 * totals["lut"]
+        totals["energy_proxy_mj"] = totals["latency_ms"] * power_proxy
         return totals
 
+    def arch_parameters(self) -> list[nn.Parameter]:
+        parameters: list[nn.Parameter] = []
+        for stage in self.stages:
+            parameters.append(stage.channel_gate.alpha)
+            parameters.append(stage.depth_gate.alpha)
+            parameters.extend(mixed.alpha for mixed in stage._mixed_ops)
+        return parameters
+
+    def weight_parameters(self):
+        for name, param in self.named_parameters():
+            if name.endswith("alpha"):
+                continue
+            yield param
+
     def extract_architecture(self) -> ArchitectureSpec:
-        stages = tuple(stage.extract_stage_spec() for stage in self.searchable_stages)
+        stages = tuple(stage.extract_stage_spec() for stage in self.stages)
         return ArchitectureSpec(
-            input_channels=self.config.input_channels,
-            stem_channels=self.config.stem_channels,
-            stem_stride=self.config.stem_stride,
+            input_channels=int(self.config.input_channels),
+            stem_channels=int(self.config.stem_channels),
+            stem_stride=int(self.config.stem_stride),
+            post_stem_downsample_stride=int(self.config.post_stem_downsample_stride),
+            stages=stages,
+            head_conv_channels=self.config.head_conv_channels,
             head_channels=self.config.head_channels,
             num_classes=self.num_classes,
-            stages=stages,
         )
+
+    def choice_probabilities(self) -> list[list[float]]:
+        rows: list[list[float]] = []
+        for stage in self.stages:
+            rows.append(stage.channel_gate.probabilities().detach().cpu().tolist())
+            rows.append(stage.depth_gate.probabilities().detach().cpu().tolist())
+            for mixed in stage._mixed_ops:
+                rows.append(mixed.probabilities().detach().cpu().tolist())
+        return rows
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.stem(x)
         if self.post_stem_downsample is not None:
             x = self.post_stem_downsample(x)
-        for stage in self.searchable_stages:
+        for stage in self.stages:
             x = stage(x)
-        return self.head(x)
+        x = self.head(x)
+        return x
+
+
+__all__ = [
+    "ChoiceGate",
+    "MixedOp",
+    "ProxylessSuperNet",
+    "SearchableStage",
+]

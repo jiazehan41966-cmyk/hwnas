@@ -476,6 +476,7 @@ def create_searcher(
             device=kwargs.get("device", "cpu"),
             seed=seed,
             reward_weights=kwargs.get("reward_weights"),
+            reward_cfg=kwargs.get("reward_cfg"),
             eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
             selection_metric=kwargs.get("selection_metric", "macro_f1"),
         )
@@ -522,5 +523,6 @@ def create_searcher(
             grad_reg_loss_params=grad_reg_loss_params,
             target_hardware=proxyless_cfg.get("target_hardware", "latency_ms"),
             ref_value=proxyless_cfg.get("ref_value"),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
         )
     raise ValueError(f"Unsupported search method: {method}")
