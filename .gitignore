@@ -3,12 +3,7 @@ results/
 !artifacts/**/results/**
 artifacts/**/*.pkl
 artifacts/**/checkpoints/*.pt
-artifacts/server_snapshots/**/code/
-artifacts/server_snapshots/**/code/**
-artifacts/server_snapshots/**/results/
-artifacts/server_snapshots/**/results/**
-!artifacts/server_snapshots/**/meta/
-!artifacts/server_snapshots/**/meta/**
+artifacts/server_snapshots/
 HAO_ Hardware-aware Neural Architecture.pdf
 Sonar_FPGA_NAS_对话全记录.md
 __pycache__/
