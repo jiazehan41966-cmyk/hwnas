@@ -82,6 +82,27 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(tuple(stage.channels for stage in architecture.stages), (16, 24, 32, 64, 96, 160, 320))
         self.assertEqual(space.validate(architecture), [])
 
+    def test_mobile_anchor_baseline_architecture_adapts_after_pruning(self) -> None:
+        pruned_config = SearchSpaceConfig.from_dict(
+            {
+                "family_profile": "mobile_anchor",
+                "num_classes": 8,
+                "stage_channel_choices": [
+                    [12, 16, 20],
+                    [18, 24, 30],
+                    [24, 32, 40],
+                    [48],
+                    [72],
+                    [120],
+                    [240],
+                ],
+            }
+        )
+        pruned_space = SearchSpace(pruned_config)
+        architecture = pruned_space.baseline_architecture()
+        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (16, 24, 32, 48, 72, 120, 240))
+        self.assertEqual(pruned_space.validate(architecture), [])
+
     def test_small_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "small"})
         self.assertEqual(config.family_profile, "small")

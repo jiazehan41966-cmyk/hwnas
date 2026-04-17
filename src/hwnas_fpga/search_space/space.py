@@ -605,7 +605,15 @@ class SearchSpace:
             stage_channel_choices = self.config.channel_choices_for_stage(stage_index)
             stage_depth_choices = self.config.depth_choices_for_stage(stage_index)
             if self.config.stage_base_channels is not None:
-                channels = self.config.stage_base_channels[stage_index]
+                preferred_channels = self.config.stage_base_channels[stage_index]
+                if preferred_channels in stage_channel_choices:
+                    channels = preferred_channels
+                else:
+                    smaller_or_equal = [value for value in stage_channel_choices if value <= preferred_channels]
+                    if smaller_or_equal:
+                        channels = max(smaller_or_equal)
+                    else:
+                        channels = min(stage_channel_choices)
             else:
                 channels = min(stage_channel_choices)
             base_depth = min(stage_depth_choices)
