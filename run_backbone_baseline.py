@@ -115,6 +115,24 @@ BACKBONE_ARCHITECTURE_BLUEPRINTS: dict[str, dict[str, Any]] = {
             "pooling": "adaptive_avg_pool_1x1",
         },
     },
+    "fbnet_a": {
+        "stem": {
+            "out_channels": 16,
+            "stride": 2,
+            "block_type": "conv_bn_relu",
+        },
+        "stages": (
+            {"stage_name": "fb16_skip", "block_type": "skip", "depth": 1, "channels": 16, "stride": 1},
+            {"stage_name": "fb24", "block_type": "fbnet_reference_ir_mixed", "depth": 4, "channels": 24, "stride": 2, "expand": 3, "kernel": 3},
+            {"stage_name": "fb32", "block_type": "fbnet_reference_ir_mixed", "depth": 4, "channels": 32, "stride": 2, "expand": 6, "kernel": 5},
+            {"stage_name": "fb112", "block_type": "fbnet_reference_ir_mixed", "depth": 8, "channels": 112, "stride": 2, "expand": 6, "kernel": 5, "groups": 2},
+            {"stage_name": "fb352", "block_type": "fbnet_reference_ir_mixed", "depth": 5, "channels": 352, "stride": 2, "expand": 6, "kernel": 5},
+        ),
+        "head": {
+            "out_channels": 1504,
+            "pooling": "adaptive_avg_pool_1x1",
+        },
+    },
     "shufflenet_v2": {
         "stem": {
             "out_channels": 24,
@@ -513,6 +531,7 @@ def build_training_strategy_summary(
     dataset_name: str,
     dataset_cfg: dict[str, Any],
     training_cfg: dict[str, Any],
+    baseline_cfg: dict[str, Any],
     batch_size: int,
     image_size: int,
     input_channels: int,
@@ -581,6 +600,35 @@ def build_training_strategy_summary(
             "early_stopping_patience": training_cfg.get("early_stopping_patience"),
             "max_epochs_per_backbone": epochs,
             "checkpoint_policy": "keep best epoch by selection metric",
+            "latency_tiebreak_metric": str(
+                dict(baseline_cfg.get("ranking", {})).get("latency_tiebreak_metric", "cpu_latency_ms")
+            ),
+        },
+        "anchor_selection": {
+            "search_anchor_families": list(
+                dict(baseline_cfg.get("pool_selection", {})).get(
+                    "search_anchor_families",
+                    ["mobilenet_v2", "fbnet_a", "shufflenet_v2"],
+                )
+            ),
+            "prefer_pretrained_for_search_anchor": bool(
+                dict(baseline_cfg.get("pool_selection", {})).get(
+                    "prefer_pretrained_for_search_anchor",
+                    True,
+                )
+            ),
+            "lightweight_metric": str(
+                dict(baseline_cfg.get("pool_selection", {})).get(
+                    "lightweight_metric",
+                    "fpga_latency_ms",
+                )
+            ),
+            "lightweight_max_macro_drop": float(
+                dict(baseline_cfg.get("pool_selection", {})).get(
+                    "lightweight_max_macro_drop",
+                    0.10,
+                )
+            ),
         },
         "validation": {
             "run_every": "epoch",
@@ -782,7 +830,49 @@ def resolve_candidates(
     return selected
 
 
-def compare_results(current: dict[str, Any], best: Optional[dict[str, Any]]) -> bool:
+def _normalize_anchor_metric(metric: Any, *, default: str) -> str:
+    normalized = str(metric or default).strip().lower()
+    aliases = {
+        "fpga": "fpga_latency_ms",
+        "fpga_latency": "fpga_latency_ms",
+        "fpga_latency_ms": "fpga_latency_ms",
+        "latency": "fpga_latency_ms",
+        "latency_ms": "fpga_latency_ms",
+        "cpu": "cpu_latency_ms",
+        "cpu_latency": "cpu_latency_ms",
+        "cpu_latency_ms": "cpu_latency_ms",
+        "params": "params",
+        "macs": "macs",
+        "power": "power_w",
+        "power_w": "power_w",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _metric_value_from_result(result: dict[str, Any], metric: str) -> float:
+    normalized = _normalize_anchor_metric(metric, default="fpga_latency_ms")
+    cost_estimate = result["cost_estimate"]
+    evaluation = result["evaluation"]
+    mapping: dict[str, float] = {
+        "fpga_latency_ms": float(cost_estimate["latency_ms"]),
+        "cpu_latency_ms": float(cost_estimate["cpu_latency_ms"]),
+        "params": float(cost_estimate["params"]),
+        "macs": float(cost_estimate["macs"]),
+        "power_w": float(cost_estimate["power_w"]),
+        "macro_f1": float(evaluation["macro_f1"]),
+        "top1": float(evaluation["top1"]),
+    }
+    if normalized not in mapping:
+        raise ValueError(f"Unsupported anchor metric: {metric}")
+    return mapping[normalized]
+
+
+def compare_results(
+    current: dict[str, Any],
+    best: Optional[dict[str, Any]],
+    *,
+    latency_tiebreak_metric: str = "cpu_latency_ms",
+) -> bool:
     if best is None:
         return True
     current_feasible = bool(current["cost_estimate"]["feasible"])
@@ -797,23 +887,33 @@ def compare_results(current: dict[str, Any], best: Optional[dict[str, Any]]) -> 
     best_top1 = float(best["evaluation"]["top1"])
     if not math.isclose(current_top1, best_top1):
         return current_top1 > best_top1
-    return float(current["cost_estimate"]["cpu_latency_ms"]) < float(best["cost_estimate"]["cpu_latency_ms"])
-
-
-def _result_sort_key(result: dict[str, Any]) -> tuple[float, float, float]:
-    evaluation = result["evaluation"]
-    cost_estimate = result["cost_estimate"]
-    return (
-        float(evaluation["macro_f1"]),
-        float(evaluation["top1"]),
-        -float(cost_estimate["cpu_latency_ms"]),
+    return _metric_value_from_result(current, latency_tiebreak_metric) < _metric_value_from_result(
+        best,
+        latency_tiebreak_metric,
     )
 
 
-def _lightweight_sort_key(result: dict[str, Any]) -> tuple[float, int, float]:
+def _result_sort_key(
+    result: dict[str, Any],
+    *,
+    latency_tiebreak_metric: str = "cpu_latency_ms",
+) -> tuple[float, float, float]:
+    evaluation = result["evaluation"]
+    return (
+        float(evaluation["macro_f1"]),
+        float(evaluation["top1"]),
+        -_metric_value_from_result(result, latency_tiebreak_metric),
+    )
+
+
+def _lightweight_sort_key(
+    result: dict[str, Any],
+    *,
+    lightweight_metric: str = "fpga_latency_ms",
+) -> tuple[float, int, float]:
     cost_estimate = result["cost_estimate"]
     return (
-        float(cost_estimate["latency_ms"]),
+        _metric_value_from_result(result, lightweight_metric),
         int(cost_estimate["params"]),
         -float(result["evaluation"]["macro_f1"]),
     )
@@ -858,18 +958,27 @@ def select_backbone_pool(
         raise ValueError("Cannot select backbone pool from empty results")
 
     pool_cfg = dict(baseline_cfg.get("pool_selection", {}))
+    ranking_cfg = dict(baseline_cfg.get("ranking", {}))
     role_profile_map = {
         "search_anchor": "mobile_anchor",
         "accuracy_anchor": "accuracy_biased",
         "lightweight_anchor": "lightweight_sonar",
         **dict(pool_cfg.get("role_profile_map", {})),
     }
+    latency_tiebreak_metric = str(ranking_cfg.get("latency_tiebreak_metric", "cpu_latency_ms"))
+    lightweight_metric = str(pool_cfg.get("lightweight_metric", "fpga_latency_ms"))
 
-    accuracy_anchor = max(results, key=_result_sort_key)
+    accuracy_anchor = max(
+        results,
+        key=lambda result: _result_sort_key(
+            result,
+            latency_tiebreak_metric=latency_tiebreak_metric,
+        ),
+    )
 
     search_anchor_families = {
         str(name).strip().lower()
-        for name in pool_cfg.get("search_anchor_families", ["mobilenet_v2", "shufflenet_v2"])
+        for name in pool_cfg.get("search_anchor_families", ["mobilenet_v2", "fbnet_a", "shufflenet_v2"])
         if str(name).strip()
     }
     search_candidates = [
@@ -883,7 +992,13 @@ def select_backbone_pool(
         ]
         if pretrained_search_candidates:
             search_candidates = pretrained_search_candidates
-    search_anchor = max(search_candidates, key=_result_sort_key)
+    search_anchor = max(
+        search_candidates,
+        key=lambda result: _result_sort_key(
+            result,
+            latency_tiebreak_metric=latency_tiebreak_metric,
+        ),
+    )
 
     max_macro_drop = float(pool_cfg.get("lightweight_max_macro_drop", 0.10))
     macro_threshold = float(accuracy_anchor["evaluation"]["macro_f1"]) - max_macro_drop
@@ -892,7 +1007,13 @@ def select_backbone_pool(
         for result in results
         if float(result["evaluation"]["macro_f1"]) >= macro_threshold
     ] or list(results)
-    lightweight_anchor = min(lightweight_candidates, key=_lightweight_sort_key)
+    lightweight_anchor = min(
+        lightweight_candidates,
+        key=lambda result: _lightweight_sort_key(
+            result,
+            lightweight_metric=lightweight_metric,
+        ),
+    )
 
     roles = {
         "accuracy_anchor": build_pool_candidate_payload(accuracy_anchor),
@@ -913,6 +1034,8 @@ def select_backbone_pool(
         "dataset": dataset_name,
         "board": board_name,
         "selection_metric": str(baseline_cfg.get("selection_metric", "macro_f1")),
+        "latency_tiebreak_metric": latency_tiebreak_metric,
+        "lightweight_metric": lightweight_metric,
         "roles": roles,
         "recommended_profiles": recommended_profiles,
     }
@@ -1068,6 +1191,7 @@ def main() -> None:
                 dataset_name=str(dataset_name),
                 dataset_cfg=dataset_cfg,
                 training_cfg=training_cfg,
+                baseline_cfg=baseline_cfg,
                 batch_size=batch_size,
                 image_size=image_size,
                 input_channels=input_channels,
@@ -1207,7 +1331,16 @@ def main() -> None:
                     }
                 )
 
-                if compare_results(result, best_result):
+                if compare_results(
+                    result,
+                    best_result,
+                    latency_tiebreak_metric=str(
+                        dict(baseline_cfg.get("ranking", {})).get(
+                            "latency_tiebreak_metric",
+                            "cpu_latency_ms",
+                        )
+                    ),
+                ):
                     best_result = result
                     best_checkpoint_payload = checkpoint_payload
 

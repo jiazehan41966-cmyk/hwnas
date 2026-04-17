@@ -1,4 +1,5 @@
 results/
+results_archive/
 !artifacts/**/results/
 !artifacts/**/results/**
 artifacts/**/*.pkl

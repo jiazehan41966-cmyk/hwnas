@@ -19,13 +19,13 @@ class BackboneBuildTests(unittest.TestCase):
         candidates = default_backbone_candidates()
         self.assertGreaterEqual(len(candidates), 6)
         self.assertEqual(candidates[0].arch_id, "simplecnn")
-        self.assertIn("fbnet_like", {candidate.arch_id for candidate in candidates})
+        self.assertIn("fbnet_a", {candidate.arch_id for candidate in candidates})
 
     def test_build_all_backbones_forward_single_channel(self) -> None:
         for backbone_name in (
             "simplecnn",
             "mobilenet_v2",
-            "fbnet_like",
+            "fbnet_a",
             "shufflenet_v2",
             "efficientnet_b0",
         ):

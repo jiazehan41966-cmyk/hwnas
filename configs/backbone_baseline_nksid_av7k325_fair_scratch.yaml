@@ -1,5 +1,5 @@
 project:
-  name: backbone-baseline-nksid-av7k325
+  name: backbone-baseline-nksid-av7k325-fair-scratch
   seed: 42
   output_dir: results
   run_name: null
@@ -27,35 +27,37 @@ constraints:
   max_latency_ms: 50.0
   max_energy_mj: null
   max_model_size_mb: null
-  max_dsp: 500
-  max_bram: 1800
-  max_lut: 100000
-  max_power_w: 20.0
+  max_dsp: 840
+  max_bram: 445
+  max_lut: 50950
+  max_power_w: 12.0
   max_memory_bandwidth_gbps: 3.0
   max_offchip_mem_mb: 128.0
 
 training:
   optimizer: adamw
-  batch_size: 16
-  epochs: 5
+  batch_size: 64
+  epochs: 240
   lr: 0.001
   min_lr: 0.00001
   weight_decay: 0.0001
-  warmup_epochs: 1
-  early_stopping_patience: 3
+  warmup_epochs: 5
+  early_stopping_patience: 20
   dropout: 0.2
 
 baseline:
   strict_pretrained: false
   topk_accuracy: 5
   selection_metric: macro_f1
+  ranking:
+    latency_tiebreak_metric: fpga_latency_ms
   pool_selection:
     export_selected_pool: true
     search_anchor_families:
       - mobilenet_v2
       - fbnet_a
       - shufflenet_v2
-    prefer_pretrained_for_search_anchor: true
+    prefer_pretrained_for_search_anchor: false
     lightweight_metric: fpga_latency_ms
     lightweight_max_macro_drop: 0.10
     role_profile_map:
@@ -63,27 +65,19 @@ baseline:
       accuracy_anchor: accuracy_biased
       lightweight_anchor: lightweight_sonar
   candidates:
-    - arch_id: simplecnn
-      name: simplecnn
-      display_name: SimpleCNN
-      pretrained: false
-    - arch_id: mobilenet_v2_pretrained
-      name: mobilenet_v2
-      display_name: MobileNetV2 (pretrained)
-      pretrained: true
     - arch_id: mobilenet_v2_scratch
       name: mobilenet_v2
-      display_name: MobileNetV2 (scratch)
+      display_name: MobileNetV2
       pretrained: false
     - arch_id: fbnet_a
       name: fbnet_a
       display_name: FBNet-A
       pretrained: false
-    - arch_id: shufflenet_v2
+    - arch_id: shufflenet_v2_scratch
       name: shufflenet_v2
       display_name: ShuffleNetV2
-      pretrained: true
-    - arch_id: efficientnet_b0
+      pretrained: false
+    - arch_id: efficientnet_b0_scratch
       name: efficientnet_b0
       display_name: EfficientNet-B0
-      pretrained: true
+      pretrained: false

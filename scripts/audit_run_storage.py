@@ -78,6 +78,8 @@ def render_markdown(entries: list[Entry], repo_root: Path) -> str:
         "",
         "- `reference/` is retained and excluded from cleanup.",
         "- `results/` should be reviewed manually before deletion or archiving.",
+        "- `Suggested Action` is heuristic only; reviewed overrides belong in "
+        "  `docs/RESULT_RETENTION_DECISIONS.md` when present.",
         "- `artifacts/server_snapshots/` is usually the safest large archive target.",
         "",
         f"Repository root: `{repo_root}`",

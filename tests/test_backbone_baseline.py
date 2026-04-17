@@ -5,6 +5,8 @@ import sys
 import tempfile
 import unittest
 
+from run_backbone_baseline import compare_results, select_backbone_pool
+
 
 class BackboneBaselineCLITests(unittest.TestCase):
     def test_backbone_baseline_cli_runs_simplecnn(self) -> None:
@@ -112,6 +114,116 @@ baseline:
             self.assertIn("mobile_anchor", selected_pool["recommended_profiles"])
             self.assertIn("accuracy_biased", selected_pool["recommended_profiles"])
             self.assertIn("lightweight_sonar", selected_pool["recommended_profiles"])
+
+
+class BackboneBaselineSelectionTests(unittest.TestCase):
+    @staticmethod
+    def _result(
+        arch_id: str,
+        backbone: str,
+        *,
+        macro_f1: float,
+        top1: float,
+        fpga_latency_ms: float,
+        cpu_latency_ms: float,
+        params: int = 1_000_000,
+        feasible: bool = True,
+        pretrained_loaded: bool = False,
+    ) -> dict:
+        return {
+            "arch_id": arch_id,
+            "display_name": arch_id,
+            "candidate": {
+                "arch_id": arch_id,
+                "name": backbone,
+                "display_name": arch_id,
+                "pretrained": pretrained_loaded,
+            },
+            "build_metadata": {
+                "name": backbone,
+                "pretrained_loaded": pretrained_loaded,
+            },
+            "evaluation": {
+                "macro_f1": macro_f1,
+                "top1": top1,
+                "top5": 1.0,
+                "weighted_f1": macro_f1,
+            },
+            "cost_estimate": {
+                "params": params,
+                "macs": params * 10,
+                "cpu_latency_ms": cpu_latency_ms,
+                "latency_ms": fpga_latency_ms,
+                "peak_dsp": 100,
+                "peak_bram": 100,
+                "peak_lut": 1000,
+                "power_w": 5.0,
+                "feasible": feasible,
+                "violations": [],
+            },
+        }
+
+    def test_compare_results_honors_configured_fpga_tiebreak(self) -> None:
+        best = self._result(
+            "best",
+            "mobilenet_v2",
+            macro_f1=0.90,
+            top1=0.95,
+            fpga_latency_ms=3.0,
+            cpu_latency_ms=1.0,
+        )
+        current = self._result(
+            "current",
+            "mobilenet_v2",
+            macro_f1=0.90,
+            top1=0.95,
+            fpga_latency_ms=2.0,
+            cpu_latency_ms=2.0,
+        )
+
+        self.assertFalse(compare_results(current, best, latency_tiebreak_metric="cpu_latency_ms"))
+        self.assertTrue(compare_results(current, best, latency_tiebreak_metric="fpga_latency_ms"))
+
+    def test_select_backbone_pool_honors_lightweight_metric(self) -> None:
+        cpu_fast = self._result(
+            "cpu_fast",
+            "mobilenet_v2",
+            macro_f1=0.90,
+            top1=0.95,
+            fpga_latency_ms=4.0,
+            cpu_latency_ms=1.0,
+            params=2_000_000,
+        )
+        fpga_fast = self._result(
+            "fpga_fast",
+            "shufflenet_v2",
+            macro_f1=0.89,
+            top1=0.94,
+            fpga_latency_ms=2.0,
+            cpu_latency_ms=3.0,
+            params=1_500_000,
+        )
+
+        pool = select_backbone_pool(
+            [cpu_fast, fpga_fast],
+            baseline_cfg={
+                "selection_metric": "macro_f1",
+                "ranking": {
+                    "latency_tiebreak_metric": "fpga_latency_ms",
+                },
+                "pool_selection": {
+                    "prefer_pretrained_for_search_anchor": False,
+                    "lightweight_metric": "cpu_latency_ms",
+                    "lightweight_max_macro_drop": 0.10,
+                    "search_anchor_families": ["mobilenet_v2", "shufflenet_v2"],
+                },
+            },
+            dataset_name="nksid",
+            board_name="alinx_av7k325",
+        )
+
+        self.assertEqual(pool["lightweight_metric"], "cpu_latency_ms")
+        self.assertEqual(pool["roles"]["lightweight_anchor"]["arch_id"], "cpu_fast")
 
 
 if __name__ == "__main__":
