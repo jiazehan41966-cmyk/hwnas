@@ -47,10 +47,10 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
             constraints=SearchConstraints(),
         )
         self.assertEqual(search_space.config.family_profile, "mobile_anchor")
-        self.assertEqual(search_space.config.stage_base_channels, (16, 24, 32, 64, 96, 160, 320))
-        self.assertEqual(search_space.config.width_multipliers, (0.75, 1.0, 1.25))
-        self.assertEqual(search_space.config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
-        self.assertEqual(search_space.config.head_conv_channels, 1280)
+        self.assertEqual(search_space.config.stage_base_channels, (8, 12, 16, 16, 20, 24, 24))
+        self.assertEqual(search_space.config.width_multipliers, (0.75, 1.0))
+        self.assertEqual(search_space.config.op_choices, ("dw_pw_conv", "mbconv", "skip"))
+        self.assertEqual(search_space.config.head_conv_channels, 320)
 
     def test_build_search_space_explicit_values_override_profile(self) -> None:
         search_space = build_search_space(
@@ -104,7 +104,7 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
                 repo_root / "configs" / "search" / "nksid_fpga_search_mobile_anchor_av7k325.yaml",
                 "mobile_anchor",
                 7,
-                1280,
+                320,
             ),
             (
                 repo_root / "configs" / "search" / "nksid_fpga_search_accuracy_biased_av7k325.yaml",

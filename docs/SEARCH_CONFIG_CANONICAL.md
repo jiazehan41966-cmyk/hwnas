@@ -32,3 +32,6 @@ Notes:
   historical reproducibility only.
 - New formal mobile-anchor experiments should use the `*_mobilenet_v2_*`
   configs above.
+- The canonical `mobile_anchor` profile is a board-feasible, MobileNetV2-inspired
+  compressed space aligned to the AV7K325 total-resource estimator rather than
+  the original macro backbone widths.

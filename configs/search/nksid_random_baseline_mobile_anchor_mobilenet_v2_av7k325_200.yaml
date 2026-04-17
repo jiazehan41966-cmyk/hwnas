@@ -27,25 +27,24 @@ search_space:
   stem_stride: 2
   post_stem_downsample_stride: 1
   stage_strides: [1, 2, 2, 2, 1, 2, 1]
-  stem_channels: 32
-  stage_base_channels: [16, 24, 32, 64, 96, 160, 320]
-  width_multipliers: [0.75, 1.0, 1.25]
+  stem_channels: 24
+  stage_base_channels: [8, 12, 16, 16, 20, 24, 24]
+  width_multipliers: [0.75, 1.0]
   stage_depth_choices:
+    - [1]
     - [1, 2]
-    - [2, 3]
-    - [2, 3, 4]
-    - [3, 4, 5]
-    - [2, 3, 4]
-    - [2, 3, 4]
     - [1, 2]
+    - [2]
+    - [1, 2]
+    - [1, 2]
+    - [1]
   kernel_choices: [3, 5]
-  expand_choices: [1, 3, 6]
+  expand_choices: [1, 2]
   op_choices:
     - dw_pw_conv
     - mbconv
-    - fused_mbconv
     - skip
-  head_conv_channels: 1280
+  head_conv_channels: 320
 
 constraints:
   max_latency_ms: 50.0

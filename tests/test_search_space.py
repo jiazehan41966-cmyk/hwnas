@@ -65,21 +65,21 @@ class FamilyProfileTests(unittest.TestCase):
     def test_mobile_anchor_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor"})
         self.assertEqual(config.family_profile, "mobile_anchor")
-        self.assertEqual(config.stem_channels, 32)
+        self.assertEqual(config.stem_channels, 24)
         self.assertEqual(config.post_stem_downsample_stride, 1)
         self.assertEqual(config.stage_strides, (1, 2, 2, 2, 1, 2, 1))
-        self.assertEqual(config.stage_base_channels, (16, 24, 32, 64, 96, 160, 320))
-        self.assertEqual(config.width_multipliers, (0.75, 1.0, 1.25))
-        self.assertEqual(config.depth_choices_for_stage(3), (3, 4, 5))
-        self.assertEqual(config.expand_choices, (1, 3, 6))
-        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
-        self.assertEqual(config.head_conv_channels, 1280)
+        self.assertEqual(config.stage_base_channels, (8, 12, 16, 16, 20, 24, 24))
+        self.assertEqual(config.width_multipliers, (0.75, 1.0))
+        self.assertEqual(config.depth_choices_for_stage(3), (2,))
+        self.assertEqual(config.expand_choices, (1, 2))
+        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "skip"))
+        self.assertEqual(config.head_conv_channels, 320)
 
     def test_mobile_anchor_baseline_architecture_tracks_anchor_channels(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor", "num_classes": 8})
         space = SearchSpace(config)
         architecture = space.baseline_architecture()
-        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (16, 24, 32, 64, 96, 160, 320))
+        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (8, 12, 16, 16, 20, 24, 24))
         self.assertEqual(space.validate(architecture), [])
 
     def test_mobile_anchor_baseline_architecture_adapts_after_pruning(self) -> None:
@@ -88,19 +88,19 @@ class FamilyProfileTests(unittest.TestCase):
                 "family_profile": "mobile_anchor",
                 "num_classes": 8,
                 "stage_channel_choices": [
+                    [6, 8, 10],
+                    [9, 12, 15],
                     [12, 16, 20],
-                    [18, 24, 30],
-                    [24, 32, 40],
-                    [48],
-                    [72],
-                    [120],
-                    [240],
+                    [12, 14],
+                    [15, 18, 22],
+                    [18, 20],
+                    [18, 20, 28],
                 ],
             }
         )
         pruned_space = SearchSpace(pruned_config)
         architecture = pruned_space.baseline_architecture()
-        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (16, 24, 32, 48, 72, 120, 240))
+        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (8, 12, 16, 14, 18, 20, 20))
         self.assertEqual(pruned_space.validate(architecture), [])
 
     def test_small_profile_resolves_expected_choices(self) -> None:
