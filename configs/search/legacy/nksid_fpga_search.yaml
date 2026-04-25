@@ -1,3 +1,6 @@
+# Historical generic search config retained for provenance only.
+# Superseded by the canonical MobileNetV2-family configs in configs/search/.
+
 project:
   name: nksid-fpga-hwnas
   seed: 42

@@ -30,8 +30,16 @@ Notes:
 
 - The older `*_shufflenet_*` mobile-anchor experiment configs are preserved for
   historical reproducibility only.
+- The older generic `nksid_fpga_search*.yaml` entry points have been moved under
+  `configs/search/legacy/` so the top-level config directory only exposes the
+  current formal paths.
 - New formal mobile-anchor experiments should use the `*_mobilenet_v2_*`
   configs above.
+- After operator screening, the canonical MobileNetV2-family searchable set is
+  `mbconv`, `fused_mbconv`, `denoise`, `edge`, and `skip`.
+- `dw_pw_conv` has been removed from the formal MobileNetV2 search profiles.
+- `mixconv` remains an optional ablation operator rather than part of the main
+  formal MobileNetV2 search space.
 - The canonical `mobile_anchor` profile is a board-feasible, MobileNetV2-inspired
   compressed space aligned to the AV7K325 total-resource estimator rather than
   the original macro backbone widths.

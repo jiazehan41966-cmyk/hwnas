@@ -169,6 +169,9 @@ class ExperimentTracker:
     def write_pruned_search_space_summary(self, payload: Mapping[str, Any]) -> None:
         self._write_json(self.results_dir / "search_space_pruned_summary.json", payload)
 
+    def write_operator_policy_summary(self, payload: Mapping[str, Any]) -> None:
+        self._write_json(self.results_dir / "operator_policy_summary.json", payload)
+
     def write_baseline(
         self,
         *,

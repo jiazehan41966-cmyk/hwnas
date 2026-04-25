@@ -26,13 +26,15 @@ from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
 from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
 
 
+# Full implementation-level capability set retained for legacy and lightweight
+# profiles. The formal MobileNetV2 mainline now excludes fused_mbconv and
+# mixconv from the default search space; denoise and edge remain research
+# operators that can stay searchable while still being deployment-conditional.
 DEFAULT_OP_CHOICES = (
     "conv",
     "dw_pw_conv",
     "mbconv",
-    "fused_mbconv",
     "skip",
-    "mixconv",
     "denoise",
     "edge",
 )
@@ -171,6 +173,129 @@ def load_lut_query_engine(config: dict[str, Any]) -> Optional[LutQueryEngine]:
     return None
 
 
+def _canonicalize_operator_policy_key(op: str) -> str:
+    normalized = str(op).strip()
+    if normalized.startswith("fused_mbconv"):
+        return "fused_mbconv"
+    if normalized.startswith("mixconv"):
+        return "mixconv"
+    if normalized.startswith("denoise"):
+        return "denoise"
+    if normalized.startswith("edge"):
+        return "edge"
+    return normalized
+
+
+def load_operator_policies(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    hardware_cfg = config.get("hardware", {})
+    manifest_path = hardware_cfg.get("operator_manifest_path")
+    if manifest_path:
+        manifest_file = Path(manifest_path).expanduser()
+        if not manifest_file.is_absolute():
+            manifest_file = (Path.cwd() / manifest_file).resolve()
+    else:
+        manifest_file = (
+            Path(__file__).resolve().parents[2]
+            / "hls_lut_builder"
+            / "configs"
+            / "operator_manifest.yaml"
+        )
+
+    if not manifest_file.exists():
+        return {}
+
+    payload = yaml.safe_load(manifest_file.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        return {}
+
+    policies: dict[str, dict[str, Any]] = {}
+    search_policy = payload.get("search_policy", {})
+    if isinstance(search_policy, dict):
+        for op in search_policy.get("default_mainline_search_ops", []):
+            key = _canonicalize_operator_policy_key(op)
+            policies.setdefault(key, {})
+            policies[key].setdefault("search_enabled", True)
+            policies[key].setdefault("deployment_status", "ready")
+        for op in search_policy.get("conditional_deployment_ops", []):
+            key = _canonicalize_operator_policy_key(op)
+            policies.setdefault(key, {})
+            policies[key]["search_enabled"] = True
+            policies[key]["deployment_status"] = "conditional"
+        for op in search_policy.get("paused_ops", []):
+            key = _canonicalize_operator_policy_key(op)
+            policies.setdefault(key, {})
+            policies[key]["search_enabled"] = False
+            policies[key]["deployment_status"] = "paused"
+        for op in search_policy.get("dropped_current_target_ops", []):
+            key = _canonicalize_operator_policy_key(op)
+            policies.setdefault(key, {})
+            policies[key]["search_enabled"] = False
+            policies[key]["deployment_status"] = "dropped_current_target"
+
+    operator_status = payload.get("operator_status", {})
+    if isinstance(operator_status, dict):
+        for op, policy in operator_status.items():
+            if not isinstance(policy, dict):
+                continue
+            key = _canonicalize_operator_policy_key(op)
+            policies.setdefault(key, {})
+            policies[key].update(policy)
+
+    return policies
+
+
+def apply_operator_policies_to_search_space(
+    search_space: SearchSpace,
+    operator_policies: dict[str, dict[str, Any]],
+) -> tuple[SearchSpace, dict[str, Any]]:
+    original_ops = tuple(search_space.config.op_choices)
+    kept_ops: list[str] = []
+    removed_ops: list[dict[str, Any]] = []
+    conditional_ops: list[dict[str, Any]] = []
+
+    for op in original_ops:
+        policy = dict(operator_policies.get(str(op).strip(), {}))
+        if policy and not bool(policy.get("search_enabled", True)):
+            removed_ops.append(
+                {
+                    "op": op,
+                    "deployment_status": policy.get("deployment_status"),
+                    "reason": policy.get("reason"),
+                }
+            )
+            continue
+
+        kept_ops.append(op)
+        if str(policy.get("deployment_status", "")).strip() == "conditional":
+            conditional_ops.append(
+                {
+                    "op": op,
+                    "achieved_post_route_fmax_mhz": policy.get("achieved_post_route_fmax_mhz"),
+                    "latency_rule": (
+                        policy.get("hardware_cost_policy", {}) or {}
+                    ).get("latency_rule"),
+                    "deployable_at_200mhz": (
+                        policy.get("hardware_cost_policy", {}) or {}
+                    ).get("deployable_at_200mhz"),
+                }
+            )
+
+    summary = {
+        "original_ops": list(original_ops),
+        "kept_ops": list(kept_ops),
+        "removed_ops": removed_ops,
+        "conditional_ops": conditional_ops,
+    }
+
+    if tuple(kept_ops) == original_ops:
+        return search_space, summary
+
+    payload = dict(vars(search_space.config))
+    payload["op_choices"] = tuple(kept_ops)
+    filtered_space = SearchSpace(SearchSpaceConfig.from_dict(payload))
+    return filtered_space, summary
+
+
 def build_cost_estimator(
     config: dict[str, Any],
     *,
@@ -183,6 +308,10 @@ def build_cost_estimator(
         constraints=constraints,
         quantization_bits=hardware_cfg.get("quantization_bits", 8),
         lut_query_engine=load_lut_query_engine(config),
+        operator_policies=load_operator_policies(config),
+        require_deployable_operators=bool(
+            hardware_cfg.get("require_deployable_operators", False)
+        ),
     )
 
 

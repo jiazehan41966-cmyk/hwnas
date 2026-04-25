@@ -1,0 +1,56 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int CH_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[1],
+    const acc_t biases[1]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    (void)weights;
+    (void)biases;
+
+    data_t input_channels[IN_CH];
+    data_t output_channels[OUT_CH];
+    acc_t channel_sums[OUT_CH];
+#pragma HLS ARRAY_PARTITION variable=input_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=output_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=channel_sums dim=1 cyclic factor=CH_TILE
+
+    for (int c = 0; c < OUT_CH; ++c) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+        channel_sums[c] = 0;
+    }
+
+    for (int h = 0; h < IN_H; ++h) {
+        for (int w = 0; w < IN_W; ++w) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+            input_axis_t in_packet = input_stream.read();
+            unpack_axis_channels<IN_CH>(in_packet, input_channels);
+            for (int c = 0; c < OUT_CH; ++c) {
+#pragma HLS UNROLL factor=CH_TILE
+                channel_sums[c] += static_cast<acc_t>(input_channels[c]);
+            }
+        }
+    }
+
+    for (int c = 0; c < OUT_CH; ++c) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+        output_channels[c] = saturate_to_data(channel_sums[c] / (IN_H * IN_W));
+    }
+
+    output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(output_channels, true);
+    output_stream.write(out_packet);
+}

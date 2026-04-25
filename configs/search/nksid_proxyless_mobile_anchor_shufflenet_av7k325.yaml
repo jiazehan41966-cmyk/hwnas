@@ -37,7 +37,6 @@ search_space:
   op_choices:
     - dw_pw_conv
     - mbconv
-    - fused_mbconv
     - skip
   head_conv_channels: 1024
 

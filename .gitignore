@@ -1,5 +1,13 @@
 results/
 results_archive/
+hls_lut_builder/results/
+hls_lut_builder/board_harness/_vivado_builds/
+hls_lut_builder/board_harness/projects/
+vitis_hls.log
+vivado*.log
+vivado*.jou
+clockInfo.txt
+results-launch/*.nohup.log
 !artifacts/**/results/
 !artifacts/**/results/**
 artifacts/**/*.pkl

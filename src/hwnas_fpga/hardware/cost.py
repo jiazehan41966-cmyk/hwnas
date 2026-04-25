@@ -34,6 +34,13 @@ class LayerCost:
     bram_blocks: int
     lut: int
     latency_cycles: int
+    latency_ms_override: Optional[float] = None
+    effective_clock_mhz: Optional[float] = None
+
+    def resolved_latency_ms(self, default_clock_mhz: float) -> float:
+        if self.latency_ms_override is not None:
+            return float(self.latency_ms_override)
+        return float(self.latency_cycles) / (float(default_clock_mhz) * 1_000.0)
 
 
 @dataclass(frozen=True)
@@ -94,6 +101,8 @@ class FPGACostEstimator:
         pipeline_efficiency: float = 0.7,
         default_dsp_budget: int = 256,
         lut_query_engine: Optional[LutQueryEngine] = None,
+        operator_policies: Optional[dict[str, dict[str, Any]]] = None,
+        require_deployable_operators: bool = False,
     ) -> None:
         if quantization_bits <= 0:
             raise ValueError("quantization_bits must be positive")
@@ -105,6 +114,11 @@ class FPGACostEstimator:
         self.pipeline_efficiency = pipeline_efficiency
         self.default_dsp_budget = default_dsp_budget
         self.lut_query_engine = lut_query_engine
+        self.operator_policies = {
+            str(op).strip(): dict(policy)
+            for op, policy in (operator_policies or {}).items()
+        }
+        self.require_deployable_operators = bool(require_deployable_operators)
         self.lut_hits = 0  # LUT 鍛戒腑璁℃暟
         self.lut_misses = 0  # LUT 鏈懡涓鏁?
     def estimate(
@@ -139,7 +153,10 @@ class FPGACostEstimator:
         total_bram = sum(layer.bram_blocks for layer in per_layer)
         total_lut = sum(layer.lut for layer in per_layer)
         latency_cycles = sum(layer.latency_cycles for layer in per_layer)
-        latency_ms = latency_cycles / (self.hardware_spec.clock_mhz * 1_000)
+        latency_ms = sum(
+            layer.resolved_latency_ms(self.hardware_spec.clock_mhz)
+            for layer in per_layer
+        )
         model_size_mb = total_params * self._bytes_per_scalar / (1024**2)
         power_w = self._estimate_power(
             peak_dsp=peak_dsp,
@@ -155,17 +172,21 @@ class FPGACostEstimator:
             latency_ms=latency_ms,
         )
         offchip_mem_mb = self._estimate_offchip_memory(peak_buffer_bytes)
-        violations = self._check_constraints(
-            latency_ms=latency_ms,
-            energy_mj=energy_mj,
-            model_size_mb=model_size_mb,
-            resource_dsp=total_dsp,
-            resource_bram=total_bram,
-            resource_lut=total_lut,
-            power_w=power_w,
-            memory_bandwidth_gbps=memory_bandwidth_gbps,
-            offchip_mem_mb=offchip_mem_mb,
+        violations = list(
+            self._check_constraints(
+                latency_ms=latency_ms,
+                energy_mj=energy_mj,
+                model_size_mb=model_size_mb,
+                resource_dsp=total_dsp,
+                resource_bram=total_bram,
+                resource_lut=total_lut,
+                power_w=power_w,
+                memory_bandwidth_gbps=memory_bandwidth_gbps,
+                offchip_mem_mb=offchip_mem_mb,
+            )
         )
+        violations.extend(self._check_operator_policy(resolved_blocks))
+        violations = list(dict.fromkeys(violations))
 
         return CostEstimate(
             params=total_params,
@@ -186,7 +207,7 @@ class FPGACostEstimator:
             energy_mj=energy_mj,
             memory_bandwidth_gbps=memory_bandwidth_gbps,
             offchip_mem_mb=offchip_mem_mb,
-            violations=violations,
+            violations=tuple(violations),
             per_layer=per_layer,
         )
 
@@ -392,12 +413,19 @@ class FPGACostEstimator:
         return tuple(head_layers)
 
     def _estimate_block(self, block: ResolvedBlockSpec) -> LayerCost:
+        latency_clock_mhz = self._effective_clock_mhz(block.op)
+        latency_ms_override: Optional[float] = None
         # 1. 灏濊瘯 LUT 鏌ヨ锛堝鏋滃彲鐢級
         if self.lut_query_engine:
             op_spec = self._block_to_op_spec(block)
             lut_entry = self.lut_query_engine.query(op_spec)
             if lut_entry:
                 self.lut_hits += 1
+                latency_ms_override = self._latency_override_ms(
+                    block.op,
+                    cycles=lut_entry.cycles,
+                    fallback_latency_ms=lut_entry.latency_ms,
+                )
                 # 璁＄畻鍏朵粬鍒嗘瀽鎸囨爣锛坧arams, macs 绛夛級
                 params, macs = self._block_params_macs(block)
                 weight_bytes = params * self._bytes_per_scalar
@@ -420,6 +448,8 @@ class FPGACostEstimator:
                     bram_blocks=lut_entry.bram,
                     lut=lut_entry.lut,
                     latency_cycles=lut_entry.cycles,
+                    latency_ms_override=latency_ms_override,
+                    effective_clock_mhz=latency_clock_mhz,
                 )
             self.lut_misses += 1
 
@@ -445,6 +475,8 @@ class FPGACostEstimator:
                 bram_blocks=bram_blocks,
                 lut=32,
                 latency_cycles=1,
+                latency_ms_override=self._latency_override_ms(block.op, cycles=1),
+                effective_clock_mhz=latency_clock_mhz,
             )
 
         params, macs, raw_dsp = self._block_complexity(block)
@@ -476,7 +508,73 @@ class FPGACostEstimator:
             bram_blocks=bram_blocks,
             lut=lut,
             latency_cycles=latency_cycles,
+            latency_ms_override=self._latency_override_ms(
+                block.op,
+                cycles=latency_cycles,
+            ),
+            effective_clock_mhz=latency_clock_mhz,
         )
+
+    def _operator_policy_for(self, op: str) -> dict[str, Any]:
+        return dict(self.operator_policies.get(str(op).strip(), {}))
+
+    def _effective_clock_mhz(self, op: str) -> Optional[float]:
+        policy = self._operator_policy_for(op)
+        cost_policy = policy.get("hardware_cost_policy", {})
+        if not isinstance(cost_policy, dict):
+            return None
+        if cost_policy.get("latency_rule") != "use_actual_post_route_fmax":
+            return None
+        fmax = policy.get("achieved_post_route_fmax_mhz")
+        if fmax is None:
+            return None
+        return float(fmax)
+
+    def _latency_override_ms(
+        self,
+        op: str,
+        *,
+        cycles: int,
+        fallback_latency_ms: Optional[float] = None,
+    ) -> Optional[float]:
+        effective_clock_mhz = self._effective_clock_mhz(op)
+        if effective_clock_mhz is not None and cycles > 0:
+            return float(cycles) / (effective_clock_mhz * 1_000.0)
+        if fallback_latency_ms is not None:
+            return float(fallback_latency_ms)
+        return None
+
+    def _check_operator_policy(
+        self,
+        resolved_blocks: tuple[ResolvedBlockSpec, ...],
+    ) -> list[str]:
+        violations: list[str] = []
+        for block in resolved_blocks:
+            policy = self._operator_policy_for(block.op)
+            if not policy:
+                continue
+
+            deployment_status = str(policy.get("deployment_status", "")).strip()
+            if deployment_status == "paused":
+                violations.append(f"operator {block.op} is paused in current target policy")
+                continue
+            if deployment_status == "dropped_current_target":
+                violations.append(f"operator {block.op} is dropped for current target")
+                continue
+
+            if not self.require_deployable_operators:
+                continue
+
+            cost_policy = policy.get("hardware_cost_policy", {})
+            if not isinstance(cost_policy, dict):
+                continue
+            if deployment_status == "conditional" and not bool(
+                cost_policy.get("deployable_at_200mhz", True)
+            ):
+                violations.append(
+                    f"operator {block.op} is not deployable at 200MHz under current policy"
+                )
+        return violations
 
     def _block_complexity(self, block: ResolvedBlockSpec) -> tuple[int, int, int]:
         if block.op == "conv":
@@ -804,7 +902,10 @@ class FPGACostEstimator:
 
     def _block_to_op_spec(self, block: ResolvedBlockSpec) -> OpSpec:
         """灏?ResolvedBlockSpec 杞崲涓?OpSpec锛岀敤浜?LUT 鏌ヨ"""
-        # 鏄犲皠绠楀瓙鍚嶇О
+        # 查询侧继续使用 NAS/search-space 的 block 名称。
+        # HLS profiling manifest 里更细粒度的 kernel 名称
+        # （例如 conv_bn_relu6 / inverted_residual）会在 OpSpec 导入阶段
+        # 归一化到这里的查询口径。
         op_mapping = {
             "conv": "conv",
             "dw_pw_conv": "dw_pw_conv",

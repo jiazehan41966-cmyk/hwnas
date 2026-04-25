@@ -1,0 +1,314 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int EXP_CH = __EXPANDED_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int K = __KERNEL_SIZE__;
+static constexpr int STRIDE = __STRIDE__;
+static constexpr int PAD = __PADDING__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+static constexpr int PADDED_H = IN_H + (2 * PAD);
+static constexpr int PADDED_W = IN_W + (2 * PAD);
+static constexpr int EXP_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+static constexpr bool USE_RESIDUAL = (STRIDE == 1) && (IN_CH == OUT_CH);
+
+static constexpr int EXPAND_WEIGHT_SIZE = EXP_CH * IN_CH;
+static constexpr int DEPTHWISE_WEIGHT_SIZE = EXP_CH * K * K;
+static constexpr int PROJECT_WEIGHT_SIZE = OUT_CH * EXP_CH;
+static constexpr int WEIGHT_SIZE = EXPAND_WEIGHT_SIZE + DEPTHWISE_WEIGHT_SIZE + PROJECT_WEIGHT_SIZE;
+static constexpr int EXPAND_BIAS_SIZE = EXP_CH;
+static constexpr int DEPTHWISE_BIAS_SIZE = EXP_CH;
+static constexpr int PROJECT_BIAS_SIZE = OUT_CH;
+static constexpr int BIAS_SIZE = EXPAND_BIAS_SIZE + DEPTHWISE_BIAS_SIZE + PROJECT_BIAS_SIZE;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(EXP_CH * 8) expanded_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+typedef ap_uint<IN_CH * 8> input_word_t;
+typedef ap_uint<EXP_CH * 8> expanded_word_t;
+
+static void expand_stage(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<expanded_word_t> &expanded_stream,
+    hls::stream<input_word_t> &residual_stream,
+    const weight_t expand_weights[EXP_CH][IN_CH],
+    const acc_t expand_bias[EXP_CH]
+) {
+    data_t input_channels[IN_CH];
+    data_t expanded_channels[EXP_CH];
+    acc_t acc_tile[EXP_TILE];
+#pragma HLS ARRAY_PARTITION variable=input_channels cyclic factor=EXP_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=expanded_channels cyclic factor=EXP_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int ih = 0; ih < IN_H; ++ih) {
+        for (int iw = 0; iw < IN_W; ++iw) {
+            input_axis_t in_packet = input_stream.read();
+            unpack_axis_channels<IN_CH>(in_packet, input_channels);
+            if (USE_RESIDUAL) {
+                residual_stream.write(in_packet.data);
+            }
+
+            for (int ec_base = 0; ec_base < EXP_CH; ec_base += EXP_TILE) {
+                for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int ec = ec_base + lane;
+                    acc_tile[lane] = (ec < EXP_CH) ? expand_bias[ec] : static_cast<acc_t>(0);
+                }
+
+                for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                    const data_t sample = input_channels[ic];
+                    for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int ec = ec_base + lane;
+                        if (ec < EXP_CH) {
+                            acc_tile[lane] += static_cast<acc_t>(sample) * static_cast<acc_t>(expand_weights[ec][ic]);
+                        }
+                    }
+                }
+
+                for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int ec = ec_base + lane;
+                    if (ec < EXP_CH) {
+                        expanded_channels[ec] = relu6_quant(acc_tile[lane]);
+                    }
+                }
+            }
+
+            expanded_stream.write(pack_channels<EXP_CH>(expanded_channels));
+        }
+    }
+}
+
+static void depthwise_stage(
+    hls::stream<expanded_word_t> &expanded_stream,
+    hls::stream<expanded_word_t> &depthwise_stream,
+    const weight_t depthwise_weights[EXP_CH][K][K],
+    const acc_t depthwise_bias[EXP_CH]
+) {
+    data_t line_buffer[EXP_CH][K][PADDED_W];
+    data_t incoming_channels[EXP_CH];
+    data_t depthwise_channels[EXP_CH];
+    acc_t acc_tile[EXP_TILE];
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=2 complete
+#pragma HLS ARRAY_PARTITION variable=incoming_channels cyclic factor=EXP_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=depthwise_channels cyclic factor=EXP_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int ec = 0; ec < EXP_CH; ++ec) {
+        for (int kh = 0; kh < K; ++kh) {
+            for (int pw = 0; pw < PADDED_W; ++pw) {
+                line_buffer[ec][kh][pw] = 0;
+            }
+        }
+    }
+
+    for (int ph = 0; ph < PADDED_H; ++ph) {
+        for (int pw = 0; pw < PADDED_W; ++pw) {
+            const bool valid_input = (ph >= PAD) && (ph < (PAD + IN_H)) && (pw >= PAD) && (pw < (PAD + IN_W));
+            if (valid_input) {
+                expanded_word_t packet = expanded_stream.read();
+                unpack_packed_channels<EXP_CH>(packet, incoming_channels);
+            } else {
+                for (int ec = 0; ec < EXP_CH; ++ec) {
+                    incoming_channels[ec] = 0;
+                }
+            }
+
+            for (int ec = 0; ec < EXP_CH; ++ec) {
+                for (int kh = 0; kh < K - 1; ++kh) {
+                    line_buffer[ec][kh][pw] = line_buffer[ec][kh + 1][pw];
+                }
+                line_buffer[ec][K - 1][pw] = incoming_channels[ec];
+            }
+
+            if (ph < (K - 1) || pw < (K - 1)) {
+                continue;
+            }
+
+            const int conv_h = ph - (K - 1);
+            const int conv_w = pw - (K - 1);
+            if ((conv_h % STRIDE) != 0 || (conv_w % STRIDE) != 0) {
+                continue;
+            }
+
+            const int oh = conv_h / STRIDE;
+            const int ow = conv_w / STRIDE;
+            if (oh >= OUT_H || ow >= OUT_W) {
+                continue;
+            }
+
+            for (int ec_base = 0; ec_base < EXP_CH; ec_base += EXP_TILE) {
+                for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int ec = ec_base + lane;
+                    acc_tile[lane] = (ec < EXP_CH) ? depthwise_bias[ec] : static_cast<acc_t>(0);
+                }
+
+                for (int kh = 0; kh < K; ++kh) {
+                    for (int kw = 0; kw < K; ++kw) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                        const int buffer_w = conv_w + kw;
+                        for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                            const int ec = ec_base + lane;
+                            if (ec < EXP_CH) {
+                                acc_tile[lane] +=
+                                    static_cast<acc_t>(line_buffer[ec][kh][buffer_w]) *
+                                    static_cast<acc_t>(depthwise_weights[ec][kh][kw]);
+                            }
+                        }
+                    }
+                }
+
+                for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int ec = ec_base + lane;
+                    if (ec < EXP_CH) {
+                        depthwise_channels[ec] = relu6_quant(acc_tile[lane]);
+                    }
+                }
+            }
+
+            depthwise_stream.write(pack_channels<EXP_CH>(depthwise_channels));
+        }
+    }
+}
+
+static void project_stage(
+    hls::stream<expanded_word_t> &depthwise_stream,
+    hls::stream<input_word_t> &residual_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t project_weights[OUT_CH][EXP_CH],
+    const acc_t project_bias[OUT_CH]
+) {
+    data_t depthwise_channels[EXP_CH];
+    data_t residual_channels[IN_CH];
+    data_t output_channels[OUT_CH];
+    acc_t acc_tile[OUT_TILE];
+#pragma HLS ARRAY_PARTITION variable=depthwise_channels cyclic factor=EXP_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=residual_channels cyclic factor=OUT_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int oh = 0; oh < OUT_H; ++oh) {
+        for (int ow = 0; ow < OUT_W; ++ow) {
+            expanded_word_t depthwise_packet = depthwise_stream.read();
+            unpack_packed_channels<EXP_CH>(depthwise_packet, depthwise_channels);
+            if (USE_RESIDUAL) {
+                input_word_t residual_packet = residual_stream.read();
+                unpack_packed_channels<IN_CH>(residual_packet, residual_channels);
+            }
+
+            for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    acc_tile[lane] = (oc < OUT_CH) ? project_bias[oc] : static_cast<acc_t>(0);
+                }
+
+                for (int ec = 0; ec < EXP_CH; ++ec) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                    const data_t sample = depthwise_channels[ec];
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        if (oc < OUT_CH) {
+                            acc_tile[lane] += static_cast<acc_t>(sample) * static_cast<acc_t>(project_weights[oc][ec]);
+                        }
+                    }
+                }
+
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    if (oc < OUT_CH) {
+                        acc_t acc = acc_tile[lane];
+                        if (USE_RESIDUAL) {
+                            acc += static_cast<acc_t>(residual_channels[oc]);
+                        }
+                        output_channels[oc] = saturate_to_data(acc);
+                    }
+                }
+            }
+
+            output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(
+                output_channels,
+                (oh == (OUT_H - 1)) && (ow == (OUT_W - 1))
+            );
+            output_stream.write(out_packet);
+        }
+    }
+}
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[WEIGHT_SIZE],
+    const acc_t biases[BIAS_SIZE]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    weight_t expand_weights[EXP_CH][IN_CH];
+    weight_t depthwise_weights[EXP_CH][K][K];
+    weight_t project_weights[OUT_CH][EXP_CH];
+    acc_t expand_bias[EXP_CH];
+    acc_t depthwise_bias[EXP_CH];
+    acc_t project_bias[OUT_CH];
+    hls::stream<expanded_word_t> expanded_stream("expanded_stream");
+    hls::stream<expanded_word_t> depthwise_stream("depthwise_stream");
+    hls::stream<input_word_t> residual_stream("residual_stream");
+
+#pragma HLS ARRAY_PARTITION variable=expand_weights dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=expand_weights dim=2 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=depthwise_weights dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=depthwise_weights dim=2 complete
+#pragma HLS ARRAY_PARTITION variable=depthwise_weights dim=3 complete
+#pragma HLS ARRAY_PARTITION variable=project_weights dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=project_weights dim=2 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=expand_bias dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=depthwise_bias dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=project_bias dim=1 cyclic factor=OUT_TILE
+#pragma HLS STREAM variable=expanded_stream depth=4
+#pragma HLS STREAM variable=depthwise_stream depth=4
+#pragma HLS STREAM variable=residual_stream depth=4
+
+    const int expand_weight_base = 0;
+    const int depthwise_weight_base = EXPAND_WEIGHT_SIZE;
+    const int project_weight_base = EXPAND_WEIGHT_SIZE + DEPTHWISE_WEIGHT_SIZE;
+    const int depthwise_bias_base = EXPAND_BIAS_SIZE;
+    const int project_bias_base = EXPAND_BIAS_SIZE + DEPTHWISE_BIAS_SIZE;
+
+    for (int ec = 0; ec < EXP_CH; ++ec) {
+        expand_bias[ec] = biases[ec];
+        depthwise_bias[ec] = biases[depthwise_bias_base + ec];
+        for (int ic = 0; ic < IN_CH; ++ic) {
+            expand_weights[ec][ic] = weights[expand_weight_base + (ec * IN_CH) + ic];
+        }
+        for (int kh = 0; kh < K; ++kh) {
+            for (int kw = 0; kw < K; ++kw) {
+                depthwise_weights[ec][kh][kw] =
+                    weights[depthwise_weight_base + (ec * K * K) + (kh * K) + kw];
+            }
+        }
+    }
+
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+        project_bias[oc] = biases[project_bias_base + oc];
+        for (int ec = 0; ec < EXP_CH; ++ec) {
+            project_weights[oc][ec] = weights[project_weight_base + (oc * EXP_CH) + ec];
+        }
+    }
+
+#pragma HLS DATAFLOW
+    expand_stage(input_stream, expanded_stream, residual_stream, expand_weights, expand_bias);
+    depthwise_stage(expanded_stream, depthwise_stream, depthwise_weights, depthwise_bias);
+    project_stage(depthwise_stream, residual_stream, output_stream, project_weights, project_bias);
+}

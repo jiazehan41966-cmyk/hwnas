@@ -1,0 +1,223 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int EXP_CH = __EXPANDED_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int K = __KERNEL_SIZE__;
+static constexpr int STRIDE = __STRIDE__;
+static constexpr int PAD = __PADDING__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+static constexpr int PADDED_H = IN_H + (2 * PAD);
+static constexpr int PADDED_W = IN_W + (2 * PAD);
+static constexpr int EXP_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+static constexpr int ACC_TILE = (EXP_TILE > OUT_TILE) ? EXP_TILE : OUT_TILE;
+static constexpr bool USE_RESIDUAL = (STRIDE == 1) && (IN_CH == OUT_CH);
+static constexpr int FUSED_WEIGHT_SIZE = EXP_CH * IN_CH * K * K;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[FUSED_WEIGHT_SIZE + (OUT_CH * EXP_CH)],
+    const acc_t biases[EXP_CH + OUT_CH]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    weight_t fused_weights[EXP_CH][IN_CH][K][K];
+    weight_t project_weights[OUT_CH][EXP_CH];
+    acc_t fused_bias[EXP_CH];
+    acc_t project_bias[OUT_CH];
+    data_t line_buffer[IN_CH][K][PADDED_W];
+    data_t incoming_channels[IN_CH];
+    data_t residual_channels[IN_CH];
+    data_t expanded_channels[EXP_CH];
+    data_t output_channels[OUT_CH];
+    acc_t acc_tile[ACC_TILE];
+#pragma HLS ARRAY_PARTITION variable=fused_weights dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=fused_weights dim=3 complete
+#pragma HLS ARRAY_PARTITION variable=fused_weights dim=4 complete
+#pragma HLS ARRAY_PARTITION variable=project_weights dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=fused_bias dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=project_bias dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=2 complete
+#pragma HLS ARRAY_PARTITION variable=incoming_channels dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=residual_channels dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=expanded_channels dim=1 cyclic factor=EXP_TILE
+#pragma HLS ARRAY_PARTITION variable=output_channels dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+init_fused_bias:
+    for (int ec = 0; ec < EXP_CH; ++ec) {
+        fused_bias[ec] = biases[ec];
+    }
+
+init_project_bias:
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+        project_bias[oc] = biases[EXP_CH + oc];
+    }
+
+init_fused_weights:
+    for (int ec = 0; ec < EXP_CH; ++ec) {
+        for (int ic = 0; ic < IN_CH; ++ic) {
+            for (int kh = 0; kh < K; ++kh) {
+                for (int kw = 0; kw < K; ++kw) {
+                    const int idx = (((ec * IN_CH) + ic) * K * K) + (kh * K) + kw;
+                    fused_weights[ec][ic][kh][kw] = weights[idx];
+                }
+            }
+        }
+    }
+
+init_project_weights:
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+        for (int ec = 0; ec < EXP_CH; ++ec) {
+            project_weights[oc][ec] = weights[FUSED_WEIGHT_SIZE + (oc * EXP_CH) + ec];
+        }
+    }
+
+clear_line_buffer:
+    for (int ic = 0; ic < IN_CH; ++ic) {
+        for (int kh = 0; kh < K; ++kh) {
+            for (int pw = 0; pw < PADDED_W; ++pw) {
+                line_buffer[ic][kh][pw] = 0;
+            }
+        }
+    }
+
+    int out_row = 0;
+    int out_col = 0;
+fused_rows:
+    for (int ph = 0; ph < PADDED_H; ++ph) {
+fused_cols:
+        for (int pw = 0; pw < PADDED_W; ++pw) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+            const bool input_valid =
+                (ph >= PAD) && (ph < (PAD + IN_H)) &&
+                (pw >= PAD) && (pw < (PAD + IN_W));
+
+            if (input_valid) {
+                input_axis_t in_packet = input_stream.read();
+                unpack_axis_channels<IN_CH>(in_packet, incoming_channels);
+                if (USE_RESIDUAL) {
+                    for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS UNROLL factor=EXP_TILE
+                        residual_channels[ic] = incoming_channels[ic];
+                    }
+                }
+            } else {
+                for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS UNROLL factor=EXP_TILE
+                    incoming_channels[ic] = 0;
+                }
+            }
+
+            for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS UNROLL factor=EXP_TILE
+                for (int kh = 0; kh < K - 1; ++kh) {
+#pragma HLS UNROLL
+                    line_buffer[ic][kh][pw] = line_buffer[ic][kh + 1][pw];
+                }
+                line_buffer[ic][K - 1][pw] = incoming_channels[ic];
+            }
+
+            const bool output_valid =
+                (ph >= (K - 1)) && (pw >= (K - 1)) &&
+                (((ph - (K - 1)) % STRIDE) == 0) &&
+                (((pw - (K - 1)) % STRIDE) == 0) &&
+                (out_row < OUT_H) && (out_col < OUT_W);
+
+            if (output_valid) {
+                const int window_base = pw - (K - 1);
+
+expand_tiles:
+                for (int ec_base = 0; ec_base < EXP_CH; ec_base += EXP_TILE) {
+                    for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int ec = ec_base + lane;
+                        acc_tile[lane] = (ec < EXP_CH) ? fused_bias[ec] : static_cast<acc_t>(0);
+                    }
+
+                    for (int ic = 0; ic < IN_CH; ++ic) {
+                        for (int kh = 0; kh < K; ++kh) {
+                            for (int kw = 0; kw < K; ++kw) {
+                                const data_t sample = line_buffer[ic][kh][window_base + kw];
+                                for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                                    const int ec = ec_base + lane;
+                                    if (ec < EXP_CH) {
+                                        acc_tile[lane] +=
+                                            static_cast<acc_t>(sample) *
+                                            static_cast<acc_t>(fused_weights[ec][ic][kh][kw]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    for (int lane = 0; lane < EXP_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int ec = ec_base + lane;
+                        if (ec < EXP_CH) {
+                            expanded_channels[ec] = relu6_quant(acc_tile[lane]);
+                        }
+                    }
+                }
+
+project_tiles:
+                for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        acc_tile[lane] = (oc < OUT_CH) ? project_bias[oc] : static_cast<acc_t>(0);
+                    }
+
+                    for (int ec = 0; ec < EXP_CH; ++ec) {
+                        const data_t sample = expanded_channels[ec];
+                        for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                            const int oc = oc_base + lane;
+                            if (oc < OUT_CH) {
+                                acc_tile[lane] +=
+                                    static_cast<acc_t>(sample) *
+                                    static_cast<acc_t>(project_weights[oc][ec]);
+                            }
+                        }
+                    }
+
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        if (oc < OUT_CH) {
+                            acc_t result = acc_tile[lane];
+                            if (USE_RESIDUAL) {
+                                result += residual_channels[oc];
+                            }
+                            output_channels[oc] = saturate_to_data(result);
+                        }
+                    }
+                }
+
+                output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(
+                    output_channels,
+                    (out_row == (OUT_H - 1)) && (out_col == (OUT_W - 1))
+                );
+                output_stream.write(out_packet);
+
+                ++out_col;
+                if (out_col == OUT_W) {
+                    out_col = 0;
+                    ++out_row;
+                }
+            }
+        }
+    }
+}

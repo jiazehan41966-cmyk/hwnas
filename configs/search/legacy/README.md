@@ -9,5 +9,7 @@ Typical contents:
 - old 120-budget baselines
 - CPU-runnable or MIT-aligned comparisons
 - one-off strategy comparison sweeps
+- superseded generic `nksid_fpga_search*.yaml` entry points retained only for
+  provenance after the MobileNetV2 mainline switch on 2026-04-18
 
 Current active configs stay one level up in `configs/search/`.

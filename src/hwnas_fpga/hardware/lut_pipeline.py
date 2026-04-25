@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Optional
 
@@ -21,18 +22,30 @@ _SPEC_KEYS = {
     "groups",
     "expand_ratio",
     "input_resolution",
+    "bitwidth",
+    "input_parallelism",
+    "output_parallelism",
+    "unroll_factor",
+    "target_clock_mhz",
 }
 
 _METRIC_KEYS = {
     "latency_ms",
     "latency_ns",
     "cycles",
+    "ii",
+    "depth",
     "dsp",
     "bram",
+    "bram_18k",
+    "bram_36k",
     "lut",
     "ff",
+    "estimated_clock_period_ns",
+    "fmax_est_mhz",
     "power_w",
     "energy_mj",
+    "bram_tile",
 }
 
 
@@ -177,11 +190,26 @@ def _collect_metrics(raw_entry: dict[str, Any], manifest_dir: Path) -> dict[str,
     if report_path is not None:
         metrics.update(parse_hls_report(report_path))
 
+    hls_estimate = raw_entry.get("hls_estimate", {})
+    if hls_estimate:
+        if not isinstance(hls_estimate, dict):
+            raise ValueError("Manifest entry 'hls_estimate' must be a mapping")
+        hls_metrics = hls_estimate.get("metrics", {})
+        if hls_metrics and not isinstance(hls_metrics, dict):
+            raise ValueError("Manifest entry 'hls_estimate.metrics' must be a mapping")
+        metrics.update(hls_metrics)
+
     raw_metrics = raw_entry.get("metrics", {})
     if raw_metrics:
         if not isinstance(raw_metrics, dict):
             raise ValueError("Manifest entry 'metrics' must be a mapping")
         metrics.update(raw_metrics)
+
+    vivado_actual = raw_entry.get("vivado_actual", {})
+    if vivado_actual:
+        if not isinstance(vivado_actual, dict):
+            raise ValueError("Manifest entry 'vivado_actual' must be a mapping")
+        metrics.update(_extract_vivado_actual_metrics(vivado_actual))
 
     for key in _METRIC_KEYS:
         if key in raw_entry:
@@ -209,3 +237,42 @@ def _resolve_report_path(raw_entry: dict[str, Any], manifest_dir: Path) -> Optio
     if not report_path.exists():
         raise FileNotFoundError(f"Profiling report not found: {report_path}")
     return report_path
+
+
+def _extract_vivado_actual_metrics(vivado_actual: dict[str, Any]) -> dict[str, Any]:
+    payload = vivado_actual.get("metrics", {})
+    if not isinstance(payload, dict) or not payload:
+        return {}
+
+    preferred_stage = None
+    for stage_name in ("post_route", "post_synth"):
+        stage_payload = payload.get(stage_name)
+        if isinstance(stage_payload, dict) and stage_payload:
+            preferred_stage = stage_payload
+            break
+
+    if preferred_stage is None:
+        return {}
+
+    metrics: dict[str, Any] = {}
+    if preferred_stage.get("dsp") is not None:
+        metrics["dsp"] = int(preferred_stage["dsp"])
+    if preferred_stage.get("lut") is not None:
+        metrics["lut"] = int(preferred_stage["lut"])
+    if preferred_stage.get("ff") is not None:
+        metrics["ff"] = int(preferred_stage["ff"])
+    if preferred_stage.get("fmax_est_mhz") is not None:
+        metrics["fmax_est_mhz"] = float(preferred_stage["fmax_est_mhz"])
+        if metrics["fmax_est_mhz"] > 0:
+            metrics["estimated_clock_period_ns"] = 1_000.0 / metrics["fmax_est_mhz"]
+
+    block_ram_tile = preferred_stage.get("block_ram_tile")
+    if block_ram_tile is not None:
+        metrics["bram_tile"] = float(block_ram_tile)
+        metrics["bram"] = int(math.ceil(float(block_ram_tile)))
+    if preferred_stage.get("ramb18") is not None:
+        metrics["bram_18k"] = int(preferred_stage["ramb18"])
+    if preferred_stage.get("ramb36") is not None:
+        metrics["bram_36k"] = int(preferred_stage["ramb36"])
+
+    return metrics

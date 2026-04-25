@@ -12,23 +12,26 @@ if TYPE_CHECKING:
 
 
 DEFAULT_STAGE_STRIDES = (1, 2, 2, 2)
+# Full capability set retained for legacy and auxiliary profiles. Canonical
+# MobileNetV2-family search profiles below define the current formal mainline,
+# which now excludes fused_mbconv and mixconv from the default operator set.
 DEFAULT_OP_CHOICES = (
     "conv",
     "dw_pw_conv",
     "mbconv",
-    "fused_mbconv",
     "skip",
-    "mixconv",
     "denoise",
     "edge",
 )
 
 SONAR_OPS = {"mixconv", "denoise", "edge"}
 
-# v1 profile pruning keeps mbconv / fused_mbconv as anchor operators and
+# v1 mainline search keeps mbconv as the primary block operator and
 # preferentially removes irregular sonar-heavy operators first.
 HIGH_LUT_OPS = {"mixconv", "edge"}
 HIGH_DSP_OPS = {"conv"}
+# dw_pw_conv remains available for historical lightweight profiles, but is no
+# longer part of the formal MobileNetV2 mainline after operator screening.
 LIGHTWEIGHT_OPS = {"skip", "dw_pw_conv", "denoise"}
 
 FAMILY_PROFILES: dict[str, dict[str, Any]] = {
@@ -50,7 +53,7 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
         "stage_depth_choices": ((1,), (1, 2), (1, 2), (2,), (1, 2), (1, 2), (1,)),
         "kernel_choices": (3, 5),
         "expand_choices": (1, 2),
-        "op_choices": ("dw_pw_conv", "mbconv", "skip"),
+        "op_choices": ("mbconv", "denoise", "edge", "skip"),
         "head_conv_channels": 320,
     },
     "accuracy_biased": {
@@ -62,7 +65,7 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
         "stage_depth_choices": ((1, 2), (2, 3, 4), (3, 4), (4, 5), (3, 4), (3, 4), (1, 2)),
         "kernel_choices": (3, 5),
         "expand_choices": (3, 6),
-        "op_choices": ("mbconv", "fused_mbconv", "skip", "denoise"),
+        "op_choices": ("mbconv", "denoise", "edge", "skip"),
         "head_conv_channels": 1280,
     },
     "lightweight_sonar": {

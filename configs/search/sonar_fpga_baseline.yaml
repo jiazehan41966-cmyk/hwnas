@@ -26,9 +26,7 @@ search_space:
     - conv
     - dw_pw_conv
     - mbconv
-    - fused_mbconv
     - skip
-    - mixconv
     - denoise
     - edge
 

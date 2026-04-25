@@ -12,7 +12,14 @@ from .lookup_table import (
     create_dummy_fpga_lut,
 )
 from .lut_pipeline import build_lut_from_manifest, load_lut_manifest, save_lut_from_manifest
-from .report_parser import lut_entry_from_report, parse_hls_report, parse_hls_report_text
+from .report_parser import (
+    approximate_fmax_from_wns,
+    lut_entry_from_report,
+    parse_hls_report,
+    parse_hls_report_text,
+    parse_vivado_timing_summary_text,
+    parse_vivado_utilization_text,
+)
 
 __all__ = [
     "BOARD_PROFILES",
@@ -33,8 +40,11 @@ __all__ = [
     "load_lut_manifest",
     "list_board_profiles",
     "lut_entry_from_report",
+    "approximate_fmax_from_wns",
     "parse_hls_report",
     "parse_hls_report_text",
+    "parse_vivado_timing_summary_text",
+    "parse_vivado_utilization_text",
     "resolve_board_profile",
     "save_lut_from_manifest",
 ]

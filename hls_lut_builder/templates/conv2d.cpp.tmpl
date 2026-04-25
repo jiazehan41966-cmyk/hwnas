@@ -1,0 +1,52 @@
+#include <ap_int.h>
+
+typedef __DATA_TYPE__ data_t;
+typedef __ACCUM_TYPE__ acc_t;
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int K = __KERNEL_SIZE__;
+static constexpr int STRIDE = __STRIDE__;
+static constexpr int PAD = __PADDING__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+
+void __TOP_FUNCTION__(
+    data_t input[IN_CH][IN_H][IN_W],
+    data_t weights[OUT_CH][IN_CH][K][K],
+    data_t bias[OUT_CH],
+    data_t output[OUT_CH][OUT_H][OUT_W]
+) {
+#pragma HLS INLINE off
+#pragma HLS ARRAY_PARTITION variable=input cyclic factor=__INPUT_PARALLELISM__ dim=1
+#pragma HLS ARRAY_PARTITION variable=weights cyclic factor=__OUTPUT_PARALLELISM__ dim=1
+#pragma HLS ARRAY_PARTITION variable=weights cyclic factor=__INPUT_PARALLELISM__ dim=2
+#pragma HLS ARRAY_PARTITION variable=output cyclic factor=__OUTPUT_PARALLELISM__ dim=1
+#pragma HLS ARRAY_PARTITION variable=bias cyclic factor=__OUTPUT_PARALLELISM__ dim=1
+
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+#pragma HLS UNROLL factor=__OUTPUT_PARALLELISM__
+        for (int oh = 0; oh < OUT_H; ++oh) {
+            for (int ow = 0; ow < OUT_W; ++ow) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                acc_t acc = bias[oc];
+                for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS UNROLL factor=__INPUT_PARALLELISM__
+                    for (int kh = 0; kh < K; ++kh) {
+                        for (int kw = 0; kw < K; ++kw) {
+#pragma HLS UNROLL factor=__UNROLL_FACTOR__
+                            const int ih = (oh * STRIDE) + kh - PAD;
+                            const int iw = (ow * STRIDE) + kw - PAD;
+                            if ((ih >= 0) && (ih < IN_H) && (iw >= 0) && (iw < IN_W)) {
+                                acc += input[ic][ih][iw] * weights[oc][ic][kh][kw];
+                            }
+                        }
+                    }
+                }
+                output[oc][oh][ow] = static_cast<data_t>(acc);
+            }
+        }
+    }
+}

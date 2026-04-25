@@ -1,4 +1,10 @@
-# HW-NAS FPGA Sonar 项目介绍
+﻿# HW-NAS FPGA Sonar 椤圭洰浠嬬粛
+
+> Current formal MobileNetV2 mainline: `mbconv`, `fused_mbconv`, `denoise`, `edge`, `skip`.
+>
+> `dw_pw_conv` remains available only for historical or lightweight-compatible
+> profiles and no longer represents the default formal search path.
+
 
 > 面向水下声呐图像分类/识别任务的硬件感知神经架构搜索系统
 
@@ -21,12 +27,13 @@
 
 - 支持 stage-based 层次化结构（4 个 stage）
 - 可搜索参数：通道数(width)、深度(depth)、算子类型(op)、卷积核大小(kernel)
-- 支持 5 种算子：
-  - `conv`：普通卷积
-  - `dw_pw_conv`：深度可分离卷积
+- 当前正式 MobileNetV2 主线支持 5 种可搜索算子：
   - `mbconv`：MobileNetV2 风格 MBConv
   - `fused_mbconv`：融合 MBConv
+  - `denoise`：声呐友好去噪扩展算子
+  - `edge`：声呐友好边缘增强算子
   - `skip`：跳过连接
+- `dw_pw_conv` 仍保留在历史/轻量兼容 profile 中，但不再代表当前正式主线。
 
 ### 2. FPGA 硬件代价建模
 

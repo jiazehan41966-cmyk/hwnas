@@ -41,9 +41,9 @@ search_space:
   expand_choices: [3, 6]
   op_choices:
     - mbconv
-    - fused_mbconv
-    - skip
     - denoise
+    - edge
+    - skip
   head_conv_channels: 1280
 
 constraints:

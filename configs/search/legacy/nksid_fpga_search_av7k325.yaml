@@ -1,3 +1,6 @@
+# Historical generic AV7K325 search config retained for provenance only.
+# Superseded by the canonical MobileNetV2-family configs in configs/search/.
+
 project:
   name: nksid-fpga-hwnas
   seed: 42
@@ -54,8 +57,7 @@ hardware:
 search:
   method: rl
   num_candidates: 20
-  eval_epochs: 200
-  eval_early_stopping_patience: null
+  eval_epochs: 3
   timeout_minutes: null
   controller_hidden: 64
   controller_lr: 0.01

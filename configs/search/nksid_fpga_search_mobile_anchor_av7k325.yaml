@@ -40,8 +40,9 @@ search_space:
   kernel_choices: [3, 5]
   expand_choices: [1, 2]
   op_choices:
-    - dw_pw_conv
     - mbconv
+    - denoise
+    - edge
     - skip
   head_conv_channels: 320
 

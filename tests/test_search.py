@@ -1,12 +1,22 @@
 import unittest
 from pathlib import Path
 import sys
+from types import MethodType
+
+import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
-from hwnas_fpga.search import RLSearcher, RandomSearcher, build_pareto_objectives, create_searcher
+from hwnas_fpga.search import (
+    ActionSpace,
+    Controller,
+    RLSearcher,
+    RandomSearcher,
+    build_pareto_objectives,
+    create_searcher,
+)
 from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
 
 
@@ -122,6 +132,52 @@ class SearchFactoryTests(unittest.TestCase):
         self.assertIn("bram", objectives)
         self.assertIn("lut", objectives)
         self.assertIn("memory_bandwidth_gbps", objectives)
+
+
+class ControllerMaskingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        action_space = ActionSpace(
+            channel_actions=(8, 12, 16),
+            depth_actions=(1, 2),
+            kernel_actions=(3, 5),
+            expand_actions=(1, 2),
+            op_actions=("dw_pw_conv", "mbconv", "skip"),
+        )
+        self.controller = Controller(action_space, hidden_dim=8)
+
+    def _install_fixed_forward(self, channel_logits) -> None:
+        def fixed_forward(_self, stage_idx, block_idx, prev_choices=None):
+            del stage_idx, block_idx, prev_choices
+            return {
+                "channel": torch.tensor(channel_logits, dtype=torch.float32),
+                "depth": torch.tensor([0.0, 0.0], dtype=torch.float32),
+                "kernel": torch.tensor([0.0, 0.0], dtype=torch.float32),
+                "expand": torch.tensor([0.0, 0.0], dtype=torch.float32),
+                "op": torch.tensor([0.0, 0.0, 0.0], dtype=torch.float32),
+            }
+
+        self.controller.forward = MethodType(fixed_forward, self.controller)
+
+    def test_sample_respects_allowed_indices(self) -> None:
+        self._install_fixed_forward([50.0, 1000.0, 0.0])
+        sample = self.controller.sample(
+            0,
+            0,
+            allowed_indices={"channel": (0, 2)},
+        )
+        self.assertEqual(sample["channel"], 0)
+
+    def test_get_log_prob_uses_masked_logits(self) -> None:
+        self._install_fixed_forward([5.0, 1000.0, 0.0])
+        log_prob = self.controller.get_log_prob(
+            0,
+            0,
+            {"channel": 0},
+            allowed_indices={"channel": (0, 2)},
+        )["channel"]
+        expected = torch.log_softmax(torch.tensor([5.0, 0.0]), dim=0)[0]
+        self.assertTrue(torch.isfinite(log_prob))
+        self.assertAlmostEqual(float(log_prob), float(expected), places=6)
 
 
 if __name__ == "__main__":

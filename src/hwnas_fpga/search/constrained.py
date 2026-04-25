@@ -46,11 +46,14 @@ class SearchConfig:
     """
 
     # 算子控制
-    enable_fused_mbconv: bool = True
+    enable_fused_mbconv: bool = False
     enable_standard_mbconv: bool = True
     enable_dw_pw_conv: bool = True
     enable_conv: bool = True
     enable_skip: bool = True
+    enable_mixconv: bool = False
+    enable_denoise: bool = True
+    enable_edge: bool = True
 
     # 搜索行为控制
     enable_early_pruning: bool = True
@@ -76,6 +79,12 @@ class SearchConfig:
             ops.add("conv")
         if self.enable_skip:
             ops.add("skip")
+        if self.enable_mixconv:
+            ops.add("mixconv")
+        if self.enable_denoise:
+            ops.add("denoise")
+        if self.enable_edge:
+            ops.add("edge")
         return ops
 
     @classmethod

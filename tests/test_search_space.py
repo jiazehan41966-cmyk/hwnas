@@ -72,7 +72,10 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.width_multipliers, (0.75, 1.0))
         self.assertEqual(config.depth_choices_for_stage(3), (2,))
         self.assertEqual(config.expand_choices, (1, 2))
-        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "skip"))
+        self.assertEqual(
+            config.op_choices,
+            ("mbconv", "denoise", "edge", "skip"),
+        )
         self.assertEqual(config.head_conv_channels, 320)
 
     def test_mobile_anchor_baseline_architecture_tracks_anchor_channels(self) -> None:
@@ -121,7 +124,7 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.depth_choices_for_stage(3), (4, 5))
         self.assertEqual(config.expand_choices, (3, 6))
         self.assertNotIn("conv", config.op_choices)
-        self.assertNotIn("edge", config.op_choices)
+        self.assertIn("edge", config.op_choices)
         self.assertIn("denoise", config.op_choices)
         self.assertEqual(config.head_conv_channels, 1280)
 
@@ -197,9 +200,10 @@ class SonarOpsSearchSpaceTests(unittest.TestCase):
         self.space = SearchSpace(SearchSpaceConfig())
 
     def test_sonar_ops_in_default_choices(self) -> None:
-        """声呐算子默认包含在搜索空间中"""
-        for op in SONAR_OPS:
-            self.assertIn(op, self.space.config.op_choices)
+        """主线默认搜索空间保留 denoise/edge，默认关闭 mixconv"""
+        self.assertIn("denoise", self.space.config.op_choices)
+        self.assertIn("edge", self.space.config.op_choices)
+        self.assertNotIn("mixconv", self.space.config.op_choices)
 
     def test_sample_with_sonar_ops_is_valid(self) -> None:
         """含声呐算子的采样架构应能通过验证"""
@@ -307,7 +311,8 @@ class HardwarePruningTests(unittest.TestCase):
         self.assertNotIn("conv", pruned.config.op_choices)
         self.assertNotIn("mixconv", pruned.config.op_choices)
         self.assertNotIn("edge", pruned.config.op_choices)
-        self.assertIn("fused_mbconv", pruned.config.op_choices)
+        self.assertNotIn("fused_mbconv", pruned.config.op_choices)
+        self.assertIn("mbconv", pruned.config.op_choices)
 
     def test_require_feasible_sampling_falls_back_to_feasible_architecture(self) -> None:
         constraints = SearchConstraints(

@@ -82,7 +82,8 @@ space = SearchSpace(
         channel_choices=(16, 24, 32, 48, 64, 96),
         depth_choices=(1, 2, 3, 4),
         kernel_choices=(3, 5),
-        op_choices=("conv", "dw_pw_conv", "mbconv", "fused_mbconv", "skip"),
+        # 褰撳墠姝ｅ紡 MobileNetV2 涓绘牱锛宒w_pw_conv 浠呬繚鐣欎簬鍘嗗彶/杞婚噺鍏煎 profile
+        op_choices=("mbconv", "fused_mbconv", "denoise", "edge", "skip"),
     )
 )
 

@@ -19,6 +19,19 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 
+# HLS profiling kernels may use finer-grained names than the current NAS search
+# space. Normalize them so a LUT built from HLS manifests can still satisfy the
+# existing query path without requiring every caller to know both vocabularies.
+LUT_OP_ALIASES: Dict[str, str] = {
+    "conv_bn_relu6": "conv",
+    "inverted_residual": "mbconv",
+}
+
+
+def canonicalize_lut_op_name(op: str) -> str:
+    return LUT_OP_ALIASES.get(str(op).strip(), str(op).strip())
+
+
 # ============================================================================
 # Operator Specifications (类似 FBNet 的 OpBase/OpProperty)
 # ============================================================================
@@ -32,6 +45,7 @@ class OpSpec:
 
     Attributes:
         op: 算子类型 (conv, dw_conv, mbconv, fused_mbconv, skip, etc.)
+            允许更细粒度的 HLS kernel 名称；导入时会归一化到查询口径。
         kernel_size: 卷积核大小
         in_channels: 输入通道数
         out_channels: 输出通道数
@@ -49,11 +63,23 @@ class OpSpec:
     groups: int = 1
     expand_ratio: int = 1
     input_resolution: Tuple[int, int] = (224, 224)
+    bitwidth: int = 8
+    input_parallelism: int = 1
+    output_parallelism: int = 1
+    unroll_factor: int = 1
+    target_clock_mhz: Optional[float] = None
 
     def __post_init__(self):
+        object.__setattr__(self, "op", canonicalize_lut_op_name(self.op))
         # 确保关键参数是整数（用于哈希）
         if isinstance(self.input_resolution, (list, tuple)):
             object.__setattr__(self, "input_resolution", tuple(self.input_resolution))
+        object.__setattr__(self, "bitwidth", int(self.bitwidth))
+        object.__setattr__(self, "input_parallelism", int(self.input_parallelism))
+        object.__setattr__(self, "output_parallelism", int(self.output_parallelism))
+        object.__setattr__(self, "unroll_factor", int(self.unroll_factor))
+        if self.target_clock_mhz is not None:
+            object.__setattr__(self, "target_clock_mhz", float(self.target_clock_mhz))
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
@@ -66,6 +92,11 @@ class OpSpec:
             "groups": self.groups,
             "expand_ratio": self.expand_ratio,
             "input_resolution": self.input_resolution,
+            "bitwidth": self.bitwidth,
+            "input_parallelism": self.input_parallelism,
+            "output_parallelism": self.output_parallelism,
+            "unroll_factor": self.unroll_factor,
+            "target_clock_mhz": self.target_clock_mhz,
         }
 
     @classmethod
@@ -80,22 +111,36 @@ class OpSpec:
             groups=data.get("groups", 1),
             expand_ratio=data.get("expand_ratio", 1),
             input_resolution=tuple(data.get("input_resolution", (224, 224))),
+            bitwidth=data.get("bitwidth", 8),
+            input_parallelism=data.get("input_parallelism", 1),
+            output_parallelism=data.get("output_parallelism", 1),
+            unroll_factor=data.get("unroll_factor", 1),
+            target_clock_mhz=data.get("target_clock_mhz"),
+        )
+
+    def shape_signature(self) -> Tuple[Any, ...]:
+        return (
+            self.op,
+            self.kernel_size,
+            self.in_channels,
+            self.out_channels,
+            self.stride,
+            self.groups,
+            self.expand_ratio,
+            self.input_resolution,
+        )
+
+    def implementation_signature(self) -> Tuple[Any, ...]:
+        return (
+            self.bitwidth,
+            self.input_parallelism,
+            self.output_parallelism,
+            self.unroll_factor,
+            self.target_clock_mhz,
         )
 
     def __hash__(self) -> int:
-        # 基于 frozenset 实现哈希（类似 FBNet 的 OpProperty）
-        return hash(
-            (
-                self.op,
-                self.kernel_size,
-                self.in_channels,
-                self.out_channels,
-                self.stride,
-                self.groups,
-                self.expand_ratio,
-                self.input_resolution,
-            )
-        )
+        return hash((*self.shape_signature(), *self.implementation_signature()))
 
 
 # ============================================================================
@@ -318,16 +363,7 @@ class LutTable:
             if op == "skip" and (kernel_size != 1 or expand_ratio != 1):
                 continue
 
-            lut_op = {
-                "conv": "conv",
-                "dw_pw_conv": "dw_pw_conv",
-                "mbconv": "mbconv",
-                "fused_mbconv": "fused_mbconv",
-                "skip": "skip",
-                "mixconv": "mixconv",
-                "denoise": "denoise",
-                "edge": "edge",
-            }.get(op, op)
+            lut_op = canonicalize_lut_op_name(op)
             groups = in_channels if op in {"dw_pw_conv", "mixconv", "denoise", "edge"} else 1
 
             latency_ms = float(raw_metrics.get("latency_ms", 0.0))
@@ -408,10 +444,24 @@ class LutQueryEngine:
         if entry is not None:
             return entry
 
+        shape_only_match = self._query_unique_shape_match(op_spec)
+        if shape_only_match is not None:
+            return shape_only_match
+
         # 2. 插值查询（如果启用）
         if self.enable_interpolation:
             return self._interpolate_query(op_spec)
 
+        return None
+
+    def _query_unique_shape_match(self, op_spec: OpSpec) -> Optional[LutEntry]:
+        matches = [
+            entry
+            for spec, entry in self.lut_table._index.items()
+            if spec.shape_signature() == op_spec.shape_signature()
+        ]
+        if len(matches) == 1:
+            return matches[0]
         return None
 
     def _interpolate_query(self, op_spec: OpSpec) -> Optional[LutEntry]:
@@ -429,6 +479,8 @@ class LutQueryEngine:
             and k.stride == op_spec.stride
             and k.groups == op_spec.groups
             and k.expand_ratio == op_spec.expand_ratio
+            and k.input_resolution == op_spec.input_resolution
+            and k.implementation_signature() == op_spec.implementation_signature()
         ]
 
         if not candidates:
@@ -511,6 +563,11 @@ class LutBuilder:
         bram: int = 0,
         lut: int = 0,
         power_w: float = 0.0,
+        bitwidth: int = 8,
+        input_parallelism: int = 1,
+        output_parallelism: int = 1,
+        unroll_factor: int = 1,
+        target_clock_mhz: Optional[float] = None,
     ) -> "LutBuilder":
         """添加 profiling 结果
 
@@ -539,6 +596,11 @@ class LutBuilder:
             groups=groups,
             expand_ratio=expand_ratio,
             input_resolution=input_resolution,
+            bitwidth=bitwidth,
+            input_parallelism=input_parallelism,
+            output_parallelism=output_parallelism,
+            unroll_factor=unroll_factor,
+            target_clock_mhz=target_clock_mhz,
         )
 
         energy_mj = latency_ms * power_w if power_w > 0 else 0.0

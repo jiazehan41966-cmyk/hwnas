@@ -256,7 +256,49 @@ class Controller(nn.Module):
                 emb[i] = math.cos(idx / (max_idx ** ((i - 1) / self.embedding_dim)))
         return emb
 
-    def sample(self, stage_idx: int, block_idx: int) -> Dict[str, int]:
+    @staticmethod
+    def _normalize_allowed_indices(
+        num_actions: int,
+        allowed_indices: Optional[Tuple[int, ...]],
+    ) -> Optional[Tuple[int, ...]]:
+        if allowed_indices is None:
+            return None
+        normalized = tuple(sorted({int(idx) for idx in allowed_indices}))
+        if not normalized:
+            raise ValueError("allowed_indices must not be empty")
+        if normalized[0] < 0 or normalized[-1] >= num_actions:
+            raise IndexError(
+                f"allowed index out of range for action space of size {num_actions}"
+            )
+        return normalized
+
+    def _mask_logits(
+        self,
+        logit: torch.Tensor,
+        allowed_indices: Optional[Tuple[int, ...]],
+    ) -> torch.Tensor:
+        if not torch.isfinite(logit).all():
+            raise RuntimeError("controller produced non-finite logits")
+
+        normalized = self._normalize_allowed_indices(logit.numel(), allowed_indices)
+        if normalized is None:
+            return logit
+
+        allowed_tensor = torch.as_tensor(
+            normalized,
+            device=logit.device,
+            dtype=torch.long,
+        )
+        masked_logits = torch.full_like(logit, torch.finfo(logit.dtype).min)
+        masked_logits[allowed_tensor] = logit[allowed_tensor]
+        return masked_logits
+
+    def sample(
+        self,
+        stage_idx: int,
+        block_idx: int,
+        allowed_indices: Optional[Dict[str, Tuple[int, ...]]] = None,
+    ) -> Dict[str, int]:
         """采样动作
 
         Returns:
@@ -267,8 +309,9 @@ class Controller(nn.Module):
         # Gumbel-Softmax 采样
         actions = {}
         for key, logit in logits.items():
-            probs = F.softmax(logit, dim=-1)
-            action = torch.multinomial(probs, num_samples=1).item()
+            key_allowed_indices = None if allowed_indices is None else allowed_indices.get(key)
+            masked_logits = self._mask_logits(logit, key_allowed_indices)
+            action = torch.distributions.Categorical(logits=masked_logits).sample().item()
             actions[key] = action
 
         return actions
@@ -278,6 +321,7 @@ class Controller(nn.Module):
         stage_idx: int,
         block_idx: int,
         actions: Dict[str, int],
+        allowed_indices: Optional[Dict[str, Tuple[int, ...]]] = None,
     ) -> Dict[str, torch.Tensor]:
         """计算动作的log概率
 
@@ -289,8 +333,17 @@ class Controller(nn.Module):
         log_probs = {}
         for key, action_idx in actions.items():
             if key in logits:
-                probs = F.softmax(logits[key], dim=-1)
-                log_probs[key] = torch.log(probs[action_idx])
+                key_allowed_indices = None if allowed_indices is None else allowed_indices.get(key)
+                normalized_allowed = self._normalize_allowed_indices(
+                    logits[key].numel(),
+                    key_allowed_indices,
+                )
+                if normalized_allowed is not None and int(action_idx) not in normalized_allowed:
+                    raise ValueError(
+                        f"action {action_idx} is not valid for decision '{key}'"
+                    )
+                masked_logits = self._mask_logits(logits[key], normalized_allowed)
+                log_probs[key] = F.log_softmax(masked_logits, dim=-1)[action_idx]
 
         return log_probs
 
@@ -612,33 +665,173 @@ class RLSearcher:
             return 1.0
         return max_violation_ratio
 
-    def generate_architecture(self) -> ArchitectureSpec:
-        """使用控制器生成一个架构"""
-        stage_count = self.search_space.config.stage_count
-        depth_choices = self.action_space.depth_actions
+    def _valid_channel_indices(self, stage_idx: int) -> Tuple[int, ...]:
+        return tuple(
+            self.action_space.channel_to_index(channel)
+            for channel in self.search_space.config.channel_choices_for_stage(stage_idx)
+        )
 
+    def _valid_depth_indices(self, stage_idx: int) -> Tuple[int, ...]:
+        return tuple(
+            self.action_space.depth_to_index(depth)
+            for depth in self.search_space.config.depth_choices_for_stage(stage_idx)
+        )
+
+    def _valid_ops(
+        self,
+        block_in_channels: int,
+        out_channels: int,
+        stride: int,
+    ) -> Tuple[str, ...]:
+        valid_ops: List[str] = []
+        for op in self.action_space.op_actions:
+            if op == "skip":
+                if stride == 1 and block_in_channels == out_channels:
+                    valid_ops.append(op)
+                continue
+            valid_ops.append(op)
+
+        if not valid_ops:
+            for op in self.action_space.op_actions:
+                if op != "skip":
+                    return (op,)
+            raise RuntimeError("no valid operators available for the current block")
+
+        return tuple(valid_ops)
+
+    def _valid_op_indices(
+        self,
+        block_in_channels: int,
+        out_channels: int,
+        stride: int,
+    ) -> Tuple[int, ...]:
+        return tuple(
+            self.action_space.op_to_index(op)
+            for op in self._valid_ops(block_in_channels, out_channels, stride)
+        )
+
+    def _generate_architecture_masked(self) -> ArchitectureSpec:
+        stage_count = self.search_space.config.stage_count
         stage_strides = self.search_space.config.stage_strides
 
         stages = []
         current_channels = self.search_space.config.stem_channels
 
         for stage_idx in range(stage_count):
-            stage_channel_choices = self.search_space.config.channel_choices_for_stage(stage_idx)
-            stage_depth_choices = self.search_space.config.depth_choices_for_stage(stage_idx)
+            channel_idx = self.controller.sample(
+                stage_idx,
+                0,
+                allowed_indices={"channel": self._valid_channel_indices(stage_idx)},
+            )["channel"]
+            channels = self.action_space.channel_actions[channel_idx]
+
+            depth_idx = self.controller.sample(
+                stage_idx,
+                0,
+                allowed_indices={"depth": self._valid_depth_indices(stage_idx)},
+            )["depth"]
+            depth = self.action_space.depth_actions[depth_idx]
+
+            blocks = []
+            for block_idx in range(depth):
+                block_idx_global = stage_idx * 4 + block_idx
+                stride = stage_strides[stage_idx] if block_idx == 0 else 1
+                block_in_channels = current_channels if block_idx == 0 else channels
+                valid_op_indices = self._valid_op_indices(
+                    block_in_channels,
+                    channels,
+                    stride,
+                )
+
+                if len(valid_op_indices) == 1:
+                    op_idx = valid_op_indices[0]
+                else:
+                    op_idx = self.controller.sample(
+                        stage_idx,
+                        block_idx_global,
+                        allowed_indices={"op": valid_op_indices},
+                    )["op"]
+                op = self.action_space.op_actions[op_idx]
+
+                if op == "skip":
+                    kernel_size = 1
+                else:
+                    kernel_idx = self.controller.sample(stage_idx, block_idx_global)["kernel"]
+                    kernel_size = self.action_space.kernel_actions[kernel_idx]
+
+                if op in ("skip", "conv", "dw_pw_conv", "mixconv", "denoise", "edge"):
+                    expand_ratio = 1
+                else:
+                    expand_idx = self.controller.sample(stage_idx, block_idx_global)["expand"]
+                    expand_ratio = self.action_space.expand_actions[expand_idx]
+
+                from hwnas_fpga.search_space import BlockSpec
+
+                blocks.append(
+                    BlockSpec(
+                        op=op,
+                        kernel_size=kernel_size,
+                        expand_ratio=expand_ratio,
+                        stride=stride,
+                    )
+                )
+
+            from hwnas_fpga.search_space import StageSpec
+
+            stages.append(
+                StageSpec(
+                    channels=channels,
+                    depth=depth,
+                    stride=stage_strides[stage_idx],
+                    blocks=tuple(blocks),
+                )
+            )
+
+            current_channels = channels
+
+        from hwnas_fpga.search_space import ArchitectureSpec
+
+        return ArchitectureSpec(
+            input_channels=self.search_space.config.input_channels,
+            stem_channels=self.search_space.config.stem_channels,
+            stages=tuple(stages),
+            stem_stride=self.search_space.config.stem_stride,
+            post_stem_downsample_stride=self.search_space.config.post_stem_downsample_stride,
+            head_conv_channels=self.search_space.config.head_conv_channels,
+            head_channels=self.search_space.config.head_channels,
+            num_classes=self.search_space.config.num_classes,
+        )
+
+    def generate_architecture(self) -> ArchitectureSpec:
+        return self._generate_architecture_masked()
+
+    def _legacy_generate_architecture(self) -> ArchitectureSpec:
+        """使用控制器生成一个架构"""
+        stage_count = self.search_space.config.stage_count
+        stage_strides = self.search_space.config.stage_strides
+
+        stages = []
+        current_channels = self.search_space.config.stem_channels
+
+        for stage_idx in range(stage_count):
 
             # 采样通道数
             channel_idx = self.controller.sample(stage_idx, 0)["channel"]
+            channel_idx = self.controller.sample(
+                stage_idx,
+                0,
+                allowed_indices={"channel": self._valid_channel_indices(stage_idx)},
+            )["channel"]
             channels = self.action_space.channel_actions[channel_idx]
-            if channels not in stage_channel_choices:
-                channels = random.choice(stage_channel_choices)
-                channel_idx = self.action_space.channel_to_index(channels)
 
             # 采样深度
             depth_idx = self.controller.sample(stage_idx, 0)["depth"]
+            depth_idx = self.controller.sample(
+                stage_idx,
+                0,
+                allowed_indices={"depth": self._valid_depth_indices(stage_idx)},
+            )["depth"]
             depth = self.action_space.depth_actions[depth_idx]
-            if depth not in stage_depth_choices:
-                depth = random.choice(stage_depth_choices)
-                depth_idx = self.action_space.depth_to_index(depth)
 
             # 采样该stage的所有block
             blocks = []
@@ -915,7 +1108,104 @@ class RLSearcher:
 
         return len(cost_estimate.violations) == 0
 
+    def _check_controller_gradients_finite(self) -> None:
+        for name, param in self.controller.named_parameters():
+            if param.grad is not None and not torch.isfinite(param.grad).all():
+                raise RuntimeError(
+                    f"controller gradient became non-finite at parameter '{name}'"
+                )
+
+    def _check_controller_parameters_finite(self) -> None:
+        for name, param in self.controller.named_parameters():
+            if not torch.isfinite(param).all():
+                raise RuntimeError(
+                    f"controller parameter became non-finite at '{name}'"
+                )
+
+    def _update_controller_masked(
+        self,
+        architecture: ArchitectureSpec,
+        reward: float,
+    ) -> float:
+        self.controller_optimizer.zero_grad()
+
+        controller_device = next(self.controller.parameters()).device
+        total_log_prob = torch.zeros((), device=controller_device)
+        current_channels = self.search_space.config.stem_channels
+
+        for stage_idx, stage in enumerate(architecture.stages):
+            channel_idx = self.action_space.channel_to_index(stage.channels)
+            total_log_prob += self.controller.get_log_prob(
+                stage_idx,
+                0,
+                {"channel": channel_idx},
+                allowed_indices={"channel": self._valid_channel_indices(stage_idx)},
+            )["channel"]
+
+            depth_idx = self.action_space.depth_to_index(stage.depth)
+            total_log_prob += self.controller.get_log_prob(
+                stage_idx,
+                0,
+                {"depth": depth_idx},
+                allowed_indices={"depth": self._valid_depth_indices(stage_idx)},
+            )["depth"]
+
+            for block_idx, block in enumerate(stage.blocks):
+                block_idx_global = stage_idx * 4 + block_idx
+                stride = stage.stride if block_idx == 0 else 1
+                block_in_channels = current_channels if block_idx == 0 else stage.channels
+                valid_op_indices = self._valid_op_indices(
+                    block_in_channels,
+                    stage.channels,
+                    stride,
+                )
+
+                op_idx = self.action_space.op_to_index(block.op)
+                total_log_prob += self.controller.get_log_prob(
+                    stage_idx,
+                    block_idx_global,
+                    {"op": op_idx},
+                    allowed_indices={"op": valid_op_indices},
+                )["op"]
+
+                if block.op != "skip":
+                    kernel_idx = self.action_space.kernel_to_index(block.kernel_size)
+                    total_log_prob += self.controller.get_log_prob(
+                        stage_idx,
+                        block_idx_global,
+                        {"kernel": kernel_idx},
+                    )["kernel"]
+
+                if block.op in ("mbconv", "fused_mbconv"):
+                    expand_idx = self.action_space.expand_to_index(block.expand_ratio)
+                    total_log_prob += self.controller.get_log_prob(
+                        stage_idx,
+                        block_idx_global,
+                        {"expand": expand_idx},
+                    )["expand"]
+
+            current_channels = stage.channels
+
+        advantage = reward - self.baseline
+        loss = -advantage * total_log_prob
+
+        loss.backward()
+        self._check_controller_gradients_finite()
+        torch.nn.utils.clip_grad_norm_(self.controller.parameters(), max_norm=5.0)
+        self.controller_optimizer.step()
+        self._check_controller_parameters_finite()
+
+        self.baseline = self.baseline * self.baseline_momentum + reward * (1 - self.baseline_momentum)
+        return loss.item()
+
     def update_controller(
+        self,
+        architecture: ArchitectureSpec,
+        reward: float,
+    ) -> float:
+        return self._update_controller_masked(architecture, reward)
+
+    def _legacy_update_controller(
         self,
         architecture: ArchitectureSpec,
         reward: float,

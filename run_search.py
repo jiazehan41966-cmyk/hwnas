@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from hwnas_fpga.experiment import ExperimentTracker
 from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate
 from hwnas_fpga.runtime import (
+    apply_operator_policies_to_search_space,
     build_constraints,
     build_cost_estimator,
     build_hardware_spec,
@@ -355,6 +356,28 @@ def main() -> None:
             )
             if estimator.lut_query_engine is not None:
                 print("LUT query engine enabled")
+            search_space, policy_summary = apply_operator_policies_to_search_space(
+                search_space,
+                estimator.operator_policies,
+            )
+            tracker.write_operator_policy_summary(policy_summary)
+            if policy_summary["removed_ops"]:
+                print("Operator policy filter removed:")
+                for item in policy_summary["removed_ops"]:
+                    print(
+                        f"  - {item['op']} "
+                        f"(status={item.get('deployment_status')}, reason={item.get('reason') or 'n/a'})"
+                    )
+            if policy_summary["conditional_ops"]:
+                print("Conditional hardware-cost operators:")
+                for item in policy_summary["conditional_ops"]:
+                    print(
+                        f"  - {item['op']}: "
+                        f"latency_rule={item.get('latency_rule')}, "
+                        f"post_route_fmax={item.get('achieved_post_route_fmax_mhz')}MHz, "
+                        f"deployable_at_200mhz={item.get('deployable_at_200mhz')}"
+                    )
+            print(f"Search ops after policy filter: {search_space.config.op_choices}")
 
             print("\n=== Hardware-Driven Pruning ===")
             search_space = search_space.pre_prune(estimator)
@@ -495,6 +518,16 @@ def main() -> None:
             print(f"  Memory BW: {baseline_cost.memory_bandwidth_gbps:.3f}GB/s")
             print(f"  Off-chip Mem: {baseline_cost.offchip_mem_mb:.3f}MB")
             print(f"  Violations: {baseline_cost.violations}")
+            conditional_layers = [
+                layer for layer in baseline_cost.per_layer if layer.effective_clock_mhz is not None
+            ]
+            if conditional_layers:
+                print("  Conditional operator latency sources:")
+                for layer in conditional_layers:
+                    print(
+                        f"    - {layer.op}: latency={layer.resolved_latency_ms(hardware_spec.clock_mhz):.4f}ms, "
+                        f"effective_clock={layer.effective_clock_mhz:.2f}MHz, cycles={layer.latency_cycles}"
+                    )
             tracker.write_baseline(
                 architecture=baseline_arch.to_dict(),
                 cost_estimate=baseline_cost,

@@ -404,9 +404,10 @@ class SearchableStage(nn.Module):
         )
         try:
             layer_cost = self.cost_estimator._estimate_block(resolved)  # noqa: SLF001
-            clock_mhz = max(1.0, float(self.cost_estimator.hardware_spec.clock_mhz))
             return {
-                "latency_ms": float(layer_cost.latency_cycles) / (clock_mhz * 1000.0),
+                "latency_ms": layer_cost.resolved_latency_ms(
+                    self.cost_estimator.hardware_spec.clock_mhz
+                ),
                 "dsp": float(layer_cost.allocated_dsp),
                 "bram": float(layer_cost.bram_blocks),
                 "lut": float(layer_cost.lut),
