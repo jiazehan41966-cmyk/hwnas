@@ -214,17 +214,41 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _row_key(row: dict[str, Any]) -> tuple[str, str, str]:
+    return (str(row["case_name"]), str(row["module_name"]), str(row["serial_port"]))
+
+
+def _is_valid_row(row: dict[str, Any]) -> bool:
+    try:
+        return int(row["status_code"]) == 0 and int(row["cycles"]) > 0
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def append_rows(csv_path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
     ensure_parent(csv_path)
+    existing_rows: list[dict[str, Any]] = []
     fieldnames = list(rows[0].keys())
-    write_header = not csv_path.exists()
-    with csv_path.open("a", encoding="utf-8", newline="") as handle:
+
+    if csv_path.exists():
+        with csv_path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            if reader.fieldnames:
+                fieldnames = reader.fieldnames
+            existing_rows = list(reader)
+
+    for row in rows:
+        if _is_valid_row(row):
+            key = _row_key(row)
+            existing_rows = [existing for existing in existing_rows if _row_key(existing) != key]
+        existing_rows.append({key: str(value) for key, value in row.items()})
+
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        if write_header:
-            writer.writeheader()
-        for row in rows:
+        writer.writeheader()
+        for row in existing_rows:
             writer.writerow(row)
 
 

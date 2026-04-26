@@ -21,7 +21,6 @@ reg [4:0] byte_index = 5'd0;
 reg tx_valid = 1'b0;
 reg [7:0] tx_data = 8'd0;
 wire tx_ready;
-wire tx_busy;
 
 uart_tx #(
     .CLK_FREQ_HZ(CLK_FREQ_HZ),
@@ -33,7 +32,7 @@ uart_tx #(
     .valid(tx_valid),
     .ready(tx_ready),
     .tx(tx),
-    .busy(tx_busy)
+    .busy()
 );
 
 always @(posedge clk or negedge rst_n) begin
@@ -45,7 +44,6 @@ always @(posedge clk or negedge rst_n) begin
         tx_data <= 8'd0;
     end else begin
         done <= 1'b0;
-        tx_valid <= 1'b0;
 
         if (start && !busy) begin
             frame_mem[0]  <= 8'hA5;
@@ -65,16 +63,26 @@ always @(posedge clk or negedge rst_n) begin
             frame_mem[14] <= word_count[31:24];
             byte_index <= 5'd0;
             busy <= 1'b1;
+            tx_data <= 8'hA5;
+            tx_valid <= 1'b1;
         end else if (busy) begin
-            if (tx_ready) begin
-                tx_data <= frame_mem[byte_index];
-                tx_valid <= 1'b1;
+            if (tx_valid && tx_ready) begin
                 if (byte_index == FRAME_BYTES - 1) begin
+                    tx_valid <= 1'b0;
                     busy <= 1'b0;
                     done <= 1'b1;
+                    byte_index <= 5'd0;
+                end else begin
+                    byte_index <= byte_index + 5'd1;
+                    tx_data <= frame_mem[byte_index + 5'd1];
+                    tx_valid <= 1'b1;
                 end
-                byte_index <= byte_index + 5'd1;
+            end else if (!tx_valid && tx_ready) begin
+                tx_data <= frame_mem[byte_index];
+                tx_valid <= 1'b1;
             end
+        end else begin
+            tx_valid <= 1'b0;
         end
     end
 end

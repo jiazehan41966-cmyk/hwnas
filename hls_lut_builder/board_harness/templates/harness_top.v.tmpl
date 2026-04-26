@@ -34,10 +34,16 @@ localparam integer BIASES_ADDR_WIDTH = {{BIASES_ADDR_WIDTH}};
 localparam integer BIASES_DEPTH = {{BIASES_DEPTH}};
 localparam integer BIASES_HAS_PORT_B = {{BIASES_HAS_PORT_B}};
 
+wire clk_ibuf;
 wire clk_main;
 IBUFDS u_sys_clk_ibufds (
     .I(sys_clk_p),
     .IB(sys_clk_n),
+    .O(clk_ibuf)
+);
+
+BUFG u_sys_clk_bufg (
+    .I(clk_ibuf),
     .O(clk_main)
 );
 
@@ -77,7 +83,38 @@ axis_rom_source #(
     .DATA_WIDTH(INPUT_TDATA_WIDTH),
     .KEEP_WIDTH(INPUT_KEEP_WIDTH),
     .WORD_COUNT(INPUT_WORD_COUNT),
-    .MEM_FILE("{{INPUT_MEM_FILE}}")
+    .MEM_FILE_00({{INPUT_MEM_FILE_00}}),
+    .MEM_FILE_01({{INPUT_MEM_FILE_01}}),
+    .MEM_FILE_02({{INPUT_MEM_FILE_02}}),
+    .MEM_FILE_03({{INPUT_MEM_FILE_03}}),
+    .MEM_FILE_04({{INPUT_MEM_FILE_04}}),
+    .MEM_FILE_05({{INPUT_MEM_FILE_05}}),
+    .MEM_FILE_06({{INPUT_MEM_FILE_06}}),
+    .MEM_FILE_07({{INPUT_MEM_FILE_07}}),
+    .MEM_FILE_08({{INPUT_MEM_FILE_08}}),
+    .MEM_FILE_09({{INPUT_MEM_FILE_09}}),
+    .MEM_FILE_10({{INPUT_MEM_FILE_10}}),
+    .MEM_FILE_11({{INPUT_MEM_FILE_11}}),
+    .MEM_FILE_12({{INPUT_MEM_FILE_12}}),
+    .MEM_FILE_13({{INPUT_MEM_FILE_13}}),
+    .MEM_FILE_14({{INPUT_MEM_FILE_14}}),
+    .MEM_FILE_15({{INPUT_MEM_FILE_15}}),
+    .MEM_FILE_16({{INPUT_MEM_FILE_16}}),
+    .MEM_FILE_17({{INPUT_MEM_FILE_17}}),
+    .MEM_FILE_18({{INPUT_MEM_FILE_18}}),
+    .MEM_FILE_19({{INPUT_MEM_FILE_19}}),
+    .MEM_FILE_20({{INPUT_MEM_FILE_20}}),
+    .MEM_FILE_21({{INPUT_MEM_FILE_21}}),
+    .MEM_FILE_22({{INPUT_MEM_FILE_22}}),
+    .MEM_FILE_23({{INPUT_MEM_FILE_23}}),
+    .MEM_FILE_24({{INPUT_MEM_FILE_24}}),
+    .MEM_FILE_25({{INPUT_MEM_FILE_25}}),
+    .MEM_FILE_26({{INPUT_MEM_FILE_26}}),
+    .MEM_FILE_27({{INPUT_MEM_FILE_27}}),
+    .MEM_FILE_28({{INPUT_MEM_FILE_28}}),
+    .MEM_FILE_29({{INPUT_MEM_FILE_29}}),
+    .MEM_FILE_30({{INPUT_MEM_FILE_30}}),
+    .MEM_FILE_31({{INPUT_MEM_FILE_31}})
 ) u_axis_rom_source (
     .clk(clk_main),
     .rst_n(rst_n),
@@ -180,18 +217,38 @@ cycle_counter u_cycle_counter (
     .rst_n(rst_n),
     .clear(start_pulse),
     .start(start_pulse),
-    .stop(axil_done),
+    .stop(sink_done),
     .cycles(measured_cycles),
     .running(counter_running),
     .done(counter_done)
 );
 
+reg seen_axil_done = 1'b0;
+reg seen_sink_done = 1'b0;
+reg result_sent = 1'b0;
 reg result_start = 1'b0;
 always @(posedge clk_main or negedge rst_n) begin
     if (!rst_n) begin
+        seen_axil_done <= 1'b0;
+        seen_sink_done <= 1'b0;
+        result_sent <= 1'b0;
+        result_start <= 1'b0;
+    end else if (start_pulse) begin
+        seen_axil_done <= 1'b0;
+        seen_sink_done <= 1'b0;
+        result_sent <= 1'b0;
         result_start <= 1'b0;
     end else begin
-        result_start <= axil_done && sink_done;
+        if (axil_done) begin
+            seen_axil_done <= 1'b1;
+        end
+        if (sink_done) begin
+            seen_sink_done <= 1'b1;
+        end
+        if (result_tx_done) begin
+            result_sent <= 1'b1;
+        end
+        result_start <= !result_sent && !result_tx_busy && (seen_axil_done || axil_done) && (seen_sink_done || sink_done);
     end
 end
 

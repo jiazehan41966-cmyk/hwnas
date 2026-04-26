@@ -9,8 +9,8 @@ clock:
   port_name_n: sys_clk_n
   period_ns: 5.0
   freq_hz: 200000000
-  package_pin_p: AF10
-  package_pin_n: AE10
+  package_pin_p: AE10
+  package_pin_n: AF10
   iostandard: LVDS
 
 reset:

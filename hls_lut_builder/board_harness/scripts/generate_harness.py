@@ -186,16 +186,20 @@ def deterministic_byte(word_idx: int, lane_idx: int) -> int:
     return ((word_idx * 3 + lane_idx * 5) % 23) - 11
 
 
-def generate_stream_mem(path: Path, word_count: int, data_width: int) -> None:
+def generate_stream_mem_files(data_dir: Path, stem: str, word_count: int, data_width: int) -> list[Path]:
     lanes = data_width // 8
-    lines = []
+    lane_lines = [[] for _ in range(lanes)]
     for word_idx in range(word_count):
-        packed = 0
         for lane_idx in range(lanes):
             byte_value = deterministic_byte(word_idx, lane_idx) & 0xFF
-            packed |= byte_value << (8 * lane_idx)
-        lines.append(f"{packed:0{data_width // 4}x}")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            lane_lines[lane_idx].append(f"{byte_value:02x}")
+
+    mem_paths: list[Path] = []
+    for lane_idx, lines in enumerate(lane_lines):
+        lane_path = data_dir / f"{stem}_lane{lane_idx:02d}.mem"
+        lane_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        mem_paths.append(lane_path)
+    return mem_paths
 
 
 def generate_param_mem(path: Path, depth: int, data_width: int, seed_offset: int) -> None:
@@ -395,18 +399,24 @@ def main() -> None:
     biases_addr_width = top_ports["biases_Addr_A"]
     biases_has_port_b = "biases_Addr_B" in top_ports
 
-    input_mem_file = "input_stream.mem"
     weights_mem_file = "weights.mem"
     biases_mem_file = "biases.mem"
 
-    generate_stream_mem(data_dir / input_mem_file, case_meta["input_word_count"], input_tdata_width)
+    input_mem_paths = generate_stream_mem_files(
+        data_dir,
+        stem="input_stream",
+        word_count=case_meta["input_word_count"],
+        data_width=input_tdata_width,
+    )
     generate_param_mem(data_dir / weights_mem_file, case_meta["weights_depth"], weights_data_width, seed_offset=3)
     generate_param_mem(data_dir / biases_mem_file, case_meta["biases_depth"], biases_data_width, seed_offset=11)
 
+    input_mem_mapping = {f"INPUT_MEM_FILE_{lane_idx:02d}": '""' for lane_idx in range(32)}
+    for lane_idx, mem_path in enumerate(input_mem_paths):
+        input_mem_mapping[f"INPUT_MEM_FILE_{lane_idx:02d}"] = f'"../data/{mem_path.name}"'
+
     kernel_instance = build_kernel_instance(module_name, top_ports, axil_addr_width, axil_data_width)
-    harness_top = render_template(
-        TEMPLATES_DIR / "harness_top.v.tmpl",
-        {
+    harness_mapping = {
             "CLK_FREQ_HZ": str(board_cfg["clock"]["freq_hz"]),
             "UART_BAUD": str(board_cfg.get("uart", {}).get("baud", defaults_cfg["uart_baud"])),
             "BOOT_DELAY_CYCLES": str(defaults_cfg["boot_delay_cycles"]),
@@ -427,13 +437,16 @@ def main() -> None:
             "BIASES_ADDR_WIDTH": str(biases_addr_width),
             "BIASES_DEPTH": str(case_meta["biases_depth"]),
             "BIASES_HAS_PORT_B": "1" if biases_has_port_b else "0",
-            "INPUT_MEM_FILE": f"../data/{input_mem_file}",
             "WEIGHTS_MEM_FILE": f"../data/{weights_mem_file}",
             "BIASES_MEM_FILE": f"../data/{biases_mem_file}",
             "WEIGHTS_B_DEFAULTS": build_bram_defaults("weights", weights_data_width, weights_addr_width, weights_has_port_b),
             "BIASES_B_DEFAULTS": build_bram_defaults("biases", biases_data_width, biases_addr_width, biases_has_port_b),
             "KERNEL_INSTANCE": kernel_instance,
-        },
+        }
+    harness_mapping.update(input_mem_mapping)
+    harness_top = render_template(
+        TEMPLATES_DIR / "harness_top.v.tmpl",
+        harness_mapping,
     )
     write_text(rtl_dir / "harness_top.v", harness_top)
 
@@ -524,7 +537,7 @@ def main() -> None:
             "constraints": str(constraints_dir / "harness.xdc"),
             "build_tcl": str(scripts_dir / "build_bitstream.tcl"),
             "vivado_project_dir": str(vivado_project_dir),
-            "input_mem": str(data_dir / input_mem_file),
+            "input_mem_files": [str(path) for path in input_mem_paths],
             "weights_mem": str(data_dir / weights_mem_file),
             "biases_mem": str(data_dir / biases_mem_file),
         },

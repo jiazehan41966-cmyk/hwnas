@@ -18,19 +18,20 @@ always @(posedge clk or negedge rst_n) begin
         done <= 1'b0;
         if (clear) begin
             cycles <= 32'd0;
-            running <= 1'b0;
-        end else begin
-            if (start) begin
-                cycles <= 32'd0;
-                running <= 1'b1;
-            end else if (running) begin
-                cycles <= cycles + 32'd1;
-            end
+        end
 
-            if (stop && running) begin
-                running <= 1'b0;
-                done <= 1'b1;
-            end
+        if (start) begin
+            cycles <= 32'd0;
+            running <= 1'b1;
+        end else if (running && !stop) begin
+            cycles <= cycles + 32'd1;
+        end
+
+        if (stop && running) begin
+            running <= 1'b0;
+            done <= 1'b1;
+        end else if (clear && !start) begin
+            running <= 1'b0;
         end
     end
 end

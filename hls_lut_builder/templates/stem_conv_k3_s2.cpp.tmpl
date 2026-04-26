@@ -37,6 +37,7 @@ DECLARE_CONTROL_INTERFACE()
 #pragma HLS ARRAY_PARTITION variable=line_buffer dim=1 complete
 #pragma HLS ARRAY_PARTITION variable=line_buffer dim=2 complete
 #pragma HLS ARRAY_PARTITION variable=incoming_channels dim=1 complete
+#pragma HLS BIND_STORAGE variable=line_buffer type=ram_2p impl=lutram
 
     // Initialization is off the throughput-critical path, so keep it simple.
     for (int oc = 0; oc < OUT_CH; ++oc) {
@@ -76,7 +77,6 @@ DECLARE_CONTROL_INTERFACE()
 
     for (int h = 0; h < IN_H; ++h) {
         {
-#pragma HLS PIPELINE II=__PIPELINE_II__
             const int pw = 0;
             for (int ic = 0; ic < IN_CH; ++ic) {
 #pragma HLS UNROLL
@@ -144,7 +144,6 @@ DECLARE_CONTROL_INTERFACE()
         }
 
         {
-#pragma HLS PIPELINE II=__PIPELINE_II__
             const int pw = PADDED_W - 1;
             for (int ic = 0; ic < IN_CH; ++ic) {
 #pragma HLS UNROLL
