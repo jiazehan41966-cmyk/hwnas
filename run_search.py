@@ -260,6 +260,14 @@ def main() -> None:
     run_name = pick(args.run_name, project_cfg.get("run_name"), None)
     controller_hidden = pick(args.controller_hidden, search_cfg.get("controller_hidden"), 64)
     controller_lr = pick(args.controller_lr, search_cfg.get("controller_lr"), 0.01)
+    controller_temperature = float(search_cfg.get("controller_temperature", 1.0))
+    entropy_coef = float(search_cfg.get("controller_entropy_coef", search_cfg.get("entropy_coef", 0.0)))
+    exploration_epsilon_start = float(search_cfg.get("exploration_epsilon_start", 0.0))
+    exploration_epsilon_end = search_cfg.get("exploration_epsilon_end")
+    if exploration_epsilon_end is not None:
+        exploration_epsilon_end = float(exploration_epsilon_end)
+    exploration_epsilon_decay_episodes = int(search_cfg.get("exploration_epsilon_decay_episodes", 0))
+    exploration_bonus = float(search_cfg.get("exploration_bonus", 0.0))
 
     output_root = Path(output_dir).expanduser()
     if not output_root.is_absolute():
@@ -480,8 +488,24 @@ def main() -> None:
                 reward_cfg=reward_cfg,
                 proxyless_cfg=proxyless_cfg,
                 selection_metric=selection_metric,
+                controller_temperature=controller_temperature,
+                entropy_coef=entropy_coef,
+                exploration_epsilon_start=exploration_epsilon_start,
+                exploration_epsilon_end=exploration_epsilon_end,
+                exploration_epsilon_decay_episodes=exploration_epsilon_decay_episodes,
+                exploration_bonus=exploration_bonus,
             )
             print(f"Searcher created (method={search_method}, seed={seed}, selection_metric={selection_metric})")
+            if search_method == "rl":
+                print(
+                    "RL exploration config: "
+                    f"temperature={controller_temperature}, "
+                    f"entropy_coef={entropy_coef}, "
+                    f"epsilon_start={exploration_epsilon_start}, "
+                    f"epsilon_end={exploration_epsilon_end}, "
+                    f"epsilon_decay_episodes={exploration_epsilon_decay_episodes}, "
+                    f"exploration_bonus={exploration_bonus}"
+                )
             if search_method == "rl" and reward_cfg:
                 print(
                     "RL reward config: "
@@ -532,6 +556,7 @@ def main() -> None:
                 architecture=baseline_arch.to_dict(),
                 cost_estimate=baseline_cost,
             )
+            estimator.reset_lut_stats()
 
             print("\n=== Starting Search ===")
             if search_method == "rl":
@@ -634,6 +659,25 @@ def main() -> None:
                 encoding="utf-8",
             )
             lut_stats = estimator.get_lut_stats()
+            (tracker.results_dir / "lut_stats.json").write_text(
+                json.dumps(lut_stats, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            deferred_summary = {
+                "deferred_hits": lut_stats.get("deferred_hits", 0),
+                "deferred_hits_by_op": lut_stats.get("deferred_hits_by_op", {}),
+                "deferred_hits_by_case": lut_stats.get("deferred_hits_by_case", {}),
+                "deferred_hits_by_reason": lut_stats.get("deferred_hits_by_reason", {}),
+                "true_misses": lut_stats.get("true_misses", 0),
+                "true_misses_by_op": lut_stats.get("true_misses_by_op", {}),
+                "true_misses_by_shape": lut_stats.get("true_misses_by_shape", {}),
+                "fallback_rate": lut_stats.get("fallback_rate", 0.0),
+                "strict_formal_lut": lut_stats.get("strict_formal_lut", False),
+            }
+            (tracker.results_dir / "deferred_hit_summary.json").write_text(
+                json.dumps(deferred_summary, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
 
             print("\n=== Search Results ===")
             if best_candidate:
@@ -700,6 +744,18 @@ def main() -> None:
                     "selection_metric": selection_metric,
                     "objective_weights": objective_weights,
                     "reward_cfg": reward_cfg if search_method == "rl" else None,
+                    "rl_exploration": (
+                        {
+                            "controller_temperature": controller_temperature,
+                            "entropy_coef": entropy_coef,
+                            "exploration_epsilon_start": exploration_epsilon_start,
+                            "exploration_epsilon_end": exploration_epsilon_end,
+                            "exploration_epsilon_decay_episodes": exploration_epsilon_decay_episodes,
+                            "exploration_bonus": exploration_bonus,
+                        }
+                        if search_method == "rl"
+                        else None
+                    ),
                     "proxyless": proxyless_cfg if search_method == "proxyless" else None,
                     "hardware_spec": {
                         "name": hardware_spec.name,

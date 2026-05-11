@@ -45,6 +45,11 @@ void operator_kernel(
 );
 ```
 
+For segmented kernels, `*_PACK_CH` is the physical channel block carried by one
+AXI token and `*_PACKETS_PER_PIXEL` is the number of consecutive tokens needed
+for one logical feature pixel. Harness generation must use the physical token
+count, not only `H * W`, when creating stream memories.
+
 Required interface declarations:
 
 ```cpp

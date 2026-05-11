@@ -16,6 +16,12 @@ file mkdir $out_dir
 file mkdir $report_dir
 file mkdir $checkpoint_dir
 
+# Stabilize runtime Tcl/script loading by avoiding parallel helper flows.
+# Several failed cases showed transient missing rt scripts and "rt-undefined"
+# during synth_design; forcing single-threaded execution is slower but robust.
+set_param general.maxThreads 1
+catch {set_param synth.maxThreads 1}
+
 puts "=== Vivado downstream flow ==="
 puts "RTL dir: $rtl_dir"
 puts "Top: $top_name"

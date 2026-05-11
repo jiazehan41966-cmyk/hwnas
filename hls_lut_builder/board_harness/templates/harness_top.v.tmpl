@@ -83,6 +83,7 @@ axis_rom_source #(
     .DATA_WIDTH(INPUT_TDATA_WIDTH),
     .KEEP_WIDTH(INPUT_KEEP_WIDTH),
     .WORD_COUNT(INPUT_WORD_COUNT),
+    .WORD_MEM_FILE("{{INPUT_WORD_MEM_FILE}}"),
     .MEM_FILE_00({{INPUT_MEM_FILE_00}}),
     .MEM_FILE_01({{INPUT_MEM_FILE_01}}),
     .MEM_FILE_02({{INPUT_MEM_FILE_02}}),
@@ -272,81 +273,9 @@ result_uart_tx #(
     .done(result_tx_done)
 );
 
-wire [WEIGHTS_ADDR_WIDTH-1:0] weights_addra;
-wire weights_ena;
-wire [(WEIGHTS_DATA_WIDTH/8)-1:0] weights_wena;
-wire [WEIGHTS_DATA_WIDTH-1:0] weights_dina;
-wire [WEIGHTS_DATA_WIDTH-1:0] weights_douta;
-wire weights_clka;
-wire weights_rsta;
-wire [WEIGHTS_ADDR_WIDTH-1:0] weights_addrb;
-wire weights_enb;
-wire [(WEIGHTS_DATA_WIDTH/8)-1:0] weights_wenb;
-wire [WEIGHTS_DATA_WIDTH-1:0] weights_dinb;
-wire [WEIGHTS_DATA_WIDTH-1:0] weights_doutb;
-wire weights_clkb;
-wire weights_rstb;
-{{WEIGHTS_B_DEFAULTS}}
+{{WEIGHTS_SUPPORT_LOGIC}}
 
-simple_dual_port_bram #(
-    .DATA_WIDTH(WEIGHTS_DATA_WIDTH),
-    .ADDR_WIDTH(WEIGHTS_ADDR_WIDTH),
-    .DEPTH(WEIGHTS_DEPTH),
-    .INIT_FILE("{{WEIGHTS_MEM_FILE}}")
-) u_weights_mem (
-    .clka(weights_clka),
-    .rsta(weights_rsta),
-    .ena(weights_ena),
-    .wea(weights_wena),
-    .addra(weights_addra),
-    .dina(weights_dina),
-    .douta(weights_douta),
-    .clkb(weights_clkb),
-    .rstb(weights_rstb),
-    .enb(weights_enb),
-    .web(weights_wenb),
-    .addrb(weights_addrb),
-    .dinb(weights_dinb),
-    .doutb(weights_doutb)
-);
-
-wire [BIASES_ADDR_WIDTH-1:0] biases_addra;
-wire biases_ena;
-wire [(BIASES_DATA_WIDTH/8)-1:0] biases_wena;
-wire [BIASES_DATA_WIDTH-1:0] biases_dina;
-wire [BIASES_DATA_WIDTH-1:0] biases_douta;
-wire biases_clka;
-wire biases_rsta;
-wire [BIASES_ADDR_WIDTH-1:0] biases_addrb;
-wire biases_enb;
-wire [(BIASES_DATA_WIDTH/8)-1:0] biases_wenb;
-wire [BIASES_DATA_WIDTH-1:0] biases_dinb;
-wire [BIASES_DATA_WIDTH-1:0] biases_doutb;
-wire biases_clkb;
-wire biases_rstb;
-{{BIASES_B_DEFAULTS}}
-
-simple_dual_port_bram #(
-    .DATA_WIDTH(BIASES_DATA_WIDTH),
-    .ADDR_WIDTH(BIASES_ADDR_WIDTH),
-    .DEPTH(BIASES_DEPTH),
-    .INIT_FILE("{{BIASES_MEM_FILE}}")
-) u_biases_mem (
-    .clka(biases_clka),
-    .rsta(biases_rsta),
-    .ena(biases_ena),
-    .wea(biases_wena),
-    .addra(biases_addra),
-    .dina(biases_dina),
-    .douta(biases_douta),
-    .clkb(biases_clkb),
-    .rstb(biases_rstb),
-    .enb(biases_enb),
-    .web(biases_wenb),
-    .addrb(biases_addrb),
-    .dinb(biases_dinb),
-    .doutb(biases_doutb)
-);
+{{BIASES_SUPPORT_LOGIC}}
 
 wire interrupt;
 

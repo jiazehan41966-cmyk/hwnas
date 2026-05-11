@@ -418,6 +418,7 @@ def _build_parameters(
             "output_parallelism": output_parallelism,
             "unroll_factor": unroll_factor,
             "array_partition_factor": int(parameters.get("array_partition_factor", max(input_parallelism, output_parallelism, 1))),
+            "max_axis_bits": int(parameters.get("max_axis_bits", 4096)),
             "pipeline_ii": int(parameters.get("pipeline_ii", 1)),
             "target_clock_ns": float(clock_cfg["period_ns"]),
             "target_clock_mhz": float(clock_cfg["target_clock_mhz"]),

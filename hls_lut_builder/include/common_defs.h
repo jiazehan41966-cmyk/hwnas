@@ -47,6 +47,48 @@ static inline ap_uint<CHANNELS * 8> pack_channels(
     return packed;
 }
 
+template <int TOTAL_CHANNELS, int PACK_CHANNELS>
+static inline void unpack_packed_channel_segment(
+    const ap_uint<PACK_CHANNELS * 8> &packed,
+    int base_channel,
+    data_t values[TOTAL_CHANNELS]
+) {
+    for (int lane = 0; lane < PACK_CHANNELS; ++lane) {
+#pragma HLS UNROLL
+        const int channel = base_channel + lane;
+        if (channel < TOTAL_CHANNELS) {
+            values[channel] = static_cast<data_t>(packed.range(((lane + 1) * 8) - 1, lane * 8));
+        }
+    }
+}
+
+template <int TOTAL_CHANNELS, int PACK_CHANNELS, typename AxisPacket>
+static inline void unpack_axis_channel_segment(
+    const AxisPacket &packet,
+    int base_channel,
+    data_t values[TOTAL_CHANNELS]
+) {
+    unpack_packed_channel_segment<TOTAL_CHANNELS, PACK_CHANNELS>(packet.data, base_channel, values);
+}
+
+template <int TOTAL_CHANNELS, int PACK_CHANNELS>
+static inline ap_uint<PACK_CHANNELS * 8> pack_channel_segment(
+    const data_t values[TOTAL_CHANNELS],
+    int base_channel
+) {
+    ap_uint<PACK_CHANNELS * 8> packed = 0;
+    for (int lane = 0; lane < PACK_CHANNELS; ++lane) {
+#pragma HLS UNROLL
+        const int channel = base_channel + lane;
+        ap_uint<8> value = 0;
+        if (channel < TOTAL_CHANNELS) {
+            value = static_cast<ap_uint<8>>(values[channel]);
+        }
+        packed.range(((lane + 1) * 8) - 1, lane * 8) = value;
+    }
+    return packed;
+}
+
 template <typename AxisPacket, int CHANNELS>
 static inline AxisPacket make_axis_packet(
     const data_t values[CHANNELS],
@@ -54,6 +96,20 @@ static inline AxisPacket make_axis_packet(
 ) {
     AxisPacket packet;
     packet.data = pack_channels<CHANNELS>(values);
+    packet.keep = -1;
+    packet.strb = -1;
+    packet.last = last ? 1 : 0;
+    return packet;
+}
+
+template <typename AxisPacket, int TOTAL_CHANNELS, int PACK_CHANNELS>
+static inline AxisPacket make_axis_segment_packet(
+    const data_t values[TOTAL_CHANNELS],
+    int base_channel,
+    bool last
+) {
+    AxisPacket packet;
+    packet.data = pack_channel_segment<TOTAL_CHANNELS, PACK_CHANNELS>(values, base_channel);
     packet.keep = -1;
     packet.strb = -1;
     packet.last = last ? 1 : 0;

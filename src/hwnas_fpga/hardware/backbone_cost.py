@@ -235,6 +235,7 @@ class BackboneCostEstimator:
         output_tensor: torch.Tensor,
     ) -> BackboneLayerCost:
         kernel_h, kernel_w = layer.kernel_size
+        _, in_w = input_tensor.shape[-2:]
         out_h, out_w = output_tensor.shape[-2:]
         input_channels_per_group = layer.in_channels // layer.groups
         params = layer.weight.numel() + (layer.bias.numel() if layer.bias is not None else 0)
@@ -262,14 +263,17 @@ class BackboneCostEstimator:
         # HAO/Tiling 机制的 BRAM 估算
         # 我们不把整张特征图存入 BRAM，而是使用行缓存 (Line Buffer) 和通道分块 (Channel Tiling)
         # Line Buffer 需要存储 kernel_h - 1 行完整的输入特征图用于窗口滑动
-        line_buffer_bytes = (kernel_h - 1) * out_w * layer.in_channels * self._bytes_per_scalar
+        line_buffer_bytes = (kernel_h - 1) * in_w * layer.in_channels * self._bytes_per_scalar
         
         # Tile Buffer 存储当前计算窗口所需的数据 (受限于 DSP 并行度)
         # 假设我们缓存输入通道块(Tin)和输出通道块(Tout)
         Tin = min(layer.in_channels, 16)
         Tout = min(layer.out_channels, 32)
         tile_activation_bytes = kernel_h * kernel_w * Tin * self._bytes_per_scalar
-        tile_weight_bytes = kernel_h * kernel_w * Tin * Tout * self._bytes_per_scalar
+        if depthwise:
+            tile_weight_bytes = kernel_h * kernel_w * Tin * self._bytes_per_scalar
+        else:
+            tile_weight_bytes = kernel_h * kernel_w * Tin * Tout * self._bytes_per_scalar
         
         # 实际 BRAM 消耗是行缓存、分块缓存和部分权重缓存的总和
         total_bram_bytes = line_buffer_bytes + tile_activation_bytes + tile_weight_bytes
@@ -445,4 +449,3 @@ class BackboneCostEstimator:
         ):
             violations.append("offchip memory exceeds hardware offchip_mem_mb")
         return tuple(violations)
-

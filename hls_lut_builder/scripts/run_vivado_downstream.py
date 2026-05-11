@@ -155,6 +155,11 @@ def run_downstream_case(
     if case.vivado_downstream_dir.exists() and force:
         shutil.rmtree(case.vivado_downstream_dir)
 
+    # Remove stale Vivado runtime cache to avoid reusing broken realtime scripts.
+    xil_runtime_dir = case.project_dir / ".Xil"
+    if xil_runtime_dir.exists():
+        shutil.rmtree(xil_runtime_dir, ignore_errors=True)
+
     command = [
         vivado_bin,
         "-mode",

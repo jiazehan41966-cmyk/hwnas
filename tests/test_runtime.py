@@ -302,6 +302,21 @@ operator_status:
                 )
             )
 
+    def test_strict_formal_lut_requires_status_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lut_path = Path(tmpdir) / "fpga_lut.pkl"
+            LutTable().save(str(lut_path))
+
+            with self.assertRaisesRegex(ValueError, "formal_lut_status_path"):
+                load_lut_query_engine(
+                    {
+                        "hardware": {
+                            "lut_path": str(lut_path),
+                            "strict_formal_lut": True,
+                        }
+                    }
+                )
+
     def test_load_lut_query_engine_from_structured_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             lut_path = Path(tmpdir) / "fpga_lut.json"

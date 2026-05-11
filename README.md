@@ -1,156 +1,183 @@
-﻿# HW-NAS FPGA Sonar
+# HW-NAS FPGA Sonar
 
-闈㈠悜姘翠笅澹板憪鍥惧儚鍒嗙被/璇嗗埆浠诲姟鐨勭‖浠舵劅鐭ョ缁忔灦鏋勬悳绱紙HW-NAS锛夐」鐩紝鐩爣鏄湪 FPGA 璧勬簮绾︽潫涓嬪畬鎴愪粠鎼滅储銆佽缁冨埌閮ㄧ讲鐨勯棴鐜€?
+面向水下声呐图像分类/识别任务的硬件感知神经架构搜索（HW-NAS）项目。目标是在 FPGA 资源约束下，完成从搜索、训练、重训练、导出到部署准备的完整闭环。
+
 ---
 
-## 蹇€熷紑濮?
+## 快速开始
+
 ```bash
-# 鏈€灏忓寲娴嬭瘯
+# 最小化测试
 python3 run_search.py --search-method rl --episodes 3 --train-epochs 1 --batch-size 8
 
-# 瀹屾暣鎼滅储
+# 完整搜索
 python3 run_search.py --config configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml
 
-# A1: 鎼滅储绌洪棿鍙鐜囬獙璇侊紙闅忔満閲囨牱锛屼笉璁粌锛?
+# A1: 搜索空间可行率验证（随机采样，不训练）
 python3 run_search_space_probe.py --config configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml --num-samples 200
-# 鎸囧畾缁撴灉鐩綍
+
+# 指定结果目录
 python3 run_search.py --config configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml --output-dir results
 
-# 閲嶈鎼滅储寰楀埌鐨勬渶浼樻灦鏋?python3 run_retrain.py --run-dir results/<search_run_name>
+# 重训练搜索得到的最优架构
+python3 run_retrain.py --run-dir results/<search_run_name>
 
-# 鐢ㄦ悳绱㈠緱鍒扮殑鏈€浼樻ā鍨嬭瘑鍒浘鐗?python3 run_infer.py --checkpoint results/<run_name>/checkpoints/best_model.pt --input /path/to/image_or_dir
+# 使用搜索得到的最优模型识别图片
+python3 run_infer.py --checkpoint results/<run_name>/checkpoints/best_model.pt --input /path/to/image_or_dir
 
-# 瀵煎嚭 ONNX 骞剁敓鎴?HLS 宸ョ▼楠ㄦ灦
+# 导出 ONNX 并生成 HLS 工程骨架
 python3 run_export.py --checkpoint results/<run_name>/checkpoints/final_best_model.pt --prepare-hls
 
-# 棰濆瀵煎嚭 INT8 鏉冮噸閲忓寲鍖?python3 run_export.py --checkpoint results/<run_name>/checkpoints/final_best_model.pt --quantize-int8
+# 额外导出 INT8 权重量化包
+python3 run_export.py --checkpoint results/<run_name>/checkpoints/final_best_model.pt --quantize-int8
 
-# 浠?HLS profiling 鎶ュ憡鏋勫缓 LUT 琛?python3 run_build_lut.py --manifest configs/hardware/lut_manifest_example.yaml --output artifacts/fpga_lut.pkl
+# 从 HLS profiling 报告构建 LUT 表
+python3 run_build_lut.py --manifest configs/hardware/lut_manifest_example.yaml --output artifacts/fpga_lut.pkl
 ```
 
-璇︾粏浣跨敤璇存槑锛歔docs/QUICKSTART.md](docs/QUICKSTART.md)
+详细使用说明：[docs/QUICKSTART.md](docs/QUICKSTART.md)
 
 > Current formal search entry point: `configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml`
 >
 > Legacy generic `nksid_fpga_search*.yaml` configs have moved to `configs/search/legacy/`.
+>
 > The current MobileNetV2 mainline no longer treats `dw_pw_conv` as a default searchable operator.
 
 ---
 
-## 缁撴灉钀界洏
+## 结果目录
 
-姣忔鎼滅储閮戒細鍦?`results/<run_name>/` 涓嬬敓鎴愬畬鏁磋繍琛岀洰褰曪紝榛樿鍖呭惈锛?
+每次搜索都会在 `results/<run_name>/` 下生成完整运行目录，默认包含：
+
 ```text
 results/<run_name>/
-鈹溾攢鈹€ config.yaml
-鈹溾攢鈹€ cli_args.json
-鈹溾攢鈹€ run_info.json
-鈹溾攢鈹€ logs/
-鈹?  鈹斺攢鈹€ console.log
-鈹溾攢鈹€ results/
-鈹?  鈹溾攢鈹€ baseline.json
-鈹?  鈹溾攢鈹€ dataset_summary.json
-鈹?  鈹溾攢鈹€ search_space_summary.json
-鈹?  鈹溾攢鈹€ candidates.jsonl
-鈹?  鈹溾攢鈹€ candidates.json
-鈹?  鈹溾攢鈹€ candidates.csv
-鈹?  鈹溾攢鈹€ pareto_front.json
-鈹?  鈹溾攢鈹€ pareto_selection.json
-鈹?  鈹溾攢鈹€ summary.json
-鈹?  鈹斺攢鈹€ candidates/
-鈹?      鈹斺攢鈹€ <arch_id>.json
-鈹斺攢鈹€ checkpoints/
-    鈹溾攢鈹€ search_state.json
-    鈹溾攢鈹€ best_candidate.json
-    鈹溾攢鈹€ best_model.pt
-    鈹溾攢鈹€ final_best_model.pt   # retrain 鍚庣敓鎴?    鈹溾攢鈹€ controller_latest.pt   # RL 鎼滅储鏃剁敓鎴?    鈹斺攢鈹€ controller_best.pt     # RL 鎼滅储鏃剁敓鎴?```
-
----
-
-## 椤圭洰鏂囨。
-
-| 鏂囨。 | 璇存槑 |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | 鏁翠綋鎶€鏈灦鏋勪笌妯″潡杈圭晫 |
-| [docs/method_design.md](docs/method_design.md) | 闂妯″瀷銆佹柟娉曡璁′笌瀹炵幇鏄犲皠 |
-| [docs/project_overview.md](docs/project_overview.md) | 椤圭洰姒傝涓庨棶棰樺畾涔?|
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | 蹇€熷紑濮嬩笌浣跨敤鎸囧崡 |
-| [docs/PROGRESS.md](docs/PROGRESS.md) | 瀹炵幇杩涘睍涓庡姛鑳芥€荤粨 |
-
----
-
-## 椤圭洰缁撴瀯
-
-```text
-.
-鈹溾攢鈹€ README.md                 # 椤圭洰璇存槑
-鈹溾攢鈹€ run_search.py            # 鎼滅储鍏ュ彛鑴氭湰
-鈹溾攢鈹€ run_build_lut.py         # HLS report -> LUT 鏋勫缓鍏ュ彛
-鈹溾攢鈹€ configs/                  # 閰嶇疆鏂囦欢
-鈹?  鈹斺攢鈹€ search/
-鈹?      鈹斺攢鈹€ sonar_fpga_baseline.yaml
-鈹?  鈹斺攢鈹€ hardware/
-鈹?      鈹溾攢鈹€ zynq7020.yaml
-鈹?      鈹溾攢鈹€ kintex7_xc7k325.yaml
-鈹?      鈹斺攢鈹€ lut_manifest_example.yaml
-鈹溾攢鈹€ docs/                     # 鏂囨。
-鈹?  鈹溾攢鈹€ architecture.md
-鈹?  鈹溾攢鈹€ method_design.md
-鈹?  鈹溾攢鈹€ project_overview.md
-鈹?  鈹溾攢鈹€ QUICKSTART.md
-鈹?  鈹斺攢鈹€ PROGRESS.md
-鈹溾攢鈹€ reference/                # 鍙傝€冧唬鐮佸簱鍒嗘瀽
-鈹?  鈹溾攢鈹€ FBNet/
-鈹?  鈹溾攢鈹€ HW-NAS-Bench/
-鈹?  鈹溾攢鈹€ TinyTNAS/
-鈹?  鈹斺攢鈹€ ANALYSIS.md
-鈹斺攢鈹€ src/hwnas_fpga/
-    鈹溾攢鈹€ interfaces.py         # 鎺ュ彛瀹氫箟
-    鈹溾攢鈹€ search_space/         # 鎼滅储绌洪棿
-    鈹?  鈹斺攢鈹€ space.py
-    鈹溾攢鈹€ hardware/             # 纭欢浼拌
-    鈹?  鈹溾攢鈹€ cost.py
-    鈹?  鈹溾攢鈹€ lookup_table.py   # LUT鏌ユ壘琛?    鈹?  鈹溾攢鈹€ lut_pipeline.py   # profiling manifest -> LUT
-    鈹?  鈹斺攢鈹€ report_parser.py
-    鈹溾攢鈹€ models/               # 妯″瀷鏋勫缓
-    鈹?  鈹斺攢鈹€ builder.py
-    鈹溾攢鈹€ data/                 # 鏁版嵁鍔犺浇
-    鈹?  鈹斺攢鈹€ dataset.py
-    鈹溾攢鈹€ training/             # 璁粌涓庨噸璁?    鈹?  鈹溾攢鈹€ trainer.py
-    鈹?  鈹斺攢鈹€ retrain.py
-    鈹溾攢鈹€ search/               # 鎼滅储绠楁硶
-    鈹?  鈹溾攢鈹€ searcher.py
-    鈹?  鈹溾攢鈹€ constrained.py    # 绾︽潫鎼滅储鍣?    鈹?  鈹斺攢鈹€ pareto.py         # Pareto鍓嶆部
-    鈹斺攢鈹€ deploy/               # ONNX / HLS 瀵煎嚭
-        鈹溾攢鈹€ export.py
-        鈹溾攢鈹€ quantization.py
-        鈹溾攢鈹€ hls.py
-        鈹溾攢鈹€ hls_backend.py
-        鈹溾攢鈹€ report_parser.py
-        鈹斺攢鈹€ inference.py
+|-- config.yaml
+|-- cli_args.json
+|-- run_info.json
+|-- logs/
+|   `-- console.log
+|-- results/
+|   |-- baseline.json
+|   |-- dataset_summary.json
+|   |-- search_space_summary.json
+|   |-- candidates.jsonl
+|   |-- candidates.json
+|   |-- candidates.csv
+|   |-- pareto_front.json
+|   |-- pareto_selection.json
+|   |-- summary.json
+|   `-- candidates/
+|       `-- <arch_id>.json
+`-- checkpoints/
+    |-- search_state.json
+    |-- best_candidate.json
+    |-- best_model.pt
+    |-- final_best_model.pt      # retrain 后生成
+    |-- controller_latest.pt     # RL 搜索时生成
+    `-- controller_best.pt       # RL 搜索时生成
 ```
 
 ---
 
-## 鏍稿績鍔熻兘
+## 项目文档
 
-### 鉁?宸插疄鐜?
-- **鎼滅储绌洪棿**: stage-based 鍙悳绱㈡灦鏋勭┖闂?- **纭欢浼拌**: 鍒嗘瀽妯″瀷 + LUT 鏌ユ壘琛?+ board profile
-- **妯″瀷鏋勫缓**: ArchitectureSpec 鈫?PyTorch Model
-- **璁粌璇勪及**: 瀹屾暣鐨勮缁冩祦绋?- **鎼滅储绠楁硶**: RL 鎼滅储 + 绾︽潫鍓灊 + 鐪熸 Pareto 閫変紭
-- **閲嶈缁?*: best architecture 鐙珛鏈€缁堥噸璁?- **閮ㄧ讲瀵煎嚭**: ONNX 瀵煎嚭 + HLS 椤圭洰楠ㄦ灦 + report parser
-- **INT8閲忓寲**: 鏉冮噸閲忓寲鍖呭鍑猴紝渚?FPGA/HLS 鍚庣浣跨敤
-- **LUT profiling**: HLS report -> LUT table 鏋勫缓閾?- **瀵规瘮瀹為獙**: Fused MBConv vs 鏍囧噯 MBConv銆佹湁/鏃犳棭鏈熷壀鏋?- **Pareto浼樺寲**: 澶氱洰鏍囦紭鍖栦笌鍓嶆部鍒嗘瀽
+| 文档 | 说明 |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | 整体技术架构与模块边界 |
+| [docs/method_design.md](docs/method_design.md) | 问题模型、方法设计与实现映射 |
+| [docs/project_overview.md](docs/project_overview.md) | 项目概览与问题定义 |
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速开始与使用指南 |
+| [docs/PROGRESS.md](docs/PROGRESS.md) | 实现进展与功能总结 |
+| [docs/SEARCH_CONFIG_CANONICAL.md](docs/SEARCH_CONFIG_CANONICAL.md) | 当前规范搜索配置说明 |
+| [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) | 仓库布局说明 |
 
-### 鈴?寰呭疄鐜?
-- 鏉冮噸鍏变韩瓒呯綉璁粌
-- 鐪熷疄澹板憪鏁版嵁鍔犺浇 (MARIS/UATD)
-- HLS/Vivado/Vitis 瀹為檯璋冪敤涓庢澘涓婂洖濉?
+---
+
+## 项目结构
+
+```text
+.
+|-- README.md                         # 项目说明
+|-- run_search.py                     # 搜索入口脚本
+|-- run_retrain.py                    # 重训练入口脚本
+|-- run_infer.py                      # 推理入口脚本
+|-- run_export.py                     # ONNX / HLS 导出入口
+|-- run_build_lut.py                  # HLS report -> LUT 构建入口
+|-- configs/                          # 配置文件
+|   |-- search/
+|   |   |-- nksid_fpga_search_mobile_anchor_av7k325.yaml
+|   |   `-- legacy/
+|   `-- hardware/
+|       |-- zynq7020.yaml
+|       |-- kintex7_xc7k325.yaml
+|       `-- lut_manifest_example.yaml
+|-- docs/                             # 文档
+|-- hls_lut_builder/                  # HLS profiling / LUT 构建辅助工具
+|-- reference/                        # 参考代码库分析
+|   |-- FBNet/
+|   |-- HW-NAS-Bench/
+|   |-- TinyTNAS/
+|   `-- ANALYSIS.md
+|-- tests/                            # 测试
+`-- src/hwnas_fpga/
+    |-- interfaces.py                 # 接口定义
+    |-- runtime.py                    # 运行时辅助逻辑
+    |-- search_space/                 # 搜索空间
+    |   `-- space.py
+    |-- hardware/                     # 硬件估计与 LUT
+    |   |-- cost.py
+    |   |-- lookup_table.py
+    |   |-- lut_pipeline.py
+    |   `-- report_parser.py
+    |-- models/                       # 模型构建
+    |   `-- builder.py
+    |-- data/                         # 数据加载
+    |   `-- dataset.py
+    |-- training/                     # 训练与重训练
+    |   |-- trainer.py
+    |   `-- retrain.py
+    |-- search/                       # 搜索算法
+    |   |-- searcher.py
+    |   |-- constrained.py
+    |   `-- pareto.py
+    `-- deploy/                       # ONNX / HLS / 推理
+        |-- export.py
+        |-- quantization.py
+        |-- hls.py
+        |-- hls_backend.py
+        |-- report_parser.py
+        `-- inference.py
+```
+
+---
+
+## 核心功能
+
+### 已实现
+
+- **搜索空间**：stage-based 可搜索架构空间。
+- **硬件估计**：分析模型 + LUT 查找表 + board profile。
+- **模型构建**：`ArchitectureSpec` 到 PyTorch Model。
+- **训练评估**：完整训练流程。
+- **搜索算法**：RL 搜索、约束剪枝与 Pareto 选择。
+- **重训练**：对 best architecture 进行独立最终重训练。
+- **部署导出**：ONNX 导出、HLS 项目骨架、report parser。
+- **INT8 量化**：导出权重量化包，供 FPGA/HLS 后端使用。
+- **LUT profiling**：从 HLS report 构建 LUT table。
+- **对比实验**：Fused MBConv vs 标准 MBConv、有/无早期剪枝。
+- **Pareto 优化**：多目标优化与前沿分析。
+
+### 待实现
+
+- 权重共享超网训练。
+- 真实声呐数据加载（MARIS/UATD）。
+- HLS/Vivado/Vitis 实际调用与板上回测。
+
 ---
 
 ## LUT Profiling
 
-鐪熷疄 FPGA profiling 鍙互閫氳繃 `run_build_lut.py` 浠?Vivado/Vitis HLS 鎶ュ憡鏋勫缓鏌ユ壘琛細
+真实 FPGA profiling 可以通过 `run_build_lut.py` 从 Vivado/Vitis HLS 报告构建查找表：
 
 ```bash
 python3 run_build_lut.py \
@@ -159,7 +186,8 @@ python3 run_build_lut.py \
   --summary-json artifacts/fpga_lut_summary.json
 ```
 
-鐢熸垚鐨?`fpga_lut.pkl` 鍙互鐩存帴鎺ュ埌鎼滅储閰嶇疆锛?
+生成的 `fpga_lut.pkl` 可以直接接入搜索配置：
+
 ```yaml
 hardware:
   board: zynq7020
@@ -169,13 +197,14 @@ hardware:
 
 ---
 
-## 鏂规鍙傝€?
-| 鍙傝€冨簱 | 鐢ㄩ€?|
-|---|---|
-| **FBNet** | stage-based 鎼滅储绌洪棿銆丩UT 鏋舵瀯璁捐 |
-| **TinyTNAS** | 绾︽潫椹卞姩銆佹椂闂撮檺鍒舵悳绱?|
-| **HW-NAS-Bench** | 纭欢鎸囨爣璁捐 |
-| **HW-PR-NAS** | Pareto 鎺掑悕淇濇寔 |
-| **DARTS** | 鍙井 NAS 鍩虹嚎锛堝弬鑰冪敤锛?|
+## 方案参考
 
-璇﹁锛歔reference/ANALYSIS.md](reference/ANALYSIS.md)
+| 参考库 | 用途 |
+|---|---|
+| **FBNet** | stage-based 搜索空间、LUT 架构设计 |
+| **TinyTNAS** | 约束驱动、时间限制搜索 |
+| **HW-NAS-Bench** | 硬件指标设计 |
+| **HW-PR-NAS** | Pareto 排名保持 |
+| **DARTS** | 可微 NAS 基线（参考用） |
+
+详见：[reference/ANALYSIS.md](reference/ANALYSIS.md)

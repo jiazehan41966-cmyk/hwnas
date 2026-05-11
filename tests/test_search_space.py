@@ -420,6 +420,37 @@ class SearchSpaceProbeTests(unittest.TestCase):
             pooled = model.post_stem_downsample(stem_output)
         self.assertEqual(pooled.shape[-1], resolved[0].input_resolution)
 
+    def test_stage_block_choices_constrain_sampling_and_validation(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 32,
+                "stem_stride": 2,
+                "stage_strides": [1, 2],
+                "stage_base_channels": [16, 24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1], [1]],
+                "stage_block_choices": [
+                    [{"op": "conv", "kernel_size": 1, "expand_ratio": 1}],
+                    [{"op": "mbconv", "kernel_size": 3, "expand_ratio": 3}],
+                ],
+                "num_classes": 8,
+            }
+        )
+        space = SearchSpace(config)
+        architecture = space.sample(seed=7)
+
+        self.assertEqual(architecture.stages[0].blocks[0].op, "conv")
+        self.assertEqual(architecture.stages[0].blocks[0].kernel_size, 1)
+        self.assertEqual(architecture.stages[1].blocks[0].op, "mbconv")
+        self.assertEqual(space.validate(architecture), [])
+
+        payload = architecture.to_dict()
+        payload["stages"][0]["blocks"][0]["kernel_size"] = 3
+        invalid = ArchitectureSpec.from_dict(payload)
+        self.assertFalse(space.is_valid(invalid))
+
 
 if __name__ == "__main__":
     unittest.main()

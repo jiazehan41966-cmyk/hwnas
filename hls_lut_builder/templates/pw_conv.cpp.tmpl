@@ -5,10 +5,16 @@ static constexpr int OUT_CH = __OUT_CHANNELS__;
 static constexpr int OUT_H = __OUT_H__;
 static constexpr int OUT_W = __OUT_W__;
 static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+static constexpr int MAX_AXIS_BITS = __MAX_AXIS_BITS__;
+static constexpr int MAX_AXIS_CHANNELS = ((MAX_AXIS_BITS / 8) > 0) ? (MAX_AXIS_BITS / 8) : 1;
+static constexpr int IN_PACK_CH = (IN_CH > MAX_AXIS_CHANNELS) ? MAX_AXIS_CHANNELS : IN_CH;
+static constexpr int OUT_PACK_CH = (OUT_CH > MAX_AXIS_CHANNELS) ? MAX_AXIS_CHANNELS : OUT_CH;
+static constexpr int INPUT_PACKETS_PER_PIXEL = (IN_CH + IN_PACK_CH - 1) / IN_PACK_CH;
+static constexpr int OUTPUT_PACKETS_PER_PIXEL = (OUT_CH + OUT_PACK_CH - 1) / OUT_PACK_CH;
 static constexpr bool APPLY_RELU = (__APPLY_RELU__ != 0);
 
-typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
-typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+typedef MAKE_AXIS_TYPE(IN_PACK_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_PACK_CH * 8) output_axis_t;
 
 void __TOP_FUNCTION__(
     hls::stream<input_axis_t> &input_stream,
@@ -31,8 +37,15 @@ DECLARE_CONTROL_INTERFACE()
 
     for (int oh = 0; oh < OUT_H; ++oh) {
         for (int ow = 0; ow < OUT_W; ++ow) {
-            input_axis_t in_packet = input_stream.read();
-            unpack_axis_channels<IN_CH>(in_packet, input_channels);
+            for (int packet_idx = 0; packet_idx < INPUT_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                input_axis_t in_packet = input_stream.read();
+                unpack_axis_channel_segment<IN_CH, IN_PACK_CH>(
+                    in_packet,
+                    packet_idx * IN_PACK_CH,
+                    input_channels
+                );
+            }
 
             for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
                 for (int lane = 0; lane < OUT_TILE; ++lane) {
@@ -62,11 +75,19 @@ DECLARE_CONTROL_INTERFACE()
                 }
             }
 
-            output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(
-                output_channels,
-                (oh == (OUT_H - 1)) && (ow == (OUT_W - 1))
-            );
-            output_stream.write(out_packet);
+            for (int packet_idx = 0; packet_idx < OUTPUT_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                const bool last_packet =
+                    (oh == (OUT_H - 1)) &&
+                    (ow == (OUT_W - 1)) &&
+                    (packet_idx == (OUTPUT_PACKETS_PER_PIXEL - 1));
+                output_axis_t out_packet = make_axis_segment_packet<output_axis_t, OUT_CH, OUT_PACK_CH>(
+                    output_channels,
+                    packet_idx * OUT_PACK_CH,
+                    last_packet
+                );
+                output_stream.write(out_packet);
+            }
         }
     }
 }

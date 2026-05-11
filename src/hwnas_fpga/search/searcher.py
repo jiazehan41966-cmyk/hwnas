@@ -35,6 +35,22 @@ def _metric_display_name(selection_metric: str) -> str:
     return selection_metric
 
 
+def _candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
+    metrics = candidate.metrics
+    normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"macro_f1", "f1"}:
+        value = metrics.macro_f1 if metrics.macro_f1 is not None else metrics.accuracy
+    elif normalized in {"accuracy", "top1"}:
+        value = metrics.top1 if metrics.top1 is not None else metrics.accuracy
+    elif normalized == "weighted_f1":
+        value = metrics.weighted_f1 if metrics.weighted_f1 is not None else metrics.accuracy
+    else:
+        value = getattr(metrics, normalized, None)
+        if value is None:
+            value = metrics.accuracy
+    return float(value if value is not None else 0.0)
+
+
 class BaseSearcher:
     """搜索器基类"""
 
@@ -251,7 +267,7 @@ class RandomSearcher(BaseSearcher):
     ) -> SearchCandidate:
         """执行随机搜索"""
         best_candidate = None
-        best_accuracy = 0.0
+        best_score = float("-inf")
         metric_label = _metric_display_name(self.selection_metric)
 
         for i in range(num_candidates):
@@ -279,15 +295,15 @@ class RandomSearcher(BaseSearcher):
                 )
 
             if is_feasible and verbose:
-                acc = candidate.metrics.accuracy
+                score = _candidate_selection_score(candidate, self.selection_metric)
                 lat = candidate.metrics.latency_ms
                 print(
                     f"[{i+1}/{num_candidates}] {candidate.arch_id}: "
-                    f"{metric_label}={acc:.4f}, Lat={lat:.2f}ms"
+                    f"{metric_label}={score:.4f}, Lat={lat:.2f}ms"
                 )
 
-                if acc > best_accuracy:
-                    best_accuracy = acc
+                if score > best_score:
+                    best_score = score
                     best_candidate = candidate
                     if artifact_tracker and self.last_trained_model is not None:
                         artifact_tracker.save_best_candidate(
@@ -296,7 +312,7 @@ class RandomSearcher(BaseSearcher):
                             history=self.last_training_history,
                             extra={
                                 "selection_metric": self.selection_metric,
-                                "best_accuracy": best_accuracy,
+                                "best_score": best_score,
                                 "iteration": i + 1,
                             },
                         )
@@ -316,7 +332,7 @@ class RandomSearcher(BaseSearcher):
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if best_candidate:
-                print(f"Best {metric_label}: {best_accuracy:.4f}")
+                print(f"Best {metric_label}: {best_score:.4f}")
 
         return best_candidate
 
@@ -337,7 +353,7 @@ class RandomSearcher(BaseSearcher):
         timeout_seconds = timeout_minutes * 60
 
         best_candidate = None
-        best_accuracy = 0.0
+        best_score = float("-inf")
         iteration = 0
         metric_label = _metric_display_name(self.selection_metric)
 
@@ -373,16 +389,16 @@ class RandomSearcher(BaseSearcher):
                 )
 
             if is_feasible and verbose:
-                acc = candidate.metrics.accuracy
+                score = _candidate_selection_score(candidate, self.selection_metric)
                 lat = candidate.metrics.latency_ms
                 remaining = timeout_seconds - elapsed
                 print(
                     f"[{iteration}] {candidate.arch_id}: "
-                    f"{metric_label}={acc:.4f}, Lat={lat:.2f}ms, Remaining={remaining:.1f}s"
+                    f"{metric_label}={score:.4f}, Lat={lat:.2f}ms, Remaining={remaining:.1f}s"
                 )
 
-                if acc > best_accuracy:
-                    best_accuracy = acc
+                if score > best_score:
+                    best_score = score
                     best_candidate = candidate
                     if artifact_tracker and self.last_trained_model is not None:
                         artifact_tracker.save_best_candidate(
@@ -391,7 +407,7 @@ class RandomSearcher(BaseSearcher):
                             history=self.last_training_history,
                             extra={
                                 "selection_metric": self.selection_metric,
-                                "best_accuracy": best_accuracy,
+                                "best_score": best_score,
                                 "iteration": iteration,
                                 "mode": "timeout",
                             },
@@ -416,7 +432,7 @@ class RandomSearcher(BaseSearcher):
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if best_candidate:
-                print(f"Best {metric_label}: {best_accuracy:.4f}")
+                print(f"Best {metric_label}: {best_score:.4f}")
 
         return best_candidate
 
@@ -479,6 +495,12 @@ def create_searcher(
             reward_cfg=kwargs.get("reward_cfg"),
             eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
             selection_metric=kwargs.get("selection_metric", "macro_f1"),
+            controller_temperature=kwargs.get("controller_temperature", 1.0),
+            entropy_coef=kwargs.get("entropy_coef", 0.0),
+            exploration_epsilon_start=kwargs.get("exploration_epsilon_start", 0.0),
+            exploration_epsilon_end=kwargs.get("exploration_epsilon_end"),
+            exploration_epsilon_decay_episodes=kwargs.get("exploration_epsilon_decay_episodes", 0),
+            exploration_bonus=kwargs.get("exploration_bonus", 0.0),
         )
     if method == "proxyless":
         from .proxyless_searcher import ProxylessSearcher

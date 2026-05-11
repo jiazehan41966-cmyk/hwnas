@@ -40,11 +40,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case", action="append", default=None, help="Optional explicit case_name filter")
     parser.add_argument("--include-extensions", action="store_true", help="Allow p_ext cases if present in CSV/filter")
     parser.add_argument("--force", action="store_true", help="Re-export, re-generate harness, rebuild bitstream and re-measure")
+    parser.add_argument("--csynth-timeout-minutes", type=int, default=60, help="Timeout for Vitis HLS csynth stage")
+    parser.add_argument("--export-timeout-minutes", type=int, default=30, help="Timeout for HLS IP export stage")
+    parser.add_argument("--harness-timeout-minutes", type=int, default=10, help="Timeout for harness generation stage")
+    parser.add_argument("--bitstream-timeout-minutes", type=int, default=90, help="Timeout for Vivado bitstream build stage")
+    parser.add_argument("--measurement-timeout-minutes", type=int, default=20, help="Timeout for board measurement stage")
     return parser.parse_args()
 
 
 def load_case_names(csv_path: Path) -> list[str]:
-    with csv_path.open("r", encoding="utf-8", newline="") as handle:
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         case_names = [row["case_name"] for row in reader if row.get("case_name")]
     if not case_names:
@@ -56,7 +61,7 @@ def load_measured_cases(csv_path: Path) -> set[str]:
     if not csv_path.exists():
         return set()
     measured: set[str] = set()
-    with csv_path.open("r", encoding="utf-8", newline="") as handle:
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             try:
@@ -81,17 +86,40 @@ def resolve_case_dir(case_name: str, include_extensions: bool) -> Path:
     raise FileNotFoundError(f"Could not find case directory for {case_name}")
 
 
-def run_command(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        command,
-        cwd=cwd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def _coerce_output(output: Any) -> str:
+    if output is None:
+        return ""
+    if isinstance(output, bytes):
+        return output.decode("utf-8", errors="replace")
+    return str(output)
+
+
+def run_command(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout_seconds: int | None = None,
+) -> tuple[subprocess.CompletedProcess[str] | None, dict[str, Any] | None]:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=timeout_seconds,
+        )
+        return result, None
+    except subprocess.TimeoutExpired as exc:
+        return None, {
+            "status": "timeout",
+            "timeout_seconds": timeout_seconds,
+            "stdout": _coerce_output(exc.stdout),
+            "stderr": _coerce_output(exc.stderr),
+        }
 
 
 def write_summary(summary_json: Path, summary: list[dict[str, Any]]) -> None:
@@ -99,7 +127,45 @@ def write_summary(summary_json: Path, summary: list[dict[str, Any]]) -> None:
     summary_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def ensure_export(case_dir: Path, vitis_hls: Path, force: bool) -> dict[str, Any]:
+def _has_csynth_artifacts(case_dir: Path) -> bool:
+    report_dir = case_dir / "project" / "solution1" / "syn" / "report"
+    if not report_dir.exists():
+        return False
+    if any(report_dir.glob("*_csynth.xml")):
+        return True
+    if any(report_dir.glob("*_csynth.rpt")):
+        return True
+    if (report_dir / "csynth.xml").exists():
+        return True
+    if (report_dir / "csynth.rpt").exists():
+        return True
+    return False
+
+
+def ensure_csynth(case_dir: Path, vitis_hls: Path, force: bool, timeout_seconds: int | None) -> dict[str, Any]:
+    synth_tcl = case_dir / "synth.tcl"
+    if not synth_tcl.exists():
+        return {
+            "status": "failed",
+            "returncode": None,
+            "stdout": f"synth.tcl not found: {synth_tcl}",
+        }
+    if _has_csynth_artifacts(case_dir) and not force:
+        return {"status": "skipped_existing", "synth_tcl": str(synth_tcl)}
+    command = ["cmd", "/c", str(vitis_hls), "-f", str(synth_tcl)]
+    result, timeout_payload = run_command(command, cwd=case_dir, timeout_seconds=timeout_seconds)
+    if timeout_payload is not None:
+        timeout_payload["synth_tcl"] = str(synth_tcl)
+        return timeout_payload
+    return {
+        "status": "success" if result.returncode == 0 and _has_csynth_artifacts(case_dir) else "failed",
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "synth_tcl": str(synth_tcl),
+    }
+
+
+def ensure_export(case_dir: Path, vitis_hls: Path, force: bool, timeout_seconds: int | None) -> dict[str, Any]:
     component_xml = case_dir / "project" / "solution1" / "impl" / "ip" / "component.xml"
     if component_xml.exists() and not force:
         return {"status": "skipped_existing", "component_xml": str(component_xml)}
@@ -111,7 +177,10 @@ def ensure_export(case_dir: Path, vitis_hls: Path, force: bool) -> dict[str, Any
         "--vitis-hls",
         str(vitis_hls),
     ]
-    result = run_command(command, cwd=ROOT)
+    result, timeout_payload = run_command(command, cwd=ROOT, timeout_seconds=timeout_seconds)
+    if timeout_payload is not None:
+        timeout_payload["component_xml"] = str(component_xml) if component_xml.exists() else None
+        return timeout_payload
     status = {
         "status": "success" if result.returncode == 0 else "failed",
         "returncode": result.returncode,
@@ -121,7 +190,7 @@ def ensure_export(case_dir: Path, vitis_hls: Path, force: bool) -> dict[str, Any
     return status
 
 
-def generate_harness(case_dir: Path, board_config: Path, force: bool) -> dict[str, Any]:
+def generate_harness(case_dir: Path, board_config: Path, force: bool, timeout_seconds: int | None) -> dict[str, Any]:
     command = [
         sys.executable,
         str(GENERATE_HARNESS_SCRIPT),
@@ -134,8 +203,11 @@ def generate_harness(case_dir: Path, board_config: Path, force: bool) -> dict[st
     ]
     if force:
         command.append("--force")
-    result = run_command(command, cwd=ROOT)
+    result, timeout_payload = run_command(command, cwd=ROOT, timeout_seconds=timeout_seconds)
     manifest_path = BOARD_HARNESS_DIR / "projects" / f"harness_{case_dir.name}" / "harness_manifest.json"
+    if timeout_payload is not None:
+        timeout_payload["manifest"] = str(manifest_path) if manifest_path.exists() else None
+        return timeout_payload
     return {
         "status": "success" if result.returncode == 0 and manifest_path.exists() else "failed",
         "returncode": result.returncode,
@@ -144,7 +216,7 @@ def generate_harness(case_dir: Path, board_config: Path, force: bool) -> dict[st
     }
 
 
-def build_bitstream(harness_project_dir: Path, vivado: Path, force: bool) -> dict[str, Any]:
+def build_bitstream(harness_project_dir: Path, vivado: Path, force: bool, timeout_seconds: int | None) -> dict[str, Any]:
     manifest = json.loads((harness_project_dir / "harness_manifest.json").read_text(encoding="utf-8"))
     case_name = manifest["case_name"]
     bitstream = harness_project_dir / "bitstream" / f"{case_name}.bit"
@@ -152,7 +224,10 @@ def build_bitstream(harness_project_dir: Path, vivado: Path, force: bool) -> dic
         return {"status": "skipped_existing", "bitstream": str(bitstream)}
     tcl_path = harness_project_dir / "scripts" / "build_bitstream.tcl"
     command = ["cmd", "/c", str(vivado), "-mode", "batch", "-source", str(tcl_path)]
-    result = run_command(command, cwd=ROOT)
+    result, timeout_payload = run_command(command, cwd=ROOT, timeout_seconds=timeout_seconds)
+    if timeout_payload is not None:
+        timeout_payload["bitstream"] = str(bitstream) if bitstream.exists() else None
+        return timeout_payload
     return {
         "status": "success" if result.returncode == 0 and bitstream.exists() else "failed",
         "returncode": result.returncode,
@@ -167,6 +242,7 @@ def measure_case(
     vivado: Path,
     results_csv: Path,
     runs: int,
+    timeout_seconds: int | None,
 ) -> dict[str, Any]:
     json_out = harness_project_dir / "latest_measurement.json"
     command = [
@@ -185,7 +261,10 @@ def measure_case(
         "--json-out",
         str(json_out),
     ]
-    result = run_command(command, cwd=ROOT)
+    result, timeout_payload = run_command(command, cwd=ROOT, timeout_seconds=timeout_seconds)
+    if timeout_payload is not None:
+        timeout_payload["measurement"] = None
+        return timeout_payload
     payload: dict[str, Any] | None = None
     if json_out.exists():
         try:
@@ -235,7 +314,32 @@ def main() -> int:
             print(f"[skip] {case_name} already has a valid board measurement")
             continue
 
-        export_status = ensure_export(case_dir, vitis_hls, force=args.force)
+        csynth_status = ensure_csynth(
+            case_dir,
+            vitis_hls,
+            force=args.force,
+            timeout_seconds=args.csynth_timeout_minutes * 60 if args.csynth_timeout_minutes > 0 else None,
+        )
+        case_status["csynth"] = csynth_status
+        if csynth_status["status"] == "failed":
+            case_status["status"] = "failed_csynth"
+            summary.append(case_status)
+            write_summary(summary_json, summary)
+            print(f"[fail] {case_name} csynth")
+            continue
+        if csynth_status["status"] == "timeout":
+            case_status["status"] = "failed_csynth_timeout"
+            summary.append(case_status)
+            write_summary(summary_json, summary)
+            print(f"[fail] {case_name} csynth timeout")
+            continue
+
+        export_status = ensure_export(
+            case_dir,
+            vitis_hls,
+            force=args.force,
+            timeout_seconds=args.export_timeout_minutes * 60 if args.export_timeout_minutes > 0 else None,
+        )
         case_status["export"] = export_status
         if export_status["status"] == "failed":
             case_status["status"] = "failed_export"
@@ -243,8 +347,19 @@ def main() -> int:
             write_summary(summary_json, summary)
             print(f"[fail] {case_name} export")
             continue
+        if export_status["status"] == "timeout":
+            case_status["status"] = "failed_export_timeout"
+            summary.append(case_status)
+            write_summary(summary_json, summary)
+            print(f"[fail] {case_name} export timeout")
+            continue
 
-        harness_status = generate_harness(case_dir, board_config, force=args.force)
+        harness_status = generate_harness(
+            case_dir,
+            board_config,
+            force=args.force,
+            timeout_seconds=args.harness_timeout_minutes * 60 if args.harness_timeout_minutes > 0 else None,
+        )
         case_status["harness"] = harness_status
         if harness_status["status"] == "failed":
             case_status["status"] = "failed_harness"
@@ -252,14 +367,31 @@ def main() -> int:
             write_summary(summary_json, summary)
             print(f"[fail] {case_name} harness generation")
             continue
+        if harness_status["status"] == "timeout":
+            case_status["status"] = "failed_harness_timeout"
+            summary.append(case_status)
+            write_summary(summary_json, summary)
+            print(f"[fail] {case_name} harness generation timeout")
+            continue
 
-        bitstream_status = build_bitstream(harness_project_dir, vivado, force=args.force)
+        bitstream_status = build_bitstream(
+            harness_project_dir,
+            vivado,
+            force=args.force,
+            timeout_seconds=args.bitstream_timeout_minutes * 60 if args.bitstream_timeout_minutes > 0 else None,
+        )
         case_status["bitstream"] = bitstream_status
         if bitstream_status["status"] == "failed":
             case_status["status"] = "failed_bitstream"
             summary.append(case_status)
             write_summary(summary_json, summary)
             print(f"[fail] {case_name} bitstream build")
+            continue
+        if bitstream_status["status"] == "timeout":
+            case_status["status"] = "failed_bitstream_timeout"
+            summary.append(case_status)
+            write_summary(summary_json, summary)
+            print(f"[fail] {case_name} bitstream build timeout")
             continue
 
         measurement_status = measure_case(
@@ -268,9 +400,13 @@ def main() -> int:
             vivado=vivado,
             results_csv=results_csv,
             runs=args.runs,
+            timeout_seconds=args.measurement_timeout_minutes * 60 if args.measurement_timeout_minutes > 0 else None,
         )
         case_status["measurement"] = measurement_status
-        case_status["status"] = "success" if measurement_status["status"] == "success" else "failed_measurement"
+        if measurement_status["status"] == "timeout":
+            case_status["status"] = "failed_measurement_timeout"
+        else:
+            case_status["status"] = "success" if measurement_status["status"] == "success" else "failed_measurement"
         summary.append(case_status)
         write_summary(summary_json, summary)
         print(f"[{case_status['status']}] {case_name}")

@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional, Tuple
 # space. Normalize them so a LUT built from HLS manifests can still satisfy the
 # existing query path without requiring every caller to know both vocabularies.
 LUT_OP_ALIASES: Dict[str, str] = {
+    "stem_conv_k3_s2": "conv",
+    "pw_conv": "conv",
     "conv_bn_relu6": "conv",
     "inverted_residual": "mbconv",
 }
@@ -200,6 +202,57 @@ class LutEntry:
             power_w=data["power_w"],
             energy_mj=data["energy_mj"],
         )
+
+
+@dataclass(frozen=True)
+class FormalLutStatusEntry:
+    """Formal LUT status entry used by defer-aware NAS experiments."""
+
+    case_name: str
+    status: str
+    op_type: str
+    lookup_op: str
+    defer_reason: Optional[str] = None
+    root_cause_bucket: Optional[str] = None
+    op_spec: OpSpec | None = None
+    board_cycles: Optional[int] = None
+    board_latency_ms: Optional[float] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "FormalLutStatusEntry":
+        return cls(
+            case_name=str(data["case_name"]),
+            status=str(data["status"]),
+            op_type=str(data.get("op_type", data.get("lookup_op", ""))),
+            lookup_op=str(data.get("lookup_op", data.get("op_type", ""))),
+            defer_reason=data.get("defer_reason"),
+            root_cause_bucket=data.get("root_cause_bucket"),
+            op_spec=(
+                OpSpec.from_dict(data["op_spec"])
+                if isinstance(data.get("op_spec"), dict)
+                else None
+            ),
+            board_cycles=(
+                int(data["board_cycles"])
+                if data.get("board_cycles") is not None
+                else None
+            ),
+            board_latency_ms=(
+                float(data["board_latency_ms"])
+                if data.get("board_latency_ms") is not None
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class LutQueryResult:
+    """Structured LUT query result that distinguishes miss vs infeasible."""
+
+    status: str
+    entry: Optional[LutEntry] = None
+    status_entry: Optional[FormalLutStatusEntry] = None
+    matched_by: str = "none"
 
 
 # ============================================================================
@@ -426,9 +479,20 @@ class LutQueryEngine:
         enable_interpolation: 是否启用插值
     """
 
-    def __init__(self, lut_table: LutTable, enable_interpolation: bool = False):
+    def __init__(
+        self,
+        lut_table: LutTable,
+        enable_interpolation: bool = False,
+        *,
+        allow_shape_only_match: bool = True,
+        strict_formal_lut: bool = False,
+        formal_status_entries: Optional[Dict[OpSpec, FormalLutStatusEntry]] = None,
+    ):
         self.lut_table = lut_table
         self.enable_interpolation = enable_interpolation
+        self.allow_shape_only_match = allow_shape_only_match
+        self.strict_formal_lut = strict_formal_lut
+        self.formal_status_entries = dict(formal_status_entries or {})
 
     def query(self, op_spec: OpSpec) -> Optional[LutEntry]:
         """查询算子的硬件代价
@@ -439,20 +503,51 @@ class LutQueryEngine:
         Returns:
             LutEntry 如果找到，否则尝试插值或返回 None
         """
-        # 1. 精确匹配
+        result = self.query_with_status(op_spec)
+        return result.entry
+
+    def query_with_status(self, op_spec: OpSpec) -> LutQueryResult:
+        """Query LUT and preserve infeasible-vs-miss semantics."""
+        if self.strict_formal_lut:
+            status_entry = self.formal_status_entries.get(op_spec)
+            if status_entry is not None:
+                if str(status_entry.status).strip() == "measured":
+                    entry = self.lut_table.query(op_spec)
+                    if entry is None:
+                        raise KeyError(
+                            f"Formal LUT status marks {status_entry.case_name} as measured "
+                            "but the measured LUT table has no exact entry."
+                        )
+                    return LutQueryResult(
+                        status="measured",
+                        entry=entry,
+                        status_entry=status_entry,
+                        matched_by="formal_exact",
+                    )
+                return LutQueryResult(
+                    status=str(status_entry.status).strip(),
+                    entry=None,
+                    status_entry=status_entry,
+                    matched_by="formal_status",
+                )
+
+            return LutQueryResult(status="missing", entry=None, status_entry=None, matched_by="formal_miss")
+
         entry = self.lut_table.query(op_spec)
         if entry is not None:
-            return entry
+            return LutQueryResult(status="measured", entry=entry, matched_by="exact")
 
-        shape_only_match = self._query_unique_shape_match(op_spec)
-        if shape_only_match is not None:
-            return shape_only_match
+        if self.allow_shape_only_match:
+            shape_only_match = self._query_unique_shape_match(op_spec)
+            if shape_only_match is not None:
+                return LutQueryResult(status="measured", entry=shape_only_match, matched_by="shape_only")
 
-        # 2. 插值查询（如果启用）
         if self.enable_interpolation:
-            return self._interpolate_query(op_spec)
+            interpolated = self._interpolate_query(op_spec)
+            if interpolated is not None:
+                return LutQueryResult(status="measured", entry=interpolated, matched_by="interpolated")
 
-        return None
+        return LutQueryResult(status="missing", entry=None, matched_by="none")
 
     def _query_unique_shape_match(self, op_spec: OpSpec) -> Optional[LutEntry]:
         matches = [
@@ -463,6 +558,24 @@ class LutQueryEngine:
         if len(matches) == 1:
             return matches[0]
         return None
+
+    @staticmethod
+    def load_formal_status_json(path: str) -> Dict[OpSpec, FormalLutStatusEntry]:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
+            raise ValueError(f"Unsupported formal LUT status JSON format: {path}")
+
+        index: Dict[OpSpec, FormalLutStatusEntry] = {}
+        for raw_entry in entries:
+            entry = FormalLutStatusEntry.from_dict(raw_entry)
+            if entry.op_spec is None:
+                raise ValueError(
+                    f"Formal LUT status entry for case {entry.case_name} is missing op_spec."
+                )
+            index[entry.op_spec] = entry
+        return index
 
     def _interpolate_query(self, op_spec: OpSpec) -> Optional[LutEntry]:
         """插值查询（基于邻近条目）

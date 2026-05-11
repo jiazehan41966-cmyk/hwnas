@@ -12,6 +12,7 @@ from hwnas_fpga.models import (
     get_macro_template,
     list_macro_templates,
 )
+from hwnas_fpga.models.backbones import _adapt_conv_weight
 
 
 class BackboneBuildTests(unittest.TestCase):
@@ -52,6 +53,18 @@ class BackboneBuildTests(unittest.TestCase):
         mobilenet_template = get_macro_template("mobile_anchor")
         self.assertEqual(mobilenet_template["name"], "mobilenet_v2_like")
         self.assertEqual(len(mobilenet_template["stages"]), 4)
+
+    def test_adapt_conv_weight_three_to_two_repeats_channel_average(self) -> None:
+        weight = torch.tensor(
+            [
+                [[[1.0]], [[3.0]], [[5.0]]],
+                [[[2.0]], [[4.0]], [[6.0]]],
+            ]
+        )
+        adapted = _adapt_conv_weight(weight, input_channels=2)
+        expected = weight.mean(dim=1, keepdim=True).repeat(1, 2, 1, 1)
+        self.assertEqual(tuple(adapted.shape), (2, 2, 1, 1))
+        self.assertTrue(torch.allclose(adapted, expected))
 
 
 if __name__ == "__main__":

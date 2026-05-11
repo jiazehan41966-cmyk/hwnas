@@ -65,6 +65,31 @@ class HardwareEstimatorTests(unittest.TestCase):
         estimate = estimator.estimate(self.architecture, self.space)
         self.assertTrue(estimate.violations)
 
+    def test_strict_formal_lut_marks_missing_queries_infeasible(self) -> None:
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=512,
+            ),
+            lut_query_engine=LutQueryEngine(
+                LutTable(),
+                strict_formal_lut=True,
+                formal_status_entries={},
+            ),
+            strict_formal_lut=True,
+        )
+
+        estimate = estimator.estimate(self.architecture, self.space)
+        stats = estimator.get_lut_stats()
+
+        self.assertTrue(
+            any(violation.startswith("formal LUT missing:") for violation in estimate.violations)
+        )
+        self.assertGreater(stats["true_misses"], 0)
+
 
 class SonarOpsCostTests(unittest.TestCase):
     def setUp(self) -> None:

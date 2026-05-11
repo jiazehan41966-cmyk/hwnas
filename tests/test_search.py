@@ -8,7 +8,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwnas_fpga.hardware import FPGACostEstimator
-from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
+from hwnas_fpga.interfaces import CandidateMetrics, HardwareSpec, SearchCandidate, SearchConstraints
 from hwnas_fpga.search import (
     ActionSpace,
     Controller,
@@ -107,6 +107,165 @@ class SearchFactoryTests(unittest.TestCase):
         )
         self.assertIsInstance(searcher, RandomSearcher)
         self.assertEqual(profiled_space.config.family_profile, "mobile_anchor")
+
+    def test_rl_searcher_samples_multiple_stage_block_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 16,
+                "stem_stride": 2,
+                "stage_strides": [2],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3, 5],
+                "expand_choices": [3, 6],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 5, "expand_ratio": 6},
+                    ]
+                ],
+                "num_classes": 8,
+            }
+        )
+        searcher = RLSearcher(
+            search_space=SearchSpace(config),
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=11,
+        )
+
+        def fixed_forward(_self, stage_idx, block_idx, prev_choices=None):
+            del stage_idx, block_idx, prev_choices
+            return {
+                "channel": torch.tensor([0.0], dtype=torch.float32),
+                "depth": torch.tensor([0.0], dtype=torch.float32),
+                "kernel": torch.tensor([-1000.0, 1000.0], dtype=torch.float32),
+                "expand": torch.tensor([1000.0, -1000.0], dtype=torch.float32),
+                "op": torch.tensor([0.0], dtype=torch.float32),
+            }
+
+        searcher.controller.forward = MethodType(fixed_forward, searcher.controller)
+        architecture = searcher.generate_architecture()
+        block = architecture.stages[0].blocks[0]
+
+        self.assertEqual(block.kernel_size, 5)
+        self.assertEqual(block.expand_ratio, 6)
+
+    def test_rl_searcher_epsilon_explores_stage_block_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 16,
+                "stem_stride": 2,
+                "stage_strides": [2],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3, 5],
+                "expand_choices": [3, 6],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 5, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 6},
+                        {"op": "mbconv", "kernel_size": 5, "expand_ratio": 6},
+                    ]
+                ],
+                "num_classes": 8,
+            }
+        )
+        searcher = RLSearcher(
+            search_space=SearchSpace(config),
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=11,
+            exploration_epsilon_start=1.0,
+        )
+
+        sampled = {
+            (
+                architecture.stages[0].blocks[0].kernel_size,
+                architecture.stages[0].blocks[0].expand_ratio,
+            )
+            for architecture in (searcher.generate_architecture() for _ in range(100))
+        }
+
+        self.assertEqual(sampled, {(3, 3), (5, 3), (3, 6), (5, 6)})
+
+    def test_rl_searcher_updates_controller_once_with_exploration_bonus(self) -> None:
+        searcher = RLSearcher(
+            search_space=self.search_space,
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=13,
+            exploration_bonus=0.25,
+        )
+        architecture = searcher.generate_architecture()
+        metrics = {
+            "latency_ms": 1.0,
+            "energy_mj": 0.1,
+            "dsp": 1,
+            "bram": 1,
+            "lut": 1,
+        }
+        base_reward = searcher.reward_function.compute_reward(
+            accuracy=0.7,
+            latency_ms=metrics["latency_ms"],
+            energy_mj=metrics["energy_mj"],
+            dsp=metrics["dsp"],
+            bram=metrics["bram"],
+            lut=metrics["lut"],
+            is_feasible=True,
+        )
+        candidate = SearchCandidate(
+            "rl_arch_test",
+            {},
+            CandidateMetrics(accuracy=0.7, latency_ms=1.0, energy_mj=0.1, dsp=1, bram=1, lut=1),
+        )
+        update_rewards = []
+
+        def fixed_generate(_self):
+            return architecture
+
+        def fixed_evaluate(_self, *_args, **_kwargs):
+            _self.evaluated_candidates.append(candidate)
+            _self.feasible_candidates.append(candidate)
+            _self.best_candidate = candidate
+            _self.best_reward = base_reward
+            return 0.7, metrics, True, candidate
+
+        def record_update(_self, _architecture, reward):
+            update_rewards.append(reward)
+            return 0.0
+
+        searcher.generate_architecture = MethodType(fixed_generate, searcher)
+        searcher.evaluate_architecture = MethodType(fixed_evaluate, searcher)
+        searcher.update_controller = MethodType(record_update, searcher)
+
+        result = searcher.search([], None, num_classes=8, num_episodes=1, verbose=False)
+
+        self.assertIs(result, candidate)
+        self.assertEqual(len(update_rewards), 1)
+        self.assertAlmostEqual(update_rewards[0], base_reward + 0.25)
+        self.assertEqual(
+            searcher.architecture_visit_counts[searcher._architecture_visit_key(architecture)],
+            1,
+        )
 
     def test_build_pareto_objectives_from_weights_and_constraints(self) -> None:
         objectives, directions = build_pareto_objectives(

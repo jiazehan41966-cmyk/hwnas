@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 from hwnas_fpga.interfaces import SearchCandidate, SearchConstraints
-from hwnas_fpga.search_space import SearchSpace, ArchitectureSpec, SearchSpaceConfig
+from hwnas_fpga.search_space import BlockSpec, SearchSpace, ArchitectureSpec, SearchSpaceConfig
 from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.models import build_model
 from hwnas_fpga.search.pareto import compute_pareto_front
@@ -102,12 +102,24 @@ class ActionSpace:
     @classmethod
     def from_search_config(cls, config: SearchSpaceConfig) -> "ActionSpace":
         """从 SearchSpaceConfig 创建动作空间"""
+        op_actions = tuple(config.op_choices)
+        kernel_actions = tuple(config.kernel_choices)
+        expand_actions = tuple(config.expand_choices)
+        if config.stage_block_choices is not None:
+            stage_blocks = [block for choices in config.stage_block_choices for block in choices]
+            op_actions = tuple(dict.fromkeys([*op_actions, *(block.op for block in stage_blocks)]))
+            kernel_actions = tuple(
+                sorted({*kernel_actions, *(int(block.kernel_size) for block in stage_blocks)})
+            )
+            expand_actions = tuple(
+                sorted({*expand_actions, *(int(block.expand_ratio) for block in stage_blocks)})
+            )
         return cls(
             channel_actions=tuple(config.channel_choices),
             depth_actions=tuple(config.depth_choices),
-            kernel_actions=tuple(config.kernel_choices),
-            expand_actions=tuple(config.expand_choices),
-            op_actions=tuple(config.op_choices),
+            kernel_actions=kernel_actions,
+            expand_actions=expand_actions,
+            op_actions=op_actions,
         )
 
 
@@ -298,19 +310,44 @@ class Controller(nn.Module):
         stage_idx: int,
         block_idx: int,
         allowed_indices: Optional[Dict[str, Tuple[int, ...]]] = None,
+        temperature: float = 1.0,
+        exploration_epsilon: float = 0.0,
     ) -> Dict[str, int]:
         """采样动作
 
         Returns:
             各决策类型的索引字典
         """
+        if temperature <= 0:
+            raise ValueError("temperature must be positive")
+        exploration_epsilon = max(0.0, min(1.0, float(exploration_epsilon)))
         logits = self.forward(stage_idx, block_idx)
 
         # Gumbel-Softmax 采样
         actions = {}
         for key, logit in logits.items():
             key_allowed_indices = None if allowed_indices is None else allowed_indices.get(key)
-            masked_logits = self._mask_logits(logit, key_allowed_indices)
+            normalized_allowed = self._normalize_allowed_indices(
+                logit.numel(),
+                key_allowed_indices,
+            )
+            if exploration_epsilon > 0.0 and normalized_allowed is not None:
+                if torch.rand((), device=logit.device).item() < exploration_epsilon:
+                    allowed_tensor = torch.as_tensor(
+                        normalized_allowed,
+                        device=logit.device,
+                        dtype=torch.long,
+                    )
+                    action = allowed_tensor[
+                        torch.randint(
+                            len(normalized_allowed),
+                            (1,),
+                            device=logit.device,
+                        )
+                    ].item()
+                    actions[key] = int(action)
+                    continue
+            masked_logits = self._mask_logits(logit, normalized_allowed) / float(temperature)
             action = torch.distributions.Categorical(logits=masked_logits).sample().item()
             actions[key] = action
 
@@ -322,12 +359,15 @@ class Controller(nn.Module):
         block_idx: int,
         actions: Dict[str, int],
         allowed_indices: Optional[Dict[str, Tuple[int, ...]]] = None,
+        temperature: float = 1.0,
     ) -> Dict[str, torch.Tensor]:
         """计算动作的log概率
 
         Returns:
             各决策类型的log概率字典
         """
+        if temperature <= 0:
+            raise ValueError("temperature must be positive")
         logits = self.forward(stage_idx, block_idx)
 
         log_probs = {}
@@ -342,10 +382,30 @@ class Controller(nn.Module):
                     raise ValueError(
                         f"action {action_idx} is not valid for decision '{key}'"
                     )
-                masked_logits = self._mask_logits(logits[key], normalized_allowed)
+                masked_logits = self._mask_logits(logits[key], normalized_allowed) / float(temperature)
                 log_probs[key] = F.log_softmax(masked_logits, dim=-1)[action_idx]
 
         return log_probs
+
+    def get_entropy(
+        self,
+        stage_idx: int,
+        block_idx: int,
+        key: str,
+        allowed_indices: Optional[Tuple[int, ...]] = None,
+        temperature: float = 1.0,
+    ) -> torch.Tensor:
+        if temperature <= 0:
+            raise ValueError("temperature must be positive")
+        logits = self.forward(stage_idx, block_idx)
+        if key not in logits:
+            raise KeyError(key)
+        normalized_allowed = self._normalize_allowed_indices(
+            logits[key].numel(),
+            allowed_indices,
+        )
+        masked_logits = self._mask_logits(logits[key], normalized_allowed) / float(temperature)
+        return torch.distributions.Categorical(logits=masked_logits).entropy()
 
 
 # ============================================================================
@@ -517,6 +577,12 @@ class RLSearcher:
         reward_cfg: Optional[Dict[str, Any]] = None,
         eval_early_stopping_patience: Optional[int] = 2,
         selection_metric: str = "macro_f1",
+        controller_temperature: float = 1.0,
+        entropy_coef: float = 0.0,
+        exploration_epsilon_start: float = 0.0,
+        exploration_epsilon_end: Optional[float] = None,
+        exploration_epsilon_decay_episodes: int = 0,
+        exploration_bonus: float = 0.0,
     ):
         self.search_space = search_space
         self.estimator = cost_estimator
@@ -526,6 +592,18 @@ class RLSearcher:
         self.selection_metric = selection_metric
         self.device = device
         self.seed = seed
+        if controller_temperature <= 0:
+            raise ValueError("controller_temperature must be positive")
+        self.controller_temperature = float(controller_temperature)
+        self.entropy_coef = max(0.0, float(entropy_coef))
+        self.exploration_epsilon_start = max(0.0, min(1.0, float(exploration_epsilon_start)))
+        if exploration_epsilon_end is None:
+            exploration_epsilon_end = self.exploration_epsilon_start
+        self.exploration_epsilon_end = max(0.0, min(1.0, float(exploration_epsilon_end)))
+        self.exploration_epsilon_decay_episodes = max(0, int(exploration_epsilon_decay_episodes))
+        self.exploration_bonus = max(0.0, float(exploration_bonus))
+        self.current_episode = 0
+        self.architecture_visit_counts: Dict[str, int] = {}
 
         # 设置随机种子
         random.seed(seed)
@@ -710,6 +788,263 @@ class RLSearcher:
             for op in self._valid_ops(block_in_channels, out_channels, stride)
         )
 
+    def _stage_choice_op_indices(self, choices: Tuple[BlockSpec, ...]) -> Tuple[int, ...]:
+        return tuple(
+            sorted({self.action_space.op_to_index(choice.op) for choice in choices})
+        )
+
+    def _stage_choice_kernel_indices(
+        self,
+        choices: Tuple[BlockSpec, ...],
+        *,
+        op: str,
+    ) -> Tuple[int, ...]:
+        return tuple(
+            sorted(
+                {
+                    self.action_space.kernel_to_index(choice.kernel_size)
+                    for choice in choices
+                    if choice.op == op
+                }
+            )
+        )
+
+    def _stage_choice_expand_indices(
+        self,
+        choices: Tuple[BlockSpec, ...],
+        *,
+        op: str,
+        kernel_size: int,
+    ) -> Tuple[int, ...]:
+        return tuple(
+            sorted(
+                {
+                    self.action_space.expand_to_index(choice.expand_ratio)
+                    for choice in choices
+                    if choice.op == op and choice.kernel_size == kernel_size
+                }
+            )
+        )
+
+    def _current_exploration_epsilon(self) -> float:
+        if self.exploration_epsilon_decay_episodes <= 0:
+            return self.exploration_epsilon_start
+        progress = min(1.0, self.current_episode / float(self.exploration_epsilon_decay_episodes))
+        return (
+            self.exploration_epsilon_start
+            + (self.exploration_epsilon_end - self.exploration_epsilon_start) * progress
+        )
+
+    def _controller_sample(
+        self,
+        stage_idx: int,
+        block_idx: int,
+        allowed_indices: Optional[Dict[str, Tuple[int, ...]]] = None,
+    ) -> Dict[str, int]:
+        return self.controller.sample(
+            stage_idx,
+            block_idx,
+            allowed_indices=allowed_indices,
+            temperature=self.controller_temperature,
+            exploration_epsilon=self._current_exploration_epsilon(),
+        )
+
+    def _controller_entropy(
+        self,
+        stage_idx: int,
+        block_idx: int,
+        key: str,
+        allowed_indices: Optional[Tuple[int, ...]] = None,
+    ) -> torch.Tensor:
+        return self.controller.get_entropy(
+            stage_idx,
+            block_idx,
+            key,
+            allowed_indices=allowed_indices,
+            temperature=self.controller_temperature,
+        )
+
+    def _architecture_visit_key(self, architecture: ArchitectureSpec) -> str:
+        parts = []
+        for stage in architecture.stages:
+            blocks = ",".join(
+                f"{block.op}:k{block.kernel_size}:e{block.expand_ratio}:s{block.stride}"
+                for block in stage.blocks
+            )
+            parts.append(f"c{stage.channels}:d{stage.depth}:s{stage.stride}:{blocks}")
+        return "|".join(parts)
+
+    def _exploration_bonus_for(self, architecture: ArchitectureSpec) -> float:
+        if self.exploration_bonus <= 0.0:
+            return 0.0
+        count = self.architecture_visit_counts.get(self._architecture_visit_key(architecture), 0)
+        return self.exploration_bonus / math.sqrt(float(count + 1))
+
+    def _record_architecture_visit(self, architecture: ArchitectureSpec) -> None:
+        key = self._architecture_visit_key(architecture)
+        self.architecture_visit_counts[key] = self.architecture_visit_counts.get(key, 0) + 1
+
+    def _sample_stage_block_choice(
+        self,
+        *,
+        stage_idx: int,
+        block_idx_global: int,
+        choices: Tuple[BlockSpec, ...],
+    ) -> BlockSpec:
+        op_indices = self._stage_choice_op_indices(choices)
+        if len(op_indices) == 1:
+            op_idx = op_indices[0]
+        else:
+            op_idx = self._controller_sample(
+                stage_idx,
+                block_idx_global,
+                allowed_indices={"op": op_indices},
+            )["op"]
+        op = self.action_space.op_actions[op_idx]
+
+        if op == "skip":
+            matching = [choice for choice in choices if choice.op == op]
+            if matching:
+                return matching[0]
+            raise RuntimeError("stage_block_choices did not contain the sampled skip op")
+
+        kernel_indices = self._stage_choice_kernel_indices(choices, op=op)
+        if len(kernel_indices) == 1:
+            kernel_idx = kernel_indices[0]
+        else:
+            kernel_idx = self._controller_sample(
+                stage_idx,
+                block_idx_global,
+                allowed_indices={"kernel": kernel_indices},
+            )["kernel"]
+        kernel_size = self.action_space.kernel_actions[kernel_idx]
+
+        if op in ("mbconv", "fused_mbconv"):
+            expand_indices = self._stage_choice_expand_indices(
+                choices,
+                op=op,
+                kernel_size=kernel_size,
+            )
+            if len(expand_indices) == 1:
+                expand_idx = expand_indices[0]
+            else:
+                expand_idx = self._controller_sample(
+                    stage_idx,
+                    block_idx_global,
+                    allowed_indices={"expand": expand_indices},
+                )["expand"]
+            expand_ratio = self.action_space.expand_actions[expand_idx]
+        else:
+            expand_ratio = 1
+
+        for choice in choices:
+            if (
+                choice.op == op
+                and choice.kernel_size == kernel_size
+                and choice.expand_ratio == expand_ratio
+            ):
+                return choice
+        raise RuntimeError("sampled stage_block_choices combination is not available")
+
+    def _stage_block_choice_log_prob(
+        self,
+        *,
+        stage_idx: int,
+        block_idx_global: int,
+        block: BlockSpec,
+        choices: Tuple[BlockSpec, ...],
+    ) -> torch.Tensor:
+        controller_device = next(self.controller.parameters()).device
+        total = torch.zeros((), device=controller_device)
+
+        op_indices = self._stage_choice_op_indices(choices)
+        op_idx = self.action_space.op_to_index(block.op)
+        total += self.controller.get_log_prob(
+            stage_idx,
+            block_idx_global,
+            {"op": op_idx},
+            allowed_indices={"op": op_indices},
+            temperature=self.controller_temperature,
+        )["op"]
+
+        if block.op == "skip":
+            return total
+
+        kernel_indices = self._stage_choice_kernel_indices(choices, op=block.op)
+        kernel_idx = self.action_space.kernel_to_index(block.kernel_size)
+        total += self.controller.get_log_prob(
+            stage_idx,
+            block_idx_global,
+            {"kernel": kernel_idx},
+            allowed_indices={"kernel": kernel_indices},
+            temperature=self.controller_temperature,
+        )["kernel"]
+
+        if block.op in ("mbconv", "fused_mbconv"):
+            expand_indices = self._stage_choice_expand_indices(
+                choices,
+                op=block.op,
+                kernel_size=block.kernel_size,
+            )
+            expand_idx = self.action_space.expand_to_index(block.expand_ratio)
+            total += self.controller.get_log_prob(
+                stage_idx,
+                block_idx_global,
+                {"expand": expand_idx},
+                allowed_indices={"expand": expand_indices},
+                temperature=self.controller_temperature,
+            )["expand"]
+
+        return total
+
+    def _stage_block_choice_entropy(
+        self,
+        *,
+        stage_idx: int,
+        block_idx_global: int,
+        block: BlockSpec,
+        choices: Tuple[BlockSpec, ...],
+    ) -> torch.Tensor:
+        controller_device = next(self.controller.parameters()).device
+        total = torch.zeros((), device=controller_device)
+
+        op_indices = self._stage_choice_op_indices(choices)
+        if len(op_indices) > 1:
+            total += self._controller_entropy(
+                stage_idx,
+                block_idx_global,
+                "op",
+                allowed_indices=op_indices,
+            )
+
+        if block.op == "skip":
+            return total
+
+        kernel_indices = self._stage_choice_kernel_indices(choices, op=block.op)
+        if len(kernel_indices) > 1:
+            total += self._controller_entropy(
+                stage_idx,
+                block_idx_global,
+                "kernel",
+                allowed_indices=kernel_indices,
+            )
+
+        if block.op in ("mbconv", "fused_mbconv"):
+            expand_indices = self._stage_choice_expand_indices(
+                choices,
+                op=block.op,
+                kernel_size=block.kernel_size,
+            )
+            if len(expand_indices) > 1:
+                total += self._controller_entropy(
+                    stage_idx,
+                    block_idx_global,
+                    "expand",
+                    allowed_indices=expand_indices,
+                )
+
+        return total
+
     def _generate_architecture_masked(self) -> ArchitectureSpec:
         stage_count = self.search_space.config.stage_count
         stage_strides = self.search_space.config.stage_strides
@@ -718,14 +1053,14 @@ class RLSearcher:
         current_channels = self.search_space.config.stem_channels
 
         for stage_idx in range(stage_count):
-            channel_idx = self.controller.sample(
+            channel_idx = self._controller_sample(
                 stage_idx,
                 0,
                 allowed_indices={"channel": self._valid_channel_indices(stage_idx)},
             )["channel"]
             channels = self.action_space.channel_actions[channel_idx]
 
-            depth_idx = self.controller.sample(
+            depth_idx = self._controller_sample(
                 stage_idx,
                 0,
                 allowed_indices={"depth": self._valid_depth_indices(stage_idx)},
@@ -737,6 +1072,24 @@ class RLSearcher:
                 block_idx_global = stage_idx * 4 + block_idx
                 stride = stage_strides[stage_idx] if block_idx == 0 else 1
                 block_in_channels = current_channels if block_idx == 0 else channels
+                stage_block_choices = self.search_space.concrete_block_choices_for_stage(
+                    stage_index=stage_idx,
+                    in_channels=block_in_channels,
+                    out_channels=channels,
+                    stride=stride,
+                )
+                if stage_block_choices is not None:
+                    if len(stage_block_choices) == 1:
+                        blocks.append(stage_block_choices[0])
+                    else:
+                        blocks.append(
+                            self._sample_stage_block_choice(
+                                stage_idx=stage_idx,
+                                block_idx_global=block_idx_global,
+                                choices=stage_block_choices,
+                            )
+                        )
+                    continue
                 valid_op_indices = self._valid_op_indices(
                     block_in_channels,
                     channels,
@@ -746,7 +1099,7 @@ class RLSearcher:
                 if len(valid_op_indices) == 1:
                     op_idx = valid_op_indices[0]
                 else:
-                    op_idx = self.controller.sample(
+                    op_idx = self._controller_sample(
                         stage_idx,
                         block_idx_global,
                         allowed_indices={"op": valid_op_indices},
@@ -756,13 +1109,13 @@ class RLSearcher:
                 if op == "skip":
                     kernel_size = 1
                 else:
-                    kernel_idx = self.controller.sample(stage_idx, block_idx_global)["kernel"]
+                    kernel_idx = self._controller_sample(stage_idx, block_idx_global)["kernel"]
                     kernel_size = self.action_space.kernel_actions[kernel_idx]
 
                 if op in ("skip", "conv", "dw_pw_conv", "mixconv", "denoise", "edge"):
                     expand_ratio = 1
                 else:
-                    expand_idx = self.controller.sample(stage_idx, block_idx_global)["expand"]
+                    expand_idx = self._controller_sample(stage_idx, block_idx_global)["expand"]
                     expand_ratio = self.action_space.expand_actions[expand_idx]
 
                 from hwnas_fpga.search_space import BlockSpec
@@ -1131,29 +1484,70 @@ class RLSearcher:
 
         controller_device = next(self.controller.parameters()).device
         total_log_prob = torch.zeros((), device=controller_device)
+        total_entropy = torch.zeros((), device=controller_device)
         current_channels = self.search_space.config.stem_channels
 
         for stage_idx, stage in enumerate(architecture.stages):
+            channel_indices = self._valid_channel_indices(stage_idx)
             channel_idx = self.action_space.channel_to_index(stage.channels)
             total_log_prob += self.controller.get_log_prob(
                 stage_idx,
                 0,
                 {"channel": channel_idx},
-                allowed_indices={"channel": self._valid_channel_indices(stage_idx)},
+                allowed_indices={"channel": channel_indices},
+                temperature=self.controller_temperature,
             )["channel"]
+            if len(channel_indices) > 1:
+                total_entropy += self._controller_entropy(
+                    stage_idx,
+                    0,
+                    "channel",
+                    allowed_indices=channel_indices,
+                )
 
+            depth_indices = self._valid_depth_indices(stage_idx)
             depth_idx = self.action_space.depth_to_index(stage.depth)
             total_log_prob += self.controller.get_log_prob(
                 stage_idx,
                 0,
                 {"depth": depth_idx},
-                allowed_indices={"depth": self._valid_depth_indices(stage_idx)},
+                allowed_indices={"depth": depth_indices},
+                temperature=self.controller_temperature,
             )["depth"]
+            if len(depth_indices) > 1:
+                total_entropy += self._controller_entropy(
+                    stage_idx,
+                    0,
+                    "depth",
+                    allowed_indices=depth_indices,
+                )
 
             for block_idx, block in enumerate(stage.blocks):
                 block_idx_global = stage_idx * 4 + block_idx
                 stride = stage.stride if block_idx == 0 else 1
                 block_in_channels = current_channels if block_idx == 0 else stage.channels
+                stage_block_choices = self.search_space.concrete_block_choices_for_stage(
+                    stage_index=stage_idx,
+                    in_channels=block_in_channels,
+                    out_channels=stage.channels,
+                    stride=stride,
+                )
+                if stage_block_choices is not None:
+                    if len(stage_block_choices) == 1:
+                        continue
+                    total_log_prob += self._stage_block_choice_log_prob(
+                        stage_idx=stage_idx,
+                        block_idx_global=block_idx_global,
+                        block=block,
+                        choices=stage_block_choices,
+                    )
+                    total_entropy += self._stage_block_choice_entropy(
+                        stage_idx=stage_idx,
+                        block_idx_global=block_idx_global,
+                        block=block,
+                        choices=stage_block_choices,
+                    )
+                    continue
                 valid_op_indices = self._valid_op_indices(
                     block_in_channels,
                     stage.channels,
@@ -1166,7 +1560,15 @@ class RLSearcher:
                     block_idx_global,
                     {"op": op_idx},
                     allowed_indices={"op": valid_op_indices},
+                    temperature=self.controller_temperature,
                 )["op"]
+                if len(valid_op_indices) > 1:
+                    total_entropy += self._controller_entropy(
+                        stage_idx,
+                        block_idx_global,
+                        "op",
+                        allowed_indices=valid_op_indices,
+                    )
 
                 if block.op != "skip":
                     kernel_idx = self.action_space.kernel_to_index(block.kernel_size)
@@ -1174,7 +1576,14 @@ class RLSearcher:
                         stage_idx,
                         block_idx_global,
                         {"kernel": kernel_idx},
+                        temperature=self.controller_temperature,
                     )["kernel"]
+                    if self.action_space.num_kernels > 1:
+                        total_entropy += self._controller_entropy(
+                            stage_idx,
+                            block_idx_global,
+                            "kernel",
+                        )
 
                 if block.op in ("mbconv", "fused_mbconv"):
                     expand_idx = self.action_space.expand_to_index(block.expand_ratio)
@@ -1182,12 +1591,19 @@ class RLSearcher:
                         stage_idx,
                         block_idx_global,
                         {"expand": expand_idx},
+                        temperature=self.controller_temperature,
                     )["expand"]
+                    if self.action_space.num_expands > 1:
+                        total_entropy += self._controller_entropy(
+                            stage_idx,
+                            block_idx_global,
+                            "expand",
+                        )
 
             current_channels = stage.channels
 
         advantage = reward - self.baseline
-        loss = -advantage * total_log_prob
+        loss = -advantage * total_log_prob - self.entropy_coef * total_entropy
 
         loss.backward()
         self._check_controller_gradients_finite()
@@ -1304,6 +1720,7 @@ class RLSearcher:
         timeout_seconds = None if timeout_minutes is None else timeout_minutes * 60
 
         for episode in range(start_episode, num_episodes):
+            self.current_episode = episode
             if timeout_seconds is not None:
                 elapsed = (datetime.now() - start_time).total_seconds()
                 if elapsed >= timeout_seconds:
@@ -1335,8 +1752,11 @@ class RLSearcher:
                 is_feasible=is_feasible,
             )
 
-            # 4. 更新控制器
-            loss = self.update_controller(architecture, reward)
+            # 4. Apply exploration bonus and update controller once.
+            exploration_bonus = self._exploration_bonus_for(architecture)
+            reward_with_bonus = reward + exploration_bonus
+            self._record_architecture_visit(architecture)
+            loss = self.update_controller(architecture, reward_with_bonus)
 
             if artifact_tracker:
                 artifact_tracker.record_candidate(
@@ -1347,6 +1767,9 @@ class RLSearcher:
                     extra={
                         "episode": episode,
                         "reward": reward,
+                        "reward_with_bonus": reward_with_bonus,
+                        "exploration_bonus": exploration_bonus,
+                        "exploration_epsilon": self._current_exploration_epsilon(),
                         "loss": loss,
                         "baseline": self.baseline,
                         "search_method": "rl",
@@ -1357,7 +1780,7 @@ class RLSearcher:
                     {
                         "saved_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
                         "episode": episode,
-                        "reward": reward,
+                        "reward": reward_with_bonus,
                         "baseline": self.baseline,
                         "controller_state_dict": self.controller.state_dict(),
                         "optimizer_state_dict": self.controller_optimizer.state_dict(),
@@ -1369,7 +1792,7 @@ class RLSearcher:
                         {
                             "saved_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
                             "episode": episode,
-                            "reward": reward,
+                            "reward": reward_with_bonus,
                             "best_reward": self.best_reward,
                             "controller_state_dict": self.controller.state_dict(),
                             "optimizer_state_dict": self.controller_optimizer.state_dict(),
@@ -1383,7 +1806,7 @@ class RLSearcher:
                             extra={
                                 "selection_metric": "reward",
                                 "episode": episode,
-                                "reward": reward,
+                                "reward": reward_with_bonus,
                                 "best_reward": self.best_reward,
                             },
                         )
@@ -1395,6 +1818,9 @@ class RLSearcher:
                     extra={
                         "episode": episode,
                         "reward": reward,
+                        "reward_with_bonus": reward_with_bonus,
+                        "exploration_bonus": exploration_bonus,
+                        "exploration_epsilon": self._current_exploration_epsilon(),
                         "loss": loss,
                         "baseline": self.baseline,
                     },
@@ -1403,7 +1829,7 @@ class RLSearcher:
             if verbose and (episode % 10 == 0 or episode == 0):
                 print(
                     f"Episode {episode}/{num_episodes}: "
-                    f"Acc={accuracy:.4f}, Reward={reward:.4f}, "
+                    f"Acc={accuracy:.4f}, Reward={reward_with_bonus:.4f}, "
                     f"Feasible={is_feasible}, Loss={loss:.4f}, "
                     f"Baseline={self.baseline:.4f}"
                 )

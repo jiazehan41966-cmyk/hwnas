@@ -1,5 +1,6 @@
 results/
 results_archive/
+outputs/
 hls_lut_builder/results/
 hls_lut_builder/board_harness/_vivado_builds/
 hls_lut_builder/board_harness/projects/

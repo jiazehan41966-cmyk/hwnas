@@ -2,6 +2,7 @@ module axis_rom_source #(
     parameter integer DATA_WIDTH = 8,
     parameter integer KEEP_WIDTH = (DATA_WIDTH / 8),
     parameter integer WORD_COUNT = 1,
+    parameter WORD_MEM_FILE = "",
     parameter MEM_FILE_00 = "",
     parameter MEM_FILE_01 = "",
     parameter MEM_FILE_02 = "",
@@ -50,6 +51,7 @@ module axis_rom_source #(
 localparam integer ADDR_WIDTH = (WORD_COUNT <= 2) ? 1 : $clog2(WORD_COUNT);
 localparam integer LANE_COUNT = KEEP_WIDTH;
 
+reg [DATA_WIDTH-1:0] word_rom [0:WORD_COUNT-1];
 reg [7:0] lane_rom_00 [0:WORD_COUNT-1];
 reg [7:0] lane_rom_01 [0:WORD_COUNT-1];
 reg [7:0] lane_rom_02 [0:WORD_COUNT-1];
@@ -90,6 +92,7 @@ reg [DATA_WIDTH-1:0] current_word;
 integer i;
 initial begin
     for (i = 0; i < WORD_COUNT; i = i + 1) begin
+        word_rom[i] = {DATA_WIDTH{1'b0}};
         lane_rom_00[i] = 8'h00;
         lane_rom_01[i] = 8'h00;
         lane_rom_02[i] = 8'h00;
@@ -123,6 +126,7 @@ initial begin
         lane_rom_30[i] = 8'h00;
         lane_rom_31[i] = 8'h00;
     end
+    if (WORD_MEM_FILE != "") $readmemh(WORD_MEM_FILE, word_rom);
     if (MEM_FILE_00 != "") $readmemh(MEM_FILE_00, lane_rom_00);
     if (MEM_FILE_01 != "") $readmemh(MEM_FILE_01, lane_rom_01);
     if (MEM_FILE_02 != "") $readmemh(MEM_FILE_02, lane_rom_02);
@@ -161,6 +165,9 @@ function [DATA_WIDTH-1:0] read_word;
     input [ADDR_WIDTH-1:0] idx;
     reg [DATA_WIDTH-1:0] assembled;
 begin
+    if (WORD_MEM_FILE != "") begin
+        read_word = word_rom[idx];
+    end else begin
     assembled = {DATA_WIDTH{1'b0}};
     if (LANE_COUNT > 0) assembled[7:0]     = lane_rom_00[idx];
     if (LANE_COUNT > 1) assembled[15:8]    = lane_rom_01[idx];
@@ -195,6 +202,7 @@ begin
     if (LANE_COUNT > 30) assembled[247:240] = lane_rom_30[idx];
     if (LANE_COUNT > 31) assembled[255:248] = lane_rom_31[idx];
     read_word = assembled;
+    end
 end
 endfunction
 

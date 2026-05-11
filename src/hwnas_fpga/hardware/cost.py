@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from math import ceil
 from typing import Any, Optional, Union
@@ -103,6 +104,7 @@ class FPGACostEstimator:
         lut_query_engine: Optional[LutQueryEngine] = None,
         operator_policies: Optional[dict[str, dict[str, Any]]] = None,
         require_deployable_operators: bool = False,
+        strict_formal_lut: bool = False,
     ) -> None:
         if quantization_bits <= 0:
             raise ValueError("quantization_bits must be positive")
@@ -119,13 +121,20 @@ class FPGACostEstimator:
             for op, policy in (operator_policies or {}).items()
         }
         self.require_deployable_operators = bool(require_deployable_operators)
-        self.lut_hits = 0  # LUT 鍛戒腑璁℃暟
-        self.lut_misses = 0  # LUT 鏈懡涓鏁?
+        self.strict_formal_lut = bool(strict_formal_lut)
+        self.lut_hits = 0  # LUT hit counter
+        self.lut_misses = 0  # LUT miss counter
+        self.true_lut_misses = 0
+        self.deferred_hits = 0
+        self.deferred_hit_records: list[dict[str, Any]] = []
+        self.true_miss_records: list[dict[str, Any]] = []
+        self._estimate_dynamic_violations: list[str] = []
     def estimate(
         self,
         architecture: ArchitectureSpec,
         search_space: SearchSpace,
     ) -> CostEstimate:
+        self._estimate_dynamic_violations = []
         resolved_blocks = search_space.resolve_blocks(architecture)
         stem_layer = self._estimate_stem(architecture, search_space)
         stem_pool_layer = self._estimate_stem_pool(architecture, search_space)
@@ -186,6 +195,7 @@ class FPGACostEstimator:
             )
         )
         violations.extend(self._check_operator_policy(resolved_blocks))
+        violations.extend(self._estimate_dynamic_violations)
         violations = list(dict.fromkeys(violations))
 
         return CostEstimate(
@@ -418,8 +428,9 @@ class FPGACostEstimator:
         # 1. 灏濊瘯 LUT 鏌ヨ锛堝鏋滃彲鐢級
         if self.lut_query_engine:
             op_spec = self._block_to_op_spec(block)
-            lut_entry = self.lut_query_engine.query(op_spec)
-            if lut_entry:
+            query_result = self.lut_query_engine.query_with_status(op_spec)
+            if query_result.entry:
+                lut_entry = query_result.entry
                 self.lut_hits += 1
                 latency_ms_override = self._latency_override_ms(
                     block.op,
@@ -451,7 +462,64 @@ class FPGACostEstimator:
                     latency_ms_override=latency_ms_override,
                     effective_clock_mhz=latency_clock_mhz,
                 )
-            self.lut_misses += 1
+            if (
+                self.strict_formal_lut
+                and query_result.status not in {"measured", "missing"}
+            ):
+                self.deferred_hits += 1
+                status_entry = query_result.status_entry
+                record = {
+                    "op": block.op,
+                    "lookup_op": op_spec.op,
+                    "shape": {
+                        "input_resolution": block.input_resolution,
+                        "output_resolution": block.output_resolution,
+                        "in_channels": block.in_channels,
+                        "out_channels": block.out_channels,
+                        "kernel_size": block.kernel_size,
+                        "expand_ratio": block.expand_ratio,
+                        "stride": block.stride,
+                    },
+                    "status": query_result.status,
+                    "defer_reason": (
+                        None if status_entry is None else status_entry.defer_reason
+                    ),
+                    "case_name": (
+                        None if status_entry is None else status_entry.case_name
+                    ),
+                }
+                self.deferred_hit_records.append(record)
+                violation_reason = (
+                    status_entry.defer_reason
+                    if status_entry is not None and status_entry.defer_reason
+                    else query_result.status
+                )
+                self._estimate_dynamic_violations.append(
+                    f"formal LUT infeasible: {op_spec.op} ({violation_reason})"
+                )
+            else:
+                self.lut_misses += 1
+                self.true_lut_misses += 1
+                if self.strict_formal_lut and query_result.status == "missing":
+                    self._estimate_dynamic_violations.append(
+                        f"formal LUT missing: {op_spec.op}"
+                    )
+                self.true_miss_records.append(
+                    {
+                        "op": block.op,
+                        "lookup_op": op_spec.op,
+                        "shape": {
+                            "input_resolution": block.input_resolution,
+                            "output_resolution": block.output_resolution,
+                            "in_channels": block.in_channels,
+                            "out_channels": block.out_channels,
+                            "kernel_size": block.kernel_size,
+                            "expand_ratio": block.expand_ratio,
+                            "stride": block.stride,
+                        },
+                        "status": query_result.status,
+                    }
+                )
 
         # 2. 鍥為€€鍒板垎鏋愭ā鍨?
         if block.op == "skip":
@@ -866,7 +934,7 @@ class FPGACostEstimator:
             "mixconv": 200,
             "denoise": 150,
             "edge": 180,
-        }[block.op]
+        }.get(block.op, 120)
         return (
             op_bias
             + allocated_dsp * 18
@@ -909,7 +977,7 @@ class FPGACostEstimator:
         op_mapping = {
             "conv": "conv",
             "dw_pw_conv": "dw_pw_conv",
-            "mbconv": "mbconv",
+            "mbconv": f"mbconv_e{block.expand_ratio}_k{block.kernel_size}",
             "fused_mbconv": "fused_mbconv",
             "skip": "skip",
             "mixconv": "mixconv",
@@ -945,13 +1013,47 @@ class FPGACostEstimator:
 
     def get_lut_stats(self) -> dict[str, Any]:
         """鑾峰彇 LUT 缁熻淇℃伅"""
-        total = self.lut_hits + self.lut_misses
+        total = self.lut_hits + self.lut_misses + self.deferred_hits
+        deferred_by_op = Counter(record["lookup_op"] for record in self.deferred_hit_records)
+        deferred_by_case = Counter(
+            record["case_name"] or f"{record['lookup_op']}:{record['shape']}"
+            for record in self.deferred_hit_records
+        )
+        deferred_by_reason = Counter(
+            record["defer_reason"] or "unknown"
+            for record in self.deferred_hit_records
+        )
+        misses_by_op = Counter(record["lookup_op"] for record in self.true_miss_records)
+        misses_by_shape = Counter(
+            f"{record['lookup_op']}:{record['shape']}"
+            for record in self.true_miss_records
+        )
         return {
             "hits": self.lut_hits,
             "misses": self.lut_misses,
+            "true_misses": self.true_lut_misses,
+            "deferred_hits": self.deferred_hits,
             "total": total,
             "hit_rate": self.lut_hits / total if total > 0 else 0.0,
+            "fallback_rate": self.true_lut_misses / total if total > 0 else 0.0,
+            "strict_formal_lut": self.strict_formal_lut,
+            "deferred_hits_by_op": dict(deferred_by_op),
+            "deferred_hits_by_case": dict(deferred_by_case),
+            "deferred_hits_by_reason": dict(deferred_by_reason),
+            "deferred_hit_records": list(self.deferred_hit_records),
+            "true_misses_by_op": dict(misses_by_op),
+            "true_misses_by_shape": dict(misses_by_shape),
+            "true_miss_records": list(self.true_miss_records),
         }
+
+    def reset_lut_stats(self) -> None:
+        self.lut_hits = 0
+        self.lut_misses = 0
+        self.true_lut_misses = 0
+        self.deferred_hits = 0
+        self.deferred_hit_records = []
+        self.true_miss_records = []
+        self._estimate_dynamic_violations = []
 
     def _check_constraints(
         self,

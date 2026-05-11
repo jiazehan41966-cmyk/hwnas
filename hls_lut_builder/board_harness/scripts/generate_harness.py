@@ -58,8 +58,12 @@ def parse_constants(source_text: str) -> dict[str, int]:
     for match in pattern.finditer(source_text):
         name = match.group(1)
         expr = match.group(2).strip()
-        if "?" in expr:
-            continue
+        ternary_match = re.match(r"^\((.+)\)\s*\?\s*(.+)\s*:\s*(.+)$", expr)
+        if ternary_match:
+            cond_expr = ternary_match.group(1).strip()
+            true_expr = ternary_match.group(2).strip()
+            false_expr = ternary_match.group(3).strip()
+            expr = f"({true_expr} if ({cond_expr}) else {false_expr})"
         try:
             value = eval(expr, {"__builtins__": {}}, constants)
         except Exception:
@@ -133,12 +137,14 @@ def parse_component(component_path: Path) -> dict[str, Any]:
 
 
 def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, int]:
-    in_h = constants["IN_H"]
-    in_w = constants["IN_W"]
-    out_h = constants["OUT_H"]
-    out_w = constants["OUT_W"]
-    input_word_count = in_h * in_w
-    output_word_count = out_h * out_w
+    in_h = int(constants.get("IN_H", constants.get("OUT_H", 1)))
+    in_w = int(constants.get("IN_W", constants.get("OUT_W", 1)))
+    out_h = int(constants.get("OUT_H", constants.get("IN_H", 1)))
+    out_w = int(constants.get("OUT_W", constants.get("IN_W", 1)))
+    input_packets_per_pixel = int(constants.get("INPUT_PACKETS_PER_PIXEL", 1))
+    output_packets_per_pixel = int(constants.get("OUTPUT_PACKETS_PER_PIXEL", 1))
+    input_word_count = in_h * in_w * input_packets_per_pixel
+    output_word_count = out_h * out_w * output_packets_per_pixel
 
     if "WEIGHT_SIZE" in constants and "BIAS_SIZE" in constants:
         return {
@@ -157,6 +163,9 @@ def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, in
         }
 
     if case_name.startswith("pw_conv") or case_name.startswith("fc_layer"):
+        if case_name.startswith("fc_layer"):
+            input_word_count = int(constants.get("INPUT_PACKETS", 1))
+            output_word_count = 1
         return {
             "input_word_count": input_word_count,
             "output_word_count": output_word_count,
@@ -171,6 +180,22 @@ def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, in
             "output_word_count": output_word_count,
             "weights_depth": int(channels * constants["K"] * constants["K"]),
             "biases_depth": int(channels),
+        }
+
+    if case_name.startswith("skip"):
+        return {
+            "input_word_count": input_word_count,
+            "output_word_count": input_word_count,
+            "weights_depth": 1,
+            "biases_depth": 1,
+        }
+
+    if case_name.startswith("global_avg_pool"):
+        return {
+            "input_word_count": input_word_count,
+            "output_word_count": 1,
+            "weights_depth": 1,
+            "biases_depth": 1,
         }
 
     raise ValueError(f"Unsupported case metadata formula for {case_name}")
@@ -200,6 +225,20 @@ def generate_stream_mem_files(data_dir: Path, stem: str, word_count: int, data_w
         lane_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         mem_paths.append(lane_path)
     return mem_paths
+
+
+def generate_stream_word_mem_file(data_dir: Path, stem: str, word_count: int, data_width: int) -> Path:
+    lanes = data_width // 8
+    lines: list[str] = []
+    for word_idx in range(word_count):
+        byte_hexes: list[str] = []
+        for lane_idx in range(lanes):
+            byte_value = deterministic_byte(word_idx, lane_idx) & 0xFF
+            byte_hexes.append(f"{byte_value:02x}")
+        lines.append("".join(reversed(byte_hexes)))
+    word_path = data_dir / f"{stem}.mem"
+    word_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return word_path
 
 
 def generate_param_mem(path: Path, depth: int, data_width: int, seed_offset: int) -> None:
@@ -233,11 +272,93 @@ def build_bram_defaults(kind: str, data_width: int, addr_width: int, has_port_b:
     )
 
 
+def detect_param_interface(top_ports: dict[str, int], kind: str) -> dict[str, Any]:
+    scalar_port = kind
+    bram_data_port = f"{kind}_Dout_A"
+    bram_addr_port = f"{kind}_Addr_A"
+    if bram_data_port in top_ports and bram_addr_port in top_ports:
+        return {
+            "mode": "bram",
+            "data_width": int(top_ports[bram_data_port]),
+            "addr_width": int(top_ports[bram_addr_port]),
+            "has_port_b": f"{kind}_Addr_B" in top_ports,
+            "port_name": scalar_port,
+        }
+    if scalar_port in top_ports:
+        return {
+            "mode": "scalar",
+            "data_width": int(top_ports[scalar_port]),
+            "addr_width": 1,
+            "has_port_b": False,
+            "port_name": scalar_port,
+        }
+    raise KeyError(f"Unable to detect {kind} interface from RTL top ports")
+
+
+def build_scalar_param_logic(kind: str, data_width: int) -> str:
+    if data_width <= 1:
+        return f"wire {kind}_scalar = 1'b0;"
+    return f"wire [{data_width - 1}:0] {kind}_scalar = {data_width}'d0;"
+
+
+def build_bram_param_logic(
+    kind: str,
+    data_width: int,
+    addr_width: int,
+    depth: int,
+    mem_file: str,
+    has_port_b: bool,
+) -> str:
+    bytes_width = max(1, data_width // 8)
+    return "\n".join(
+        [
+            f"wire [{addr_width - 1}:0] {kind}_addra;",
+            f"wire {kind}_ena;",
+            f"wire [{bytes_width - 1}:0] {kind}_wena;",
+            f"wire [{data_width - 1}:0] {kind}_dina;",
+            f"wire [{data_width - 1}:0] {kind}_douta;",
+            f"wire {kind}_clka;",
+            f"wire {kind}_rsta;",
+            f"wire [{addr_width - 1}:0] {kind}_addrb;",
+            f"wire {kind}_enb;",
+            f"wire [{bytes_width - 1}:0] {kind}_wenb;",
+            f"wire [{data_width - 1}:0] {kind}_dinb;",
+            f"wire [{data_width - 1}:0] {kind}_doutb;",
+            f"wire {kind}_clkb;",
+            f"wire {kind}_rstb;",
+            build_bram_defaults(kind, data_width, addr_width, has_port_b),
+            "",
+            "simple_dual_port_bram #(",
+            f"    .DATA_WIDTH({data_width}),",
+            f"    .ADDR_WIDTH({addr_width}),",
+            f"    .DEPTH({depth}),",
+            f'    .INIT_FILE("{mem_file}")',
+            f") u_{kind}_mem (",
+            f"    .clka({kind}_clka),",
+            f"    .rsta({kind}_rsta),",
+            f"    .ena({kind}_ena),",
+            f"    .wea({kind}_wena),",
+            f"    .addra({kind}_addra),",
+            f"    .dina({kind}_dina),",
+            f"    .douta({kind}_douta),",
+            f"    .clkb({kind}_clkb),",
+            f"    .rstb({kind}_rstb),",
+            f"    .enb({kind}_enb),",
+            f"    .web({kind}_wenb),",
+            f"    .addrb({kind}_addrb),",
+            f"    .dinb({kind}_dinb),",
+            f"    .doutb({kind}_doutb)",
+            ");",
+        ]
+    )
+
+
 def build_kernel_instance(
     module_name: str,
     ports: dict[str, int],
     axil_addr_width: int,
     axil_data_width: int,
+    param_interfaces: dict[str, dict[str, Any]],
 ) -> str:
     lines = [f"{module_name} u_kernel ("]
 
@@ -289,6 +410,10 @@ def build_kernel_instance(
         connect(port_name, signal_name)
 
     for kind in ("weights", "biases"):
+        iface = param_interfaces[kind]
+        if iface["mode"] == "scalar":
+            connect(kind, f"{kind}_scalar")
+            continue
         for suffix, signal in (
             ("Addr_A", f"{kind}_addra"),
             ("EN_A", f"{kind}_ena"),
@@ -392,12 +517,16 @@ def main() -> None:
     axil_addr_width = top_ports["s_axi_control_AWADDR"]
     axil_data_width = top_ports["s_axi_control_WDATA"]
 
-    weights_data_width = top_ports["weights_Dout_A"]
-    weights_addr_width = top_ports["weights_Addr_A"]
-    weights_has_port_b = "weights_Addr_B" in top_ports
-    biases_data_width = top_ports["biases_Dout_A"]
-    biases_addr_width = top_ports["biases_Addr_A"]
-    biases_has_port_b = "biases_Addr_B" in top_ports
+    param_interfaces = {
+        "weights": detect_param_interface(top_ports, "weights"),
+        "biases": detect_param_interface(top_ports, "biases"),
+    }
+    weights_data_width = int(param_interfaces["weights"]["data_width"])
+    weights_addr_width = int(param_interfaces["weights"]["addr_width"])
+    weights_has_port_b = bool(param_interfaces["weights"]["has_port_b"])
+    biases_data_width = int(param_interfaces["biases"]["data_width"])
+    biases_addr_width = int(param_interfaces["biases"]["addr_width"])
+    biases_has_port_b = bool(param_interfaces["biases"]["has_port_b"])
 
     weights_mem_file = "weights.mem"
     biases_mem_file = "biases.mem"
@@ -408,14 +537,52 @@ def main() -> None:
         word_count=case_meta["input_word_count"],
         data_width=input_tdata_width,
     )
-    generate_param_mem(data_dir / weights_mem_file, case_meta["weights_depth"], weights_data_width, seed_offset=3)
-    generate_param_mem(data_dir / biases_mem_file, case_meta["biases_depth"], biases_data_width, seed_offset=11)
+    input_word_mem_path = generate_stream_word_mem_file(
+        data_dir,
+        stem="input_stream_words",
+        word_count=case_meta["input_word_count"],
+        data_width=input_tdata_width,
+    )
+    if param_interfaces["weights"]["mode"] == "bram":
+        generate_param_mem(data_dir / weights_mem_file, case_meta["weights_depth"], weights_data_width, seed_offset=3)
+    if param_interfaces["biases"]["mode"] == "bram":
+        generate_param_mem(data_dir / biases_mem_file, case_meta["biases_depth"], biases_data_width, seed_offset=11)
 
     input_mem_mapping = {f"INPUT_MEM_FILE_{lane_idx:02d}": '""' for lane_idx in range(32)}
     for lane_idx, mem_path in enumerate(input_mem_paths):
         input_mem_mapping[f"INPUT_MEM_FILE_{lane_idx:02d}"] = f'"../data/{mem_path.name}"'
 
-    kernel_instance = build_kernel_instance(module_name, top_ports, axil_addr_width, axil_data_width)
+    kernel_instance = build_kernel_instance(
+        module_name,
+        top_ports,
+        axil_addr_width,
+        axil_data_width,
+        param_interfaces,
+    )
+    weights_support_logic = (
+        build_bram_param_logic(
+            "weights",
+            weights_data_width,
+            weights_addr_width,
+            case_meta["weights_depth"],
+            f"../data/{weights_mem_file}",
+            weights_has_port_b,
+        )
+        if param_interfaces["weights"]["mode"] == "bram"
+        else build_scalar_param_logic("weights", weights_data_width)
+    )
+    biases_support_logic = (
+        build_bram_param_logic(
+            "biases",
+            biases_data_width,
+            biases_addr_width,
+            case_meta["biases_depth"],
+            f"../data/{biases_mem_file}",
+            biases_has_port_b,
+        )
+        if param_interfaces["biases"]["mode"] == "bram"
+        else build_scalar_param_logic("biases", biases_data_width)
+    )
     harness_mapping = {
             "CLK_FREQ_HZ": str(board_cfg["clock"]["freq_hz"]),
             "UART_BAUD": str(board_cfg.get("uart", {}).get("baud", defaults_cfg["uart_baud"])),
@@ -433,14 +600,17 @@ def main() -> None:
             "WEIGHTS_ADDR_WIDTH": str(weights_addr_width),
             "WEIGHTS_DEPTH": str(case_meta["weights_depth"]),
             "WEIGHTS_HAS_PORT_B": "1" if weights_has_port_b else "0",
+            "WEIGHTS_IMPL_MODE": param_interfaces["weights"]["mode"],
             "BIASES_DATA_WIDTH": str(biases_data_width),
             "BIASES_ADDR_WIDTH": str(biases_addr_width),
             "BIASES_DEPTH": str(case_meta["biases_depth"]),
             "BIASES_HAS_PORT_B": "1" if biases_has_port_b else "0",
+            "BIASES_IMPL_MODE": param_interfaces["biases"]["mode"],
             "WEIGHTS_MEM_FILE": f"../data/{weights_mem_file}",
             "BIASES_MEM_FILE": f"../data/{biases_mem_file}",
-            "WEIGHTS_B_DEFAULTS": build_bram_defaults("weights", weights_data_width, weights_addr_width, weights_has_port_b),
-            "BIASES_B_DEFAULTS": build_bram_defaults("biases", biases_data_width, biases_addr_width, biases_has_port_b),
+            "INPUT_WORD_MEM_FILE": f"../data/{input_word_mem_path.name}",
+            "WEIGHTS_SUPPORT_LOGIC": weights_support_logic,
+            "BIASES_SUPPORT_LOGIC": biases_support_logic,
             "KERNEL_INSTANCE": kernel_instance,
         }
     harness_mapping.update(input_mem_mapping)
@@ -538,15 +708,18 @@ def main() -> None:
             "build_tcl": str(scripts_dir / "build_bitstream.tcl"),
             "vivado_project_dir": str(vivado_project_dir),
             "input_mem_files": [str(path) for path in input_mem_paths],
-            "weights_mem": str(data_dir / weights_mem_file),
-            "biases_mem": str(data_dir / biases_mem_file),
+            "input_word_mem": str(input_word_mem_path),
+            "weights_mem": str(data_dir / weights_mem_file) if param_interfaces["weights"]["mode"] == "bram" else None,
+            "biases_mem": str(data_dir / biases_mem_file) if param_interfaces["biases"]["mode"] == "bram" else None,
         },
         "interface_summary": {
             "input_tdata_width": input_tdata_width,
             "output_tdata_width": output_tdata_width,
             "axil_addr_width": axil_addr_width,
             "axil_data_width": axil_data_width,
+            "weights_impl_mode": param_interfaces["weights"]["mode"],
             "weights_has_port_b": weights_has_port_b,
+            "biases_impl_mode": param_interfaces["biases"]["mode"],
             "biases_has_port_b": biases_has_port_b,
         },
         "case_meta": case_meta,

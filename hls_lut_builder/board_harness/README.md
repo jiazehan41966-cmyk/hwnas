@@ -103,6 +103,18 @@ The current merged outputs are:
 - `../results/three_tier_operator_summary.json`
 - `../docs/extension_operator_disposition.md`
 
+Important scope note:
+
+- `three_tier_operator_summary.*` is currently derived from pilot / partial
+  manifests.
+- It is **not** the authoritative full-LUT status table for the current
+  `40 measured / 44 defer_current_impl` checkpoint.
+- The authoritative current full-LUT status files are:
+  - `results/board_measured_lut.csv`
+  - `results/board_measure_status_current_impl.csv`
+  - `results/board_measure_status_current_impl.json`
+  - `results/board_measure_consistency_review.md`
+
 At the moment:
 
 - `mbconv_e3_k3` is a clean timing-met board-measurement sample at 200 MHz.

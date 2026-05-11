@@ -141,19 +141,31 @@ def build_search_space(
         "kernel_choices": search_cfg.get("kernel_choices"),
         "expand_choices": search_cfg.get("expand_choices"),
         "op_choices": search_cfg.get("op_choices"),
+        "stage_block_choices": search_cfg.get("stage_block_choices"),
         "head_conv_channels": search_cfg.get("head_conv_channels"),
         "head_channels": search_cfg.get("head_channels"),
         "num_classes": num_classes,
         "hardware_constraints": constraints,
     }
     normalized_payload = {key: value for key, value in payload.items() if value is not None}
+    for nullable_key in ("head_conv_channels", "head_channels"):
+        if nullable_key in search_cfg:
+            normalized_payload[nullable_key] = search_cfg.get(nullable_key)
     return SearchSpace(SearchSpaceConfig.from_dict(normalized_payload))
 
 
 def load_lut_query_engine(config: dict[str, Any]) -> Optional[LutQueryEngine]:
     hardware_cfg = config.get("hardware", {})
     lut_path = hardware_cfg.get("lut_path")
+    formal_lut_status_path = hardware_cfg.get("formal_lut_status_path")
     use_dummy_lut = bool(hardware_cfg.get("use_dummy_lut", False))
+    enable_interpolation = bool(hardware_cfg.get("lut_enable_interpolation", False))
+    allow_shape_only_match = bool(hardware_cfg.get("lut_allow_shape_only_match", True))
+    strict_formal_lut = bool(hardware_cfg.get("strict_formal_lut", False))
+    if strict_formal_lut and not formal_lut_status_path:
+        raise ValueError(
+            "hardware.strict_formal_lut requires hardware.formal_lut_status_path"
+        )
     if lut_path:
         lut_file = Path(lut_path).expanduser()
         if not lut_file.is_absolute():
@@ -167,7 +179,21 @@ def load_lut_query_engine(config: dict[str, Any]) -> Optional[LutQueryEngine]:
             )
         else:
             lut_table = LutTable.load(str(lut_file))
-        return LutQueryEngine(lut_table)
+        formal_status_entries = None
+        if formal_lut_status_path:
+            status_file = Path(formal_lut_status_path).expanduser()
+            if not status_file.is_absolute():
+                status_file = (Path.cwd() / status_file).resolve()
+            if not status_file.exists():
+                raise FileNotFoundError(f"Formal LUT status file not found: {status_file}")
+            formal_status_entries = LutQueryEngine.load_formal_status_json(str(status_file))
+        return LutQueryEngine(
+            lut_table,
+            enable_interpolation=enable_interpolation,
+            allow_shape_only_match=allow_shape_only_match,
+            strict_formal_lut=strict_formal_lut,
+            formal_status_entries=formal_status_entries,
+        )
     if use_dummy_lut:
         return LutQueryEngine(create_dummy_fpga_lut())
     return None
@@ -312,6 +338,7 @@ def build_cost_estimator(
         require_deployable_operators=bool(
             hardware_cfg.get("require_deployable_operators", False)
         ),
+        strict_formal_lut=bool(hardware_cfg.get("strict_formal_lut", False)),
     )
 
 

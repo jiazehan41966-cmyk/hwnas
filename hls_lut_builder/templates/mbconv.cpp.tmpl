@@ -14,6 +14,10 @@ static constexpr int PADDED_H = IN_H + (2 * PAD);
 static constexpr int PADDED_W = IN_W + (2 * PAD);
 static constexpr int EXP_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
 static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+static constexpr int MAX_AXIS_BITS = __MAX_AXIS_BITS__;
+static constexpr int MAX_AXIS_CHANNELS = ((MAX_AXIS_BITS / 8) > 0) ? (MAX_AXIS_BITS / 8) : 1;
+static constexpr int EXP_PACK_CH = (EXP_CH > MAX_AXIS_CHANNELS) ? MAX_AXIS_CHANNELS : EXP_CH;
+static constexpr int EXP_PACKETS_PER_PIXEL = (EXP_CH + EXP_PACK_CH - 1) / EXP_PACK_CH;
 static constexpr bool USE_RESIDUAL = (STRIDE == 1) && (IN_CH == OUT_CH);
 
 static constexpr int EXPAND_WEIGHT_SIZE = EXP_CH * IN_CH;
@@ -26,10 +30,9 @@ static constexpr int PROJECT_BIAS_SIZE = OUT_CH;
 static constexpr int BIAS_SIZE = EXPAND_BIAS_SIZE + DEPTHWISE_BIAS_SIZE + PROJECT_BIAS_SIZE;
 
 typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
-typedef MAKE_AXIS_TYPE(EXP_CH * 8) expanded_axis_t;
 typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
 typedef ap_uint<IN_CH * 8> input_word_t;
-typedef ap_uint<EXP_CH * 8> expanded_word_t;
+typedef ap_uint<EXP_PACK_CH * 8> expanded_word_t;
 
 static void expand_stage(
     hls::stream<input_axis_t> &input_stream,
@@ -81,7 +84,15 @@ static void expand_stage(
                 }
             }
 
-            expanded_stream.write(pack_channels<EXP_CH>(expanded_channels));
+            for (int packet_idx = 0; packet_idx < EXP_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                expanded_stream.write(
+                    pack_channel_segment<EXP_CH, EXP_PACK_CH>(
+                        expanded_channels,
+                        packet_idx * EXP_PACK_CH
+                    )
+                );
+            }
         }
     }
 }
@@ -113,8 +124,15 @@ static void depthwise_stage(
         for (int pw = 0; pw < PADDED_W; ++pw) {
             const bool valid_input = (ph >= PAD) && (ph < (PAD + IN_H)) && (pw >= PAD) && (pw < (PAD + IN_W));
             if (valid_input) {
-                expanded_word_t packet = expanded_stream.read();
-                unpack_packed_channels<EXP_CH>(packet, incoming_channels);
+                for (int packet_idx = 0; packet_idx < EXP_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                    expanded_word_t packet = expanded_stream.read();
+                    unpack_packed_channel_segment<EXP_CH, EXP_PACK_CH>(
+                        packet,
+                        packet_idx * EXP_PACK_CH,
+                        incoming_channels
+                    );
+                }
             } else {
                 for (int ec = 0; ec < EXP_CH; ++ec) {
                     incoming_channels[ec] = 0;
@@ -176,7 +194,15 @@ static void depthwise_stage(
                 }
             }
 
-            depthwise_stream.write(pack_channels<EXP_CH>(depthwise_channels));
+            for (int packet_idx = 0; packet_idx < EXP_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                depthwise_stream.write(
+                    pack_channel_segment<EXP_CH, EXP_PACK_CH>(
+                        depthwise_channels,
+                        packet_idx * EXP_PACK_CH
+                    )
+                );
+            }
         }
     }
 }
@@ -198,8 +224,15 @@ static void project_stage(
 
     for (int oh = 0; oh < OUT_H; ++oh) {
         for (int ow = 0; ow < OUT_W; ++ow) {
-            expanded_word_t depthwise_packet = depthwise_stream.read();
-            unpack_packed_channels<EXP_CH>(depthwise_packet, depthwise_channels);
+            for (int packet_idx = 0; packet_idx < EXP_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                expanded_word_t depthwise_packet = depthwise_stream.read();
+                unpack_packed_channel_segment<EXP_CH, EXP_PACK_CH>(
+                    depthwise_packet,
+                    packet_idx * EXP_PACK_CH,
+                    depthwise_channels
+                );
+            }
             if (USE_RESIDUAL) {
                 input_word_t residual_packet = residual_stream.read();
                 unpack_packed_channels<IN_CH>(residual_packet, residual_channels);
