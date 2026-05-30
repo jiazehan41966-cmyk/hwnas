@@ -116,7 +116,7 @@ always @(posedge clk or negedge rst_n) begin
                     if (m_axi_rresp != 2'b00) begin
                         error <= 1'b1;
                         state <= ST_ERROR;
-                    end else if (m_axi_rdata[1]) begin
+                    end else if (m_axi_rdata[1] || m_axi_rdata[3]) begin
                         state <= ST_DONE;
                     end else begin
                         m_axi_araddr <= {ADDR_WIDTH{1'b0}};

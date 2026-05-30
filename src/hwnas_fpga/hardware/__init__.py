@@ -17,6 +17,7 @@ from .report_parser import (
     lut_entry_from_report,
     parse_hls_report,
     parse_hls_report_text,
+    parse_vivado_power_text,
     parse_vivado_timing_summary_text,
     parse_vivado_utilization_text,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "approximate_fmax_from_wns",
     "parse_hls_report",
     "parse_hls_report_text",
+    "parse_vivado_power_text",
     "parse_vivado_timing_summary_text",
     "parse_vivado_utilization_text",
     "resolve_board_profile",

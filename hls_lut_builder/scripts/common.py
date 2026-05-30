@@ -15,6 +15,7 @@ BUILDER_ROOT = SCRIPT_DIR.parent
 REPO_ROOT = BUILDER_ROOT.parent
 
 SHAPE_META_KEYS = {"parameters", "op_spec", "notes"}
+VALID_CH_BLOCK_MULTIPLIERS = {1, 2, 4}
 
 
 @dataclass(frozen=True)
@@ -385,6 +386,30 @@ def _build_parameters(
     input_parallelism = int(parameters.get("input_parallelism", parameters.get("pi", 1)))
     output_parallelism = int(parameters.get("output_parallelism", parameters.get("po", 1)))
     unroll_factor = int(parameters.get("unroll_factor", parameters.get("kernel_unroll", 1)))
+    max_axis_bits = int(parameters.get("max_axis_bits", 4096))
+    pipeline_ii = int(parameters.get("pipeline_ii", parameters.get("target_ii", 1)))
+    target_ii = int(parameters.get("target_ii", pipeline_ii))
+    max_axis_channels = max(1, max_axis_bits // max(1, bitwidth))
+    pack_ch = int(parameters.get("pack_ch", min(in_channels, max_axis_channels)))
+    ch_block = int(parameters.get("ch_block", pack_ch))
+    fixed_vector_params = bool(parameters.get("fixed_vector_params", False))
+    tile_order = sanitize_name(str(parameters.get("tile_order", "pixel_major")))
+    dsp_pack = str(parameters.get("dsp_pack", "1"))
+    stream_order = sanitize_name(str(parameters.get("stream_order", tile_order)))
+
+    if fixed_vector_params:
+        if pack_ch <= 0:
+            raise ValueError(f"{operator_name}/{shape_name}: pack_ch must be positive")
+        if ch_block <= 0:
+            raise ValueError(f"{operator_name}/{shape_name}: ch_block must be positive")
+        if ch_block % pack_ch != 0:
+            raise ValueError(f"{operator_name}/{shape_name}: ch_block must be an integer multiple of pack_ch")
+        multiplier = ch_block // pack_ch
+        if multiplier not in VALID_CH_BLOCK_MULTIPLIERS:
+            allowed = ", ".join(str(item) for item in sorted(VALID_CH_BLOCK_MULTIPLIERS))
+            raise ValueError(f"{operator_name}/{shape_name}: ch_block / pack_ch must be one of {{{allowed}}}")
+        if dsp_pack not in {"1", "experimental_2"}:
+            raise ValueError(f"{operator_name}/{shape_name}: dsp_pack must be '1' or 'experimental_2'")
 
     out_h = int(parameters.get("out_h", ((feature_h + (2 * padding) - kernel_size) // stride) + 1))
     out_w = int(parameters.get("out_w", ((feature_w + (2 * padding) - kernel_size) // stride) + 1))
@@ -418,8 +443,15 @@ def _build_parameters(
             "output_parallelism": output_parallelism,
             "unroll_factor": unroll_factor,
             "array_partition_factor": int(parameters.get("array_partition_factor", max(input_parallelism, output_parallelism, 1))),
-            "max_axis_bits": int(parameters.get("max_axis_bits", 4096)),
-            "pipeline_ii": int(parameters.get("pipeline_ii", 1)),
+            "max_axis_bits": max_axis_bits,
+            "pack_ch": pack_ch,
+            "ch_block": ch_block,
+            "target_ii": target_ii,
+            "pipeline_ii": pipeline_ii,
+            "tile_order": tile_order,
+            "stream_order": stream_order,
+            "dsp_pack": dsp_pack,
+            "fixed_vector_params": int(fixed_vector_params),
             "target_clock_ns": float(clock_cfg["period_ns"]),
             "target_clock_mhz": float(clock_cfg["target_clock_mhz"]),
             "case_label": sanitize_name(f"{operator_name}_{shape_name}_{implementation_name}_{clock_profile_name}"),
@@ -450,6 +482,13 @@ def _build_op_spec(
     op_spec.setdefault("output_parallelism", int(parameters["output_parallelism"]))
     op_spec.setdefault("unroll_factor", int(parameters["unroll_factor"]))
     op_spec.setdefault("target_clock_mhz", float(parameters["target_clock_mhz"]))
+    if int(parameters.get("fixed_vector_params", 0)):
+        op_spec.setdefault("pack_ch", int(parameters["pack_ch"]))
+        op_spec.setdefault("ch_block", int(parameters["ch_block"]))
+        op_spec.setdefault("target_ii", int(parameters["target_ii"]))
+        op_spec.setdefault("tile_order", str(parameters["tile_order"]))
+        op_spec.setdefault("stream_order", str(parameters["stream_order"]))
+        op_spec.setdefault("dsp_pack", str(parameters["dsp_pack"]))
     return op_spec
 
 
@@ -470,6 +509,16 @@ def _build_op_id(op_spec: dict[str, Any]) -> str:
         f"po{int(op_spec.get('output_parallelism', 1))}",
         f"u{int(op_spec.get('unroll_factor', 1))}",
     ]
+    if "pack_ch" in op_spec:
+        tokens.append(f"p{int(op_spec.get('pack_ch', 0))}")
+    if "ch_block" in op_spec:
+        tokens.append(f"cb{int(op_spec.get('ch_block', 0))}")
+    if "target_ii" in op_spec:
+        tokens.append(f"ii{int(op_spec.get('target_ii', 0))}")
+    if "tile_order" in op_spec:
+        tokens.append(f"tile_{sanitize_name(str(op_spec.get('tile_order', 'none')))}")
+    if "dsp_pack" in op_spec:
+        tokens.append(f"dsp_{sanitize_name(str(op_spec.get('dsp_pack', '1')))}")
     target_clock = op_spec.get("target_clock_mhz")
     if target_clock is not None:
         tokens.append(f"clk{sanitize_name(f'{float(target_clock):.3f}mhz')}")

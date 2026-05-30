@@ -105,6 +105,8 @@ class FPGACostEstimator:
         operator_policies: Optional[dict[str, dict[str, Any]]] = None,
         require_deployable_operators: bool = False,
         strict_formal_lut: bool = False,
+        strict_lut_label: str = "formal LUT",
+        use_lut_for_head_layers: bool = False,
     ) -> None:
         if quantization_bits <= 0:
             raise ValueError("quantization_bits must be positive")
@@ -122,6 +124,8 @@ class FPGACostEstimator:
         }
         self.require_deployable_operators = bool(require_deployable_operators)
         self.strict_formal_lut = bool(strict_formal_lut)
+        self.strict_lut_label = str(strict_lut_label or "formal LUT").strip() or "formal LUT"
+        self.use_lut_for_head_layers = bool(use_lut_for_head_layers)
         self.lut_hits = 0  # LUT hit counter
         self.lut_misses = 0  # LUT miss counter
         self.true_lut_misses = 0
@@ -316,6 +320,116 @@ class FPGACostEstimator:
             latency_cycles=latency_cycles,
         )
 
+    def _record_lut_non_hit(
+        self,
+        *,
+        logical_op: str,
+        op_spec: OpSpec,
+        query_result: Any,
+        shape: dict[str, Any],
+    ) -> None:
+        if (
+            self.strict_formal_lut
+            and query_result.status not in {"measured", "missing"}
+        ):
+            self.deferred_hits += 1
+            status_entry = query_result.status_entry
+            record = {
+                "op": logical_op,
+                "lookup_op": op_spec.op,
+                "shape": shape,
+                "status": query_result.status,
+                "defer_reason": (
+                    None if status_entry is None else status_entry.defer_reason
+                ),
+                "case_name": (
+                    None if status_entry is None else status_entry.case_name
+                ),
+            }
+            self.deferred_hit_records.append(record)
+            violation_reason = (
+                status_entry.defer_reason
+                if status_entry is not None and status_entry.defer_reason
+                else query_result.status
+            )
+            self._estimate_dynamic_violations.append(
+                f"{self.strict_lut_label} infeasible: {op_spec.op} ({violation_reason})"
+            )
+            return
+
+        self.lut_misses += 1
+        self.true_lut_misses += 1
+        if self.strict_formal_lut and query_result.status == "missing":
+            self._estimate_dynamic_violations.append(
+                f"{self.strict_lut_label} missing: {op_spec.op}"
+            )
+        self.true_miss_records.append(
+            {
+                "op": logical_op,
+                "lookup_op": op_spec.op,
+                "shape": shape,
+                "status": query_result.status,
+            }
+        )
+
+    def _query_lut_entry(
+        self,
+        *,
+        logical_op: str,
+        op_spec: OpSpec,
+        shape: dict[str, Any],
+    ) -> Any | None:
+        if not self.lut_query_engine:
+            return None
+
+        query_result = self.lut_query_engine.query_with_status(op_spec)
+        if query_result.entry:
+            self.lut_hits += 1
+            return query_result.entry
+
+        self._record_lut_non_hit(
+            logical_op=logical_op,
+            op_spec=op_spec,
+            query_result=query_result,
+            shape=shape,
+        )
+        return None
+
+    def _block_shape_record(self, block: ResolvedBlockSpec) -> dict[str, Any]:
+        return {
+            "input_resolution": block.input_resolution,
+            "output_resolution": block.output_resolution,
+            "in_channels": block.in_channels,
+            "out_channels": block.out_channels,
+            "kernel_size": block.kernel_size,
+            "expand_ratio": block.expand_ratio,
+            "stride": block.stride,
+        }
+
+    def _head_gap_to_op_spec(self, *, final_resolution: int, final_channels: int) -> OpSpec:
+        return OpSpec(
+            op="global_avg_pool",
+            kernel_size=1,
+            in_channels=final_channels,
+            out_channels=final_channels,
+            stride=1,
+            groups=1,
+            expand_ratio=1,
+            input_resolution=(final_resolution, final_resolution),
+        )
+
+    def _head_fc_to_op_spec(self, *, final_channels: int, output_channels: int) -> OpSpec:
+        return OpSpec(
+            op="fc_layer",
+            kernel_size=1,
+            in_channels=final_channels,
+            out_channels=output_channels,
+            stride=1,
+            groups=1,
+            expand_ratio=1,
+            input_resolution=(1, 1),
+        )
+
     def _estimate_head_layers(
         self,
         architecture: ArchitectureSpec,
@@ -374,6 +488,83 @@ class FPGACostEstimator:
             )
             final_channels = architecture.head_conv_channels
 
+        fc_input_resolution = final_resolution
+        if self.use_lut_for_head_layers:
+            gap_spec = self._head_gap_to_op_spec(
+                final_resolution=final_resolution,
+                final_channels=final_channels,
+            )
+            gap_shape = {
+                "input_resolution": final_resolution,
+                "output_resolution": 1,
+                "in_channels": final_channels,
+                "out_channels": final_channels,
+                "kernel_size": 1,
+                "expand_ratio": 1,
+                "stride": 1,
+            }
+            gap_entry = self._query_lut_entry(
+                logical_op="head_gap",
+                op_spec=gap_spec,
+                shape=gap_shape,
+            )
+            gap_macs = final_resolution * final_resolution * final_channels
+            pooled_bytes = self._tensor_bytes(1, final_channels)
+            if gap_entry is not None:
+                head_layers.append(
+                    LayerCost(
+                        stage_index=len(architecture.stages),
+                        block_index=-3,
+                        op="head_gap",
+                        input_resolution=final_resolution,
+                        output_resolution=1,
+                        in_channels=final_channels,
+                        out_channels=final_channels,
+                        params=0,
+                        macs=gap_macs,
+                        weight_bytes=0,
+                        activation_bytes=pooled_bytes,
+                        ideal_dsp=gap_entry.dsp,
+                        allocated_dsp=gap_entry.dsp,
+                        bram_blocks=gap_entry.bram,
+                        lut=gap_entry.lut,
+                        latency_cycles=gap_entry.cycles,
+                        latency_ms_override=self._latency_override_ms(
+                            "global_avg_pool",
+                            cycles=gap_entry.cycles,
+                            fallback_latency_ms=gap_entry.latency_ms,
+                        ),
+                        effective_clock_mhz=self._effective_clock_mhz("global_avg_pool"),
+                    )
+                )
+            else:
+                input_bytes = self._tensor_bytes(final_resolution, final_channels)
+                latency_cycles = max(
+                    1,
+                    _div_up(gap_macs, max(1, self._pack_factor * 8)),
+                )
+                head_layers.append(
+                    LayerCost(
+                        stage_index=len(architecture.stages),
+                        block_index=-3,
+                        op="head_gap",
+                        input_resolution=final_resolution,
+                        output_resolution=1,
+                        in_channels=final_channels,
+                        out_channels=final_channels,
+                        params=0,
+                        macs=gap_macs,
+                        weight_bytes=0,
+                        activation_bytes=pooled_bytes,
+                        ideal_dsp=0,
+                        allocated_dsp=0,
+                        bram_blocks=_div_up(input_bytes + pooled_bytes, BRAM_BLOCK_BYTES),
+                        lut=64 + final_channels * 2,
+                        latency_cycles=latency_cycles,
+                    )
+                )
+            fc_input_resolution = 1
+
         hidden_channels = architecture.head_channels if architecture.head_channels and architecture.head_channels > 0 else None
         if hidden_channels is not None:
             params = final_channels * hidden_channels + hidden_channels * architecture.num_classes
@@ -391,21 +582,56 @@ class FPGACostEstimator:
             lut_bias = 64
             dsp_raw = self._linear_dsp(final_channels, architecture.num_classes)
 
-        allocated_dsp = min(max(1, dsp_raw), self._dsp_budget)
-        throughput = max(1.0, allocated_dsp * self._pack_factor * self.pipeline_efficiency)
-        latency_cycles = max(1, _div_up(macs, throughput))
         weight_bytes = params * self._bytes_per_scalar
         activation_bytes = output_channels * self._bytes_per_scalar
         pooled_bytes = self._tensor_bytes(1, final_channels)
-        bram_blocks = _div_up(pooled_bytes + activation_bytes + weight_bytes, BRAM_BLOCK_BYTES)
-        lut = lut_bias + allocated_dsp * 10 + output_channels * 4
+
+        fc_entry = None
+        if self.use_lut_for_head_layers and hidden_channels is None:
+            fc_spec = self._head_fc_to_op_spec(
+                final_channels=final_channels,
+                output_channels=output_channels,
+            )
+            fc_entry = self._query_lut_entry(
+                logical_op="head_fc",
+                op_spec=fc_spec,
+                shape={
+                    "input_resolution": 1,
+                    "output_resolution": 1,
+                    "in_channels": final_channels,
+                    "out_channels": output_channels,
+                    "kernel_size": 1,
+                    "expand_ratio": 1,
+                    "stride": 1,
+                },
+            )
+
+        if fc_entry is not None:
+            allocated_dsp = fc_entry.dsp
+            latency_cycles = fc_entry.cycles
+            bram_blocks = fc_entry.bram
+            lut = fc_entry.lut
+            latency_ms_override = self._latency_override_ms(
+                "fc_layer",
+                cycles=fc_entry.cycles,
+                fallback_latency_ms=fc_entry.latency_ms,
+            )
+            effective_clock_mhz = self._effective_clock_mhz("fc_layer")
+        else:
+            allocated_dsp = min(max(1, dsp_raw), self._dsp_budget)
+            throughput = max(1.0, allocated_dsp * self._pack_factor * self.pipeline_efficiency)
+            latency_cycles = max(1, _div_up(macs, throughput))
+            bram_blocks = _div_up(pooled_bytes + activation_bytes + weight_bytes, BRAM_BLOCK_BYTES)
+            lut = lut_bias + allocated_dsp * 10 + output_channels * 4
+            latency_ms_override = None
+            effective_clock_mhz = None
 
         head_layers.append(
             LayerCost(
                 stage_index=len(architecture.stages),
                 block_index=-1,
                 op="head_fc",
-                input_resolution=final_resolution,
+                input_resolution=fc_input_resolution,
                 output_resolution=1,
                 in_channels=final_channels,
                 out_channels=output_channels,
@@ -418,6 +644,8 @@ class FPGACostEstimator:
                 bram_blocks=bram_blocks,
                 lut=lut,
                 latency_cycles=latency_cycles,
+                latency_ms_override=latency_ms_override,
+                effective_clock_mhz=effective_clock_mhz,
             )
         )
         return tuple(head_layers)
@@ -428,6 +656,7 @@ class FPGACostEstimator:
         # 1. 灏濊瘯 LUT 鏌ヨ锛堝鏋滃彲鐢級
         if self.lut_query_engine:
             op_spec = self._block_to_op_spec(block)
+            shape_record = self._block_shape_record(block)
             query_result = self.lut_query_engine.query_with_status(op_spec)
             if query_result.entry:
                 lut_entry = query_result.entry
@@ -471,15 +700,7 @@ class FPGACostEstimator:
                 record = {
                     "op": block.op,
                     "lookup_op": op_spec.op,
-                    "shape": {
-                        "input_resolution": block.input_resolution,
-                        "output_resolution": block.output_resolution,
-                        "in_channels": block.in_channels,
-                        "out_channels": block.out_channels,
-                        "kernel_size": block.kernel_size,
-                        "expand_ratio": block.expand_ratio,
-                        "stride": block.stride,
-                    },
+                    "shape": shape_record,
                     "status": query_result.status,
                     "defer_reason": (
                         None if status_entry is None else status_entry.defer_reason
@@ -495,28 +716,20 @@ class FPGACostEstimator:
                     else query_result.status
                 )
                 self._estimate_dynamic_violations.append(
-                    f"formal LUT infeasible: {op_spec.op} ({violation_reason})"
+                    f"{self.strict_lut_label} infeasible: {op_spec.op} ({violation_reason})"
                 )
             else:
                 self.lut_misses += 1
                 self.true_lut_misses += 1
                 if self.strict_formal_lut and query_result.status == "missing":
                     self._estimate_dynamic_violations.append(
-                        f"formal LUT missing: {op_spec.op}"
+                        f"{self.strict_lut_label} missing: {op_spec.op}"
                     )
                 self.true_miss_records.append(
                     {
                         "op": block.op,
                         "lookup_op": op_spec.op,
-                        "shape": {
-                            "input_resolution": block.input_resolution,
-                            "output_resolution": block.output_resolution,
-                            "in_channels": block.in_channels,
-                            "out_channels": block.out_channels,
-                            "kernel_size": block.kernel_size,
-                            "expand_ratio": block.expand_ratio,
-                            "stride": block.stride,
-                        },
+                        "shape": shape_record,
                         "status": query_result.status,
                     }
                 )
@@ -1037,6 +1250,8 @@ class FPGACostEstimator:
             "hit_rate": self.lut_hits / total if total > 0 else 0.0,
             "fallback_rate": self.true_lut_misses / total if total > 0 else 0.0,
             "strict_formal_lut": self.strict_formal_lut,
+            "strict_lut_label": self.strict_lut_label,
+            "use_lut_for_head_layers": self.use_lut_for_head_layers,
             "deferred_hits_by_op": dict(deferred_by_op),
             "deferred_hits_by_case": dict(deferred_by_case),
             "deferred_hits_by_reason": dict(deferred_by_reason),

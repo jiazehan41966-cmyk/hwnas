@@ -156,10 +156,13 @@ def _build_lut_entry(
         else:
             latency_ms = 0.0
 
-    power_w = float(metrics.get("power_w") or 0.0)
+    raw_power_w = metrics.get("power_w")
+    power_w = None if raw_power_w in (None, "") else float(raw_power_w)
     energy_mj = metrics.get("energy_mj")
-    if energy_mj is None:
+    if energy_mj in (None, "") and power_w is not None:
         energy_mj = power_w * float(latency_ms)
+    elif energy_mj in (None, ""):
+        energy_mj = None
 
     return LutEntry(
         op_spec=op_spec,
@@ -169,7 +172,7 @@ def _build_lut_entry(
         bram=int(metrics.get("bram") or 0),
         lut=int(metrics.get("lut") or 0),
         power_w=power_w,
-        energy_mj=float(energy_mj),
+        energy_mj=None if energy_mj is None else float(energy_mj),
     )
 
 
@@ -265,6 +268,8 @@ def _extract_vivado_actual_metrics(vivado_actual: dict[str, Any]) -> dict[str, A
         metrics["fmax_est_mhz"] = float(preferred_stage["fmax_est_mhz"])
         if metrics["fmax_est_mhz"] > 0:
             metrics["estimated_clock_period_ns"] = 1_000.0 / metrics["fmax_est_mhz"]
+    if preferred_stage.get("power_w") is not None:
+        metrics["power_w"] = float(preferred_stage["power_w"])
 
     block_ram_tile = preferred_stage.get("block_ram_tile")
     if block_ram_tile is not None:

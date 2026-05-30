@@ -1,0 +1,116 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+static constexpr int PACK_CH = __PACK_CH__;
+static constexpr int PE = __OUTPUT_PARALLELISM__;
+static constexpr int SIMD = __INPUT_PARALLELISM__;
+static constexpr int INPUT_PACKETS_PER_PIXEL = (IN_CH + PACK_CH - 1) / PACK_CH;
+static constexpr int OUTPUT_PACKETS_PER_PIXEL = (OUT_CH + PACK_CH - 1) / PACK_CH;
+static constexpr bool APPLY_RELU = (__APPLY_RELU__ != 0);
+
+typedef char pe_must_match_pack_ch[(PE == PACK_CH) ? 1 : -1];
+typedef char simd_must_be_positive[(SIMD > 0) ? 1 : -1];
+
+typedef MAKE_AXIS_TYPE(PACK_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(PACK_CH * 8) output_axis_t;
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[OUT_CH][IN_CH],
+    const acc_t biases[OUT_CH]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+#pragma HLS ARRAY_PARTITION variable=weights dim=1 cyclic factor=__OUTPUT_PARALLELISM__
+#pragma HLS ARRAY_PARTITION variable=weights dim=2 cyclic factor=__INPUT_PARALLELISM__
+#pragma HLS ARRAY_PARTITION variable=biases dim=1 cyclic factor=__OUTPUT_PARALLELISM__
+
+    data_t input_channels[IN_CH];
+    data_t output_packet_values[PACK_CH];
+    data_t sample_tile[SIMD];
+    acc_t acc_tile[PE];
+#pragma HLS ARRAY_PARTITION variable=input_channels cyclic factor=__ARRAY_PARTITION_FACTOR__ dim=1
+#pragma HLS ARRAY_PARTITION variable=output_packet_values dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=sample_tile dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int oh = 0; oh < OUT_H; ++oh) {
+        for (int ow = 0; ow < OUT_W; ++ow) {
+            for (int packet_idx = 0; packet_idx < INPUT_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=1
+                input_axis_t in_packet = input_stream.read();
+                const int base_channel = packet_idx * PACK_CH;
+                for (int lane = 0; lane < PACK_CH; ++lane) {
+#pragma HLS UNROLL
+                    const int channel = base_channel + lane;
+                    if (channel < IN_CH) {
+                        input_channels[channel] =
+                            static_cast<data_t>(in_packet.data.range(((lane + 1) * 8) - 1, lane * 8));
+                    }
+                }
+            }
+
+            for (int oc_base = 0; oc_base < OUT_CH; oc_base += PE) {
+                for (int lane = 0; lane < PE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    acc_tile[lane] = (oc < OUT_CH) ? biases[oc] : static_cast<acc_t>(0);
+                }
+
+                for (int ic_base = 0; ic_base < IN_CH; ic_base += SIMD) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                    for (int simd_lane = 0; simd_lane < SIMD; ++simd_lane) {
+#pragma HLS UNROLL
+                        const int ic = ic_base + simd_lane;
+                        sample_tile[simd_lane] =
+                            (ic < IN_CH) ? input_channels[ic] : static_cast<data_t>(0);
+                    }
+
+                    for (int lane = 0; lane < PE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        acc_t partial = 0;
+                        for (int simd_lane = 0; simd_lane < SIMD; ++simd_lane) {
+#pragma HLS UNROLL
+                            const int ic = ic_base + simd_lane;
+                            if ((oc < OUT_CH) && (ic < IN_CH)) {
+                                partial +=
+                                    static_cast<acc_t>(sample_tile[simd_lane]) *
+                                    static_cast<acc_t>(weights[oc][ic]);
+                            }
+                        }
+                        if (oc < OUT_CH) {
+                            acc_tile[lane] += partial;
+                        }
+                    }
+                }
+
+                for (int lane = 0; lane < PACK_CH; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    output_packet_values[lane] =
+                        (oc < OUT_CH)
+                            ? (APPLY_RELU ? relu6_quant(acc_tile[lane]) : saturate_to_data(acc_tile[lane]))
+                            : static_cast<data_t>(0);
+                }
+
+                const bool final_output =
+                    (oh == (OUT_H - 1)) &&
+                    (ow == (OUT_W - 1)) &&
+                    ((oc_base + PE) >= OUT_CH);
+                output_axis_t out_packet = make_axis_segment_packet<output_axis_t, PACK_CH, PACK_CH>(
+                    output_packet_values,
+                    0,
+                    final_output
+                );
+                output_stream.write(out_packet);
+            }
+        }
+    }
+}

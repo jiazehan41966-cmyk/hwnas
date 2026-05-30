@@ -15,7 +15,14 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from common import build_cases, find_first_existing_report, load_config, resolve_workspace_path, select_pilot_cases
+from common import (
+    build_cases,
+    find_first_existing_report,
+    load_config,
+    materialize_case_project,
+    resolve_workspace_path,
+    select_pilot_cases,
+)
 from run_vivado_downstream import run_downstream_case
 
 
@@ -116,8 +123,9 @@ def main() -> None:
         log_dir.mkdir(parents=True, exist_ok=True)
         log_path = log_dir / "vitis_hls.log"
         status_path = case.project_dir / "synthesis_status.json"
+        previous_status = _load_status(status_path)
 
-        if report_path is not None and not args.force:
+        if report_path is not None and not args.force and previous_status.get("status") not in {"failed", "timeout"}:
             status = {
                 "case_name": case.case_name,
                 "op_id": case.op_id,
@@ -162,6 +170,8 @@ def main() -> None:
             summary.append(status)
             continue
 
+        materialize_case_project(case, force=args.force)
+        log_dir.mkdir(parents=True, exist_ok=True)
         print(f"[run] {case.case_name}")
         start_time = datetime.now().isoformat(timespec="seconds")
         returncode, timed_out = _run_command_with_timeout(
@@ -205,6 +215,15 @@ def main() -> None:
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Wrote synthesis summary: {summary_path}")
+
+
+def _load_status(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
 
 
 if __name__ == "__main__":

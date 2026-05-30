@@ -1,0 +1,57 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = IN_CH;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int PACK_CH_CFG = __PACK_CH__;
+static constexpr int PACK_CH = (PACK_CH_CFG < IN_CH) ? PACK_CH_CFG : IN_CH;
+static constexpr int INPUT_PACKETS_PER_PIXEL = (IN_CH + PACK_CH - 1) / PACK_CH;
+static constexpr int OUTPUT_PACKETS_PER_PIXEL = INPUT_PACKETS_PER_PIXEL;
+static constexpr int WEIGHT_SIZE = 1;
+static constexpr int BIAS_SIZE = 1;
+
+typedef MAKE_AXIS_TYPE(PACK_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(PACK_CH * 8) output_axis_t;
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[1],
+    const acc_t biases[1]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    (void)weights;
+    (void)biases;
+
+    data_t channels[IN_CH];
+#pragma HLS ARRAY_PARTITION variable=channels dim=1 cyclic factor=PACK_CH
+
+    for (int h = 0; h < IN_H; ++h) {
+        for (int w = 0; w < IN_W; ++w) {
+            for (int packet_idx = 0; packet_idx < INPUT_PACKETS_PER_PIXEL; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                input_axis_t in_packet = input_stream.read();
+                unpack_axis_channel_segment<IN_CH, PACK_CH>(
+                    in_packet,
+                    packet_idx * PACK_CH,
+                    channels
+                );
+
+                const bool final_output =
+                    (h == (IN_H - 1)) &&
+                    (w == (IN_W - 1)) &&
+                    (packet_idx == (INPUT_PACKETS_PER_PIXEL - 1));
+                output_axis_t out_packet = make_axis_segment_packet<output_axis_t, IN_CH, PACK_CH>(
+                    channels,
+                    packet_idx * PACK_CH,
+                    final_output
+                );
+                output_stream.write(out_packet);
+            }
+        }
+    }
+}

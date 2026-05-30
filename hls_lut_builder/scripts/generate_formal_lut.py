@@ -114,9 +114,11 @@ def _is_successful_board_row(row: dict[str, str] | None) -> bool:
 def _query_opspec(raw: dict[str, Any]) -> OpSpec:
     spec = dict(raw)
     spec["input_resolution"] = tuple(spec.get("input_resolution", (224, 224)))
-    # Search-time OpSpec does not include a clock field. Strip it so strict
-    # formal lookup uses the same key as the NAS query path.
-    spec["target_clock_mhz"] = None
+    # v1 search-time OpSpec did not include a clock field. v2 fixed-vector LUTs
+    # keep clock in the key so relaxed 150 MHz measurements cannot collide with
+    # 200 MHz deployable rows.
+    if "pack_ch" not in spec:
+        spec["target_clock_mhz"] = None
     return OpSpec.from_dict(spec)
 
 
@@ -154,12 +156,13 @@ def _status_payload(
     board_row: dict[str, str] | None,
     status_source: str,
     original_status: str | None = None,
+    deployable_at_200mhz: bool = False,
 ) -> dict[str, Any]:
     status = str(status_row.get("status") or "missing").strip()
     detail = str(status_row.get("detail") or "").strip()
     root_cause = None if deferred_row is None else str(deferred_row.get("root_cause_bucket") or "").strip() or None
     defer_reason = None
-    if status != "measured":
+    if status not in {"measured", "measured_relaxed"}:
         defer_reason = (
             str(deferred_row.get("defer_reason") or "").strip()
             if deferred_row is not None
@@ -178,6 +181,7 @@ def _status_payload(
         "op_spec": op_spec.to_dict(),
         "board_cycles": None if board_row is None else _to_int(board_row.get("cycles")),
         "board_latency_ms": None if board_row is None else _to_float(board_row.get("latency_ms")),
+        "deployable_at_200mhz": bool(deployable_at_200mhz and status == "measured"),
         "detail": detail,
     }
 
@@ -216,8 +220,8 @@ def main() -> None:
         effective_status_row = dict(status_row)
         status_source = "status_csv"
         if not args.status_authoritative and _is_successful_board_row(board_row):
-            effective_status_row["status"] = "measured"
-            if original_status != "measured":
+            effective_status_row["status"] = "measured" if case.target_clock_mhz >= 199.9 else "measured_relaxed"
+            if original_status != effective_status_row["status"]:
                 effective_status_row["detail"] = "board_results_overlay"
                 status_source = "board_results_overlay"
                 board_overrides.append(case.case_name)
@@ -232,10 +236,11 @@ def main() -> None:
                 board_row=board_row,
                 status_source=status_source,
                 original_status=None if original_status == effective_status_row["status"] else original_status,
+                deployable_at_200mhz=case.target_clock_mhz >= 199.9,
             )
         )
 
-        if effective_status_row.get("status") != "measured":
+        if effective_status_row.get("status") not in {"measured", "measured_relaxed"}:
             continue
         if not _is_successful_board_row(board_row):
             if args.status_authoritative:
@@ -256,8 +261,8 @@ def main() -> None:
                 dsp=_to_int(utilization.get("dsp")),
                 bram=int(round(_to_float(utilization.get("block_ram_tile")))),
                 lut=_to_int(utilization.get("lut")),
-                power_w=0.0,
-                energy_mj=0.0,
+                power_w=None,
+                energy_mj=None,
             )
         )
 

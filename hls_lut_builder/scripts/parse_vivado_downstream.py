@@ -23,7 +23,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from common import build_cases, load_config, resolve_workspace_path, select_pilot_cases
-from hwnas_fpga.hardware import parse_vivado_timing_summary_text, parse_vivado_utilization_text
+from hwnas_fpga.hardware import (
+    parse_vivado_power_text,
+    parse_vivado_timing_summary_text,
+    parse_vivado_utilization_text,
+)
 
 
 CSV_FIELDS = [
@@ -42,10 +46,17 @@ CSV_FIELDS = [
     "PI",
     "PO",
     "unroll",
+    "pack_ch",
+    "ch_block",
+    "target_ii",
+    "tile_order",
+    "stream_order",
+    "dsp_pack",
     "implementation_name",
     "target_part",
     "target_clock_ns",
     "target_clock_mhz",
+    "deployable_at_200mhz",
     "post_synth_LUT",
     "post_synth_FF",
     "post_synth_BRAM_TILE",
@@ -70,6 +81,8 @@ CSV_FIELDS = [
     "post_route_logic_delay_ns",
     "post_route_route_delay_ns",
     "post_route_Fmax_est",
+    "power_w",
+    "power_source",
     "report_dir",
     "downstream_status",
 ]
@@ -135,6 +148,13 @@ def main() -> None:
         if post_synth is None or post_route is None:
             missing_reports.append(case.case_name)
             continue
+        power = _parse_post_route_power(report_dir)
+        post_route_metrics = {
+            **post_route["timing"],
+            **post_route["utilization"],
+        }
+        if power is not None:
+            post_route_metrics.update(power["metrics"])
 
         height, width = case.op_spec.get("input_resolution", [0, 0])
         row = {
@@ -153,10 +173,17 @@ def main() -> None:
             "PI": int(case.op_spec.get("input_parallelism", 1)),
             "PO": int(case.op_spec.get("output_parallelism", 1)),
             "unroll": int(case.op_spec.get("unroll_factor", 1)),
+            "pack_ch": case.op_spec.get("pack_ch", ""),
+            "ch_block": case.op_spec.get("ch_block", ""),
+            "target_ii": case.op_spec.get("target_ii", ""),
+            "tile_order": case.op_spec.get("tile_order", ""),
+            "stream_order": case.op_spec.get("stream_order", ""),
+            "dsp_pack": case.op_spec.get("dsp_pack", ""),
             "implementation_name": case.implementation_name,
             "target_part": case.part,
             "target_clock_ns": float(case.clock_period_ns),
             "target_clock_mhz": float(case.target_clock_mhz),
+            "deployable_at_200mhz": bool(float(case.target_clock_mhz) >= 199.9),
             "post_synth_LUT": int(post_synth["utilization"]["lut"]),
             "post_synth_FF": int(post_synth["utilization"]["ff"]),
             "post_synth_BRAM_TILE": float(post_synth["utilization"]["block_ram_tile"]),
@@ -181,30 +208,32 @@ def main() -> None:
             "post_route_logic_delay_ns": post_route["timing"]["logic_delay_ns"],
             "post_route_route_delay_ns": post_route["timing"]["route_delay_ns"],
             "post_route_Fmax_est": post_route["timing"]["fmax_est_mhz"],
+            "power_w": "" if power is None else power["metrics"]["power_w"],
+            "power_source": "implementation_not_parsed" if power is None else power["metrics"]["power_source"],
             "report_dir": str(report_dir),
             "downstream_status": downstream_status,
         }
         rows.append(row)
+        reports = {
+            "post_synth_timing": str(post_synth["timing_report"]),
+            "post_synth_utilization": str(post_synth["utilization_report"]),
+            "post_route_timing": str(post_route["timing_report"]),
+            "post_route_utilization": str(post_route["utilization_report"]),
+        }
+        if power is not None:
+            reports["post_route_power"] = str(power["power_report"])
 
         manifest_entries.append(
             {
                 "op_spec": case.op_spec,
                 "clock_mhz": case.target_clock_mhz,
-                "reports": {
-                    "post_synth_timing": str(post_synth["timing_report"]),
-                    "post_synth_utilization": str(post_synth["utilization_report"]),
-                    "post_route_timing": str(post_route["timing_report"]),
-                    "post_route_utilization": str(post_route["utilization_report"]),
-                },
+                "reports": reports,
                 "metrics": {
                     "post_synth": {
                         **post_synth["timing"],
                         **post_synth["utilization"],
                     },
-                    "post_route": {
-                        **post_route["timing"],
-                        **post_route["utilization"],
-                    },
+                    "post_route": post_route_metrics,
                 },
                 "metadata": {
                     "op_id": case.op_id,
@@ -282,6 +311,19 @@ def _parse_stage_reports(report_dir: Path, stage_name: str, *, target_clock_ns: 
         "utilization": utilization,
         "timing_report": timing_report,
         "utilization_report": utilization_report,
+    }
+
+
+def _parse_post_route_power(report_dir: Path) -> dict[str, Any] | None:
+    power_report = report_dir / "post_route_power.rpt"
+    if not power_report.exists():
+        return None
+    metrics = parse_vivado_power_text(power_report.read_text(encoding="utf-8", errors="ignore"))
+    if metrics.get("power_w") is None:
+        return None
+    return {
+        "metrics": metrics,
+        "power_report": power_report,
     }
 
 

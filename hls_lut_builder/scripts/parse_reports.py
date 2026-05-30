@@ -27,6 +27,7 @@ if str(SRC_ROOT) not in sys.path:
 from common import build_cases, find_first_existing_report, load_config, resolve_workspace_path, select_pilot_cases
 from hwnas_fpga.hardware import (
     parse_hls_report,
+    parse_vivado_power_text,
     parse_vivado_timing_summary_text,
     parse_vivado_utilization_text,
 )
@@ -48,10 +49,17 @@ CSV_FIELDS = [
     "PI",
     "PO",
     "unroll",
+    "pack_ch",
+    "ch_block",
+    "target_ii",
+    "tile_order",
+    "stream_order",
+    "dsp_pack",
     "implementation_name",
     "target_part",
     "target_clock_ns",
     "target_clock_mhz",
+    "deployable_at_200mhz",
     "estimated_clock_period_ns",
     "Fmax_est",
     "latency_cycles",
@@ -66,6 +74,8 @@ CSV_FIELDS = [
     "DSP",
     "report_format",
     "report_path",
+    "power_w",
+    "power_source",
     "synthesis_status",
 ]
 
@@ -132,6 +142,11 @@ def main() -> None:
             latency_ns = cycles * float(case.clock_period_ns)
         latency_ms = float(latency_ns) / 1_000_000.0 if latency_ns is not None else 0.0
 
+        vivado_actual = _load_vivado_actual(case)
+        post_route_metrics = _post_route_metrics(vivado_actual)
+        power_w = post_route_metrics.get("power_w")
+        power_source = post_route_metrics.get("power_source")
+
         row = {
             "op_id": case.op_id,
             "case_name": case.case_name,
@@ -148,10 +163,17 @@ def main() -> None:
             "PI": int(case.op_spec.get("input_parallelism", 1)),
             "PO": int(case.op_spec.get("output_parallelism", 1)),
             "unroll": int(case.op_spec.get("unroll_factor", 1)),
+            "pack_ch": case.op_spec.get("pack_ch", ""),
+            "ch_block": case.op_spec.get("ch_block", ""),
+            "target_ii": case.op_spec.get("target_ii", ""),
+            "tile_order": case.op_spec.get("tile_order", ""),
+            "stream_order": case.op_spec.get("stream_order", ""),
+            "dsp_pack": case.op_spec.get("dsp_pack", ""),
             "implementation_name": case.implementation_name,
             "target_part": case.part,
             "target_clock_ns": float(case.clock_period_ns),
             "target_clock_mhz": float(case.target_clock_mhz),
+            "deployable_at_200mhz": bool(float(case.target_clock_mhz) >= 199.9),
             "estimated_clock_period_ns": metrics.get("estimated_clock_period_ns"),
             "Fmax_est": metrics.get("fmax_est_mhz"),
             "latency_cycles": cycles,
@@ -166,10 +188,11 @@ def main() -> None:
             "DSP": int(metrics.get("dsp") or 0),
             "report_format": metrics.get("report_format", report_path.suffix.lower().lstrip(".")),
             "report_path": str(archived_path),
+            "power_w": power_w if power_w is not None else "",
+            "power_source": power_source if power_source else "missing",
             "synthesis_status": synthesis_status,
         }
         rows.append(row)
-        vivado_actual = _load_vivado_actual(case)
 
         manifest_entries.append(
             {
@@ -295,22 +318,28 @@ def _load_vivado_actual(case: Any) -> dict[str, Any] | None:
         return None
 
     status_payload = _load_status_payload(case.vivado_downstream_status_path)
+    power = _parse_post_route_power(report_dir)
+    reports = {
+        "post_synth_timing": str(post_synth["timing_report"]),
+        "post_synth_utilization": str(post_synth["utilization_report"]),
+        "post_route_timing": str(post_route["timing_report"]),
+        "post_route_utilization": str(post_route["utilization_report"]),
+    }
+    post_route_metrics = {
+        **post_route["timing"],
+        **post_route["utilization"],
+    }
+    if power is not None:
+        reports["post_route_power"] = str(power["power_report"])
+        post_route_metrics.update(power["metrics"])
     return {
-        "reports": {
-            "post_synth_timing": str(post_synth["timing_report"]),
-            "post_synth_utilization": str(post_synth["utilization_report"]),
-            "post_route_timing": str(post_route["timing_report"]),
-            "post_route_utilization": str(post_route["utilization_report"]),
-        },
+        "reports": reports,
         "metrics": {
             "post_synth": {
                 **post_synth["timing"],
                 **post_synth["utilization"],
             },
-            "post_route": {
-                **post_route["timing"],
-                **post_route["utilization"],
-            },
+            "post_route": post_route_metrics,
         },
         "status": str(status_payload.get("status", "success")),
     }
@@ -339,6 +368,19 @@ def _parse_vivado_stage_reports(
         "utilization": utilization,
         "timing_report": timing_report,
         "utilization_report": utilization_report,
+    }
+
+
+def _parse_post_route_power(report_dir: Path) -> dict[str, Any] | None:
+    power_report = report_dir / "post_route_power.rpt"
+    if not power_report.exists():
+        return None
+    metrics = parse_vivado_power_text(power_report.read_text(encoding="utf-8", errors="ignore"))
+    if metrics.get("power_w") is None:
+        return None
+    return {
+        "metrics": metrics,
+        "power_report": power_report,
     }
 
 
@@ -371,7 +413,21 @@ def _build_preferred_metrics(
         if preferred["fmax_est_mhz"] > 0:
             preferred["estimated_clock_period_ns"] = 1_000.0 / preferred["fmax_est_mhz"]
 
+    if post_route.get("power_w") is not None:
+        preferred["power_w"] = float(post_route["power_w"])
+        preferred["power_source"] = str(post_route.get("power_source", "vivado_post_route"))
+
     return preferred
+
+
+def _post_route_metrics(vivado_actual: dict[str, Any] | None) -> dict[str, Any]:
+    if vivado_actual is None:
+        return {}
+    metrics = vivado_actual.get("metrics", {})
+    if not isinstance(metrics, dict):
+        return {}
+    post_route = metrics.get("post_route", {})
+    return post_route if isinstance(post_route, dict) else {}
 
 
 if __name__ == "__main__":

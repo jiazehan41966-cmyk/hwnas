@@ -34,6 +34,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--serial-port", required=True, help="UART serial port, e.g. COM5")
     parser.add_argument("--vitis-hls", default=str(DEFAULT_VITIS_HLS), help="Path to vitis_hls launcher")
     parser.add_argument("--vivado", default=str(DEFAULT_VIVADO), help="Path to vivado launcher")
+    parser.add_argument("--hw-server-url", default="TCP:localhost:3121", help="Vivado hardware server URL")
+    parser.add_argument("--hw-device-pattern", default="*xc7k325t*", help="Vivado get_hw_devices pattern")
+    parser.add_argument("--hw-target-index", type=int, default=0, help="Vivado get_hw_targets index")
+    parser.add_argument("--program-retries", type=int, default=2, help="FPGA programming retries after first failure")
     parser.add_argument("--results-csv", default=str(DEFAULT_RESULTS_CSV), help="Board measurement CSV")
     parser.add_argument("--summary-json", default=str(DEFAULT_SUMMARY_JSON), help="Batch summary JSON")
     parser.add_argument("--runs", type=int, default=1, help="Repeated UART measurements per case")
@@ -48,13 +52,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_case_names(csv_path: Path) -> list[str]:
+def load_case_rows(csv_path: Path) -> list[dict[str, str]]:
     with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
-        case_names = [row["case_name"] for row in reader if row.get("case_name")]
-    if not case_names:
+        case_rows = [dict(row) for row in reader if row.get("case_name")]
+    if not case_rows:
         raise ValueError(f"No case_name entries found in {csv_path}")
-    return case_names
+    return case_rows
+
+
+def load_case_names(csv_path: Path) -> list[str]:
+    return [row["case_name"] for row in load_case_rows(csv_path)]
 
 
 def load_measured_cases(csv_path: Path) -> set[str]:
@@ -74,7 +82,15 @@ def load_measured_cases(csv_path: Path) -> set[str]:
     return measured
 
 
-def resolve_case_dir(case_name: str, include_extensions: bool) -> Path:
+def resolve_case_dir(case_name: str, include_extensions: bool, explicit_case_dir: str | None = None) -> Path:
+    if explicit_case_dir:
+        candidate = Path(explicit_case_dir).expanduser()
+        if not candidate.is_absolute():
+            candidate = (ROOT / candidate).resolve()
+        if candidate.exists():
+            return candidate
+        raise FileNotFoundError(f"Explicit case_dir for {case_name} does not exist: {candidate}")
+
     candidates = [RESULTS_DIR / "p" / case_name]
     if include_extensions:
         candidates.append(RESULTS_DIR / "p_ext" / case_name)
@@ -191,6 +207,9 @@ def ensure_export(case_dir: Path, vitis_hls: Path, force: bool, timeout_seconds:
 
 
 def generate_harness(case_dir: Path, board_config: Path, force: bool, timeout_seconds: int | None) -> dict[str, Any]:
+    manifest_path = BOARD_HARNESS_DIR / "projects" / f"harness_{case_dir.name}" / "harness_manifest.json"
+    if manifest_path.exists() and not force:
+        return {"status": "skipped_existing", "manifest": str(manifest_path)}
     command = [
         sys.executable,
         str(GENERATE_HARNESS_SCRIPT),
@@ -204,7 +223,6 @@ def generate_harness(case_dir: Path, board_config: Path, force: bool, timeout_se
     if force:
         command.append("--force")
     result, timeout_payload = run_command(command, cwd=ROOT, timeout_seconds=timeout_seconds)
-    manifest_path = BOARD_HARNESS_DIR / "projects" / f"harness_{case_dir.name}" / "harness_manifest.json"
     if timeout_payload is not None:
         timeout_payload["manifest"] = str(manifest_path) if manifest_path.exists() else None
         return timeout_payload
@@ -240,6 +258,10 @@ def measure_case(
     harness_project_dir: Path,
     serial_port: str,
     vivado: Path,
+    hw_server_url: str,
+    hw_device_pattern: str,
+    hw_target_index: int,
+    program_retries: int,
     results_csv: Path,
     runs: int,
     timeout_seconds: int | None,
@@ -254,6 +276,14 @@ def measure_case(
         serial_port,
         "--vivado",
         str(vivado),
+        "--hw-server-url",
+        hw_server_url,
+        "--hw-device-pattern",
+        hw_device_pattern,
+        "--hw-target-index",
+        str(hw_target_index),
+        "--program-retries",
+        str(program_retries),
         "--csv",
         str(results_csv),
         "--runs",
@@ -288,18 +318,24 @@ def main() -> int:
     results_csv = Path(args.results_csv).expanduser().resolve()
     summary_json = Path(args.summary_json).expanduser().resolve()
 
-    case_names = load_case_names(cases_csv)
+    case_rows = load_case_rows(cases_csv)
     if args.case:
         requested = set(args.case)
-        case_names = [case_name for case_name in case_names if case_name in requested]
-        missing = requested.difference(case_names)
+        case_rows = [row for row in case_rows if row["case_name"] in requested]
+        present = {row["case_name"] for row in case_rows}
+        missing = requested.difference(present)
         if missing:
             print(f"[warn] Requested cases not present in CSV: {sorted(missing)}")
     measured_cases = load_measured_cases(results_csv)
 
     summary: list[dict[str, Any]] = []
-    for case_name in case_names:
-        case_dir = resolve_case_dir(case_name, include_extensions=args.include_extensions)
+    for case_row in case_rows:
+        case_name = case_row["case_name"]
+        case_dir = resolve_case_dir(
+            case_name,
+            include_extensions=args.include_extensions,
+            explicit_case_dir=case_row.get("case_dir") or None,
+        )
         harness_project_dir = BOARD_HARNESS_DIR / "projects" / f"harness_{case_name}"
         case_status: dict[str, Any] = {
             "case_name": case_name,
@@ -398,6 +434,10 @@ def main() -> int:
             harness_project_dir,
             serial_port=args.serial_port,
             vivado=vivado,
+            hw_server_url=args.hw_server_url,
+            hw_device_pattern=args.hw_device_pattern,
+            hw_target_index=args.hw_target_index,
+            program_retries=args.program_retries,
             results_csv=results_csv,
             runs=args.runs,
             timeout_seconds=args.measurement_timeout_minutes * 60 if args.measurement_timeout_minutes > 0 else None,

@@ -70,6 +70,12 @@ class OpSpec:
     output_parallelism: int = 1
     unroll_factor: int = 1
     target_clock_mhz: Optional[float] = None
+    pack_ch: Optional[int] = None
+    ch_block: Optional[int] = None
+    target_ii: Optional[int] = None
+    tile_order: Optional[str] = None
+    stream_order: Optional[str] = None
+    dsp_pack: Optional[str] = None
 
     def __post_init__(self):
         object.__setattr__(self, "op", canonicalize_lut_op_name(self.op))
@@ -82,10 +88,22 @@ class OpSpec:
         object.__setattr__(self, "unroll_factor", int(self.unroll_factor))
         if self.target_clock_mhz is not None:
             object.__setattr__(self, "target_clock_mhz", float(self.target_clock_mhz))
+        if self.pack_ch is not None:
+            object.__setattr__(self, "pack_ch", int(self.pack_ch))
+        if self.ch_block is not None:
+            object.__setattr__(self, "ch_block", int(self.ch_block))
+        if self.target_ii is not None:
+            object.__setattr__(self, "target_ii", int(self.target_ii))
+        if self.tile_order is not None:
+            object.__setattr__(self, "tile_order", str(self.tile_order))
+        if self.stream_order is not None:
+            object.__setattr__(self, "stream_order", str(self.stream_order))
+        if self.dsp_pack is not None:
+            object.__setattr__(self, "dsp_pack", str(self.dsp_pack))
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
-        return {
+        payload = {
             "op": self.op,
             "kernel_size": self.kernel_size,
             "in_channels": self.in_channels,
@@ -100,6 +118,11 @@ class OpSpec:
             "unroll_factor": self.unroll_factor,
             "target_clock_mhz": self.target_clock_mhz,
         }
+        for key in ("pack_ch", "ch_block", "target_ii", "tile_order", "stream_order", "dsp_pack"):
+            value = getattr(self, key)
+            if value is not None:
+                payload[key] = value
+        return payload
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OpSpec":
@@ -118,6 +141,12 @@ class OpSpec:
             output_parallelism=data.get("output_parallelism", 1),
             unroll_factor=data.get("unroll_factor", 1),
             target_clock_mhz=data.get("target_clock_mhz"),
+            pack_ch=data.get("pack_ch"),
+            ch_block=data.get("ch_block"),
+            target_ii=data.get("target_ii"),
+            tile_order=data.get("tile_order"),
+            stream_order=data.get("stream_order"),
+            dsp_pack=data.get("dsp_pack"),
         )
 
     def shape_signature(self) -> Tuple[Any, ...]:
@@ -139,6 +168,12 @@ class OpSpec:
             self.output_parallelism,
             self.unroll_factor,
             self.target_clock_mhz,
+            self.pack_ch,
+            self.ch_block,
+            self.target_ii,
+            self.tile_order,
+            self.stream_order,
+            self.dsp_pack,
         )
 
     def __hash__(self) -> int:
@@ -173,8 +208,8 @@ class LutEntry:
     dsp: int = 0
     bram: int = 0
     lut: int = 0
-    power_w: float = 0.0
-    energy_mj: float = 0.0
+    power_w: Optional[float] = None
+    energy_mj: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
@@ -624,6 +659,11 @@ class LutQueryEngine:
             )
 
             # 对每个指标进行插值
+            def interp_optional_float(lower_value: Optional[float], upper_value: Optional[float]) -> Optional[float]:
+                if lower_value is None or upper_value is None:
+                    return None
+                return lower_value + t * (upper_value - lower_value)
+
             interpolated = LutEntry(
                 op_spec=op_spec,
                 latency_ms=lower_entry.latency_ms + t * (upper_entry.latency_ms - lower_entry.latency_ms),
@@ -631,8 +671,8 @@ class LutQueryEngine:
                 dsp=int(lower_entry.dsp + t * (upper_entry.dsp - lower_entry.dsp)),
                 bram=int(lower_entry.bram + t * (upper_entry.bram - lower_entry.bram)),
                 lut=int(lower_entry.lut + t * (upper_entry.lut - lower_entry.lut)),
-                power_w=lower_entry.power_w + t * (upper_entry.power_w - lower_entry.power_w),
-                energy_mj=lower_entry.energy_mj + t * (upper_entry.energy_mj - lower_entry.energy_mj),
+                power_w=interp_optional_float(lower_entry.power_w, upper_entry.power_w),
+                energy_mj=interp_optional_float(lower_entry.energy_mj, upper_entry.energy_mj),
             )
             return interpolated
 

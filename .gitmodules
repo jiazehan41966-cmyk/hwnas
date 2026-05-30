@@ -1,0 +1,15 @@
+[submodule "reference/FBNet"]
+	path = reference/FBNet
+	url = https://github.com/facebookresearch/mobile-vision.git
+
+[submodule "reference/HW-NAS-Bench"]
+	path = reference/HW-NAS-Bench
+	url = https://github.com/GATECH-EIC/HW-NAS-Bench.git
+
+[submodule "reference/ProxylessNAS"]
+	path = reference/ProxylessNAS
+	url = https://github.com/MIT-HAN-LAB/ProxylessNAS.git
+
+[submodule "reference/TinyTNAS"]
+	path = reference/TinyTNAS
+	url = https://github.com/BidyutSaha/TinyTNAS.git

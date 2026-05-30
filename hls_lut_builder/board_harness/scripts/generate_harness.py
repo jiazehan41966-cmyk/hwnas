@@ -162,10 +162,10 @@ def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, in
             "biases_depth": int(constants["OUT_CH"]),
         }
 
-    if case_name.startswith("pw_conv") or case_name.startswith("fc_layer"):
-        if case_name.startswith("fc_layer"):
+    if case_name.startswith(("pw_conv", "pw21", "pwlow", "fc_layer", "fc_")):
+        if case_name.startswith(("fc_layer", "fc_")):
             input_word_count = int(constants.get("INPUT_PACKETS", 1))
-            output_word_count = 1
+            output_word_count = int(constants.get("OUTPUT_PACKETS", 1))
         return {
             "input_word_count": input_word_count,
             "output_word_count": output_word_count,
@@ -173,7 +173,7 @@ def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, in
             "biases_depth": int(constants["OUT_CH"]),
         }
 
-    if case_name.startswith("dw_conv"):
+    if case_name.startswith(("dw_conv", "dw3", "dwlow")):
         channels = int(constants.get("OUT_CH", constants["IN_CH"]))
         return {
             "input_word_count": input_word_count,
@@ -190,10 +190,10 @@ def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, in
             "biases_depth": 1,
         }
 
-    if case_name.startswith("global_avg_pool"):
+    if case_name.startswith(("global_avg_pool", "gap_")):
         return {
             "input_word_count": input_word_count,
-            "output_word_count": 1,
+            "output_word_count": int(constants.get("OUTPUT_PACKETS", 1)),
             "weights_depth": 1,
             "biases_depth": 1,
         }
@@ -284,6 +284,35 @@ def detect_param_interface(top_ports: dict[str, int], kind: str) -> dict[str, An
             "has_port_b": f"{kind}_Addr_B" in top_ports,
             "port_name": scalar_port,
         }
+    partitioned_banks: list[dict[str, Any]] = []
+    bank_pattern = re.compile(rf"^{re.escape(kind)}((?:_\d+)+)_Dout_A$")
+    for port_name in top_ports:
+        match = bank_pattern.match(port_name)
+        if not match:
+            continue
+        prefix = f"{kind}{match.group(1)}"
+        if f"{prefix}_Addr_A" not in top_ports:
+            continue
+        indices = tuple(int(token) for token in match.group(1).strip("_").split("_"))
+        partitioned_banks.append(
+            {
+                "prefix": prefix,
+                "indices": indices,
+                "data_width": int(top_ports[f"{prefix}_Dout_A"]),
+                "addr_width": int(top_ports[f"{prefix}_Addr_A"]),
+                "has_port_b": f"{prefix}_Addr_B" in top_ports,
+            }
+        )
+    if partitioned_banks:
+        partitioned_banks.sort(key=lambda bank: bank["indices"])
+        return {
+            "mode": "partitioned_bram",
+            "data_width": int(partitioned_banks[0]["data_width"]),
+            "addr_width": int(partitioned_banks[0]["addr_width"]),
+            "has_port_b": any(bool(bank["has_port_b"]) for bank in partitioned_banks),
+            "port_name": scalar_port,
+            "banks": partitioned_banks,
+        }
     if scalar_port in top_ports:
         return {
             "mode": "scalar",
@@ -292,7 +321,36 @@ def detect_param_interface(top_ports: dict[str, int], kind: str) -> dict[str, An
             "has_port_b": False,
             "port_name": scalar_port,
         }
-    raise KeyError(f"Unable to detect {kind} interface from RTL top ports")
+    return {
+        "mode": "absent",
+        "data_width": 1,
+        "addr_width": 1,
+        "has_port_b": False,
+        "port_name": scalar_port,
+    }
+
+
+def ceil_div(lhs: int, rhs: int) -> int:
+    return (lhs + rhs - 1) // rhs
+
+
+def bank_partition_counts(banks: list[dict[str, Any]]) -> tuple[int, ...]:
+    if not banks:
+        return ()
+    dims = len(banks[0]["indices"])
+    counts: list[int] = []
+    for dim in range(dims):
+        counts.append(max(int(bank["indices"][dim]) for bank in banks) + 1)
+    return tuple(counts)
+
+
+def partitioned_bank_depth(kind: str, constants: dict[str, int], banks: list[dict[str, Any]], fallback_depth: int) -> int:
+    counts = bank_partition_counts(banks)
+    if kind == "weights" and len(counts) >= 2 and "OUT_CH" in constants and "IN_CH" in constants:
+        return ceil_div(int(constants["OUT_CH"]), counts[0]) * ceil_div(int(constants["IN_CH"]), counts[1])
+    if kind == "biases" and len(counts) >= 1 and "OUT_CH" in constants:
+        return ceil_div(int(constants["OUT_CH"]), counts[0])
+    return max(1, ceil_div(fallback_depth, max(1, len(banks))))
 
 
 def build_scalar_param_logic(kind: str, data_width: int) -> str:
@@ -353,6 +411,26 @@ def build_bram_param_logic(
     )
 
 
+def build_partitioned_bram_param_logic(
+    kind: str,
+    iface: dict[str, Any],
+    fallback_depth: int,
+) -> str:
+    blocks: list[str] = []
+    for bank in iface["banks"]:
+        blocks.append(
+            build_bram_param_logic(
+                bank["prefix"],
+                int(bank["data_width"]),
+                int(bank["addr_width"]),
+                int(bank.get("depth", fallback_depth)),
+                f"../data/{bank['mem_file']}",
+                bool(bank["has_port_b"]),
+            )
+        )
+    return "\n\n".join(blocks)
+
+
 def build_kernel_instance(
     module_name: str,
     ports: dict[str, int],
@@ -411,8 +489,31 @@ def build_kernel_instance(
 
     for kind in ("weights", "biases"):
         iface = param_interfaces[kind]
+        if iface["mode"] == "absent":
+            continue
         if iface["mode"] == "scalar":
             connect(kind, f"{kind}_scalar")
+            continue
+        if iface["mode"] == "partitioned_bram":
+            for bank in iface["banks"]:
+                prefix = bank["prefix"]
+                for suffix, signal in (
+                    ("Addr_A", f"{prefix}_addra"),
+                    ("EN_A", f"{prefix}_ena"),
+                    ("WEN_A", f"{prefix}_wena"),
+                    ("Din_A", f"{prefix}_dina"),
+                    ("Dout_A", f"{prefix}_douta"),
+                    ("Clk_A", f"{prefix}_clka"),
+                    ("Rst_A", f"{prefix}_rsta"),
+                    ("Addr_B", f"{prefix}_addrb"),
+                    ("EN_B", f"{prefix}_enb"),
+                    ("WEN_B", f"{prefix}_wenb"),
+                    ("Din_B", f"{prefix}_dinb"),
+                    ("Dout_B", f"{prefix}_doutb"),
+                    ("Clk_B", f"{prefix}_clkb"),
+                    ("Rst_B", f"{prefix}_rstb"),
+                ):
+                    connect(f"{prefix}_{suffix}", signal)
             continue
         for suffix, signal in (
             ("Addr_A", f"{kind}_addra"),
@@ -466,25 +567,31 @@ def main() -> None:
 
     case_name = case_dir.name
     component_path = case_dir / "project" / "solution1" / "impl" / "ip" / "component.xml"
-    export_rtl_src = case_dir / "project" / "solution1" / "impl" / "ip" / "hdl" / "verilog"
+    ip_rtl_src = case_dir / "project" / "solution1" / "impl" / "ip" / "hdl" / "verilog"
+    syn_rtl_src = case_dir / "project" / "solution1" / "syn" / "verilog"
     source_cpp_path = case_dir / "src"
-
-    if not component_path.exists():
-        raise FileNotFoundError(f"component.xml not found: {component_path}")
-    if not export_rtl_src.exists():
-        raise FileNotFoundError(f"exported RTL directory not found: {export_rtl_src}")
-
-    component_info = parse_component(component_path)
-    module_name = component_info["component_name"]
-    build_tag = short_build_tag(case_name, module_name)
-    top_verilog_path = export_rtl_src / f"{module_name}.v"
-    if not top_verilog_path.exists():
-        raise FileNotFoundError(f"top RTL not found: {top_verilog_path}")
 
     source_cpp_candidates = list(source_cpp_path.glob("*.cpp"))
     if not source_cpp_candidates:
         raise FileNotFoundError(f"No generated C++ source found in {source_cpp_path}")
     source_cpp_text = source_cpp_candidates[0].read_text(encoding="utf-8")
+
+    if component_path.exists():
+        component_info = parse_component(component_path)
+        module_name = component_info["component_name"]
+        export_rtl_src = ip_rtl_src
+    else:
+        component_info = {"component_name": source_cpp_candidates[0].stem, "bus_interfaces": {}}
+        module_name = component_info["component_name"]
+        export_rtl_src = ip_rtl_src if ip_rtl_src.exists() else syn_rtl_src
+    if not export_rtl_src.exists():
+        raise FileNotFoundError(f"exported RTL directory not found: {export_rtl_src}")
+
+    build_tag = short_build_tag(case_name, module_name)
+    top_verilog_path = export_rtl_src / f"{module_name}.v"
+    if not top_verilog_path.exists():
+        raise FileNotFoundError(f"top RTL not found: {top_verilog_path}")
+
     constants = parse_constants(source_cpp_text)
     case_meta = compute_case_meta(case_name, constants)
 
@@ -545,8 +652,20 @@ def main() -> None:
     )
     if param_interfaces["weights"]["mode"] == "bram":
         generate_param_mem(data_dir / weights_mem_file, case_meta["weights_depth"], weights_data_width, seed_offset=3)
+    elif param_interfaces["weights"]["mode"] == "partitioned_bram":
+        bank_depth = partitioned_bank_depth("weights", constants, param_interfaces["weights"]["banks"], case_meta["weights_depth"])
+        for bank_idx, bank in enumerate(param_interfaces["weights"]["banks"]):
+            bank["depth"] = bank_depth
+            bank["mem_file"] = f"{bank['prefix']}.mem"
+            generate_param_mem(data_dir / bank["mem_file"], bank_depth, int(bank["data_width"]), seed_offset=3 + bank_idx)
     if param_interfaces["biases"]["mode"] == "bram":
         generate_param_mem(data_dir / biases_mem_file, case_meta["biases_depth"], biases_data_width, seed_offset=11)
+    elif param_interfaces["biases"]["mode"] == "partitioned_bram":
+        bank_depth = partitioned_bank_depth("biases", constants, param_interfaces["biases"]["banks"], case_meta["biases_depth"])
+        for bank_idx, bank in enumerate(param_interfaces["biases"]["banks"]):
+            bank["depth"] = bank_depth
+            bank["mem_file"] = f"{bank['prefix']}.mem"
+            generate_param_mem(data_dir / bank["mem_file"], bank_depth, int(bank["data_width"]), seed_offset=11 + bank_idx)
 
     input_mem_mapping = {f"INPUT_MEM_FILE_{lane_idx:02d}": '""' for lane_idx in range(32)}
     for lane_idx, mem_path in enumerate(input_mem_paths):
@@ -559,8 +678,8 @@ def main() -> None:
         axil_data_width,
         param_interfaces,
     )
-    weights_support_logic = (
-        build_bram_param_logic(
+    if param_interfaces["weights"]["mode"] == "bram":
+        weights_support_logic = build_bram_param_logic(
             "weights",
             weights_data_width,
             weights_addr_width,
@@ -568,11 +687,17 @@ def main() -> None:
             f"../data/{weights_mem_file}",
             weights_has_port_b,
         )
-        if param_interfaces["weights"]["mode"] == "bram"
-        else build_scalar_param_logic("weights", weights_data_width)
-    )
-    biases_support_logic = (
-        build_bram_param_logic(
+    elif param_interfaces["weights"]["mode"] == "partitioned_bram":
+        weights_support_logic = build_partitioned_bram_param_logic(
+            "weights",
+            param_interfaces["weights"],
+            case_meta["weights_depth"],
+        )
+    else:
+        weights_support_logic = build_scalar_param_logic("weights", weights_data_width)
+
+    if param_interfaces["biases"]["mode"] == "bram":
+        biases_support_logic = build_bram_param_logic(
             "biases",
             biases_data_width,
             biases_addr_width,
@@ -580,9 +705,14 @@ def main() -> None:
             f"../data/{biases_mem_file}",
             biases_has_port_b,
         )
-        if param_interfaces["biases"]["mode"] == "bram"
-        else build_scalar_param_logic("biases", biases_data_width)
-    )
+    elif param_interfaces["biases"]["mode"] == "partitioned_bram":
+        biases_support_logic = build_partitioned_bram_param_logic(
+            "biases",
+            param_interfaces["biases"],
+            case_meta["biases_depth"],
+        )
+    else:
+        biases_support_logic = build_scalar_param_logic("biases", biases_data_width)
     harness_mapping = {
             "CLK_FREQ_HZ": str(board_cfg["clock"]["freq_hz"]),
             "UART_BAUD": str(board_cfg.get("uart", {}).get("baud", defaults_cfg["uart_baud"])),
@@ -710,7 +840,15 @@ def main() -> None:
             "input_mem_files": [str(path) for path in input_mem_paths],
             "input_word_mem": str(input_word_mem_path),
             "weights_mem": str(data_dir / weights_mem_file) if param_interfaces["weights"]["mode"] == "bram" else None,
+            "weights_mem_banks": [
+                str(data_dir / bank["mem_file"])
+                for bank in param_interfaces["weights"].get("banks", [])
+            ],
             "biases_mem": str(data_dir / biases_mem_file) if param_interfaces["biases"]["mode"] == "bram" else None,
+            "biases_mem_banks": [
+                str(data_dir / bank["mem_file"])
+                for bank in param_interfaces["biases"].get("banks", [])
+            ],
         },
         "interface_summary": {
             "input_tdata_width": input_tdata_width,
@@ -719,8 +857,10 @@ def main() -> None:
             "axil_data_width": axil_data_width,
             "weights_impl_mode": param_interfaces["weights"]["mode"],
             "weights_has_port_b": weights_has_port_b,
+            "weights_bank_count": len(param_interfaces["weights"].get("banks", [])),
             "biases_impl_mode": param_interfaces["biases"]["mode"],
             "biases_has_port_b": biases_has_port_b,
+            "biases_bank_count": len(param_interfaces["biases"].get("banks", [])),
         },
         "case_meta": case_meta,
     }

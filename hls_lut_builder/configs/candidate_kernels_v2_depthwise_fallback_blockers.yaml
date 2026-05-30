@@ -1,0 +1,121 @@
+toolchain:
+  part: xc7k325t-ffg676-2
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: F:/vivado/Vitis_HLS/2023.2/bin/vitis_hls.bat
+  vivado_bin: F:/vivado/Vivado/2023.2/bin/vivado.bat
+
+workspace:
+  project_root: ../results/v2_depthwise_fallback_blockers/p
+  report_archive: ../results/v2_depthwise_fallback_blockers/r
+  csv_path: ../results/v2_depthwise_fallback_blockers/hls.csv
+  manifest_path: ../results/v2_depthwise_fallback_blockers/hls_manifest.yaml
+  synthesis_summary_json: ../results/v2_depthwise_fallback_blockers/hls_synth_summary.json
+  parse_summary_json: ../results/v2_depthwise_fallback_blockers/hls_parse_summary.json
+  downstream_csv_path: ../results/v2_depthwise_fallback_blockers/vivado_downstream.csv
+  downstream_manifest_path: ../results/v2_depthwise_fallback_blockers/vivado_downstream_manifest.yaml
+  downstream_parse_summary_json: ../results/v2_depthwise_fallback_blockers/vivado_downstream_parse_summary.json
+  downstream_summary_json: ../results/v2_depthwise_fallback_blockers/vivado_downstream_summary.json
+  formal_lut_status_json: ../results/v2_depthwise_fallback_blockers/formal_lut_status_v2_depthwise_fallback_blockers.json
+
+measurement_contract:
+  contract_id: packed_stream_v1_fixed_vector_v2_depthwise_fallback_blockers
+  declaration: >
+    Minimal p8/cb8 fallback validation for the two unique depthwise shapes
+    still blocking failed44 combo deployability after pointwise v2.1.
+  io_style: packed_stream
+  input_axis_rule: PACK_CH * bitwidth bits, replayed per channel block for channel_major_replay
+  output_axis_rule: PACK_CH * bitwidth bits, channel-block-major output order
+  control_interface: AXI-Lite
+  parameter_storage: BRAM
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  fixed_vector_params: 1
+  max_axis_bits: 512
+  pack_ch: 8
+  ch_block: 8
+  tile_order: channel_major_replay
+  stream_order: channel_major_replay
+  dsp_pack: "1"
+  pipeline_ii: 1
+  target_ii: 1
+  input_parallelism: 1
+  output_parallelism: 1
+  unroll_factor: 1
+  array_partition_factor: 1
+
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+    target_clock_mhz: 200.0
+
+implementation_profiles:
+  p8_cb8_ii1_dsp1:
+    pack_ch: 8
+    ch_block: 8
+    pipeline_ii: 1
+    target_ii: 1
+    dsp_pack: "1"
+  p8_cb8_ii2_dsp1:
+    pack_ch: 8
+    ch_block: 8
+    pipeline_ii: 2
+    target_ii: 2
+    dsp_pack: "1"
+
+representative_shapes:
+  failed44_fb_k3_7_c480_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    stride: 1
+    expand_ratio: 3
+  failed44_fb_k5_14_c288_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 288
+    stride: 2
+    expand_ratio: 3
+
+operators:
+  dw_conv_k3_fb:
+    enabled: true
+    template: ../templates/dw_conv_fixed_vector.cpp.tmpl
+    top_function: dwk3fb
+    op_type: dw_conv_k3
+    shape_refs:
+    - failed44_fb_k3_7_c480_s1
+    implementation_refs:
+    - p8_cb8_ii1_dsp1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k3
+  dw_conv_k5_fb:
+    enabled: true
+    template: ../templates/dw_conv_fixed_vector.cpp.tmpl
+    top_function: dwk5fb
+    op_type: dw_conv_k5
+    shape_refs:
+    - failed44_fb_k5_14_c288_s2
+    implementation_refs:
+    - p8_cb8_ii2_dsp1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k5

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Program a single-operator board harness bitstream and collect one UART result frame."""
+"""Program a board harness bitstream and collect one UART result frame."""
 
 from __future__ import annotations
 
@@ -44,8 +44,29 @@ class MeasurementFrame:
     word_count: int
 
 
+@dataclass
+class VivadoHardwareRun:
+    returncode: int
+    stdout: str
+    hw_server_url: str
+    hw_device_pattern: str
+    hw_target_index: int
+    hw_targets: list[str]
+    hw_devices: list[dict[str, str]]
+    selected_hw_target: str | None = None
+    selected_hw_device: str | None = None
+    bitstream: str | None = None
+    attempt: int = 1
+
+
+class VivadoProgrammingError(RuntimeError):
+    def __init__(self, message: str, run: VivadoHardwareRun | None = None) -> None:
+        super().__init__(message)
+        self.run = run
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Measure a single operator board harness over UART")
+    parser = argparse.ArgumentParser(description="Measure a board harness over UART")
     parser.add_argument("--project-dir", help="Harness project directory containing harness_manifest.json")
     parser.add_argument("--manifest", help="Explicit harness_manifest.json path")
     parser.add_argument("--board-config", help="Override board config YAML path")
@@ -61,6 +82,33 @@ def parse_args() -> argparse.Namespace:
         help="Delay after programming before waiting for UART bytes",
     )
     parser.add_argument("--vivado", default=str(DEFAULT_VIVADO), help="Vivado batch executable path")
+    parser.add_argument(
+        "--hw-server-url",
+        default="TCP:localhost:3121",
+        help="Vivado hardware server URL used by connect_hw_server",
+    )
+    parser.add_argument(
+        "--hw-device-pattern",
+        default="*xc7k325t*",
+        help="Pattern passed to get_hw_devices before falling back to all devices",
+    )
+    parser.add_argument("--hw-target-index", type=int, default=0, help="Index into get_hw_targets output")
+    parser.add_argument(
+        "--program-retries",
+        type=int,
+        default=2,
+        help="Number of FPGA programming retries after the first failed attempt",
+    )
+    parser.add_argument(
+        "--list-hw-targets",
+        action="store_true",
+        help="List Vivado hardware targets/devices as JSON and exit",
+    )
+    parser.add_argument(
+        "--program-only",
+        action="store_true",
+        help="Program the bitstream and exit without opening UART or appending CSV rows",
+    )
     parser.add_argument("--skip-program", action="store_true", help="Do not reprogram the FPGA before reading")
     parser.add_argument("--csv", default=str(DEFAULT_RESULTS_CSV), help="Append measurement rows to CSV")
     parser.add_argument("--json-out", help="Optional JSON file for the latest run summary")
@@ -88,7 +136,9 @@ def resolve_manifest(args: argparse.Namespace) -> Path:
     elif args.project_dir:
         manifest_path = Path(args.project_dir).expanduser().resolve() / "harness_manifest.json"
     else:
-        raise ValueError("Either --project-dir or --manifest is required unless --list-ports is used.")
+        raise ValueError(
+            "Either --project-dir or --manifest is required unless --list-ports or --list-hw-targets is used."
+        )
     if not manifest_path.exists():
         raise FileNotFoundError(f"Harness manifest not found: {manifest_path}")
     return manifest_path
@@ -109,6 +159,7 @@ def status_label(status_code: int) -> str:
         0: "ok",
         1: "sink_incomplete",
         2: "control_error",
+        3: "watchdog_timeout",
     }.get(status_code, f"unknown_{status_code}")
 
 
@@ -167,20 +218,112 @@ def list_ports() -> int:
     return 0
 
 
-def generate_program_tcl(bitstream: Path) -> str:
-    bit_path = str(bitstream).replace("\\", "/")
+def _tcl_word(value: str | Path) -> str:
+    return str(value).replace("\\", "/").replace("}", "\\}")
+
+
+def _parse_vivado_hardware_stdout(
+    stdout: str,
+    *,
+    hw_server_url: str,
+    hw_device_pattern: str,
+    hw_target_index: int,
+    bitstream: Path | None = None,
+    returncode: int = 0,
+    attempt: int = 1,
+) -> VivadoHardwareRun:
+    targets: list[str] = []
+    devices: list[dict[str, str]] = []
+    selected_target: str | None = None
+    selected_device: str | None = None
+    for raw_line in stdout.splitlines():
+        line = raw_line.strip()
+        if line.startswith("CODEX_HW_TARGET\t"):
+            targets.append(line.split("\t", 1)[1])
+        elif line.startswith("CODEX_HW_SELECTED_TARGET\t"):
+            selected_target = line.split("\t", 1)[1]
+        elif line.startswith("CODEX_HW_DEVICE\t"):
+            parts = line.split("\t")
+            device: dict[str, str] = {"name": parts[1] if len(parts) > 1 else ""}
+            if len(parts) > 2:
+                device["part"] = parts[2]
+            devices.append(device)
+        elif line.startswith("CODEX_HW_SELECTED_DEVICE\t"):
+            selected_device = line.split("\t", 1)[1]
+    return VivadoHardwareRun(
+        returncode=returncode,
+        stdout=stdout,
+        hw_server_url=hw_server_url,
+        hw_device_pattern=hw_device_pattern,
+        hw_target_index=hw_target_index,
+        hw_targets=targets,
+        hw_devices=devices,
+        selected_hw_target=selected_target,
+        selected_hw_device=selected_device,
+        bitstream=str(bitstream) if bitstream else None,
+        attempt=attempt,
+    )
+
+
+def generate_list_hardware_tcl(hw_server_url: str, hw_target_index: int) -> str:
     return f"""
 open_hw_manager
-connect_hw_server
-open_hw_target
-set devices [get_hw_devices *xc7k325t*]
+connect_hw_server -url {{{_tcl_word(hw_server_url)}}}
+set targets [get_hw_targets *]
+foreach target $targets {{
+    puts "CODEX_HW_TARGET\t$target"
+}}
+if {{[llength $targets] > 0}} {{
+    if {{{hw_target_index} >= [llength $targets]}} {{
+        error "Requested hw target index {hw_target_index}, but only [llength $targets] target(s) are visible."
+    }}
+    current_hw_target [lindex $targets {hw_target_index}]
+    puts "CODEX_HW_SELECTED_TARGET\t[current_hw_target]"
+    open_hw_target [current_hw_target]
+    set devices [get_hw_devices *]
+    foreach device $devices {{
+        set part ""
+        catch {{set part [get_property PART $device]}}
+        puts "CODEX_HW_DEVICE\t$device\t$part"
+    }}
+}}
+close_hw_manager
+exit
+""".strip()
+
+
+def generate_program_tcl(bitstream: Path, hw_server_url: str, hw_device_pattern: str, hw_target_index: int) -> str:
+    bit_path = _tcl_word(bitstream)
+    return f"""
+open_hw_manager
+connect_hw_server -url {{{_tcl_word(hw_server_url)}}}
+set targets [get_hw_targets *]
+foreach target $targets {{
+    puts "CODEX_HW_TARGET\t$target"
+}}
+if {{[llength $targets] == 0}} {{
+    error "No hardware targets detected from get_hw_targets."
+}}
+if {{{hw_target_index} >= [llength $targets]}} {{
+    error "Requested hw target index {hw_target_index}, but only [llength $targets] target(s) are visible."
+}}
+current_hw_target [lindex $targets {hw_target_index}]
+puts "CODEX_HW_SELECTED_TARGET\t[current_hw_target]"
+open_hw_target [current_hw_target]
+set devices [get_hw_devices {{{_tcl_word(hw_device_pattern)}}}]
 if {{[llength $devices] == 0}} {{
     set devices [get_hw_devices]
+}}
+foreach device $devices {{
+    set part ""
+    catch {{set part [get_property PART $device]}}
+    puts "CODEX_HW_DEVICE\t$device\t$part"
 }}
 if {{[llength $devices] == 0}} {{
     error "No hardware device detected."
 }}
 current_hw_device [lindex $devices 0]
+puts "CODEX_HW_SELECTED_DEVICE\t[current_hw_device]"
 refresh_hw_device [current_hw_device]
 set_property PROGRAM.FILE {{{bit_path}}} [current_hw_device]
 program_hw_devices [current_hw_device]
@@ -190,12 +333,21 @@ exit
 """.strip()
 
 
-def program_fpga(vivado_exe: Path, bitstream: Path) -> None:
+def _run_vivado_tcl(
+    vivado_exe: Path,
+    tcl_text: str,
+    *,
+    hw_server_url: str,
+    hw_device_pattern: str,
+    hw_target_index: int,
+    bitstream: Path | None = None,
+    attempt: int = 1,
+) -> VivadoHardwareRun:
     if not vivado_exe.exists():
         raise FileNotFoundError(f"Vivado executable not found: {vivado_exe}")
     with tempfile.TemporaryDirectory(prefix="codex_program_fpga_") as tmp_dir:
-        tcl_path = Path(tmp_dir) / "program_fpga.tcl"
-        tcl_path.write_text(generate_program_tcl(bitstream), encoding="utf-8")
+        tcl_path = Path(tmp_dir) / "vivado_hw.tcl"
+        tcl_path.write_text(tcl_text, encoding="utf-8")
         result = subprocess.run(
             [str(vivado_exe), "-mode", "batch", "-source", str(tcl_path)],
             stdout=subprocess.PIPE,
@@ -206,12 +358,63 @@ def program_fpga(vivado_exe: Path, bitstream: Path) -> None:
             timeout=600,
             check=False,
         )
-    if result.returncode != 0:
-        raise RuntimeError(f"Vivado programming failed:\n{result.stdout}")
+    return _parse_vivado_hardware_stdout(
+        result.stdout,
+        hw_server_url=hw_server_url,
+        hw_device_pattern=hw_device_pattern,
+        hw_target_index=hw_target_index,
+        bitstream=bitstream,
+        returncode=result.returncode,
+        attempt=attempt,
+    )
+
+
+def list_vivado_hardware(vivado_exe: Path, hw_server_url: str, hw_target_index: int) -> VivadoHardwareRun:
+    return _run_vivado_tcl(
+        vivado_exe,
+        generate_list_hardware_tcl(hw_server_url, hw_target_index),
+        hw_server_url=hw_server_url,
+        hw_device_pattern="*",
+        hw_target_index=hw_target_index,
+    )
+
+
+def program_fpga(
+    vivado_exe: Path,
+    bitstream: Path,
+    *,
+    hw_server_url: str,
+    hw_device_pattern: str,
+    hw_target_index: int,
+    program_retries: int,
+) -> VivadoHardwareRun:
+    attempts = max(0, program_retries) + 1
+    last_run: VivadoHardwareRun | None = None
+    for attempt in range(1, attempts + 1):
+        run = _run_vivado_tcl(
+            vivado_exe,
+            generate_program_tcl(bitstream, hw_server_url, hw_device_pattern, hw_target_index),
+            hw_server_url=hw_server_url,
+            hw_device_pattern=hw_device_pattern,
+            hw_target_index=hw_target_index,
+            bitstream=bitstream,
+            attempt=attempt,
+        )
+        last_run = run
+        if run.returncode == 0:
+            return run
+        if attempt < attempts:
+            time.sleep(1.0)
+    raise VivadoProgrammingError(f"Vivado programming failed after {attempts} attempt(s).", last_run) from None
 
 
 def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def write_json_summary(path: Path, payload: dict[str, Any]) -> None:
+    ensure_parent(path)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _row_key(row: dict[str, Any]) -> tuple[str, str, str]:
@@ -252,29 +455,83 @@ def append_rows(csv_path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow(row)
 
 
-def main() -> int:
-    args = parse_args()
+def failure_payload(args: argparse.Namespace, exc: BaseException) -> dict[str, Any]:
+    run = exc.run if isinstance(exc, VivadoProgrammingError) else None
+    payload: dict[str, Any] = {
+        "status": "failed",
+        "failure_category": "vivado_programming_failed" if run is not None else "measurement_runtime_failed",
+        "failure_reason": str(exc),
+        "updated_at": datetime.now(timezone.utc).astimezone().isoformat(),
+    }
+    if run is not None:
+        payload["vivado_hardware"] = asdict(run)
+        payload["vivado_stdout"] = run.stdout
+        payload["hw_targets"] = run.hw_targets
+        payload["hw_devices"] = run.hw_devices
+    if getattr(args, "manifest", None):
+        payload["manifest"] = str(Path(args.manifest).expanduser())
+    if getattr(args, "project_dir", None):
+        payload["project_dir"] = str(Path(args.project_dir).expanduser())
+    if getattr(args, "bitstream", None):
+        payload["bitstream"] = str(Path(args.bitstream).expanduser())
+    return payload
+
+
+def _run_main(args: argparse.Namespace) -> int:
     if args.list_ports:
         return list_ports()
 
-    require_serial()
+    vivado_exe = Path(args.vivado).expanduser().resolve()
+    if args.list_hw_targets:
+        run = list_vivado_hardware(vivado_exe, args.hw_server_url, args.hw_target_index)
+        payload = {"status": "ok" if run.returncode == 0 else "failed", "vivado_hardware": asdict(run)}
+        if args.json_out:
+            write_json_summary(Path(args.json_out).expanduser().resolve(), payload)
+        print(json.dumps(payload, ensure_ascii=True, indent=2))
+        return 0 if run.returncode == 0 else 1
+
     manifest_path = resolve_manifest(args)
     manifest = load_json(manifest_path)
     project_root = Path(manifest["generated"]["project_root"]).resolve()
     board_config_path = Path(args.board_config).expanduser().resolve() if args.board_config else Path(manifest["board_config"]).resolve()
     board_cfg = load_yaml(board_config_path)
     bitstream_path = resolve_bitstream(project_root, manifest["case_name"], args.bitstream)
+
+    if args.runs < 1:
+        raise ValueError("--runs must be >= 1")
+    if args.program_retries < 0:
+        raise ValueError("--program-retries must be >= 0")
+    if args.skip_program and args.runs > 1:
+        raise ValueError("--skip-program cannot be combined with --runs > 1 for the one-shot harness.")
+
+    if args.program_only:
+        run = program_fpga(
+            vivado_exe,
+            bitstream_path,
+            hw_server_url=args.hw_server_url,
+            hw_device_pattern=args.hw_device_pattern,
+            hw_target_index=args.hw_target_index,
+            program_retries=args.program_retries,
+        )
+        payload = {
+            "status": "programmed",
+            "program_only": True,
+            "project_root": str(project_root),
+            "bitstream": str(bitstream_path),
+            "vivado_hardware": asdict(run),
+            "updated_at": datetime.now(timezone.utc).astimezone().isoformat(),
+        }
+        if args.json_out:
+            write_json_summary(Path(args.json_out).expanduser().resolve(), payload)
+        print(json.dumps(payload, ensure_ascii=True, indent=2))
+        return 0
+
+    require_serial()
     uart_baud = args.baud or int(board_cfg["uart"]["baud"])
     serial_port_name = args.serial_port
     if not serial_port_name:
         raise ValueError("A serial port is required. Pass --serial-port COMx.")
 
-    if args.runs < 1:
-        raise ValueError("--runs must be >= 1")
-    if args.skip_program and args.runs > 1:
-        raise ValueError("--skip-program cannot be combined with --runs > 1 for the one-shot harness.")
-
-    vivado_exe = Path(args.vivado).expanduser().resolve()
     clock_freq_hz = int(board_cfg["clock"]["freq_hz"])
     rows: list[dict[str, Any]] = []
     latest_summary: dict[str, Any] | None = None
@@ -284,9 +541,17 @@ def main() -> int:
         uart.reset_output_buffer()
 
         for run_idx in range(args.runs):
+            programming_run: VivadoHardwareRun | None = None
             if not args.skip_program:
                 uart.reset_input_buffer()
-                program_fpga(vivado_exe, bitstream_path)
+                programming_run = program_fpga(
+                    vivado_exe,
+                    bitstream_path,
+                    hw_server_url=args.hw_server_url,
+                    hw_device_pattern=args.hw_device_pattern,
+                    hw_target_index=args.hw_target_index,
+                    program_retries=args.program_retries,
+                )
                 time.sleep(args.post_program_delay_seconds)
 
             frame = wait_for_frame(uart, timeout_seconds=args.timeout_seconds)
@@ -321,15 +586,25 @@ def main() -> int:
                 "clock_freq_hz": clock_freq_hz,
                 "serial_port": serial_port_name,
                 "run_idx": run_idx,
+                "vivado_hardware": asdict(programming_run) if programming_run is not None else None,
             }
-            print(json.dumps(latest_summary, ensure_ascii=False, indent=2))
+            print(json.dumps(latest_summary, ensure_ascii=True, indent=2))
 
     append_rows(Path(args.csv).expanduser().resolve(), rows)
     if args.json_out and latest_summary is not None:
-        json_path = Path(args.json_out).expanduser().resolve()
-        ensure_parent(json_path)
-        json_path.write_text(json.dumps(latest_summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        write_json_summary(Path(args.json_out).expanduser().resolve(), latest_summary)
     return 0
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        return _run_main(args)
+    except Exception as exc:
+        if getattr(args, "json_out", None):
+            write_json_summary(Path(args.json_out).expanduser().resolve(), failure_payload(args, exc))
+        print(str(exc), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

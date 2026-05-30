@@ -339,6 +339,8 @@ def build_cost_estimator(
             hardware_cfg.get("require_deployable_operators", False)
         ),
         strict_formal_lut=bool(hardware_cfg.get("strict_formal_lut", False)),
+        strict_lut_label=str(hardware_cfg.get("strict_lut_label", "formal LUT")),
+        use_lut_for_head_layers=bool(hardware_cfg.get("use_lut_for_head_layers", False)),
     )
 
 

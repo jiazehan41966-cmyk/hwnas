@@ -192,6 +192,7 @@ def parse_hls_report_xml_text(report_text: str) -> dict[str, Any]:
     root = ET.fromstring(report_text)
     scalars = _collect_xml_scalars(root)
     latency_summary = _find_xml_path(root, "PerformanceEstimates", "SummaryOfOverallLatency")
+    loop_latency_summary = _find_xml_path(root, "PerformanceEstimates", "SummaryOfLoopLatency")
     timing_summary = _find_xml_path(root, "PerformanceEstimates", "SummaryOfTimingAnalysis")
     resource_summary = _find_xml_path(root, "AreaEstimates", "Resources")
     pipeline_type = (_xml_text(root, "PerformanceEstimates", "PipelineType") or "").strip().lower()
@@ -223,17 +224,24 @@ def parse_hls_report_xml_text(report_text: str) -> dict[str, Any]:
     if latency_ns is None and cycles > 0 and clock_period_ns:
         latency_ns = cycles * clock_period_ns
 
-    ii = _coalesce(
+    loop_ii = _coalesce(
+        _parse_int_like(_xml_text(loop_latency_summary, "PipelineII") or ""),
+        _pick_int(scalars, "PipelineII"),
+    )
+    overall_interval = _coalesce(
         _parse_int_like(_xml_text(latency_summary, "Interval-max") or ""),
         _parse_int_like(_xml_text(latency_summary, "IntervalMax") or ""),
         _parse_int_like(_xml_text(latency_summary, "Interval-min") or ""),
         _pick_int(scalars, "IntervalMax", "IntervalMin", "Interval"),
         0,
     )
-    if pipeline_type == "no" and cycles > 0 and ii >= cycles:
-        ii = 0
+    if pipeline_type == "no" and cycles > 0 and overall_interval >= cycles:
+        overall_interval = 0
+    ii = _coalesce(loop_ii, overall_interval, 0)
 
     depth = _coalesce(
+        _parse_int_like(_xml_text(loop_latency_summary, "PipelineDepth") or ""),
+        _parse_int_like(_xml_text(loop_latency_summary, "Depth") or ""),
         _parse_int_like(_xml_text(latency_summary, "PipelineDepth") or ""),
         _parse_int_like(_xml_text(latency_summary, "Depth") or ""),
         _pick_int(scalars, "PipelineDepth", "Depth"),
@@ -267,7 +275,7 @@ def parse_hls_report_xml_text(report_text: str) -> dict[str, Any]:
         _pick_int(scalars, "FF", "Register", "Registers"),
         0,
     )
-    power_w = _pick_float(scalars, "AveragePower", "TotalOnChipPower", "Power") or 0.0
+    power_w = _pick_float(scalars, "AveragePower", "TotalOnChipPower", "Power")
     fmax_est_mhz = _fmax_from_clock_period(clock_period_ns)
     return {
         "cycles": cycles,
@@ -330,7 +338,7 @@ def parse_hls_report_text(report_text: str) -> dict[str, Any]:
     )
     lut = _search_int(r"\bLUT\b\s*\|?\s*([0-9,]+)", report_text) or 0
     ff = _search_int(r"\bFF\b\s*\|?\s*([0-9,]+)", report_text) or 0
-    power_w = _search_float(r"\bPower\b[^0-9]*([0-9]+(?:\.[0-9]+)?)", report_text) or 0.0
+    power_w = _search_float(r"\bPower\b[^0-9]*([0-9]+(?:\.[0-9]+)?)", report_text)
     estimated_clock_period_ns = (
         _search_float(r"Estimated\s+Clock\s+Period[^0-9]*([0-9]+(?:\.[0-9]+)?)", report_text)
         or _search_float(r"Clock\s+Period[^0-9]*([0-9]+(?:\.[0-9]+)?)", report_text)
@@ -398,6 +406,19 @@ def parse_vivado_utilization_text(report_text: str) -> dict[str, Any]:
         "ramb36": int(ramb36) if ramb36 is not None else 0,
         "ramb18": int(ramb18) if ramb18 is not None else 0,
         "dsp": int(dsp) if dsp is not None else 0,
+        "report_format": "text",
+    }
+
+
+def parse_vivado_power_text(report_text: str) -> dict[str, Any]:
+    power_w = (
+        _search_float(r"\|\s*Total\s+On-Chip\s+Power\s*\(W\)\s*\|\s*([0-9.]+)\s*\|", report_text)
+        or _search_float(r"Total\s+On-Chip\s+Power\s*\(W\)\s*[:=|]?\s*([0-9.]+)", report_text)
+        or _search_float(r"Total\s+On-Chip\s+Power\s*[:=|]?\s*([0-9.]+)\s*W", report_text)
+    )
+    return {
+        "power_w": power_w,
+        "power_source": "implementation_vectorless_report" if power_w is not None else "",
         "report_format": "text",
     }
 

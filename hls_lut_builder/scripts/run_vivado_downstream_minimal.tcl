@@ -1,6 +1,6 @@
 set argc_expected 5
 if {$argc < $argc_expected} {
-    puts "Usage: vivado -mode batch -source run_vivado_downstream.tcl -tclargs <rtl_dir> <top> <part> <clock_ns> <out_dir>"
+    puts "Usage: vivado -mode batch -source run_vivado_downstream_minimal.tcl -tclargs <rtl_dir> <top> <part> <clock_ns> <out_dir>"
     exit 1
 }
 
@@ -16,35 +16,7 @@ file mkdir $out_dir
 file mkdir $report_dir
 file mkdir $checkpoint_dir
 
-# Stabilize runtime Tcl/script loading by avoiding parallel helper flows.
-# Several failed cases showed transient missing rt scripts and "rt-undefined"
-# during synth_design; forcing single-threaded execution is slower but robust.
-set_param general.maxThreads 1
-catch {set_param synth.maxThreads 1}
-
-proc source_if_readable {path} {
-    if {[file exists $path] && [file readable $path]} {
-        if {[catch {source $path} err]} {
-            puts "WARNING: pre-source failed for $path: $err"
-        } else {
-            puts "Pre-sourced Vivado runtime Tcl: $path"
-        }
-    } else {
-        puts "WARNING: Vivado runtime Tcl is not readable: $path"
-    }
-}
-
-if {[info exists ::env(XILINX_VIVADO)]} {
-    set vivado_root [file normalize $::env(XILINX_VIVADO)]
-    set vivado_rt_dir [file join $vivado_root scripts rt data]
-    source_if_readable [file join $vivado_rt_dir unimacro unimacro_verilog.tcl]
-    source_if_readable [file join $vivado_rt_dir unimacro unimacro_vhdl.tcl]
-    set vivado_rt_script_dir [file join $vivado_root scripts rt fpga_tcl]
-    source_if_readable [file join $vivado_rt_script_dir rtSynthPrep.tcl]
-    source_if_readable [file join $vivado_rt_script_dir rtSynthParallelPrep.tcl]
-}
-
-puts "=== Vivado downstream flow ==="
+puts "=== Minimal Vivado downstream flow ==="
 puts "RTL dir: $rtl_dir"
 puts "Top: $top_name"
 puts "Part: $part_name"
@@ -61,6 +33,19 @@ foreach rtl_file $rtl_files {
     read_verilog $rtl_file
 }
 
+proc disable_parallel_helper_spawn {} {
+    if {[llength [info commands rt::set_parameter]] > 0} {
+        if {[catch {rt::set_parameter enableParallelHelperSpawn 0} err]} {
+            puts "WARNING: could not disable Vivado parallel helper spawn: $err"
+        } else {
+            puts "Disabled Vivado parallel helper spawn via rt::set_parameter"
+        }
+    } else {
+        puts "Vivado rt::set_parameter is not available before synth_design"
+    }
+}
+disable_parallel_helper_spawn
+
 if {[catch {synth_design -top $top_name -part $part_name -mode out_of_context} err]} {
     puts "ERROR: synth_design failed: $err"
     exit 3
@@ -70,7 +55,6 @@ create_clock -period $clock_ns -name ap_clk [get_ports ap_clk]
 set_false_path -from [get_ports ap_rst_n]
 
 write_checkpoint -force [file join $checkpoint_dir post_synth.dcp]
-report_utilization -hierarchical -hierarchical_depth 4 -file [file join $report_dir post_synth_utilization_hier.rpt]
 report_utilization -file [file join $report_dir post_synth_utilization.rpt]
 report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 10 -file [file join $report_dir post_synth_timing_summary.rpt]
 
@@ -82,22 +66,17 @@ if {[catch {place_design} err]} {
     puts "ERROR: place_design failed: $err"
     exit 5
 }
-if {[catch {phys_opt_design} err]} {
-    puts "WARNING: phys_opt_design failed: $err"
-}
 if {[catch {route_design} err]} {
     puts "ERROR: route_design failed: $err"
     exit 6
 }
 
 write_checkpoint -force [file join $checkpoint_dir post_route.dcp]
-report_utilization -hierarchical -hierarchical_depth 4 -file [file join $report_dir post_route_utilization_hier.rpt]
 report_utilization -file [file join $report_dir post_route_utilization.rpt]
 report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 10 -file [file join $report_dir post_route_timing_summary.rpt]
-report_clock_utilization -file [file join $report_dir post_route_clock_utilization.rpt]
 if {[catch {report_power -file [file join $report_dir post_route_power.rpt]} err]} {
     puts "WARNING: report_power failed: $err"
 }
 
-puts "=== Vivado downstream flow completed successfully ==="
+puts "=== Minimal Vivado downstream flow completed successfully ==="
 exit 0
