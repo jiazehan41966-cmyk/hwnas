@@ -35,7 +35,19 @@ def _metric_display_name(selection_metric: str) -> str:
     return selection_metric
 
 
-def _candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
+def resolve_pareto_task_metric(selection_metric: str) -> str:
+    """Map selection_metric config to a CandidateMetrics field name."""
+    normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"macro_f1", "f1"}:
+        return "macro_f1"
+    if normalized in {"accuracy", "top1"}:
+        return "top1"
+    if normalized == "weighted_f1":
+        return "weighted_f1"
+    return normalized
+
+
+def candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
     metrics = candidate.metrics
     normalized = str(selection_metric or "macro_f1").strip().lower()
     if normalized in {"macro_f1", "f1"}:
@@ -49,6 +61,10 @@ def _candidate_selection_score(candidate: SearchCandidate, selection_metric: str
         if value is None:
             value = metrics.accuracy
     return float(value if value is not None else 0.0)
+
+
+def _candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
+    return candidate_selection_score(candidate, selection_metric)
 
 
 class BaseSearcher:

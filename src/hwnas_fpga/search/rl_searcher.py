@@ -29,6 +29,7 @@ from hwnas_fpga.search_space import BlockSpec, SearchSpace, ArchitectureSpec, Se
 from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.models import build_model
 from hwnas_fpga.search.pareto import compute_pareto_front
+from hwnas_fpga.search.searcher import BaseSearcher, candidate_selection_score
 from hwnas_fpga.training import train_model
 
 if TYPE_CHECKING:
@@ -540,7 +541,7 @@ class RewardFunction:
 # ============================================================================
 
 
-class RLSearcher:
+class RLSearcher(BaseSearcher):
     """基于强化学习的神经架构搜索器
 
     使用 REINFORCE 算法训练控制器网络来生成最优架构。
@@ -584,9 +585,7 @@ class RLSearcher:
         exploration_epsilon_decay_episodes: int = 0,
         exploration_bonus: float = 0.0,
     ):
-        self.search_space = search_space
-        self.estimator = cost_estimator
-        self.constraints = constraints
+        super().__init__(search_space, cost_estimator, constraints)
         self.train_epochs_per_arch = train_epochs_per_arch
         self.eval_early_stopping_patience = eval_early_stopping_patience
         self.selection_metric = selection_metric
@@ -647,14 +646,9 @@ class RLSearcher:
         self.baseline_momentum = 0.9
 
         # 搜索历史
-        self.evaluated_candidates: List[SearchCandidate] = []
-        self.feasible_candidates: List[SearchCandidate] = []
-        self.infeasible_candidates: List[SearchCandidate] = []
         self.best_candidate: Optional[SearchCandidate] = None
         self.best_reward = float("-inf")
-        self.last_trained_model = None
-        self.last_training_history = None
-        self.last_cost_estimate = None
+        self.best_selection_score = float("-inf")
 
     @staticmethod
     def _tightest_limit(
@@ -1371,95 +1365,27 @@ class RLSearcher:
         else:
             self.infeasible_candidates.append(candidate)
 
-        # 更新最佳候选
+        # 更新最佳候选（按 selection_metric，与配置一致）
         if is_feasible:
+            selection_score = candidate_selection_score(candidate, self.selection_metric)
+            violation_ratio = self._compute_constraint_violation_ratio(cost_estimate)
             reward = self.reward_function.compute_reward(
-                accuracy=accuracy,
+                accuracy=selection_score,
                 latency_ms=metrics["latency_ms"],
                 energy_mj=metrics["energy_mj"],
                 dsp=metrics["dsp"],
                 bram=metrics["bram"],
                 lut=metrics["lut"],
                 is_feasible=is_feasible,
+                constraint_violation_ratio=violation_ratio,
             )
             if reward > self.best_reward:
                 self.best_reward = reward
+            if selection_score > self.best_selection_score:
+                self.best_selection_score = selection_score
                 self.best_candidate = candidate
 
         return accuracy, metrics, is_feasible, candidate
-
-    def check_feasibility(self, cost_estimate) -> bool:
-        """检查架构是否满足约束"""
-        if self.constraints:
-            if (
-                self.constraints.max_latency_ms is not None
-                and cost_estimate.latency_ms > self.constraints.max_latency_ms
-            ):
-                return False
-            if (
-                self.constraints.max_dsp is not None
-                and cost_estimate.resource_dsp > self.constraints.max_dsp
-            ):
-                return False
-            if (
-                self.constraints.max_bram is not None
-                and cost_estimate.resource_bram > self.constraints.max_bram
-            ):
-                return False
-            if (
-                self.constraints.max_lut is not None
-                and cost_estimate.resource_lut > self.constraints.max_lut
-            ):
-                return False
-            if (
-                self.constraints.max_power_w is not None
-                and cost_estimate.power_w > self.constraints.max_power_w
-            ):
-                return False
-            if (
-                self.constraints.max_memory_bandwidth_gbps is not None
-                and cost_estimate.memory_bandwidth_gbps > self.constraints.max_memory_bandwidth_gbps
-            ):
-                return False
-            if (
-                self.constraints.max_offchip_mem_mb is not None
-                and cost_estimate.offchip_mem_mb > self.constraints.max_offchip_mem_mb
-            ):
-                return False
-
-        hardware_spec = self.estimator.hardware_spec
-        if (
-            hardware_spec.max_dsp is not None
-            and cost_estimate.resource_dsp > hardware_spec.max_dsp
-        ):
-            return False
-        if (
-            hardware_spec.max_bram is not None
-            and cost_estimate.resource_bram > hardware_spec.max_bram
-        ):
-            return False
-        if (
-            hardware_spec.max_lut is not None
-            and cost_estimate.resource_lut > hardware_spec.max_lut
-        ):
-            return False
-        if (
-            hardware_spec.max_power_w is not None
-            and cost_estimate.power_w > hardware_spec.max_power_w
-        ):
-            return False
-        if (
-            hardware_spec.memory_bandwidth_gbps is not None
-            and cost_estimate.memory_bandwidth_gbps > hardware_spec.memory_bandwidth_gbps
-        ):
-            return False
-        if (
-            hardware_spec.offchip_mem_mb is not None
-            and cost_estimate.offchip_mem_mb > hardware_spec.offchip_mem_mb
-        ):
-            return False
-
-        return len(cost_estimate.violations) == 0
 
     def _check_controller_gradients_finite(self) -> None:
         for name, param in self.controller.named_parameters():
@@ -1730,7 +1656,7 @@ class RLSearcher:
 
             # 1. 生成架构
             architecture = self.generate_architecture()
-            previous_best_reward = self.best_reward
+            previous_best_selection_score = self.best_selection_score
 
             # 2. 评估架构
             accuracy, metrics, is_feasible, candidate = self.evaluate_architecture(
@@ -1741,15 +1667,26 @@ class RLSearcher:
                 class_weights=class_weights,
             )
 
-            # 3. 计算奖励
+            # 3. 计算奖励（controller 更新用；best 候选已在 evaluate_architecture 中按 selection_metric 更新）
+            violation_ratio = (
+                self._compute_constraint_violation_ratio(self.last_cost_estimate)
+                if self.last_cost_estimate is not None
+                else 0.0
+            )
+            task_score = (
+                candidate_selection_score(candidate, self.selection_metric)
+                if is_feasible
+                else 0.0
+            )
             reward = self.reward_function.compute_reward(
-                accuracy=accuracy,
+                accuracy=task_score,
                 latency_ms=metrics["latency_ms"],
                 energy_mj=metrics["energy_mj"],
                 dsp=metrics["dsp"],
                 bram=metrics["bram"],
                 lut=metrics["lut"],
                 is_feasible=is_feasible,
+                constraint_violation_ratio=violation_ratio,
             )
 
             # 4. Apply exploration bonus and update controller once.
@@ -1770,6 +1707,8 @@ class RLSearcher:
                         "reward_with_bonus": reward_with_bonus,
                         "exploration_bonus": exploration_bonus,
                         "exploration_epsilon": self._current_exploration_epsilon(),
+                        "constraint_violation_ratio": violation_ratio,
+                        "selection_score": task_score,
                         "loss": loss,
                         "baseline": self.baseline,
                         "search_method": "rl",
@@ -1786,7 +1725,7 @@ class RLSearcher:
                         "optimizer_state_dict": self.controller_optimizer.state_dict(),
                     },
                 )
-                if self.best_reward > previous_best_reward:
+                if self.best_selection_score > previous_best_selection_score:
                     artifact_tracker.save_named_checkpoint(
                         "controller_best.pt",
                         {
@@ -1794,18 +1733,23 @@ class RLSearcher:
                             "episode": episode,
                             "reward": reward_with_bonus,
                             "best_reward": self.best_reward,
+                            "best_selection_score": self.best_selection_score,
                             "controller_state_dict": self.controller.state_dict(),
                             "optimizer_state_dict": self.controller_optimizer.state_dict(),
                         },
                     )
-                    if self.last_trained_model is not None:
+                    if (
+                        self.last_trained_model is not None
+                        and self.best_candidate is candidate
+                    ):
                         artifact_tracker.save_best_candidate(
-                            candidate,
+                            self.best_candidate,
                             model_state_dict=self.last_trained_model.state_dict(),
                             history=self.last_training_history,
                             extra={
-                                "selection_metric": "reward",
+                                "selection_metric": self.selection_metric,
                                 "episode": episode,
+                                "best_selection_score": self.best_selection_score,
                                 "reward": reward_with_bonus,
                                 "best_reward": self.best_reward,
                             },
@@ -1841,7 +1785,11 @@ class RLSearcher:
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if self.best_candidate:
                 print(f"Best candidate: {self.best_candidate.arch_id}")
-                print(f"  Score ({self.selection_metric}): {self.best_candidate.metrics.accuracy:.4f}")
+                best_score = candidate_selection_score(
+                    self.best_candidate,
+                    self.selection_metric,
+                )
+                print(f"  Score ({self.selection_metric}): {best_score:.4f}")
                 if self.best_candidate.metrics.macro_f1 is not None:
                     print(f"  Macro-F1: {self.best_candidate.metrics.macro_f1:.4f}")
                 if self.best_candidate.metrics.top1 is not None:

@@ -26,6 +26,7 @@ from hwnas_fpga.runtime import (
 from hwnas_fpga.search import (
     ParetoFrontSelector,
     build_pareto_objectives,
+    candidate_selection_score,
     compute_hypervolume,
     compute_pareto_front,
     compute_pareto_ranks,
@@ -118,6 +119,23 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
 
     searcher.best_candidate = _candidate_from_dict(search_state.get("best_candidate"))
     searcher.best_reward = float(best_ckpt.get("best_reward", float("-inf")))
+    searcher.best_selection_score = float(
+        best_ckpt.get(
+            "best_selection_score",
+            float("-inf"),
+        )
+    )
+    if (
+        searcher.best_selection_score == float("-inf")
+        and searcher.best_candidate is not None
+    ):
+        selection_metric = str(
+            search_state.get("extra", {}).get("selection_metric", "macro_f1")
+        )
+        searcher.best_selection_score = candidate_selection_score(
+            searcher.best_candidate,
+            selection_metric,
+        )
     searcher.baseline = float(latest_ckpt.get("baseline", searcher.baseline))
     searcher.controller.load_state_dict(latest_ckpt["controller_state_dict"])
     searcher.controller_optimizer.load_state_dict(latest_ckpt["optimizer_state_dict"])
@@ -234,6 +252,25 @@ def main() -> None:
     search_method = pick(args.search_method, search_cfg.get("method"), "random")
     if search_method not in {"random", "rl", "proxyless"}:
         raise ValueError(f"Unsupported search method: {search_method}")
+
+    if search_method == "proxyless":
+        _default_device = (
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available()
+            else "cpu"
+        )
+        device = pick(args.device, None, _default_device)
+        if not args.config:
+            raise ValueError("--config is required for official ProxylessNAS search")
+        from hwnas_fpga.search.official_proxyless_runner import run_official_proxyless_search
+
+        print("[run_search] proxyless method delegates to reference/ProxylessNAS clone")
+        run_official_proxyless_search(
+            config_path=args.config,
+            device=device,
+            resume=args.resume,
+        )
+        return
 
     _default_device = (
         "cuda" if torch.cuda.is_available()
@@ -616,6 +653,7 @@ def main() -> None:
             pareto_objectives, pareto_directions = build_pareto_objectives(
                 objective_weights,
                 constraints,
+                selection_metric=selection_metric,
             )
             pareto_front = compute_pareto_front(
                 searcher.feasible_candidates,
@@ -682,7 +720,8 @@ def main() -> None:
             print("\n=== Search Results ===")
             if best_candidate:
                 print(f"Best architecture: {best_candidate.arch_id}")
-                print(f"  Score ({selection_metric}): {best_candidate.metrics.accuracy:.4f}")
+                best_score = candidate_selection_score(best_candidate, selection_metric)
+                print(f"  Score ({selection_metric}): {best_score:.4f}")
                 if best_candidate.metrics.macro_f1 is not None:
                     print(f"  Macro-F1: {best_candidate.metrics.macro_f1:.4f}")
                 if best_candidate.metrics.top1 is not None:
@@ -711,9 +750,10 @@ def main() -> None:
                 if pareto:
                     print(f"\n=== Top {len(pareto)} Candidates (Pareto Selected) ===")
                     for index, candidate in enumerate(pareto, start=1):
+                        pareto_score = candidate_selection_score(candidate, selection_metric)
                         print(
                             f"{index}. {candidate.arch_id}: "
-                            f"{selection_metric}={candidate.metrics.accuracy:.4f}, "
+                            f"{selection_metric}={pareto_score:.4f}, "
                             f"Lat={candidate.metrics.latency_ms:.2f}ms"
                         )
             else:

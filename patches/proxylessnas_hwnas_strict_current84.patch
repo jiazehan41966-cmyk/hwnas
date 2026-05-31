@@ -1,0 +1,211 @@
+diff --git a/search/models/super_nets/super_proxyless.py b/search/models/super_nets/super_proxyless.py
+index d13d4a2..949ddd7 100644
+--- a/search/models/super_nets/super_proxyless.py
++++ b/search/models/super_nets/super_proxyless.py
+@@ -13,7 +13,8 @@ from utils import LatencyEstimator
+ class SuperProxylessNASNets(ProxylessNASNets):
+ 
+     def __init__(self, width_stages, n_cell_stages, conv_candidates, stride_stages,
+-                 n_classes=1000, width_mult=1, bn_param=(0.1, 1e-3), dropout_rate=0):
++                 n_classes=1000, width_mult=1, bn_param=(0.1, 1e-3), dropout_rate=0,
++                 first_block_candidates=None):
+         self._redundant_modules = None
+         self._unused_modules = None
+ 
+@@ -28,8 +29,9 @@ class SuperProxylessNASNets(ProxylessNASNets):
+         )
+ 
+         # first block
++        first_block_candidates = first_block_candidates or ['3x3_MBConv1']
+         first_block_conv = MixedEdge(candidate_ops=build_candidate_ops(
+-            ['3x3_MBConv1'],
++            first_block_candidates,
+             input_channel, first_cell_width, 1, 'weight_bn_act',
+         ), )
+         if first_block_conv.n_choices == 1:
+@@ -39,7 +41,14 @@ class SuperProxylessNASNets(ProxylessNASNets):
+ 
+         # blocks
+         blocks = [first_block]
+-        for width, n_cell, s in zip(width_stages, n_cell_stages, stride_stages):
++        stage_specific_candidates = (
++            len(conv_candidates) > 0 and isinstance(conv_candidates[0], (list, tuple))
++        )
++        for stage_idx, (width, n_cell, s) in enumerate(zip(width_stages, n_cell_stages, stride_stages)):
++            if stage_specific_candidates:
++                stage_conv_candidates = list(conv_candidates[stage_idx])
++            else:
++                stage_conv_candidates = list(conv_candidates)
+             for i in range(n_cell):
+                 if i == 0:
+                     stride = s
+@@ -47,9 +56,9 @@ class SuperProxylessNASNets(ProxylessNASNets):
+                     stride = 1
+                 # conv
+                 if stride == 1 and input_channel == width:
+-                    modified_conv_candidates = conv_candidates + ['Zero']
++                    modified_conv_candidates = stage_conv_candidates + ['Zero']
+                 else:
+-                    modified_conv_candidates = conv_candidates
++                    modified_conv_candidates = stage_conv_candidates
+                 conv_op = MixedEdge(candidate_ops=build_candidate_ops(
+                     modified_conv_candidates, input_channel, width, stride, 'weight_bn_act',
+                 ), )
+diff --git a/search/modules/mix_op.py b/search/modules/mix_op.py
+index b2eedeb..a655505 100644
+--- a/search/modules/mix_op.py
++++ b/search/modules/mix_op.py
+@@ -17,6 +17,9 @@ def build_candidate_ops(candidate_ops, in_channels, out_channels, stride, ops_or
+     name2ops = {
+         'Identity': lambda in_C, out_C, S: IdentityLayer(in_C, out_C, ops_order=ops_order),
+         'Zero': lambda in_C, out_C, S: ZeroLayer(stride=S),
++        '1x1_Conv': lambda in_C, out_C, S: ConvLayer(
++            in_C, out_C, kernel_size=1, stride=S, use_bn=True, act_func='relu6', ops_order=ops_order,
++        ),
+     }
+     # add MBConv layers
+     name2ops.update({
+diff --git a/search/nas_manager.py b/search/nas_manager.py
+index a0c1ce6..e87c235 100644
+--- a/search/nas_manager.py
++++ b/search/nas_manager.py
+@@ -164,7 +164,7 @@ class ArchSearchRunManager:
+ 
+     @property
+     def net(self):
+-        return self.run_manager.net.module
++        return self.run_manager.net_module
+ 
+     def write_log(self, log_str, prefix, should_print=True, end='\n'):
+         with open(os.path.join(self.run_manager.logs_path, '%s.log' % prefix), 'a') as fout:
+diff --git a/search/run_manager.py b/search/run_manager.py
+index 9ad6554..d036dc5 100644
+--- a/search/run_manager.py
++++ b/search/run_manager.py
+@@ -186,21 +186,28 @@ class RunManager:
+             self.net.to(self.device)
+             cudnn.benchmark = True
+         else:
+-            raise ValueError
+-            # self.device = torch.device('cpu')
++            self.device = torch.device('cpu')
++            self.net.to(self.device)
+ 
+         # net info
+         self.print_net_info(measure_latency)
+ 
+         self.criterion = nn.CrossEntropyLoss()
++        net_ref = self.net_module
+         if self.run_config.no_decay_keys:
+             keys = self.run_config.no_decay_keys.split('#')
+             self.optimizer = self.run_config.build_optimizer([
+-                self.net.module.get_parameters(keys, mode='exclude'),  # parameters with weight decay
+-                self.net.module.get_parameters(keys, mode='include'),  # parameters without weight decay
++                net_ref.get_parameters(keys, mode='exclude'),  # parameters with weight decay
++                net_ref.get_parameters(keys, mode='include'),  # parameters without weight decay
+             ])
+         else:
+-            self.optimizer = self.run_config.build_optimizer(self.net.module.weight_parameters())
++            self.optimizer = self.run_config.build_optimizer(net_ref.weight_parameters())
++
++    @property
++    def net_module(self):
++        if isinstance(self.net, nn.DataParallel):
++            return self.net.module
++        return self.net
+ 
+     """ save path and log path """
+ 
+@@ -247,7 +254,7 @@ class RunManager:
+         if given_net is not None:
+             net = given_net
+         else:
+-            net = self.net.module
++            net = self.net_module
+ 
+         if l_type == 'mobile':
+             predicted_latency = 0
+@@ -336,10 +343,7 @@ class RunManager:
+             print(self.net)
+ 
+         # parameters
+-        if isinstance(self.net, nn.DataParallel):
+-            total_params = count_parameters(self.net.module)
+-        else:
+-            total_params = count_parameters(self.net)
++        total_params = count_parameters(self.net_module)
+         if self.out_log:
+             print('Total training params: %.2fM' % (total_params / 1e6))
+         net_info = {
+@@ -369,7 +373,7 @@ class RunManager:
+ 
+     def save_model(self, checkpoint=None, is_best=False, model_name=None):
+         if checkpoint is None:
+-            checkpoint = {'state_dict': self.net.module.state_dict()}
++            checkpoint = {'state_dict': self.net_module.state_dict()}
+ 
+         if model_name is None:
+             model_name = 'checkpoint.pth.tar'
+@@ -406,7 +410,7 @@ class RunManager:
+             else:
+                 checkpoint = torch.load(model_fname, map_location='cpu')
+ 
+-            self.net.module.load_state_dict(checkpoint['state_dict'])
++            self.net_module.load_state_dict(checkpoint['state_dict'])
+             # set new manual seed
+             new_manual_seed = int(time.time())
+             torch.manual_seed(new_manual_seed)
+@@ -430,7 +434,7 @@ class RunManager:
+         """ dump run_config and net_config to the model_folder """
+         os.makedirs(self.path, exist_ok=True)
+         net_save_path = os.path.join(self.path, 'net.config')
+-        json.dump(self.net.module.config, open(net_save_path, 'w'), indent=4)
++        json.dump(self.net_module.config, open(net_save_path, 'w'), indent=4)
+         if print_info:
+             print('Network configs dump to %s' % net_save_path)
+ 
+@@ -602,5 +606,5 @@ class RunManager:
+                 'epoch': epoch,
+                 'best_acc': self.best_acc,
+                 'optimizer': self.optimizer.state_dict(),
+-                'state_dict': self.net.module.state_dict(),
++                'state_dict': self.net_module.state_dict(),
+             }, is_best=is_best)
+diff --git a/search/utils/latency_estimator.py b/search/utils/latency_estimator.py
+index dea59a3..7b26e20 100644
+--- a/search/utils/latency_estimator.py
++++ b/search/utils/latency_estimator.py
+@@ -28,10 +28,10 @@ def download_url(url, model_dir='~/.torch/proxyless_nas', overwrite=False):
+ 
+ class LatencyEstimator(object):
+     def __init__(self, url='https://raw.githubusercontent.com/han-cai/files/master/proxylessnas/mobile_trim.yaml'):
+-        fname = download_url(url, overwrite=True)
++        fname = download_url(url, overwrite=False)
+ 
+         with open(fname, 'r') as fp:
+-            self.lut = yaml.load(fp)
++            self.lut = yaml.safe_load(fp)
+ 
+     @staticmethod
+     def repr_shape(shape):
+diff --git a/search/utils/pytorch_utils.py b/search/utils/pytorch_utils.py
+index 85e45fb..73c6ebd 100644
+--- a/search/utils/pytorch_utils.py
++++ b/search/utils/pytorch_utils.py
+@@ -23,7 +23,7 @@ def build_activation(act_func, inplace=True):
+ 
+ # noinspection PyUnresolvedReferences
+ def cross_entropy_with_label_smoothing(pred, target, label_smoothing=0.1):
+-    logsoftmax = nn.LogSoftmax()
++    logsoftmax = nn.LogSoftmax(dim=1)
+     n_classes = pred.size(1)
+     # convert to one-hot
+     target = torch.unsqueeze(target, 1)
+@@ -67,7 +67,7 @@ def accuracy(output, target, topk=(1,)):
+ 
+     res = []
+     for k in topk:
+-        correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
++        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
+         res.append(correct_k.mul_(100.0 / batch_size))
+     return res

@@ -247,6 +247,7 @@ class SearchFactoryTests(unittest.TestCase):
             _self.feasible_candidates.append(candidate)
             _self.best_candidate = candidate
             _self.best_reward = base_reward
+            _self.best_selection_score = 0.7
             return 0.7, metrics, True, candidate
 
         def record_update(_self, _architecture, reward):
@@ -282,8 +283,9 @@ class SearchFactoryTests(unittest.TestCase):
                 max_lut=53_200,
                 max_memory_bandwidth_gbps=4.0,
             ),
+            selection_metric="macro_f1",
         )
-        self.assertEqual(objectives[0], "accuracy")
+        self.assertEqual(objectives[0], "macro_f1")
         self.assertEqual(directions[0], "max")
         self.assertIn("latency_ms", objectives)
         self.assertIn("energy_mj", objectives)
@@ -291,6 +293,77 @@ class SearchFactoryTests(unittest.TestCase):
         self.assertIn("bram", objectives)
         self.assertIn("lut", objectives)
         self.assertIn("memory_bandwidth_gbps", objectives)
+
+    def test_rl_searcher_inherits_base_feasibility_checks(self) -> None:
+        constraints = SearchConstraints(max_energy_mj=1.0)
+        searcher = RLSearcher(
+            search_space=self.search_space,
+            cost_estimator=self.estimator,
+            constraints=constraints,
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=7,
+        )
+        from hwnas_fpga.hardware import CostEstimate
+
+        def _minimal_cost(**overrides):
+            defaults = {
+                "params": 1,
+                "macs": 1,
+                "model_size_mb": 1.0,
+                "peak_activation_bytes": 1,
+                "peak_weight_bytes": 1,
+                "peak_buffer_bytes": 1,
+                "peak_dsp": 1,
+                "peak_bram": 1,
+                "peak_lut": 1,
+                "total_dsp": 1,
+                "total_bram": 1,
+                "total_lut": 1,
+                "latency_cycles": 1,
+                "latency_ms": 1.0,
+                "power_w": 1.0,
+                "energy_mj": 0.5,
+                "memory_bandwidth_gbps": 1.0,
+                "offchip_mem_mb": 1.0,
+                "violations": (),
+                "per_layer": (),
+            }
+            defaults.update(overrides)
+            return CostEstimate(**defaults)
+
+        feasible = searcher.check_feasibility(_minimal_cost(energy_mj=0.5))
+        infeasible = searcher.check_feasibility(_minimal_cost(energy_mj=2.0))
+        self.assertTrue(feasible)
+        self.assertFalse(infeasible)
+
+    def test_rl_reward_uses_violation_ratio_for_infeasible(self) -> None:
+        searcher = RLSearcher(
+            search_space=self.search_space,
+            cost_estimator=self.estimator,
+            constraints=SearchConstraints(max_lut=100),
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=9,
+            reward_cfg={
+                "infeasible_penalty_mode": "violation_ratio",
+                "infeasible_base_penalty": 1.0,
+                "infeasible_penalty_scale": 2.0,
+            },
+        )
+        reward = searcher.reward_function.compute_reward(
+            accuracy=0.0,
+            latency_ms=10.0,
+            energy_mj=1.0,
+            dsp=10,
+            bram=10,
+            lut=200,
+            is_feasible=False,
+            constraint_violation_ratio=0.5,
+        )
+        self.assertAlmostEqual(reward, -(1.0 + 2.0 * 0.5))
 
 
 class ControllerMaskingTests(unittest.TestCase):

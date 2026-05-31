@@ -1,6 +1,6 @@
 """Search algorithms and candidate selection."""
 
-from .searcher import BaseSearcher, RandomSearcher, create_searcher
+from .searcher import BaseSearcher, RandomSearcher, candidate_selection_score, create_searcher
 from .constrained import (
     ConfigurableSearcher,
     SearchConfig,
@@ -29,6 +29,7 @@ from .proxyless_searcher import ProxylessSearcher
 __all__ = [
     "BaseSearcher",
     "RandomSearcher",
+    "candidate_selection_score",
     "create_searcher",
     "ConfigurableSearcher",
     "SearchConfig",

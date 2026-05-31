@@ -17,6 +17,14 @@ def _default_dynamic_axes() -> dict[str, dict[int, str]]:
     }
 
 
+def _model_device(model: nn.Module) -> torch.device:
+    for tensor in model.parameters():
+        return tensor.device
+    for tensor in model.buffers():
+        return tensor.device
+    return torch.device("cpu")
+
+
 def export_to_onnx(
     model: nn.Module,
     output_path: str | Path,
@@ -30,7 +38,7 @@ def export_to_onnx(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     model.eval()
-    dummy_input = torch.randn(*input_shape)
+    dummy_input = torch.randn(*input_shape, device=_model_device(model))
 
     if dynamic_axes is None:
         dynamic_axes = _default_dynamic_axes()
@@ -78,7 +86,7 @@ def get_model_info(model: nn.Module, input_shape: Tuple[int, ...] = (1, 1, 224, 
             hooks.append(module.register_forward_hook(hook_fn))
 
     with torch.no_grad():
-        model(torch.randn(*input_shape))
+        model(torch.randn(*input_shape, device=_model_device(model)))
 
     for hook in hooks:
         hook.remove()
@@ -159,6 +167,8 @@ def export_checkpoint_to_onnx(
         metadata={
             "checkpoint_path": str(checkpoint),
             "device": device,
+            "image_size": image_size,
+            "input_channels": input_channels,
             "class_names": class_names,
             "architecture": architecture.to_dict(),
             "checkpoint_metrics": payload.get("metrics", {}),

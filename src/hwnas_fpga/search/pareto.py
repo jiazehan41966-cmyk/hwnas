@@ -71,7 +71,7 @@ def is_dominated(
 
 def compute_pareto_front(
     candidates: List[SearchCandidate],
-    objectives: List[str] = ["accuracy", "latency_ms"],
+    objectives: List[str] = ["top1", "latency_ms"],
     directions: List[str] = ["max", "min"],
 ) -> List[SearchCandidate]:
     """计算 Pareto 前沿
@@ -87,10 +87,10 @@ def compute_pareto_front(
     Example:
         >>> pareto = compute_pareto_front(candidates, ["accuracy", "latency_ms"], ["max", "min"])
     """
-    # 过滤掉没有评估精度或延迟的候选
     valid_candidates = [
-        c for c in candidates
-        if c.metrics.accuracy is not None and c.metrics.latency_ms is not None
+        c
+        for c in candidates
+        if all(getattr(c.metrics, obj, None) is not None for obj in objectives)
     ]
 
     if not valid_candidates:
@@ -116,10 +116,14 @@ def compute_pareto_front(
 def build_pareto_objectives(
     objective_weights: Optional[Dict[str, float]] = None,
     constraints: Optional[SearchConstraints] = None,
+    selection_metric: Optional[str] = None,
 ) -> Tuple[List[str], List[str]]:
     """Build Pareto objectives from config weights and active constraints."""
+    from hwnas_fpga.search.searcher import resolve_pareto_task_metric
+
     weights = objective_weights or {}
-    objectives: List[str] = ["accuracy"]
+    primary_metric = resolve_pareto_task_metric(selection_metric or "macro_f1")
+    objectives: List[str] = [primary_metric]
     directions: List[str] = ["max"]
 
     def add(metric: str, direction: str) -> None:
@@ -469,10 +473,13 @@ class ParetoFrontSelector:
         """基于 Pareto 排名选择"""
         ranks = compute_pareto_ranks(candidates, self.objectives, self.directions)
 
-        # 按排名排序，同排名内按精度排序
+        primary_metric = self.objectives[0] if self.objectives else "top1"
         sorted_candidates = sorted(
             zip(ranks, candidates),
-            key=lambda x: (x[0], -(x[1].metrics.accuracy or 0)),
+            key=lambda x: (
+                x[0],
+                -(getattr(x[1].metrics, primary_metric, None) or 0),
+            ),
         )
 
         return [c for _, c in sorted_candidates[:k]]
@@ -502,9 +509,10 @@ class ParetoFrontSelector:
                 continue
 
             # 计算斜率变化
-            prev_acc = sorted_by_latency[i - 1].metrics.accuracy or 0
-            curr_acc = c.metrics.accuracy or 0
-            next_acc = sorted_by_latency[i + 1].metrics.accuracy or 0
+            primary_metric = self.objectives[0] if self.objectives else "top1"
+            prev_acc = getattr(sorted_by_latency[i - 1].metrics, primary_metric, None) or 0
+            curr_acc = getattr(c.metrics, primary_metric, None) or 0
+            next_acc = getattr(sorted_by_latency[i + 1].metrics, primary_metric, None) or 0
 
             prev_lat = sorted_by_latency[i - 1].metrics.latency_ms or 1
             curr_lat = c.metrics.latency_ms or 1
