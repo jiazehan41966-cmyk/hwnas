@@ -12,7 +12,11 @@ import torch.nn as nn
 
 from hwnas_fpga.models import build_model
 from hwnas_fpga.search_space import ArchitectureSpec
-from hwnas_fpga.training.trainer import create_optimizer
+from hwnas_fpga.training.trainer import (
+    _resolve_selection_score,
+    create_optimizer,
+    evaluate_classifier,
+)
 
 
 def load_best_candidate_artifact(path: str | Path) -> dict[str, Any]:
@@ -68,6 +72,8 @@ def retrain_architecture(
     device: Optional[str] = None,
     class_weights: Optional[torch.Tensor] = None,
     early_stopping_patience: Optional[int] = None,
+    selection_metric: str = "macro_f1",
+    topk: int = 5,
 ) -> tuple[nn.Module, dict[str, Any], dict[str, Any]]:
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -92,12 +98,21 @@ def retrain_architecture(
         "train_acc": [],
         "val_loss": [],
         "val_acc": [],
+        "val_top1": [],
+        "val_top5": [],
+        "val_macro_f1": [],
+        "val_weighted_f1": [],
+        "selection_metric": selection_metric,
+        "best_epoch": None,
+        "best_eval": None,
     }
     best_state = deepcopy(model.state_dict())
     best_metrics = {
         "best_epoch": 0,
+        "best_selection_score": float("-inf"),
         "best_val_acc": 0.0,
         "best_val_loss": float("inf"),
+        "best_eval": None,
     }
     patience_counter = 0
 
@@ -123,33 +138,71 @@ def retrain_architecture(
 
         train_loss = total_loss / max(1, total_samples)
         train_acc = total_correct / max(1, total_samples)
-        val_loss, val_acc = evaluate_model(model, val_loader, criterion, device)
+        val_summary = evaluate_classifier(
+            model,
+            val_loader,
+            criterion=criterion,
+            device=device,
+            num_classes=num_classes,
+            topk=topk,
+        )
+        val_loss = val_summary["loss"]
+        val_acc = val_summary["top1"]
 
         history["train_loss"].append(train_loss)
         history["train_acc"].append(train_acc)
         history["val_loss"].append(val_loss)
         history["val_acc"].append(val_acc)
+        history["val_top1"].append(val_summary["top1"])
+        history["val_top5"].append(val_summary["top5"])
+        history["val_macro_f1"].append(val_summary["macro_f1"])
+        history["val_weighted_f1"].append(val_summary["weighted_f1"])
 
-        improved = val_acc > best_metrics["best_val_acc"]
+        selection_score = _resolve_selection_score(val_summary, selection_metric)
+        improved = selection_score > best_metrics["best_selection_score"]
         if improved:
             best_state = deepcopy(model.state_dict())
+            best_eval = dict(val_summary)
             best_metrics = {
                 "best_epoch": epoch + 1,
+                "best_selection_score": selection_score,
                 "best_val_acc": val_acc,
                 "best_val_loss": val_loss,
+                "best_eval": best_eval,
             }
+            history["best_epoch"] = epoch + 1
+            history["best_eval"] = best_eval
             patience_counter = 0
         else:
             patience_counter += 1
             if early_stopping_patience is not None and patience_counter >= early_stopping_patience:
                 break
 
+        print(
+            f"Epoch {epoch + 1}/{epochs}: "
+            f"train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, "
+            f"val_macro_f1={val_summary['macro_f1']:.6f}, "
+            f"val_top1={val_summary['top1']:.6f}, "
+            f"val_weighted_f1={val_summary['weighted_f1']:.6f}, "
+            f"selection_score={selection_score:.6f}, "
+            f"best_epoch={best_metrics['best_epoch']}"
+        )
+
     model.load_state_dict(best_state)
-    final_val_loss, final_val_acc = evaluate_model(model, val_loader, criterion, device)
+    final_eval = evaluate_classifier(
+        model,
+        val_loader,
+        criterion=criterion,
+        device=device,
+        num_classes=num_classes,
+        topk=topk,
+    )
     metrics = {
         **best_metrics,
-        "final_val_loss": final_val_loss,
-        "final_val_acc": final_val_acc,
+        "selection_metric": selection_metric,
+        "final_eval": final_eval,
+        "final_val_loss": final_eval["loss"],
+        "final_val_acc": final_eval["top1"],
         "epochs_completed": len(history["train_acc"]),
         "train_acc_last": history["train_acc"][-1] if history["train_acc"] else 0.0,
         "train_loss_last": history["train_loss"][-1] if history["train_loss"] else 0.0,

@@ -26,6 +26,7 @@ class SearchConstraints:
     max_power_w: Optional[float] = None
     max_memory_bandwidth_gbps: Optional[float] = None
     max_offchip_mem_mb: Optional[float] = None
+    physical: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -43,6 +44,12 @@ class CandidateMetrics:
     power_w: Optional[float] = None
     memory_bandwidth_gbps: Optional[float] = None
     offchip_mem_mb: Optional[float] = None
+    early_expand_pressure: Optional[float] = None
+    interconnect_pressure: Optional[float] = None
+    memory_pressure: Optional[float] = None
+    fanout_pressure: Optional[float] = None
+    stream_width: Optional[float] = None
+    physical_risk: Optional[float] = None
 
 
 @dataclass

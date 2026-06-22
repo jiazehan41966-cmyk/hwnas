@@ -213,8 +213,8 @@ def measured_combo_result(layer: dict[str, Any]) -> dict[str, Any]:
     elif namespace == "v2_arch84_e2e_extension":
         path = BOARD_HARNESS_DIR / "results" / "v2_arch84_e2e_extension_board" / "case_results" / f"{combo}.result.json"
     else:
-        path = Path()
-    return read_json(path) if path else {}
+        return {}
+    return read_json(path)
 
 
 def component_case_names_for_layer(layer: dict[str, Any]) -> list[str]:

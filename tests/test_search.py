@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
 from types import MethodType
 
 import torch
@@ -15,7 +16,11 @@ from hwnas_fpga.search import (
     RLSearcher,
     RandomSearcher,
     build_pareto_objectives,
+    build_pareto_selection_summary,
+    compute_pareto_front,
+    compute_pareto_ranks,
     create_searcher,
+    write_pareto_selection_artifacts,
 )
 from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
 
@@ -293,6 +298,142 @@ class SearchFactoryTests(unittest.TestCase):
         self.assertIn("bram", objectives)
         self.assertIn("lut", objectives)
         self.assertIn("memory_bandwidth_gbps", objectives)
+
+    def test_build_pareto_objectives_can_include_physical_risk(self) -> None:
+        objectives, directions = build_pareto_objectives(
+            {"physical_risk": 0.0},
+            SearchConstraints(physical={"enabled": True, "pareto_physical_risk": True}),
+            selection_metric="macro_f1",
+        )
+        self.assertEqual(objectives[0], "macro_f1")
+        self.assertIn("physical_risk", objectives)
+        self.assertEqual(directions[objectives.index("physical_risk")], "min")
+
+    def test_build_pareto_objectives_can_include_power_from_pareto_flag(self) -> None:
+        objectives, directions = build_pareto_objectives(
+            {},
+            SearchConstraints(physical={"enabled": True, "pareto_power": True}),
+            selection_metric="macro_f1",
+        )
+        self.assertIn("power_w", objectives)
+        self.assertEqual(directions[objectives.index("power_w")], "min")
+
+    def test_physical_risk_changes_pareto_rank(self) -> None:
+        objectives = [
+            "macro_f1",
+            "latency_ms",
+            "dsp",
+            "bram",
+            "lut",
+            "power_w",
+            "physical_risk",
+        ]
+        directions = ["max", "min", "min", "min", "min", "min", "min"]
+        high_risk = SearchCandidate(
+            "high_risk",
+            {"layers": [{"op": "mbconv", "expand_ratio": 6}]},
+            CandidateMetrics(
+                macro_f1=0.82,
+                top1=0.9,
+                latency_ms=7.0,
+                dsp=100,
+                bram=40,
+                lut=50000,
+                power_w=10.0,
+                physical_risk=0.9,
+            ),
+        )
+        low_risk = SearchCandidate(
+            "low_risk",
+            {"layers": [{"op": "mbconv", "expand_ratio": 3}]},
+            CandidateMetrics(
+                macro_f1=0.82,
+                top1=0.9,
+                latency_ms=7.0,
+                dsp=100,
+                bram=40,
+                lut=50000,
+                power_w=10.0,
+                physical_risk=0.1,
+            ),
+        )
+
+        ranks = compute_pareto_ranks([high_risk, low_risk], objectives, directions)
+
+        self.assertEqual(ranks, [1, 0])
+
+    def test_pareto_artifacts_include_ranked_physical_metrics(self) -> None:
+        objectives = ["macro_f1", "latency_ms", "physical_risk"]
+        directions = ["max", "min", "min"]
+        selected = SearchCandidate(
+            "selected_low_risk",
+            {"stage": 0, "expand_ratio": 3},
+            CandidateMetrics(
+                macro_f1=0.81,
+                top1=0.88,
+                latency_ms=6.5,
+                dsp=90,
+                bram=35,
+                lut=45000,
+                power_w=9.2,
+                physical_risk=0.2,
+            ),
+        )
+        dominated = SearchCandidate(
+            "dominated_high_risk",
+            {"stage": 0, "expand_ratio": 6},
+            CandidateMetrics(
+                macro_f1=0.81,
+                top1=0.88,
+                latency_ms=6.5,
+                dsp=90,
+                bram=35,
+                lut=45000,
+                power_w=9.2,
+                physical_risk=0.8,
+            ),
+        )
+        candidates = [dominated, selected]
+        pareto_front = compute_pareto_front(candidates, objectives, directions)
+        ranks = compute_pareto_ranks(candidates, objectives, directions)
+        summary = build_pareto_selection_summary(
+            candidates=candidates,
+            pareto_front=pareto_front,
+            selected_candidates=[selected],
+            ranks=ranks,
+            objectives=objectives,
+            directions=directions,
+            selection_method="rank",
+            topk=1,
+            hypervolume=0.0,
+        )
+
+        self.assertIn("physical_risk", summary["objectives"])
+        self.assertIn("physical_risk", summary["physical_objectives"])
+        self.assertIn("physical_risk", summary["metric_columns"])
+        rows = {row["arch_id"]: row for row in summary["ranked_candidates"]}
+        self.assertEqual(rows["selected_low_risk"]["rank"], 0)
+        self.assertEqual(rows["dominated_high_risk"]["rank"], 1)
+        self.assertEqual(
+            rows["selected_low_risk"]["encoding"],
+            {"stage": 0, "expand_ratio": 3},
+        )
+        self.assertEqual(
+            rows["dominated_high_risk"]["encoding"],
+            {"stage": 0, "expand_ratio": 6},
+        )
+        self.assertEqual(
+            rows["selected_low_risk"]["objective_values"]["physical_risk"],
+            0.2,
+        )
+
+        with TemporaryDirectory() as tmpdir:
+            write_pareto_selection_artifacts(tmpdir, summary)
+            output_dir = Path(tmpdir)
+            self.assertTrue((output_dir / "pareto_selection.json").exists())
+            csv_text = (output_dir / "pareto_ranked_candidates.csv").read_text(encoding="utf-8")
+            self.assertIn("physical_risk", csv_text.splitlines()[0])
+            self.assertIn("selected_low_risk", csv_text)
 
     def test_rl_searcher_inherits_base_feasibility_checks(self) -> None:
         constraints = SearchConstraints(max_energy_mj=1.0)

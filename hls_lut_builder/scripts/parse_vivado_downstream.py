@@ -290,7 +290,7 @@ def _load_measurement_contract(config: dict[str, Any]) -> dict[str, Any]:
 def _load_status_payload(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def _parse_stage_reports(report_dir: Path, stage_name: str, *, target_clock_ns: float) -> dict[str, Any] | None:

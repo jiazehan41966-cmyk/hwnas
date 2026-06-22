@@ -26,11 +26,13 @@ from hwnas_fpga.runtime import (
 from hwnas_fpga.search import (
     ParetoFrontSelector,
     build_pareto_objectives,
+    build_pareto_selection_summary,
     candidate_selection_score,
     compute_hypervolume,
     compute_pareto_front,
     compute_pareto_ranks,
     create_searcher,
+    write_pareto_selection_artifacts,
 )
 from hwnas_fpga.search_space import list_family_profiles
 
@@ -680,22 +682,18 @@ def main() -> None:
                     objectives=pareto_objectives,
                     directions=pareto_directions,
                 )
-            pareto_summary = {
-                "objectives": pareto_objectives,
-                "directions": pareto_directions,
-                "selection_method": pareto_method,
-                "pareto_front_size": len(pareto_front),
-                "hypervolume": hypervolume,
-                "selected_topk": [_candidate_to_dict(candidate) for candidate in pareto],
-                "ranks": [
-                    {"arch_id": candidate.arch_id, "rank": rank}
-                    for candidate, rank in zip(searcher.feasible_candidates, pareto_ranks)
-                ],
-            }
-            (tracker.results_dir / "pareto_selection.json").write_text(
-                json.dumps(pareto_summary, ensure_ascii=False, indent=2),
-                encoding="utf-8",
+            pareto_summary = build_pareto_selection_summary(
+                candidates=searcher.feasible_candidates,
+                pareto_front=pareto_front,
+                selected_candidates=pareto,
+                ranks=pareto_ranks,
+                objectives=pareto_objectives,
+                directions=pareto_directions,
+                selection_method=pareto_method,
+                topk=pareto_topk,
+                hypervolume=hypervolume,
             )
+            write_pareto_selection_artifacts(tracker.results_dir, pareto_summary)
             lut_stats = estimator.get_lut_stats()
             (tracker.results_dir / "lut_stats.json").write_text(
                 json.dumps(lut_stats, ensure_ascii=False, indent=2),

@@ -121,6 +121,32 @@ At the moment:
 - `stem_conv_k3_s2` is also a clean timing-met board-measurement sample at
   200 MHz after a kernel-level retime of its internal line buffer path.
 
+## Full-Network Phase0 v3 Board Results
+
+As of 2026-06-06, Phase0 v3 low-DSP route-aware validation has 4 claimable
+full-network AV7K325 COM5 candidates. These are not single-operator LUT rows;
+they are route-clean full-network bitstreams measured through the isolated
+`rl_best_e2e_board_validation.py` flow.
+
+Authoritative handoff:
+
+- `../../docs/PHASE0_V3_BOARD_RESULTS.md`
+- `results/pareto_route_gate_phase0_v3b_lowdsp_prune6/reports/phase0_v3_board_candidate_comparison.md`
+
+Headline selections:
+
+- `accuracy-first`: `rl_arch_186`, macro_f1 `0.629512`, top1 `0.792308`,
+  real board e2e latency `49.062010 ms`, WNS `0.094 ns`, actual DSP `612`.
+- `latency-balanced`: `rl_arch_242`, macro_f1 `0.627406`, real board e2e
+  latency `24.872910 ms`, WNS `0.113 ns`, actual DSP `612`.
+- `resource-min`: `rl_arch_276`, real board e2e latency `24.836150 ms`,
+  WNS `0.223 ns`, actual DSP `524`.
+
+Guardrail: NAS LUT `latency_ms` is not real board e2e latency. A full-network
+candidate is board-claimable only when the full route gate is `PASS`, actual
+Vivado DSP is within the declared gate threshold, the bitstream SHA256 matches
+the measurement JSON, and COM5 returns `status_code=0`.
+
 ## Files
 
 - `templates/`: top-level RTL, XDC, and Vivado Tcl templates

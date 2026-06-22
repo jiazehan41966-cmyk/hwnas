@@ -28,6 +28,54 @@ CURRENT84_DIR = BOARD_RESULTS_ROOT / "v2_current84_fullcombo_board"
 ARCH84_DIR = BOARD_RESULTS_ROOT / "v2_arch84_e2e_extension_board"
 E2E_DIR = BOARD_RESULTS_ROOT / "sonar_classifier_end_to_end_board"
 DEFAULT_OUTPUT_DIR = BUILDER_ROOT / "results" / "nas_board_lut_strict_current84_arch84"
+TIMING_PROFILE_OUTPUT_DIRS = {
+    "tight": BUILDER_ROOT / "results" / "nas_board_lut_timing_tight_current84_arch84",
+    "medium": BUILDER_ROOT / "results" / "nas_board_lut_timing_medium_current84_arch84",
+    "loose": BUILDER_ROOT / "results" / "nas_board_lut_timing_loose_current84_arch84",
+}
+SOURCE_TIMING_PROFILE = {
+    "name": "source_200mhz",
+    "period_ns": 5.0,
+    "clock_mhz": 200.0,
+    "freq_hz": 200_000_000,
+}
+TIMING_PROFILES = {
+    "tight": {
+        "label": "tight 200 MHz strict board LUT",
+        "period_ns": 5.0,
+        "clock_mhz": 200.0,
+        "freq_hz": 200_000_000,
+        "definition": "UART status_code=0 and WNS>=0 at the original 5 ns / 200 MHz board constraint",
+        "measurement_scope": "real_200mhz_board_timing",
+        "official_use": "official_strict_board_lut",
+    },
+    "medium": {
+        "label": "medium 150 MHz timing-only derived LUT",
+        "period_ns": 1000.0 / 150.0,
+        "clock_mhz": 150.0,
+        "freq_hz": 150_000_000,
+        "definition": (
+            "Exploratory timing-only profile: reuse existing UART cycles and "
+            "reinterpret 200 MHz WNS against a 6.667 ns / 150 MHz relaxed target. "
+            "This is not a fresh Vivado implementation or a fresh COM5 measurement."
+        ),
+        "measurement_scope": "relaxed_timing_profile_inferred_from_200mhz_wns",
+        "official_use": "exploratory_timing_only_not_official_strict_lut",
+    },
+    "loose": {
+        "label": "loose 100 MHz timing-only derived LUT",
+        "period_ns": 10.0,
+        "clock_mhz": 100.0,
+        "freq_hz": 100_000_000,
+        "definition": (
+            "Exploratory timing-only profile: reuse existing UART cycles and "
+            "reinterpret 200 MHz WNS against a 10 ns / 100 MHz relaxed target. "
+            "This is not a fresh Vivado implementation or a fresh COM5 measurement."
+        ),
+        "measurement_scope": "relaxed_timing_profile_inferred_from_200mhz_wns",
+        "official_use": "exploratory_timing_only_not_official_strict_lut",
+    },
+}
 
 PROTECTED_RAW_INPUTS = (
     BUILDER_ROOT / "results" / "v2_deployable_lut" / "deployable_lut_v2.json",
@@ -44,15 +92,23 @@ ROW_FIELDS = (
     "component_role",
     "latency_cycles",
     "latency_ms",
+    "source_latency_ms",
     "LUT",
     "FF",
     "DSP",
     "BRAM",
     "BRAM_entry_ceil",
     "WNS",
+    "source_period_ns",
+    "source_clock_mhz",
+    "target_period_ns",
+    "target_clock_mhz",
+    "profile_wns_ns",
+    "timing_profile",
     "UART status_code",
     "timing_clean",
     "strict_usable",
+    "profile_usable",
     "status",
     "source_namespace",
     "source_json",
@@ -101,6 +157,40 @@ def _as_bool(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "y"}
     return bool(value)
+
+
+def _timing_profile(name: str) -> dict[str, Any]:
+    try:
+        return TIMING_PROFILES[name]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unknown timing profile {name!r}; expected one of {sorted(TIMING_PROFILES)}"
+        ) from exc
+
+
+def _profile_wns_ns(source_wns_ns: float | None, profile: dict[str, Any]) -> float | None:
+    if source_wns_ns is None:
+        return None
+    return float(source_wns_ns) + (
+        float(profile["period_ns"]) - float(SOURCE_TIMING_PROFILE["period_ns"])
+    )
+
+
+def _profile_latency_ms(
+    *,
+    cycles: int | None,
+    source_latency_ms: float | None,
+    profile: dict[str, Any],
+) -> float | None:
+    if cycles is None:
+        return source_latency_ms
+    return cycles / (float(profile["clock_mhz"]) * 1000.0)
+
+
+def _default_output_dir_for_profile(profile_name: str) -> Path:
+    if profile_name == "tight":
+        return DEFAULT_OUTPUT_DIR
+    return TIMING_PROFILE_OUTPUT_DIRS[profile_name]
 
 
 def _clean_case_name(data: dict[str, Any], path: Path) -> str:
@@ -398,28 +488,45 @@ def _parse_case_to_op(case_name: str) -> tuple[dict[str, Any], dict[str, str]]:
     )
 
 
-def _row_from_result(path: Path, *, namespace: str) -> dict[str, Any]:
+def _row_from_result(path: Path, *, namespace: str, timing_profile: str) -> dict[str, Any]:
     data = _read_json(path)
     case_name = _clean_case_name(data, path)
     op_spec, parsed = _parse_case_to_op(case_name)
+    profile = _timing_profile(timing_profile)
 
     uart_status_code = _as_int(data.get("uart_status_code"))
     wns = _as_float(data.get("wns_ns"))
+    profile_wns = _profile_wns_ns(wns, profile)
     reported_timing_clean = _as_bool(data.get("timing_clean"))
-    timing_clean = bool(uart_status_code == 0 and wns is not None and wns >= 0.0)
+    strict_200mhz_clean = bool(uart_status_code == 0 and wns is not None and wns >= 0.0)
+    timing_clean = bool(uart_status_code == 0 and profile_wns is not None and profile_wns >= 0.0)
     strict_usable = timing_clean
 
     if strict_usable:
         status = "measured"
-        notes = "strict board LUT cost: UART status_code=0 and WNS>=0"
+        if timing_profile == "tight":
+            notes = "strict board LUT cost: UART status_code=0 and WNS>=0 at 200 MHz"
+        else:
+            notes = (
+                f"{profile['label']} cost: UART status_code=0 and inferred "
+                f"profile WNS>=0; latency is cycle-count scaled to "
+                f"{profile['clock_mhz']:.3f} MHz, not a new Vivado implementation "
+                "or COM5 measurement"
+            )
     elif uart_status_code == 0 and wns is not None:
         status = "timing_fail_reference"
-        notes = "UART ok but WNS<0; retained only as reference, excluded from strict NAS cost"
+        notes = (
+            f"UART ok but inferred profile WNS<0 for {profile['label']}; retained "
+            "only as reference and excluded from this NAS cost table"
+        )
     else:
         status = "missing_unusable"
-        notes = "not strict usable under UART status_code=0 and WNS>=0"
+        notes = (
+            f"not usable under {profile['label']}; UART status_code=0 and "
+            "profile WNS>=0 are required"
+        )
 
-    if reported_timing_clean != timing_clean:
+    if reported_timing_clean != strict_200mhz_clean:
         notes = f"{notes}; reported_timing_clean={reported_timing_clean}"
     if parsed["op_type"] == "unparsed_board_case":
         notes = f"{notes}; case_name parse fallback used"
@@ -427,6 +534,13 @@ def _row_from_result(path: Path, *, namespace: str) -> dict[str, Any]:
     bram = _as_float(data.get("board_harness_bram_tile"))
     bram_entry_ceil = None if bram is None else int(math.ceil(bram))
     op_spec_json = json.dumps(op_spec, sort_keys=True, separators=(",", ":"))
+    latency_cycles = _as_int(data.get("board_combo_cycles"))
+    source_latency_ms = _as_float(data.get("board_combo_latency_ms"))
+    latency_ms = _profile_latency_ms(
+        cycles=latency_cycles,
+        source_latency_ms=source_latency_ms,
+        profile=profile,
+    )
 
     return {
         "case_name": case_name,
@@ -435,17 +549,25 @@ def _row_from_result(path: Path, *, namespace: str) -> dict[str, Any]:
         "decomposition": str(data.get("decomposition", "")),
         "layer_role": parsed["layer_role"],
         "component_role": parsed["component_role"],
-        "latency_cycles": _as_int(data.get("board_combo_cycles")),
-        "latency_ms": _as_float(data.get("board_combo_latency_ms")),
+        "latency_cycles": latency_cycles,
+        "latency_ms": latency_ms,
+        "source_latency_ms": source_latency_ms,
         "LUT": _as_int(data.get("board_harness_lut")),
         "FF": _as_int(data.get("board_harness_ff")),
         "DSP": _as_int(data.get("board_harness_dsp")),
         "BRAM": bram,
         "BRAM_entry_ceil": bram_entry_ceil,
         "WNS": wns,
+        "source_period_ns": SOURCE_TIMING_PROFILE["period_ns"],
+        "source_clock_mhz": SOURCE_TIMING_PROFILE["clock_mhz"],
+        "target_period_ns": profile["period_ns"],
+        "target_clock_mhz": profile["clock_mhz"],
+        "profile_wns_ns": profile_wns,
+        "timing_profile": timing_profile,
         "UART status_code": uart_status_code,
         "timing_clean": timing_clean,
         "strict_usable": strict_usable,
+        "profile_usable": strict_usable,
         "status": status,
         "source_namespace": namespace,
         "source_json": _source_path(path),
@@ -456,8 +578,15 @@ def _row_from_result(path: Path, *, namespace: str) -> dict[str, Any]:
     }
 
 
-def _e2e_boundary_row(e2e_summary_path: Path, blockers_path: Path, recovery_path: Path) -> dict[str, Any]:
+def _e2e_boundary_row(
+    e2e_summary_path: Path,
+    blockers_path: Path,
+    recovery_path: Path,
+    *,
+    timing_profile: str,
+) -> dict[str, Any]:
     summary = _read_json(e2e_summary_path) if e2e_summary_path.exists() else {}
+    profile = _timing_profile(timing_profile)
     case_name = str(summary.get("target_name") or "sonar_classifier_top8_03_arch_84_e2e")
     build_result_path = (
         e2e_summary_path.parent
@@ -482,13 +611,19 @@ def _e2e_boundary_row(e2e_summary_path: Path, blockers_path: Path, recovery_path
     op_spec_json = json.dumps(op_spec, sort_keys=True, separators=(",", ":"))
     uart_status_code = _as_int(summary.get("uart_status_code"))
     wns = _as_float(summary.get("wns_ns"))
+    profile_wns = _profile_wns_ns(wns, profile)
     cycles = _as_int(summary.get("e2e_cycles"))
-    latency_ms = _as_float(summary.get("e2e_latency_ms"))
+    source_latency_ms = _as_float(summary.get("e2e_latency_ms"))
+    latency_ms = _profile_latency_ms(
+        cycles=cycles,
+        source_latency_ms=source_latency_ms,
+        profile=profile,
+    )
     strict_usable = bool(
         summary.get("strict_latency_usable") is True
         and uart_status_code == 0
-        and wns is not None
-        and wns >= 0.0
+        and profile_wns is not None
+        and profile_wns >= 0.0
         and cycles is not None
         and latency_ms is not None
     )
@@ -497,10 +632,17 @@ def _e2e_boundary_row(e2e_summary_path: Path, blockers_path: Path, recovery_path
     notes = (
         "real COM5 complete-network e2e latency; official implementation "
         f"promoted_from_variant={summary.get('promoted_from_variant', '')}"
+        if strict_usable and timing_profile == "tight"
+        else (
+            "complete-network e2e row accepted only for exploratory relaxed timing profile; "
+            f"latency is cycle-count scaled to {profile['clock_mhz']:.3f} MHz "
+            "and is not a new Vivado implementation or COM5 measurement"
+        )
         if strict_usable
         else (
             "no strict real COM5 full-network e2e latency; canonical e2e is not "
-            "eligible for NAS cost until UART status_code=0 and WNS>=0"
+            f"eligible for this NAS cost until UART status_code=0 and "
+            f"{profile['label']} WNS>=0"
         )
     )
     bram = _as_float(build_result.get("bram_tile") or summary.get("resources", {}).get("bram_tile"))
@@ -514,15 +656,23 @@ def _e2e_boundary_row(e2e_summary_path: Path, blockers_path: Path, recovery_path
         "component_role": "canonical_e2e",
         "latency_cycles": cycles if strict_usable else None,
         "latency_ms": latency_ms if strict_usable else None,
+        "source_latency_ms": source_latency_ms,
         "LUT": _as_int(build_result.get("lut") or summary.get("resources", {}).get("lut")) if strict_usable else None,
         "FF": _as_int(build_result.get("ff") or summary.get("resources", {}).get("ff")) if strict_usable else None,
         "DSP": _as_int(build_result.get("dsp") or summary.get("resources", {}).get("dsp")) if strict_usable else None,
         "BRAM": bram if strict_usable else None,
         "BRAM_entry_ceil": bram_entry_ceil if strict_usable else None,
         "WNS": wns,
+        "source_period_ns": SOURCE_TIMING_PROFILE["period_ns"],
+        "source_clock_mhz": SOURCE_TIMING_PROFILE["clock_mhz"],
+        "target_period_ns": profile["period_ns"],
+        "target_clock_mhz": profile["clock_mhz"],
+        "profile_wns_ns": profile_wns,
+        "timing_profile": timing_profile,
         "UART status_code": uart_status_code,
         "timing_clean": strict_usable,
         "strict_usable": strict_usable,
+        "profile_usable": strict_usable,
         "status": status,
         "source_namespace": source_namespace,
         "source_json": _source_path(e2e_summary_path),
@@ -580,6 +730,10 @@ def _status_entry_from_row(row: dict[str, Any]) -> dict[str, Any]:
         "board_cycles": row["latency_cycles"],
         "board_latency_ms": row["latency_ms"],
         "wns_ns": row["WNS"],
+        "profile_wns_ns": row.get("profile_wns_ns"),
+        "timing_profile": row.get("timing_profile"),
+        "target_clock_mhz": row.get("target_clock_mhz"),
+        "target_period_ns": row.get("target_period_ns"),
         "uart_status_code": row["UART status_code"],
         "timing_clean": row["timing_clean"],
         "strict_usable": row["strict_usable"],
@@ -624,27 +778,47 @@ def _write_readme(path: Path, summary: dict[str, Any]) -> None:
             "latency may only come from a complete-network harness real COM5 measurement."
         )
     )
-    text = f"""# NAS Board LUT Strict Current84/Arch84
+    profile_label = summary.get("timing_profile_label", "strict board LUT")
+    profile_definition = summary.get("timing_profile_definition", summary.get("strict_definition", ""))
+    text = f"""# NAS Board LUT Timing Profile Current84/Arch84
 
 Generated at: {summary["generated_at"]}
 
 This is a derived lookup table for NAS search/evaluation. It does not modify
 the raw deployable LUT ledgers or the raw board measurement ledger.
 
-## Strict Definition
+## Timing Profile
 
-An entry is strict usable only when both conditions hold:
+- profile: `{summary.get("timing_profile", "tight")}`
+- label: {profile_label}
+- target clock: {summary.get("target_clock_mhz")} MHz
+- target period: {summary.get("target_period_ns")} ns
+- source evidence clock: {summary.get("source_clock_mhz")} MHz
+- use status: {summary.get("timing_profile_official_use")}
+
+{profile_definition}
+
+For relaxed profiles, WNS is reinterpreted from the original 200 MHz timing
+evidence and latency is recomputed from measured cycles at the target clock.
+Those rows are for NAS trend comparison only. They are not fresh Vivado
+implementation results and are not new COM5 board measurements. To promote a
+relaxed profile into an official strict LUT, rerun implementation with the new
+clock constraint and rerun board UART measurement for the admitted rows.
+
+## Usable Definition
+
+An entry is usable in this profile only when both conditions hold:
 
 - UART status_code = 0
-- WNS >= 0 ns
+- profile WNS >= 0 ns
 
 Timing-fail rows with UART status_code = 0 are retained only in
 `timing_fail_reference.*`. They are not present in `nas_board_lut_strict.json`
-and must not be used as strict NAS hardware cost.
+and must not be used as this profile's NAS hardware cost.
 
 ## Counts
 
-- strict usable rows: {summary["strict_usable_count"]}
+- profile usable rows: {summary["strict_usable_count"]}
 - timing-fail reference rows: {summary["timing_fail_reference_count"]}
 - missing/unusable rows: {summary["missing_unusable_count"]}
 - strict current84 rows: {summary["by_source_status"].get("current84_fullcombo84", {}).get("measured", 0)}
@@ -686,7 +860,9 @@ def generate(
     e2e_dir: Path,
     output_dir: Path,
     allow_count_drift: bool = False,
+    timing_profile: str = "tight",
 ) -> dict[str, Any]:
+    profile = _timing_profile(timing_profile)
     current_case_dir = current84_dir / "case_results"
     arch_case_dir = arch84_dir / "case_results"
     e2e_summary_path = e2e_dir / "sonar_classifier_e2e_summary.json"
@@ -708,14 +884,19 @@ def generate(
         raise FileNotFoundError(f"Missing e2e summary: {e2e_summary_path}")
 
     current_rows = [
-        _row_from_result(path, namespace="current84_fullcombo84")
+        _row_from_result(path, namespace="current84_fullcombo84", timing_profile=timing_profile)
         for path in current_paths
     ]
     arch_rows = [
-        _row_from_result(path, namespace="arch84_e2e_extension")
+        _row_from_result(path, namespace="arch84_e2e_extension", timing_profile=timing_profile)
         for path in arch_paths
     ]
-    e2e_boundary_row = _e2e_boundary_row(e2e_summary_path, e2e_blockers_path, e2e_recovery_path)
+    e2e_boundary_row = _e2e_boundary_row(
+        e2e_summary_path,
+        e2e_blockers_path,
+        e2e_recovery_path,
+        timing_profile=timing_profile,
+    )
     e2e_measured_rows = [e2e_boundary_row] if e2e_boundary_row["status"] == "measured" else []
     missing_rows = [] if e2e_boundary_row["status"] == "measured" else [e2e_boundary_row]
     measured_rows = current_rows + arch_rows + e2e_measured_rows
@@ -731,13 +912,6 @@ def generate(
     current_status_counts = Counter(row["status"] for row in current_rows)
     arch_status_counts = Counter(row["status"] for row in arch_rows)
     e2e_status_counts = Counter(row["status"] for row in [e2e_boundary_row])
-    expected = {
-        "current84_measured": 54,
-        "current84_timing_fail_reference": 30,
-        "arch84_measured": 3,
-        "e2e_measured": 1 if e2e_boundary_row["status"] == "measured" else 0,
-        "e2e_missing_unusable": 0 if e2e_boundary_row["status"] == "measured" else 1,
-    }
     observed = {
         "current84_measured": current_status_counts.get("measured", 0),
         "current84_timing_fail_reference": current_status_counts.get(
@@ -747,7 +921,15 @@ def generate(
         "e2e_measured": e2e_status_counts.get("measured", 0),
         "e2e_missing_unusable": e2e_status_counts.get("missing_unusable", 0),
     }
-    if observed != expected and not allow_count_drift:
+    tight_expected_reference = {
+        "current84_measured": 54,
+        "current84_timing_fail_reference": 30,
+        "arch84_measured": 3,
+        "e2e_measured": 1 if e2e_boundary_row["status"] == "measured" else 0,
+        "e2e_missing_unusable": 0 if e2e_boundary_row["status"] == "measured" else 1,
+    }
+    expected = tight_expected_reference if timing_profile == "tight" else observed
+    if timing_profile == "tight" and observed != expected and not allow_count_drift:
         raise RuntimeError(
             "Strict board LUT count mismatch: "
             f"expected {expected}, observed {observed}. "
@@ -771,14 +953,34 @@ def generate(
     common_metadata = {
         "generated_at": generated_at,
         "generator": str(Path(__file__).resolve()),
-        "strict_definition": "UART status_code=0 and WNS>=0",
+        "timing_profile": timing_profile,
+        "timing_profile_label": profile["label"],
+        "timing_profile_definition": profile["definition"],
+        "timing_profile_measurement_scope": profile["measurement_scope"],
+        "timing_profile_official_use": profile["official_use"],
+        "official_lut_eligibility": (
+            "eligible_as_current_official_strict_lut"
+            if timing_profile == "tight"
+            else "not_eligible_until_new_vivado_implementation_and_com5_measurement"
+        ),
+        "source_clock_mhz": SOURCE_TIMING_PROFILE["clock_mhz"],
+        "source_period_ns": SOURCE_TIMING_PROFILE["period_ns"],
+        "target_clock_mhz": profile["clock_mhz"],
+        "target_period_ns": profile["period_ns"],
+        "strict_definition": profile["definition"],
+        "slack_reinterpretation_policy": (
+            "profile_wns_ns = source_200mhz_wns_ns + "
+            "(target_period_ns - 5.0 ns)"
+        ),
         "latency_scope": (
             "operator_lut_plus_real_complete_network_e2e_measurement"
+            if e2e_boundary_row["status"] == "measured" and timing_profile == "tight"
+            else "frequency_scaled_operator_lut_plus_e2e_boundary_reference"
             if e2e_boundary_row["status"] == "measured"
             else "operator_lut_aggregate_estimate_only"
         ),
         "e2e_latency_policy": (
-            "complete-network e2e row is included only when the official harness has real COM5 status_code=0 and WNS>=0"
+            "tight profile includes complete-network e2e only when the official harness has real COM5 status_code=0 and WNS>=0; relaxed profiles scale measured cycles and do not create a new COM5 measurement"
         ),
         "power_policy": "power_w is null; no estimated power is promoted as measured power",
         "bram_policy": "row BRAM preserves board harness tile float; LutEntry.bram uses ceil(BRAM)",
@@ -815,6 +1017,7 @@ def generate(
         "by_source_status": by_source_status,
         "expected_counts": expected,
         "observed_counts": observed,
+        "tight_expected_reference_counts": tight_expected_reference,
         "unparsed_case_count": sum(
             1
             for row in strict_rows + timing_fail_rows + unusable_rows
@@ -888,7 +1091,21 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--current84-dir", type=Path, default=CURRENT84_DIR)
     parser.add_argument("--arch84-dir", type=Path, default=ARCH84_DIR)
     parser.add_argument("--e2e-dir", type=Path, default=E2E_DIR)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--timing-profile",
+        choices=sorted(TIMING_PROFILES),
+        default="tight",
+        help="Timing profile used to decide profile WNS and latency scaling.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Output directory. Defaults to the legacy strict directory for tight "
+            "and a profile-specific directory for medium/loose."
+        ),
+    )
     parser.add_argument(
         "--allow-count-drift",
         action="store_true",
@@ -899,17 +1116,19 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
+    output_dir = args.output_dir or _default_output_dir_for_profile(args.timing_profile)
     summary = generate(
         current84_dir=args.current84_dir,
         arch84_dir=args.arch84_dir,
         e2e_dir=args.e2e_dir,
-        output_dir=args.output_dir,
+        output_dir=output_dir,
         allow_count_drift=args.allow_count_drift,
+        timing_profile=args.timing_profile,
     )
     print(
-        "Generated strict NAS board LUT at "
-        f"{args.output_dir.resolve()} "
-        f"(strict={summary['strict_usable_count']}, "
+        f"Generated {args.timing_profile} NAS board LUT at "
+        f"{output_dir.resolve()} "
+        f"(profile_usable={summary['strict_usable_count']}, "
         f"timing_fail_reference={summary['timing_fail_reference_count']}, "
         f"missing_unusable={summary['missing_unusable_count']})"
     )

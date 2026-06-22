@@ -337,17 +337,26 @@ class SearchableStage(nn.Module):
             in_channels = self.max_input_channels if block_idx == 0 else self.max_channels
             output_resolution = max(1, math.ceil(current_resolution / stride))
 
-            valid_ops = self.search_space.available_ops(
+            stage_block_choices = self.search_space.concrete_block_choices_for_stage(
+                stage_index=self.stage_idx,
                 in_channels=in_channels,
                 out_channels=self.max_channels,
                 stride=stride,
             )
-            candidate_specs = _build_candidate_specs(
-                valid_ops=valid_ops,
-                stride=stride,
-                kernel_choices=self.config.kernel_choices,
-                expand_choices=self.config.expand_choices,
-            )
+            if stage_block_choices is not None:
+                candidate_specs = list(stage_block_choices)
+            else:
+                valid_ops = self.search_space.available_ops(
+                    in_channels=in_channels,
+                    out_channels=self.max_channels,
+                    stride=stride,
+                )
+                candidate_specs = _build_candidate_specs(
+                    valid_ops=valid_ops,
+                    stride=stride,
+                    kernel_choices=self.config.kernel_choices,
+                    expand_choices=self.config.expand_choices,
+                )
             candidates = [build_block(spec, in_channels, self.max_channels) for spec in candidate_specs]
             hardware_metrics = self._build_mixed_op_metrics(
                 candidate_specs=candidate_specs,

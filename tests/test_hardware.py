@@ -2,7 +2,14 @@ import unittest
 
 from hwnas_fpga.hardware import FPGACostEstimator, LutEntry, LutQueryEngine, LutTable, OpSpec
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
-from hwnas_fpga.search_space import ResolvedBlockSpec, SearchSpace, SearchSpaceConfig
+from hwnas_fpga.search_space import (
+    ArchitectureSpec,
+    BlockSpec,
+    ResolvedBlockSpec,
+    SearchSpace,
+    SearchSpaceConfig,
+    StageSpec,
+)
 
 
 class HardwareEstimatorTests(unittest.TestCase):
@@ -89,6 +96,75 @@ class HardwareEstimatorTests(unittest.TestCase):
             any(violation.startswith("formal LUT missing:") for violation in estimate.violations)
         )
         self.assertGreater(stats["true_misses"], 0)
+
+    def test_physical_constraints_reject_early_high_resolution_expand(self) -> None:
+        constraints = SearchConstraints(
+            physical={
+                "enabled": True,
+                "early_expand_limits": [
+                    {"min_input_resolution": 112, "max_expand_ratio": 3},
+                ],
+                "pareto_physical_risk": True,
+            }
+        )
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 32,
+                "stem_stride": 2,
+                "stage_strides": [1],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3],
+                "expand_choices": [3, 6],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 6},
+                    ]
+                ],
+                "num_classes": 8,
+                "hardware_constraints": constraints,
+            }
+        )
+        space = SearchSpace(config)
+        architecture = ArchitectureSpec(
+            input_channels=1,
+            stem_channels=32,
+            stem_stride=2,
+            stages=(
+                StageSpec(
+                    channels=24,
+                    depth=1,
+                    stride=1,
+                    blocks=(BlockSpec("mbconv", kernel_size=3, expand_ratio=6, stride=1),),
+                ),
+            ),
+            num_classes=8,
+        )
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=2_000,
+            ),
+            constraints=constraints,
+        )
+
+        estimate = estimator.estimate(architecture, space)
+        metrics = estimate.to_candidate_metrics()
+
+        self.assertTrue(
+            any("expand_ratio=6 exceeds 3" in violation for violation in estimate.violations)
+        )
+        self.assertIsNotNone(metrics.early_expand_pressure)
+        self.assertIsNotNone(metrics.physical_risk)
+        self.assertGreater(metrics.physical_risk or 0.0, 0.0)
 
 
 class SonarOpsCostTests(unittest.TestCase):

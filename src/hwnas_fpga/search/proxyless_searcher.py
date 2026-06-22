@@ -14,7 +14,7 @@ from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate, SearchConst
 from hwnas_fpga.models import ProxylessSuperNet
 from hwnas_fpga.search_space import SearchSpace
 
-from .searcher import BaseSearcher, _metric_display_name
+from .searcher import BaseSearcher, _metric_display_name, candidate_selection_score
 
 if TYPE_CHECKING:
     from hwnas_fpga.experiment import ExperimentTracker
@@ -653,19 +653,18 @@ class ProxylessSearcher(BaseSearcher):
                     f"{metric_label}={val_score:.4f}, feasible={feasible}"
                 )
 
-        if best_candidate is None and self.evaluated_candidates:
-            best_candidate = max(
-                self.evaluated_candidates,
-                key=lambda candidate: float(candidate.metrics.accuracy or 0.0),
-            )
-
         if verbose:
             print("\nProxyless search completed!")
             print(f"Total evaluated: {len(self.evaluated_candidates)}")
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
-            if best_candidate is not None and best_candidate.metrics.accuracy is not None:
-                print(f"Best {metric_label}: {best_candidate.metrics.accuracy:.4f}")
+            if best_candidate is not None:
+                print(
+                    f"Best {metric_label}: "
+                    f"{candidate_selection_score(best_candidate, self.selection_metric):.4f}"
+                )
+            elif self.evaluated_candidates:
+                print(f"No feasible architecture found among {len(self.evaluated_candidates)} epochs")
 
         return best_candidate
 

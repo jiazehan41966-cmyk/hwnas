@@ -34,23 +34,12 @@ localparam integer BIASES_ADDR_WIDTH = {{BIASES_ADDR_WIDTH}};
 localparam integer BIASES_DEPTH = {{BIASES_DEPTH}};
 localparam integer BIASES_HAS_PORT_B = {{BIASES_HAS_PORT_B}};
 
-wire clk_ibuf;
-wire clk_main;
-IBUFDS u_sys_clk_ibufds (
-    .I(sys_clk_p),
-    .IB(sys_clk_n),
-    .O(clk_ibuf)
-);
-
-BUFG u_sys_clk_bufg (
-    .I(clk_ibuf),
-    .O(clk_main)
-);
+{{CLOCKING_LOGIC}}
 
 wire rst_n;
 reset_sync u_reset_sync (
     .clk(clk_main),
-    .rst_n_async(sys_rst_n),
+    .rst_n_async(sys_rst_n & clock_ready),
     .rst_n_sync(rst_n)
 );
 

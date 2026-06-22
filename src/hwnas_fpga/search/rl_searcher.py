@@ -1340,24 +1340,16 @@ class RLSearcher(BaseSearcher):
 
         best_eval = dict(self.last_training_history.get("best_eval") or {}) if self.last_training_history else {}
 
+        candidate_metrics = cost_estimate.to_candidate_metrics()
+        candidate_metrics.accuracy = accuracy
+        candidate_metrics.macro_f1 = best_eval.get("macro_f1")
+        candidate_metrics.weighted_f1 = best_eval.get("weighted_f1")
+        candidate_metrics.top1 = best_eval.get("top1")
+        candidate_metrics.top5 = best_eval.get("top5")
         candidate = SearchCandidate(
             arch_id=arch_id,
             encoding=architecture.to_dict(),
-            metrics=CandidateMetrics(
-                accuracy=accuracy,
-                macro_f1=best_eval.get("macro_f1"),
-                weighted_f1=best_eval.get("weighted_f1"),
-                top1=best_eval.get("top1"),
-                top5=best_eval.get("top5"),
-                latency_ms=metrics["latency_ms"],
-                dsp=metrics["dsp"],
-                bram=metrics["bram"],
-                lut=metrics["lut"],
-                power_w=metrics["power_w"],
-                energy_mj=metrics["energy_mj"],
-                memory_bandwidth_gbps=metrics["memory_bandwidth_gbps"],
-                offchip_mem_mb=metrics["offchip_mem_mb"],
-            ),
+            metrics=candidate_metrics,
         )
         self.evaluated_candidates.append(candidate)
         if is_feasible:

@@ -316,6 +316,12 @@ class ExperimentTracker:
             "power_w",
             "memory_bandwidth_gbps",
             "offchip_mem_mb",
+            "early_expand_pressure",
+            "interconnect_pressure",
+            "memory_pressure",
+            "fanout_pressure",
+            "stream_width",
+            "physical_risk",
         ]
         with csv_path.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -338,6 +344,12 @@ class ExperimentTracker:
                         "power_w": metrics.get("power_w"),
                         "memory_bandwidth_gbps": metrics.get("memory_bandwidth_gbps"),
                         "offchip_mem_mb": metrics.get("offchip_mem_mb"),
+                        "early_expand_pressure": metrics.get("early_expand_pressure"),
+                        "interconnect_pressure": metrics.get("interconnect_pressure"),
+                        "memory_pressure": metrics.get("memory_pressure"),
+                        "fanout_pressure": metrics.get("fanout_pressure"),
+                        "stream_width": metrics.get("stream_width"),
+                        "physical_risk": metrics.get("physical_risk"),
                     }
                 )
 

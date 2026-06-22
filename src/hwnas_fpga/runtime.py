@@ -62,6 +62,9 @@ def pick(cli_value: Any, config_value: Any, default: Any) -> Any:
 
 def build_constraints(config: dict[str, Any]) -> SearchConstraints:
     constraints_cfg = config.get("constraints", {})
+    physical_cfg = constraints_cfg.get("physical")
+    if physical_cfg is None:
+        physical_cfg = config.get("physical_constraints", {})
     return SearchConstraints(
         max_latency_ms=constraints_cfg.get("max_latency_ms"),
         max_energy_mj=constraints_cfg.get("max_energy_mj"),
@@ -72,6 +75,7 @@ def build_constraints(config: dict[str, Any]) -> SearchConstraints:
         max_power_w=constraints_cfg.get("max_power_w"),
         max_memory_bandwidth_gbps=constraints_cfg.get("max_memory_bandwidth_gbps"),
         max_offchip_mem_mb=constraints_cfg.get("max_offchip_mem_mb"),
+        physical=dict(physical_cfg or {}),
     )
 
 

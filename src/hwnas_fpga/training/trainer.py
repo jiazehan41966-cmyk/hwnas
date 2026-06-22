@@ -186,7 +186,7 @@ def evaluate_classifier(
     device: str,
     num_classes: int,
     topk: int = 5,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     model.eval()
     total_loss = 0.0
     total_samples = 0
@@ -214,6 +214,7 @@ def evaluate_classifier(
             "loss": total_loss / max(1, total_samples),
             "top5": total_topk / max(1, total_samples),
             "num_samples": float(total_samples),
+            "confusion_matrix": confusion.tolist(),
         }
     )
     return summary

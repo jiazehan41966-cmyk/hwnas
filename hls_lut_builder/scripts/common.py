@@ -225,6 +225,7 @@ def build_cases(
                     case_name = sanitize_name(f"{operator_name}__{shape_name}__{impl_name}__{clock_name}")
                     if selected_cases and case_name not in selected_cases:
                         continue
+                    case_dir_name = sanitize_name(str(workspace.get("case_dir_names", {}).get(case_name, case_name)))
 
                     parameters = _build_parameters(
                         defaults=defaults,
@@ -250,7 +251,7 @@ def build_cases(
                             clock_profile_name=str(clock_name),
                             top_function=top_function,
                             template_path=template_path,
-                            project_dir=project_root / case_name,
+                            project_dir=project_root / case_dir_name,
                             source_filename=f"{top_function}.cpp",
                             solution_name=str(toolchain.get("solution_name", "solution1")),
                             part=str(toolchain.get("part", "xc7k325t-ffg676-2")),

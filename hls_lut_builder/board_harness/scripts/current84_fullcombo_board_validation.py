@@ -1615,7 +1615,7 @@ def write_constraints(project_root: Path, board_config: Path) -> None:
     xdc_text = gh.render_template(
         gh.TEMPLATES_DIR / "harness_constraints.xdc.tmpl",
         {
-            "CLOCK_PERIOD_NS": str(clock_cfg["period_ns"]),
+            "CLOCK_PERIOD_NS": str(gh.constraint_clock_period_ns(clock_cfg)),
             "CLOCK_CREATE_PORT": str(clock_create_port),
             "CLOCK_PIN_CONSTRAINTS": "\n".join([line for line in clock_constraints if line]),
             "RESET_PIN_CONSTRAINT": gh.make_constraint_line(
@@ -1729,13 +1729,10 @@ localparam integer INPUT_WORD_COUNT = {input_word_count};
 localparam integer OUTPUT_WORD_COUNT = {output_word_count};
 localparam integer FIFO_DEPTH = {fifo_depth};
 
-wire clk_ibuf;
-wire clk_main;
-IBUFDS u_sys_clk_ibufds (.I(sys_clk_p), .IB(sys_clk_n), .O(clk_ibuf));
-BUFG u_sys_clk_bufg (.I(clk_ibuf), .O(clk_main));
+{gh.build_clocking_logic(board_cfg)}
 
 wire rst_n;
-reset_sync u_reset_sync (.clk(clk_main), .rst_n_async(sys_rst_n), .rst_n_sync(rst_n));
+reset_sync u_reset_sync (.clk(clk_main), .rst_n_async(sys_rst_n & clock_ready), .rst_n_sync(rst_n));
 
 reg [31:0] boot_counter = 32'd0;
 reg boot_started = 1'b0;
@@ -2089,13 +2086,10 @@ localparam integer INPUT_WORD_COUNT = {input_word_count};
 localparam integer OUTPUT_WORD_COUNT = {output_word_count};
 localparam integer WATCHDOG_CYCLES = {watchdog_cycles};
 
-wire clk_ibuf;
-wire clk_main;
-IBUFDS u_sys_clk_ibufds (.I(sys_clk_p), .IB(sys_clk_n), .O(clk_ibuf));
-BUFG u_sys_clk_bufg (.I(clk_ibuf), .O(clk_main));
+{gh.build_clocking_logic(board_cfg)}
 
 wire rst_n;
-reset_sync u_reset_sync (.clk(clk_main), .rst_n_async(sys_rst_n), .rst_n_sync(rst_n));
+reset_sync u_reset_sync (.clk(clk_main), .rst_n_async(sys_rst_n & clock_ready), .rst_n_sync(rst_n));
 
 reg [31:0] boot_counter = 32'd0;
 reg boot_started = 1'b0;

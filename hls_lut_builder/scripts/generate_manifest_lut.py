@@ -184,7 +184,7 @@ def _key_fields(op_spec: dict[str, Any]) -> dict[str, Any]:
 def _load_json_status(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 if __name__ == "__main__":

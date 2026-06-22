@@ -1,0 +1,161 @@
+project:
+  name: nas-board-lut-strict-current84-arch84-nksid-full-rl300-eval10-cuda-physical-phase0-v3-lowdsp-av7k325
+  seed: 42
+  output_dir: results
+  run_name: nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_physical_phase0_v3_lowdsp
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 8
+  normalization: grayscale
+search_space:
+  family_profile: null
+  macro_type: stage_based
+  stem_stride: 2
+  post_stem_downsample_stride: 1
+  stage_strides:
+  - 1
+  - 2
+  - 2
+  - 1
+  stem_channels: 32
+  stage_base_channels:
+  - 16
+  - 24
+  - 32
+  - 32
+  width_multipliers:
+  - 1.0
+  stage_depth_choices:
+  - - 1
+  - - 1
+  - - 1
+  - - 1
+  kernel_choices:
+  - 1
+  - 3
+  expand_choices:
+  - 1
+  - 3
+  - 6
+  op_choices:
+  - conv
+  - mbconv
+  - skip
+  stage_block_choices:
+  - - op: conv
+      kernel_size: 1
+      expand_ratio: 1
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+    - op: mbconv
+      kernel_size: 3
+      expand_ratio: 6
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+    - op: skip
+      kernel_size: 1
+      expand_ratio: 1
+  head_conv_channels: null
+constraints:
+  max_latency_ms: 1000.0
+  max_power_w: null
+  max_model_size_mb: null
+  max_dsp: 1200
+  max_bram: 312
+  max_lut: 150000
+  max_memory_bandwidth_gbps: null
+  max_offchip_mem_mb: 256.0
+  physical:
+    enabled: true
+    board_max_dsp: 840
+    board_max_bram: 445
+    max_bram_utilization: 0.70
+    early_expand_limits:
+    - min_input_resolution: 112
+      max_expand_ratio: 6
+    - min_input_resolution: 56
+      max_expand_ratio: 6
+    pareto_physical_risk: true
+    pareto_early_expand_pressure: true
+    pareto_power: true
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  max_lut: 1000000
+  max_ff: 1000000
+  max_bram: 10000
+  max_dsp: 10000
+  max_power_w: 1000.0
+  memory_bandwidth_gbps: 1000.0
+  offchip_mem_mb: 10000.0
+  estimator: strict_board_lut
+  lut_path: hls_lut_builder/results/nas_board_lut_strict_current84_arch84/nas_board_lut_strict.json
+  formal_lut_status_path: hls_lut_builder/results/nas_board_lut_strict_current84_arch84/nas_board_lut_status.json
+  strict_formal_lut: true
+  strict_lut_label: strict board LUT
+  use_lut_for_head_layers: true
+  lut_allow_shape_only_match: false
+  lut_enable_interpolation: false
+  use_dummy_lut: false
+search:
+  method: rl
+  num_candidates: 300
+  episodes: 300
+  eval_epochs: 10
+  eval_early_stopping_patience: 3
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.003
+  controller_temperature: 2.0
+  controller_entropy_coef: 0.05
+  exploration_epsilon_start: 0.35
+  exploration_epsilon_end: 0.10
+  exploration_epsilon_decay_episodes: 300
+  exploration_bonus: 0.05
+  selection_metric: macro_f1
+  pareto:
+    selection_method: rank
+    topk: 24
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.02
+    energy: 0.0
+    resource: 0.04
+    dsp: 0.08
+    bram: 0.04
+    lut: 0.03
+    physical_risk: 0.0
+    early_expand_pressure: 0.0
+  reward_cfg:
+    constraint_penalty: 10.0
+    infeasible_penalty_mode: violation_ratio
+    infeasible_base_penalty: 1.0
+    infeasible_penalty_scale: 5.0
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 32
+  epochs: 150
+  early_stopping_patience: null
+deployment:
+  export_format: onnx
+  run_hls_validation: false
+notes:
+  fix_scope: Phase 0 v3 low-DSP route-aware repair; the search space is narrowed to strict-LUT-covered low-resource stage choices.
+  exploration_scope: Keeps the Phase0 v2 RL exploration settings while adding light LUT/DSP/BRAM/latency pressure.
+  dsp_budget_note: max_dsp remains in the strict-LUT aggregate scale. Actual Vivado DSP is enforced by full route gate with full_max_actual_dsp=700.
+  early_expand_note: The early-expand hard limits are relaxed to e6 only in this v3 config so the measured low-DSP stage1 e6 case survives run_search.py pre-pruning; physical proxy weights remain zero and final feasibility is still Vivado-gated.
+  lowdsp_route_gate_note: Full route should use the Phase0 v3 low-DSP override catalog and fanout_only implementation profile; uncovered structures are skipped before Vivado.
+  board_scope: No COM5 measurement is valid until a full-route PASS has a bitstream and actual Vivado DSP <= 700.

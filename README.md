@@ -88,8 +88,28 @@ results/<run_name>/
 | [docs/project_overview.md](docs/project_overview.md) | 项目概览与问题定义 |
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速开始与使用指南 |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | 实现进展与功能总结 |
+| [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) | Phase0 v3 low-DSP full-route and COM5 board-claimable results |
 | [docs/SEARCH_CONFIG_CANONICAL.md](docs/SEARCH_CONFIG_CANONICAL.md) | 当前规范搜索配置说明 |
 | [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) | 仓库布局说明 |
+
+---
+
+## Current Board-Claimable Phase0 v3 Result
+
+As of 2026-06-06, the Phase0 v3 low-DSP route-aware round has 4 claimable
+full-network AV7K325 COM5 candidates. Use
+[docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) as the
+handoff source. The headline choices are:
+
+- `accuracy-first`: `rl_arch_186`, macro_f1 `0.629512`, top1 `0.792308`,
+  real board e2e latency `49.062010 ms`, actual DSP `612`.
+- `latency-balanced`: `rl_arch_242`, macro_f1 `0.627406`, real board e2e
+  latency `24.872910 ms`, actual DSP `612`.
+- `resource-min`: `rl_arch_276`, real board e2e latency `24.836150 ms`,
+  actual DSP `524`.
+
+NAS LUT `latency_ms` is an estimator value only; use the COM5 measurement JSON
+and final validation reports for real board latency claims.
 
 ---
 

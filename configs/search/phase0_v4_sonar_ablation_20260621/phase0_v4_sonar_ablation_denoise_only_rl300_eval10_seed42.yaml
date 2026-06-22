@@ -1,0 +1,184 @@
+project:
+  name: nas-board-lut-strict-current84-arch84-nksid-full-rl300-eval10-cuda-physical-phase0-v4-sonar-stage3-k3-lowdsp-draft-av7k325
+  seed: 42
+  output_dir: results\phase0_v4_sonar_ablation_rl300_20260621
+  run_name: phase0_v4_sonar_ablation_denoise_only_rl300_eval10_seed42
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 8
+  normalization: grayscale
+search_space:
+  family_profile: null
+  macro_type: stage_based
+  stem_stride: 2
+  post_stem_downsample_stride: 1
+  stage_strides:
+  - 1
+  - 2
+  - 2
+  - 1
+  stem_channels: 32
+  stage_base_channels:
+  - 16
+  - 24
+  - 32
+  - 32
+  width_multipliers:
+  - 1.0
+  stage_depth_choices:
+  - - 1
+  - - 1
+  - - 1
+  - - 1
+  kernel_choices:
+  - 1
+  - 3
+  expand_choices:
+  - 1
+  - 3
+  - 6
+  op_choices:
+  - conv
+  - mbconv
+  - skip
+  - denoise
+  stage_block_choices:
+  - - op: conv
+      kernel_size: 1
+      expand_ratio: 1
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+    - op: mbconv
+      kernel_size: 3
+      expand_ratio: 6
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+    - op: skip
+      kernel_size: 1
+      expand_ratio: 1
+    - op: denoise
+      kernel_size: 3
+      expand_ratio: 1
+  head_conv_channels: null
+constraints:
+  max_latency_ms: 1000.0
+  max_power_w: null
+  max_model_size_mb: null
+  max_dsp: 1200
+  max_bram: 312
+  max_lut: 150000
+  max_memory_bandwidth_gbps: null
+  max_offchip_mem_mb: 256.0
+  physical:
+    enabled: true
+    board_max_dsp: 840
+    board_max_bram: 445
+    max_bram_utilization: 0.7
+    early_expand_limits:
+    - min_input_resolution: 112
+      max_expand_ratio: 6
+    - min_input_resolution: 56
+      max_expand_ratio: 6
+    pareto_physical_risk: true
+    pareto_early_expand_pressure: true
+    pareto_power: true
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  max_lut: 1000000
+  max_ff: 1000000
+  max_bram: 10000
+  max_dsp: 10000
+  max_power_w: 1000.0
+  memory_bandwidth_gbps: 1000.0
+  offchip_mem_mb: 10000.0
+  estimator: strict_board_lut
+  lut_path: hls_lut_builder/results/phase0_v4_sonar_stage3_k3_pilot/merged_current84_arch84_plus_sonar_stage3_k3_lut.json
+  formal_lut_status_path: hls_lut_builder/results/phase0_v4_sonar_stage3_k3_pilot/merged_current84_arch84_plus_sonar_stage3_k3_status.json
+  operator_manifest_path: hls_lut_builder/results/phase0_v4_sonar_stage3_k3_pilot/operator_manifest_phase0_v4_sonar_stage3_k3_admitted.yaml
+  strict_formal_lut: true
+  strict_lut_label: strict board LUT
+  use_lut_for_head_layers: true
+  lut_allow_shape_only_match: false
+  lut_enable_interpolation: false
+  use_dummy_lut: false
+search:
+  method: rl
+  num_candidates: 300
+  episodes: 300
+  eval_epochs: 10
+  eval_early_stopping_patience: 3
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.003
+  controller_temperature: 2.0
+  controller_entropy_coef: 0.05
+  exploration_epsilon_start: 0.35
+  exploration_epsilon_end: 0.1
+  exploration_epsilon_decay_episodes: 300
+  exploration_bonus: 0.05
+  selection_metric: macro_f1
+  pareto:
+    selection_method: rank
+    topk: 24
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.02
+    energy: 0.0
+    resource: 0.04
+    dsp: 0.08
+    bram: 0.04
+    lut: 0.03
+    physical_risk: 0.0
+    early_expand_pressure: 0.0
+  reward_cfg:
+    constraint_penalty: 10.0
+    infeasible_penalty_mode: violation_ratio
+    infeasible_base_penalty: 1.0
+    infeasible_penalty_scale: 5.0
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 32
+  epochs: 150
+  early_stopping_patience: null
+deployment:
+  export_format: onnx
+  run_hls_validation: false
+notes:
+  phase0_v4_status: inactive_draft_local_only
+  server_launch_status: not_launched
+  draft_scope: Stage3-only sonar admission draft after isolated operator-level HLS/OOC
+    evidence for denoise k3 e1 and edge k3 e1.
+  source_baseline: Phase0 v3 low-DSP route-aware config; stage0/stage1/stage2 are
+    unchanged.
+  admitted_sonar_rows: denoise k3 e1 and edge k3 e1 at stage_index=3 only.
+  excluded_sonar_rows: stage1/stage2 sonar rows, k5 sonar rows, and mixconv remain
+    blocked until separate strict LUT/status and route evidence exist.
+  lut_scope_note: Uses an isolated merged LUT/status under phase0_v4_sonar_stage3_k3_pilot;
+    canonical Phase0 v3 strict LUT/status files are not modified.
+  dsp_budget_note: max_dsp remains in the strict-LUT aggregate scale. Actual Vivado
+    DSP is still enforced by full route gate with full_max_actual_dsp=700.
+  reward_policy_note: physical_risk and early_expand_pressure remain at zero weight
+    in the main reward; final claimability is still Vivado full-route gated.
+  lowdsp_route_gate_note: Full route, if explicitly approved later, must use both
+    the Phase0 v3 low-DSP override catalog and the Phase0 v4 sonar stage3 override
+    catalog.
+  board_scope: No COM5 measurement is valid until a full-route PASS has a bitstream
+    and actual Vivado DSP <= 700.
+  ablation_variant: denoise_only
+  ablation_scope: Only stage3 sonar admission changes across the four variants.
+  claim_boundary: Search-space ablation output is search/proxy only until route and
+    COM5 evidence are added.

@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import ceil
 from typing import Any, Optional, Union
 
@@ -66,6 +66,7 @@ class CostEstimate:
     offchip_mem_mb: float
     violations: tuple[str, ...]
     per_layer: tuple[LayerCost, ...]
+    physical_metrics: dict[str, float] = field(default_factory=dict)
 
     @property
     def resource_dsp(self) -> int:
@@ -89,6 +90,12 @@ class CostEstimate:
             power_w=self.power_w,
             memory_bandwidth_gbps=self.memory_bandwidth_gbps,
             offchip_mem_mb=self.offchip_mem_mb,
+            early_expand_pressure=self.physical_metrics.get("early_expand_pressure"),
+            interconnect_pressure=self.physical_metrics.get("interconnect_pressure"),
+            memory_pressure=self.physical_metrics.get("memory_pressure"),
+            fanout_pressure=self.physical_metrics.get("fanout_pressure"),
+            stream_width=self.physical_metrics.get("stream_width"),
+            physical_risk=self.physical_metrics.get("physical_risk"),
         )
 
 
@@ -185,6 +192,10 @@ class FPGACostEstimator:
             latency_ms=latency_ms,
         )
         offchip_mem_mb = self._estimate_offchip_memory(peak_buffer_bytes)
+        physical_metrics = self._compute_physical_metrics(
+            resolved_blocks=resolved_blocks,
+            peak_buffer_bytes=peak_buffer_bytes,
+        )
         violations = list(
             self._check_constraints(
                 latency_ms=latency_ms,
@@ -196,6 +207,15 @@ class FPGACostEstimator:
                 power_w=power_w,
                 memory_bandwidth_gbps=memory_bandwidth_gbps,
                 offchip_mem_mb=offchip_mem_mb,
+            )
+        )
+        violations.extend(
+            self._check_physical_constraints(
+                resource_dsp=total_dsp,
+                resource_bram=total_bram,
+                resource_lut=total_lut,
+                physical_metrics=physical_metrics,
+                resolved_blocks=resolved_blocks,
             )
         )
         violations.extend(self._check_operator_policy(resolved_blocks))
@@ -223,6 +243,7 @@ class FPGACostEstimator:
             offchip_mem_mb=offchip_mem_mb,
             violations=tuple(violations),
             per_layer=per_layer,
+            physical_metrics=physical_metrics,
         )
 
     @property
@@ -1269,6 +1290,178 @@ class FPGACostEstimator:
         self.deferred_hit_records = []
         self.true_miss_records = []
         self._estimate_dynamic_violations = []
+
+    def _physical_constraints(self) -> dict[str, Any]:
+        constraints = self.constraints
+        if constraints is None:
+            return {}
+        physical = getattr(constraints, "physical", None)
+        if not isinstance(physical, dict) or not physical:
+            return {}
+        if physical.get("enabled") is False:
+            return {}
+        return dict(physical)
+
+    @staticmethod
+    def _optional_float(value: Any) -> Optional[float]:
+        if value is None or value == "":
+            return None
+        return float(value)
+
+    @staticmethod
+    def _optional_int(value: Any) -> Optional[int]:
+        if value is None or value == "":
+            return None
+        return int(value)
+
+    def _physical_capacity(self, physical: dict[str, Any], resource: str) -> Optional[float]:
+        explicit = self._optional_float(physical.get(f"board_max_{resource}"))
+        if explicit is not None:
+            return explicit
+        return self._optional_float(getattr(self.hardware_spec, f"max_{resource}", None))
+
+    def _compute_physical_metrics(
+        self,
+        *,
+        resolved_blocks: tuple[ResolvedBlockSpec, ...],
+        peak_buffer_bytes: int,
+    ) -> dict[str, float]:
+        early_expand_pressure = 0.0
+        interconnect_pressure = 0.0
+        fanout_pressure = 0.0
+        stream_width = 0.0
+        early_max_expand = 1.0
+
+        for block in resolved_blocks:
+            expand = max(1, int(block.expand_ratio))
+            hidden_channels = (
+                int(block.in_channels) * expand
+                if block.op in {"mbconv", "fused_mbconv"}
+                else int(block.out_channels)
+            )
+            input_area = int(block.input_resolution) * int(block.input_resolution)
+            output_area = int(block.output_resolution) * int(block.output_resolution)
+
+            if block.op in {"mbconv", "fused_mbconv"}:
+                early_expand_pressure += (
+                    input_area * int(block.in_channels) * max(0, expand - 1)
+                ) / 1_000_000.0
+                if int(block.input_resolution) >= 56:
+                    early_max_expand = max(early_max_expand, float(expand))
+
+            interconnect_pressure += (
+                output_area
+                * (int(block.in_channels) + int(block.out_channels) + hidden_channels)
+            ) / 1_000_000.0
+            fanout_pressure = max(
+                fanout_pressure,
+                float(int(block.input_resolution) * hidden_channels) / 1024.0,
+            )
+            stream_width = max(stream_width, float(hidden_channels))
+
+        memory_pressure = float(peak_buffer_bytes) / float(1024**2)
+        physical_risk = (
+            early_expand_pressure
+            + 0.25 * interconnect_pressure
+            + 0.10 * memory_pressure
+            + 0.10 * fanout_pressure
+        )
+        return {
+            "early_expand_pressure": early_expand_pressure,
+            "interconnect_pressure": interconnect_pressure,
+            "memory_pressure": memory_pressure,
+            "fanout_pressure": fanout_pressure,
+            "stream_width": stream_width,
+            "early_max_expand": early_max_expand,
+            "physical_risk": physical_risk,
+        }
+
+    def _check_physical_constraints(
+        self,
+        *,
+        resource_dsp: int,
+        resource_bram: int,
+        resource_lut: int,
+        physical_metrics: dict[str, float],
+        resolved_blocks: tuple[ResolvedBlockSpec, ...],
+    ) -> tuple[str, ...]:
+        physical = self._physical_constraints()
+        if not physical:
+            return ()
+
+        violations: list[str] = []
+        max_total_dsp = self._optional_float(
+            physical.get("max_total_dsp", physical.get("dsp_search_budget"))
+        )
+        if max_total_dsp is not None and float(resource_dsp) > max_total_dsp:
+            violations.append(
+                f"physical hard constraint: total DSP {resource_dsp} exceeds {max_total_dsp:g}"
+            )
+
+        utilization_specs = (
+            ("dsp", float(resource_dsp), "max_dsp_utilization"),
+            ("bram", float(resource_bram), "max_bram_utilization"),
+            ("lut", float(resource_lut), "max_lut_utilization"),
+        )
+        for resource_name, used, key in utilization_specs:
+            max_utilization = self._optional_float(physical.get(key))
+            capacity = self._physical_capacity(physical, resource_name)
+            if (
+                max_utilization is not None
+                and capacity is not None
+                and capacity > 0
+                and used > capacity * max_utilization
+            ):
+                violations.append(
+                    "physical hard constraint: "
+                    f"{resource_name.upper()} utilization {used / capacity:.3f} "
+                    f"exceeds {max_utilization:g}"
+                )
+
+        early_rules: list[tuple[int, int]] = []
+        for rule in physical.get("early_expand_limits", ()) or ():
+            if not isinstance(rule, dict):
+                continue
+            min_resolution = self._optional_int(
+                rule.get("min_input_resolution", rule.get("min_resolution"))
+            )
+            max_expand_ratio = self._optional_int(rule.get("max_expand_ratio"))
+            if min_resolution is not None and max_expand_ratio is not None:
+                early_rules.append((min_resolution, max_expand_ratio))
+        early_rules.sort(reverse=True)
+        for block in resolved_blocks:
+            if block.op not in {"mbconv", "fused_mbconv"}:
+                continue
+            for min_resolution, max_expand_ratio in early_rules:
+                if int(block.input_resolution) < min_resolution:
+                    continue
+                if int(block.expand_ratio) > max_expand_ratio:
+                    violations.append(
+                        "physical hard constraint: "
+                        f"stage {block.stage_index} block {block.block_index} "
+                        f"input_resolution={block.input_resolution} expand_ratio={block.expand_ratio} "
+                        f"exceeds {max_expand_ratio} for resolution>={min_resolution}"
+                    )
+                break
+
+        threshold_keys = (
+            ("early_expand_pressure", "max_early_expand_pressure"),
+            ("interconnect_pressure", "max_interconnect_pressure"),
+            ("memory_pressure", "max_memory_pressure"),
+            ("fanout_pressure", "max_fanout_pressure"),
+            ("stream_width", "max_stream_width"),
+            ("physical_risk", "max_physical_risk"),
+        )
+        for metric_name, config_key in threshold_keys:
+            limit = self._optional_float(physical.get(config_key))
+            value = physical_metrics.get(metric_name)
+            if limit is not None and value is not None and float(value) > limit:
+                violations.append(
+                    "physical hard constraint: "
+                    f"{metric_name} {float(value):.6g} exceeds {limit:g}"
+                )
+
+        return tuple(violations)
 
     def _check_constraints(
         self,

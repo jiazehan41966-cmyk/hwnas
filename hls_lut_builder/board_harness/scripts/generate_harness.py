@@ -52,6 +52,87 @@ def render_template(path: Path, mapping: dict[str, str]) -> str:
     return text
 
 
+def constraint_clock_period_ns(clock_cfg: dict[str, Any]) -> Any:
+    """Return the physical input clock period used by create_clock."""
+    return clock_cfg.get("input_period_ns", clock_cfg["period_ns"])
+
+
+def build_clocking_logic(board_cfg: dict[str, Any]) -> str:
+    """Build RTL for the harness main clock.
+
+    The default AV7K325 flow buffers the 200 MHz differential board clock
+    directly into ``clk_main``. Relaxed-frequency board configs can set
+    ``clock.mmcm.enabled`` so ``clk_main`` is a real MMCM-generated 150/100 MHz
+    user clock, not only a looser XDC assumption.
+    """
+
+    clock_cfg = board_cfg["clock"]
+    mmcm_cfg = clock_cfg.get("mmcm", {})
+    if not isinstance(mmcm_cfg, dict) or not mmcm_cfg.get("enabled", False):
+        return """wire clk_ibuf;
+wire clk_main;
+wire clock_ready;
+IBUFDS u_sys_clk_ibufds (
+    .I(sys_clk_p),
+    .IB(sys_clk_n),
+    .O(clk_ibuf)
+);
+
+BUFG u_sys_clk_bufg (
+    .I(clk_ibuf),
+    .O(clk_main)
+);
+
+assign clock_ready = 1'b1;"""
+
+    divclk_divide = int(mmcm_cfg["divclk_divide"])
+    clkfbout_mult_f = float(mmcm_cfg["clkfbout_mult_f"])
+    clkout0_divide_f = float(mmcm_cfg["clkout0_divide_f"])
+    clkout0_phase = float(mmcm_cfg.get("clkout0_phase", 0.0))
+    clkout0_duty_cycle = float(mmcm_cfg.get("clkout0_duty_cycle", 0.5))
+    return f"""wire clk_ibuf;
+wire clk_mmcm;
+wire clk_fb;
+wire clk_fb_buf;
+wire clk_main;
+wire clock_ready;
+IBUFDS u_sys_clk_ibufds (
+    .I(sys_clk_p),
+    .IB(sys_clk_n),
+    .O(clk_ibuf)
+);
+
+BUFG u_clkfb_bufg (
+    .I(clk_fb),
+    .O(clk_fb_buf)
+);
+
+MMCME2_BASE #(
+    .BANDWIDTH("OPTIMIZED"),
+    .CLKIN1_PERIOD({float(constraint_clock_period_ns(clock_cfg)):.6f}),
+    .DIVCLK_DIVIDE({divclk_divide}),
+    .CLKFBOUT_MULT_F({clkfbout_mult_f:.3f}),
+    .CLKFBOUT_PHASE(0.000),
+    .CLKOUT0_DIVIDE_F({clkout0_divide_f:.3f}),
+    .CLKOUT0_PHASE({clkout0_phase:.3f}),
+    .CLKOUT0_DUTY_CYCLE({clkout0_duty_cycle:.3f}),
+    .STARTUP_WAIT("FALSE")
+) u_user_clk_mmcm (
+    .CLKIN1(clk_ibuf),
+    .CLKFBIN(clk_fb_buf),
+    .RST(~sys_rst_n),
+    .PWRDWN(1'b0),
+    .CLKFBOUT(clk_fb),
+    .CLKOUT0(clk_mmcm),
+    .LOCKED(clock_ready)
+);
+
+BUFG u_user_clk_bufg (
+    .I(clk_mmcm),
+    .O(clk_main)
+);"""
+
+
 def parse_constants(source_text: str) -> dict[str, int]:
     constants: dict[str, int] = {}
     pattern = re.compile(r"static constexpr int (\w+) = ([^;]+);")
@@ -180,6 +261,17 @@ def compute_case_meta(case_name: str, constants: dict[str, int]) -> dict[str, in
             "output_word_count": output_word_count,
             "weights_depth": int(channels * constants["K"] * constants["K"]),
             "biases_depth": int(channels),
+        }
+
+    if case_name.startswith(("denoise", "edge")):
+        return {
+            "input_word_count": input_word_count,
+            "output_word_count": output_word_count,
+            "weights_depth": int(
+                constants["IN_CH"] * constants["K"] * constants["K"]
+                + constants["OUT_CH"] * constants["IN_CH"]
+            ),
+            "biases_depth": int(constants["IN_CH"] + constants["OUT_CH"]),
         }
 
     if case_name.startswith("skip"):
@@ -739,6 +831,7 @@ def main() -> None:
             "WEIGHTS_MEM_FILE": f"../data/{weights_mem_file}",
             "BIASES_MEM_FILE": f"../data/{biases_mem_file}",
             "INPUT_WORD_MEM_FILE": f"../data/{input_word_mem_path.name}",
+            "CLOCKING_LOGIC": build_clocking_logic(board_cfg),
             "WEIGHTS_SUPPORT_LOGIC": weights_support_logic,
             "BIASES_SUPPORT_LOGIC": biases_support_logic,
             "KERNEL_INSTANCE": kernel_instance,
@@ -777,7 +870,7 @@ def main() -> None:
     xdc_text = render_template(
         TEMPLATES_DIR / "harness_constraints.xdc.tmpl",
         {
-            "CLOCK_PERIOD_NS": str(clock_cfg["period_ns"]),
+            "CLOCK_PERIOD_NS": str(constraint_clock_period_ns(clock_cfg)),
             "CLOCK_CREATE_PORT": str(clock_create_port),
             "CLOCK_PIN_CONSTRAINTS": "\n".join([line for line in clock_constraints if line]),
             "RESET_PIN_CONSTRAINT": make_constraint_line(

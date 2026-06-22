@@ -470,6 +470,42 @@ class SearchSpace:
     def from_dict(cls, payload: Mapping[str, Any]) -> "SearchSpace":
         return cls(SearchSpaceConfig.from_dict(payload))
 
+    @staticmethod
+    def _physical_constraints_config(
+        constraints: Optional[SearchConstraints],
+    ) -> dict[str, Any]:
+        if constraints is None:
+            return {}
+        physical = getattr(constraints, "physical", None)
+        if not isinstance(physical, dict) or not physical:
+            return {}
+        if physical.get("enabled") is False:
+            return {}
+        return dict(physical)
+
+    @staticmethod
+    def _block_choice_allowed_by_physical(
+        block: BlockSpec,
+        *,
+        input_resolution: int,
+        physical: Mapping[str, Any],
+    ) -> bool:
+        if block.op not in {"mbconv", "fused_mbconv"}:
+            return True
+        for rule in physical.get("early_expand_limits", ()) or ():
+            if not isinstance(rule, Mapping):
+                continue
+            min_resolution = rule.get("min_input_resolution", rule.get("min_resolution"))
+            max_expand_ratio = rule.get("max_expand_ratio")
+            if min_resolution is None or max_expand_ratio is None:
+                continue
+            if (
+                int(input_resolution) >= int(min_resolution)
+                and int(block.expand_ratio) > int(max_expand_ratio)
+            ):
+                return False
+        return True
+
     def pre_prune(self, cost_estimator: "FPGACostEstimator") -> "SearchSpace":
         """根据FPGA资源约束预判缩减搜索空间。
 
@@ -506,6 +542,7 @@ class SearchSpace:
         new_ops = self.config.op_choices
         new_kernels = self.config.kernel_choices
         new_expands = self.config.expand_choices
+        new_stage_block_choices = self.config.stage_block_choices
 
         if estimate.violations:
             print(f"  Baseline 违反约束: {estimate.violations}")
@@ -591,20 +628,45 @@ class SearchSpace:
                 for stage_choices in self.config.stage_depth_choices
             )
 
-        if self.config.stage_block_choices is not None:
+        physical = self._physical_constraints_config(constraints)
+        if self.config.stage_block_choices is not None and physical:
+            filtered_stage_block_choices: list[tuple[BlockSpec, ...]] = []
+            current_resolution = max(1, ceil(self.config.image_size / self.config.stem_stride))
+            current_resolution = max(
+                1,
+                ceil(current_resolution / self.config.post_stem_downsample_stride),
+            )
+            for stage_index, choices in enumerate(self.config.stage_block_choices):
+                filtered = tuple(
+                    block
+                    for block in choices
+                    if self._block_choice_allowed_by_physical(
+                        block,
+                        input_resolution=current_resolution,
+                        physical=physical,
+                    )
+                )
+                filtered_stage_block_choices.append(filtered or choices)
+                current_resolution = max(
+                    1,
+                    ceil(current_resolution / self.config.stage_strides[stage_index]),
+                )
+            new_stage_block_choices = tuple(filtered_stage_block_choices)
+
+        if new_stage_block_choices is not None:
             block_ops = {
                 str(block.op)
-                for choices in self.config.stage_block_choices
+                for choices in new_stage_block_choices
                 for block in choices
             }
             block_kernels = {
                 int(block.kernel_size)
-                for choices in self.config.stage_block_choices
+                for choices in new_stage_block_choices
                 for block in choices
             }
             block_expands = {
                 int(block.expand_ratio)
-                for choices in self.config.stage_block_choices
+                for choices in new_stage_block_choices
                 for block in choices
             }
             new_ops = tuple(sorted(set(new_ops) | block_ops))
@@ -620,6 +682,7 @@ class SearchSpace:
             kernel_choices=new_kernels,
             expand_choices=new_expands,
             op_choices=new_ops,
+            stage_block_choices=new_stage_block_choices,
         )
 
         reduction = self._calculate_reduction_ratio(self.config, new_config)
@@ -634,17 +697,36 @@ class SearchSpace:
     
     def _calculate_reduction_ratio(self, old_config: SearchSpaceConfig, new_config: SearchSpaceConfig) -> float:
         """计算搜索空间缩减比例"""
-        old_size = (
-            len(old_config.channel_choices) *
-            len(old_config.depth_choices) *
-            len(old_config.op_choices)
-        )
-        new_size = (
-            len(new_config.channel_choices) *
-            len(new_config.depth_choices) *
-            len(new_config.op_choices)
-        )
-        
+        def size(config: SearchSpaceConfig) -> int:
+            channel_factor = 1
+            if config.stage_channel_choices is not None:
+                for choices in config.stage_channel_choices:
+                    channel_factor *= max(1, len(choices))
+            else:
+                channel_factor = max(1, len(config.channel_choices)) ** config.stage_count
+
+            depth_factor = 1
+            if config.stage_depth_choices is not None:
+                for choices in config.stage_depth_choices:
+                    depth_factor *= max(1, len(choices))
+            else:
+                depth_factor = max(1, len(config.depth_choices)) ** config.stage_count
+
+            if config.stage_block_choices is not None:
+                block_factor = 1
+                for choices in config.stage_block_choices:
+                    block_factor *= max(1, len(choices))
+            else:
+                block_factor = (
+                    max(1, len(config.op_choices))
+                    * max(1, len(config.kernel_choices))
+                    * max(1, len(config.expand_choices))
+                ) ** config.stage_count
+            return channel_factor * depth_factor * block_factor
+
+        old_size = size(old_config)
+        new_size = size(new_config)
+
         if old_size == 0:
             return 0.0
         return ((old_size - new_size) / old_size) * 100

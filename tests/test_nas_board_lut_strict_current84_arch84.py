@@ -91,6 +91,30 @@ def _generate_to(output_dir: Path) -> tuple[Path, Path, dict]:
     )
 
 
+def _generate_profile_to(output_dir: Path, timing_profile: str) -> tuple[Path, Path, dict]:
+    subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--timing-profile",
+            timing_profile,
+            "--output-dir",
+            str(output_dir),
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    summary_path = output_dir / "summary.json"
+    return (
+        output_dir / "nas_board_lut_strict.json",
+        output_dir / "nas_board_lut_status.json",
+        json.loads(summary_path.read_text(encoding="utf-8")),
+    )
+
+
 class NasBoardLutStrictCurrent84Arch84Tests(unittest.TestCase):
     def test_generator_counts_and_preserves_raw_ledgers(self) -> None:
         before = {path: _sha256(path) for path in PROTECTED_RAW_INPUTS}
@@ -115,6 +139,31 @@ class NasBoardLutStrictCurrent84Arch84Tests(unittest.TestCase):
         )
         self.assertEqual(summary["by_source_status"]["arch84_e2e_extension"]["measured"], 3)
         self.assertEqual(summary["unparsed_case_count"], 0)
+
+    def test_relaxed_timing_profile_is_isolated_from_tight_lut(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            lut_path, status_path, summary = _generate_profile_to(Path(tmp), "medium")
+
+            self.assertEqual(summary["timing_profile"], "medium")
+            self.assertEqual(summary["target_clock_mhz"], 150.0)
+            self.assertEqual(
+                summary["official_lut_eligibility"],
+                "not_eligible_until_new_vivado_implementation_and_com5_measurement",
+            )
+            self.assertGreater(summary["strict_usable_count"], 58)
+            self.assertEqual(summary["missing_unusable_count"], 0)
+
+            table = LutTable.load_json(str(lut_path))
+            status_payload = json.loads(status_path.read_text(encoding="utf-8"))
+            relaxed_rows = [
+                entry
+                for entry in status_payload["entries"]
+                if entry["status"] == "measured"
+                and entry.get("wns_ns") is not None
+                and float(entry["wns_ns"]) < 0.0
+            ]
+            self.assertGreater(len(relaxed_rows), 0)
+            self.assertEqual(len(table), summary["strict_usable_count"])
 
     def test_lut_loader_keeps_timing_fail_reference_out_of_measured_lut(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

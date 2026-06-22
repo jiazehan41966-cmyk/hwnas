@@ -451,6 +451,57 @@ class SearchSpaceProbeTests(unittest.TestCase):
         invalid = ArchitectureSpec.from_dict(payload)
         self.assertFalse(space.is_valid(invalid))
 
+    def test_pre_prune_filters_stage_block_choices_with_physical_limits(self) -> None:
+        constraints = SearchConstraints(
+            physical={
+                "enabled": True,
+                "early_expand_limits": [
+                    {"min_input_resolution": 112, "max_expand_ratio": 3},
+                ],
+            }
+        )
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 32,
+                "stem_stride": 2,
+                "stage_strides": [1],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3],
+                "expand_choices": [3, 6],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 6},
+                    ]
+                ],
+                "num_classes": 8,
+                "hardware_constraints": constraints,
+            }
+        )
+        space = SearchSpace(config)
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=2_000,
+            ),
+            constraints=constraints,
+        )
+
+        pruned = space.pre_prune(estimator)
+        remaining_expands = {
+            block.expand_ratio for block in pruned.config.stage_block_choices[0]
+        }
+
+        self.assertEqual(remaining_expands, {3})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,10 +27,12 @@ from hwnas_fpga.runtime import (
 from hwnas_fpga.search import (
     ParetoFrontSelector,
     build_pareto_objectives,
+    build_pareto_selection_summary,
     candidate_selection_score,
     compute_hypervolume,
     compute_pareto_front,
     compute_pareto_ranks,
+    write_pareto_selection_artifacts,
 )
 from hwnas_fpga.search.official_proxyless_bridge import proxyless_net_config_to_architecture
 from hwnas_fpga.search.searcher import BaseSearcher
@@ -593,29 +595,18 @@ def run_official_proxyless_search(
                 directions=pareto_directions,
             )
 
-        pareto_summary = {
-            "objectives": pareto_objectives,
-            "directions": pareto_directions,
-            "selection_method": pareto_method,
-            "pareto_front_size": len(pareto_front),
-            "hypervolume": hypervolume,
-            "selected_topk": [
-                {
-                    "arch_id": item.arch_id,
-                    "encoding": item.encoding,
-                    "metrics": item.metrics.__dict__,
-                }
-                for item in pareto
-            ],
-            "ranks": [
-                {"arch_id": item.arch_id, "rank": rank}
-                for item, rank in zip(feasible_candidates, pareto_ranks)
-            ],
-        }
-        (tracker.results_dir / "pareto_selection.json").write_text(
-            json.dumps(pareto_summary, ensure_ascii=False, indent=2),
-            encoding="utf-8",
+        pareto_summary = build_pareto_selection_summary(
+            candidates=feasible_candidates,
+            pareto_front=pareto_front,
+            selected_candidates=pareto,
+            ranks=pareto_ranks,
+            objectives=pareto_objectives,
+            directions=pareto_directions,
+            selection_method=pareto_method,
+            topk=pareto_topk,
+            hypervolume=hypervolume,
         )
+        write_pareto_selection_artifacts(tracker.results_dir, pareto_summary)
 
         lut_stats = estimator.get_lut_stats()
         (tracker.results_dir / "lut_stats.json").write_text(

@@ -1,0 +1,6 @@
+version: phase0_v4_sonar_stage3_lowdsp_overrides_v1
+direct:
+  stage3_denoise_k3_e1:
+    l5_stage3_block0_denoise: denoise_sonar_stage3_28_32_32_s1_baseline_pi1_po1_u1_main_5ns
+  stage3_edge_k3_e1:
+    l5_stage3_block0_edge: edge_sonar_stage3_28_32_32_s1_baseline_pi1_po1_u1_main_5ns
