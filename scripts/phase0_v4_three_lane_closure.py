@@ -692,6 +692,56 @@ def op_choices_for_variant(variant: str) -> list[str]:
     return ops
 
 
+def ablation_run_state(run_dir: Path) -> dict[str, Any]:
+    summary = read_json_if_exists(run_dir / "results" / "summary.json")
+    search_state = read_json_if_exists(run_dir / "checkpoints" / "search_state.json")
+    pareto = read_json_if_exists(run_dir / "results" / "pareto_selection.json")
+    best = read_json_if_exists(run_dir / "results" / "best_candidate.json")
+
+    if summary:
+        status = summary.get("status") or "completed"
+        total_evaluated = summary.get("total_evaluated", "")
+        feasible = summary.get("feasible", "")
+        comparison_ready = total_evaluated == 300
+        state_source = "summary.json"
+    elif search_state:
+        status = "partial_started"
+        total_evaluated = search_state.get("total_evaluated", "")
+        feasible = search_state.get("feasible", "")
+        comparison_ready = False
+        state_source = "checkpoints/search_state.json"
+        if not best and isinstance(search_state.get("best_candidate"), dict):
+            best = {"candidate": search_state["best_candidate"]}
+    else:
+        status = "not run"
+        total_evaluated = ""
+        feasible = ""
+        comparison_ready = False
+        state_source = ""
+
+    candidate = best.get("candidate") if isinstance(best.get("candidate"), dict) else {}
+    metrics = candidate.get("metrics") if isinstance(candidate.get("metrics"), dict) else {}
+    latest_episode = ""
+    if search_state:
+        extra = search_state.get("extra") if isinstance(search_state.get("extra"), dict) else {}
+        latest_episode = extra.get("episode", "")
+
+    return {
+        "status": status,
+        "state_source": state_source,
+        "total_evaluated": total_evaluated,
+        "feasible": feasible,
+        "pareto_count": len(pareto.get("selected_topk") or []) if pareto else "",
+        "best_arch_id": candidate.get("arch_id", ""),
+        "metrics": metrics,
+        "comparison_ready": comparison_ready,
+        "latest_episode": latest_episode,
+        "resume_checkpoint": rel(run_dir / "checkpoints" / "search_state.json")
+        if search_state
+        else "",
+    }
+
+
 def build_ablation_artifacts(
     *,
     base_config_path: Path,
@@ -722,11 +772,8 @@ def build_ablation_artifacts(
         config_path = config_dir / f"{run_name}.yaml"
         config_path.write_text(yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True), encoding="utf-8")
         run_dir = output_root / run_name
-        summary = read_json_if_exists(run_dir / "results" / "summary.json")
-        pareto = read_json_if_exists(run_dir / "results" / "pareto_selection.json")
-        best = read_json_if_exists(run_dir / "results" / "best_candidate.json")
-        candidate = best.get("candidate") if isinstance(best.get("candidate"), dict) else {}
-        metrics = candidate.get("metrics") if isinstance(candidate.get("metrics"), dict) else {}
+        state = ablation_run_state(run_dir)
+        metrics = state["metrics"]
         command = [
             str(python_path),
             "run_rl_search.py",
@@ -737,14 +784,17 @@ def build_ablation_artifacts(
         ]
         row = {
             "variant": variant,
-            "status": summary.get("status", "not run") if summary else "not run",
+            "status": state["status"],
+            "state_source": state["state_source"],
             "config": rel(config_path),
             "run_dir": rel(run_dir),
             "stage3_choices": json.dumps(stage_choices[3], ensure_ascii=False),
-            "total_evaluated": summary.get("total_evaluated") if summary else "",
-            "feasible": summary.get("feasible") if summary else "",
-            "pareto_count": len(pareto.get("selected_topk") or []) if pareto else "",
-            "best_arch_id": candidate.get("arch_id", ""),
+            "total_evaluated": state["total_evaluated"],
+            "feasible": state["feasible"],
+            "latest_episode": state["latest_episode"],
+            "comparison_ready": state["comparison_ready"],
+            "pareto_count": state["pareto_count"],
+            "best_arch_id": state["best_arch_id"],
             "macro_f1": metrics.get("macro_f1"),
             "top1": metrics.get("top1"),
             "search_latency_ms": metrics.get("latency_ms"),
@@ -752,6 +802,7 @@ def build_ablation_artifacts(
             "dsp": metrics.get("dsp"),
             "bram": metrics.get("bram"),
             "route_status": "not run",
+            "resume_checkpoint": state["resume_checkpoint"],
             "command": command_for_display(command),
         }
         rows.append(row)
@@ -772,11 +823,14 @@ def build_ablation_artifacts(
     fields = [
         "variant",
         "status",
+        "state_source",
         "config",
         "run_dir",
         "stage3_choices",
         "total_evaluated",
         "feasible",
+        "latest_episode",
+        "comparison_ready",
         "pareto_count",
         "best_arch_id",
         "macro_f1",
@@ -786,6 +840,7 @@ def build_ablation_artifacts(
         "dsp",
         "bram",
         "route_status",
+        "resume_checkpoint",
         "command",
     ]
     write_json(output_root / "phase0_v4_sonar_ablation_summary.json", payload)
@@ -803,13 +858,15 @@ def write_ablation_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- generated_at: `{payload['generated_at']}`",
         "- boundary: generated configs differ only in stage3 sonar admission.",
         "- comparison layers: search-space contribution, sonar-op candidate contribution, and hardware deployability must be reported separately.",
+        "- comparison_ready must be true before using a variant for formal ablation conclusions.",
         "",
-        "| variant | status | best arch | macro_f1 | top1 | latency ms | LUT | DSP | BRAM | config |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---|",
+        "| variant | status | evaluated | ready | best arch | macro_f1 | top1 | latency ms | LUT | DSP | BRAM | config |",
+        "|---|---|---:|---|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for row in payload["rows"]:
         lines.append(
-            f"| {row['variant']} | {row['status']} | `{row.get('best_arch_id', '')}` | "
+            f"| {row['variant']} | {row['status']} | {fmt(row.get('total_evaluated'))} | "
+            f"{row.get('comparison_ready')} | `{row.get('best_arch_id', '')}` | "
             f"{fmt(row.get('macro_f1'))} | {fmt(row.get('top1'))} | "
             f"{fmt(row.get('search_latency_ms'))} | {fmt(row.get('lut'))} | "
             f"{fmt(row.get('dsp'))} | {fmt(row.get('bram'))} | `{row.get('config')}` |"

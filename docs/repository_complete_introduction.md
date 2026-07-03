@@ -421,6 +421,12 @@ docs/repository_complete_introduction.md
   -> docs/audit_deploy_result_consumption.md
 ```
 
+Dynamic Phase0 evidence is maintained separately:
+
+- `docs/PHASE0_V3_BOARD_RESULTS.md`
+- `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`
+- `docs/PHASE0_V4_SONAR_RESULTS.md`
+
 后续如果补做 HLS/LUT 生产链审计，应新增：
 
 ```text

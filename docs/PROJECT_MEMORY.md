@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-06-22
+Last updated: 2026-07-03
 
 Purpose: this file is the persistent local memory index for the HW-NAS FPGA Sonar repository. New tasks in this workspace should read this file first when they need repository context, audit history, archive paths, or workflow boundaries.
 
@@ -26,6 +26,7 @@ Supporting result/archive policy documents:
 - `E:\1\hwnas\hwnas\docs\PHASE0_V3_DEPLOYABLE_SEARCH_EVIDENCE.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V4_SONAR_OP_PRECHECK.md`
+- `E:\1\hwnas\hwnas\docs\PHASE0_V4_SONAR_RESULTS.md`
 
 Concrete local archive outputs:
 
@@ -33,6 +34,10 @@ Concrete local archive outputs:
 - `E:\1\hwnas\hwnas\results_archive\2026-04-review\ARCHIVE_MANIFEST.txt`
 - `E:\1\hwnas\hwnas\results\phase0_v4_sonar_op_precheck\`
 - `E:\1\hwnas\hwnas\hls_lut_builder\results\phase0_v4_sonar_stage3_k3_pilot\`
+- `E:\1\hwnas\hwnas\results\retrain_phase0_v4_sonar_stage3_k3_topk_20260621\`
+- `E:\1\hwnas\hwnas\results\phase0_v4_sonar_stage3_k3_board_experiment\`
+- `E:\1\hwnas\hwnas\results\phase0_v4_sonar_ablation_rl300_20260621\`
+- `E:\1\hwnas\hwnas\results\sonar_image_quality_psnr_ssim_20260622\`
 
 Current Phase0 v3 board-validation outputs:
 
@@ -62,6 +67,8 @@ Covered:
 - Phase0 v3 deployable-search evidence boundaries, including denominator rules and separation of search proxy, retrain, and board-claimable layers.
 - Phase0 v3 retrained-weight board reinjection for `rl_arch_186` and `rl_arch_242`, including retrain150 metrics, new routed bitstream SHA256 values, and COM5 deterministic harness-input measurements.
 - Phase0 v4 sonar-op precheck evidence roots for the local-only stage3 k3 pilot and launch-readiness package.
+- Phase0 v4 retrain150, full-route, five-run COM5, partial-ablation, and
+  PSNR/SSIM evidence boundaries, summarized in `docs/PHASE0_V4_SONAR_RESULTS.md`.
 
 Known gap:
 
@@ -86,6 +93,16 @@ Current Phase0 v3 retrained-weight board reinjection result:
 - The acceptance audit `retrained_board_reinject_acceptance_audit.json/.md` reports `overall_pass=true`, with 2 root gates and 20 per-candidate gates passing for both `rl_arch_186` and `rl_arch_242`.
 - Board-level measured power/energy protocol is now CSV-import based under `retrain_phase0_v3_board_reinject_20260608\power_measurements`; until real external power-meter CSV files are imported and `retrained_board_power_energy_acceptance_audit.json` passes, keep power/energy as `not measured`, and treat Vivado power only as an estimate/proxy.
 
+Current Phase0 v4 sonar result:
+- The 2026-06-22 evidence snapshot contains 7 Pareto rows, 6 route-clean and
+  five-run COM5 board-claimable rows, and 1 route-fail row.
+- Classification search proxy, retrain150 validation, route/COM5, PSNR/SSIM,
+  and measured power remain separate evidence layers.
+- The four-way sonar ablation is incomplete: only `no_sonar` has started
+  (`3/300` evaluated); all rows have `comparison_ready=false`.
+- Use `docs/PHASE0_V4_SONAR_RESULTS.md` for exact metrics, artifact paths, and
+  non-claim boundaries.
+
 ## Read Rules For Future Tasks
 
 For a new repository task:
@@ -99,6 +116,7 @@ For a new repository task:
 7. For storage cleanup or archive policy, read `docs/RUN_STORAGE_AUDIT.md` and `docs/RESULT_RETENTION_DECISIONS.md`.
 8. For Phase0 v3 low-DSP route-aware board results, read `docs/PHASE0_V3_BOARD_RESULTS.md`.
 9. For Phase0 v3 retrained-weight board reinjection results, read `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`.
+10. For Phase0 v4 sonar search/retrain/route/COM5/image-quality status, read `docs/PHASE0_V4_SONAR_RESULTS.md`.
 
 Do not use memories, assumptions, datasets, metrics, or conclusions from other projects unless the user explicitly asks to connect them.
 

@@ -19,6 +19,11 @@ branch `codex/repo-cleanup-review`.
   Operator ablation experiments tied to macro templates / anchor roles.
 - `run_rl_search.py`
   Thin compatibility wrapper that forwards to `run_search.py --search-method rl`.
+- `scripts/measure_sonar_image_quality.py`
+  PSNR/SSIM/MSE reporting for dataset-transform analysis or paired references.
+- `scripts/phase0_v4_three_lane_closure.py`
+  Packaging-only by default; reconciles search, retrain, route, COM5, and
+  ablation evidence without launching long-running work unless explicitly asked.
 
 ## Core Source Tree
 
@@ -30,6 +35,8 @@ branch `codex/repo-cleanup-review`.
   Search-space configuration, sampling, pruning, and probe utilities.
 - `src/hwnas_fpga/hardware`
   FPGA board profiles, analytical estimators, LUT support, and report parsing.
+- `src/hwnas_fpga/metrics`
+  Reusable image-quality metrics kept separate from classification metrics.
 - `src/hwnas_fpga/search`
   Search algorithms and Pareto utilities.
 - `src/hwnas_fpga/training`

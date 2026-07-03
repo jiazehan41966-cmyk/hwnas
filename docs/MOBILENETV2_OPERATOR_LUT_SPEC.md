@@ -19,10 +19,10 @@ This specification supersedes any earlier ShuffleNetV2-centered operator plan.
 ## Basis
 
 - Macro backbone winner: `MobileNetV2`
-  - Source blueprint: [run_backbone_baseline.py](/E:/1/hwnas/hwnas/run_backbone_baseline.py)
+  - Source blueprint: [run_backbone_baseline.py](../run_backbone_baseline.py)
 - Operator screening result:
-  - [operator_retention_table.json](/E:/1/hwnas/hwnas/results/operator_ablation_nksid_av7k325_search_anchor_singleops_ep120_gpu_20260418/results/operator_retention_table.json)
-  - [operator_ablation_summary.json](/E:/1/hwnas/hwnas/results/operator_ablation_nksid_av7k325_search_anchor_singleops_ep120_gpu_20260418/results/operator_ablation_summary.json)
+  - [operator_retention_table.json](../results/operator_ablation_nksid_av7k325_search_anchor_singleops_ep120_gpu_20260418/results/operator_retention_table.json)
+  - [operator_ablation_summary.json](../results/operator_ablation_nksid_av7k325_search_anchor_singleops_ep120_gpu_20260418/results/operator_ablation_summary.json)
 
 ## Final Search-Level Operator Set
 

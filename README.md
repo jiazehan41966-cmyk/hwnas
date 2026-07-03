@@ -33,6 +33,9 @@ python3 run_export.py --checkpoint results/<run_name>/checkpoints/final_best_mod
 
 # 从 HLS profiling 报告构建 LUT 表
 python3 run_build_lut.py --manifest configs/hardware/lut_manifest_example.yaml --output artifacts/fpga_lut.pkl
+
+# 声呐图像 PSNR/SSIM（默认 input_as_reference，仅作算子影响分析）
+python3 scripts/measure_sonar_image_quality.py --data-dir data/NKSID --split val --fold 0
 ```
 
 详细使用说明：[docs/QUICKSTART.md](docs/QUICKSTART.md)
@@ -85,31 +88,36 @@ results/<run_name>/
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | 整体技术架构与模块边界 |
 | [docs/method_design.md](docs/method_design.md) | 问题模型、方法设计与实现映射 |
-| [docs/project_overview.md](docs/project_overview.md) | 项目概览与问题定义 |
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速开始与使用指南 |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | 实现进展与功能总结 |
+| [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) | 审计、证据与交接索引 |
 | [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) | Phase0 v3 low-DSP full-route and COM5 board-claimable results |
+| [docs/PHASE0_V4_SONAR_RESULTS.md](docs/PHASE0_V4_SONAR_RESULTS.md) | Phase0 v4 search/retrain/route/COM5/image-quality handoff |
 | [docs/SEARCH_CONFIG_CANONICAL.md](docs/SEARCH_CONFIG_CANONICAL.md) | 当前规范搜索配置说明 |
 | [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) | 仓库布局说明 |
 
 ---
 
-## Current Board-Claimable Phase0 v3 Result
+## Current Evidence Status
 
-As of 2026-06-06, the Phase0 v3 low-DSP route-aware round has 4 claimable
-full-network AV7K325 COM5 candidates. Use
-[docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) as the
-handoff source. The headline choices are:
+The 2026-06-22 Phase0 v4 sonar snapshot contains 7 Pareto route-screen rows:
+6 are route-clean with stable five-run COM5 evidence and 1 (`rl_arch_116`) is
+full-route-fail. Five v4 candidates also completed retrain150. See
+[docs/PHASE0_V4_SONAR_RESULTS.md](docs/PHASE0_V4_SONAR_RESULTS.md) for exact
+metrics and artifact paths.
 
-- `accuracy-first`: `rl_arch_186`, macro_f1 `0.629512`, top1 `0.792308`,
-  real board e2e latency `49.062010 ms`, actual DSP `612`.
-- `latency-balanced`: `rl_arch_242`, macro_f1 `0.627406`, real board e2e
-  latency `24.872910 ms`, actual DSP `612`.
-- `resource-min`: `rl_arch_276`, real board e2e latency `24.836150 ms`,
-  actual DSP `524`.
+Evidence boundaries:
 
-NAS LUT `latency_ms` is an estimator value only; use the COM5 measurement JSON
-and final validation reports for real board latency claims.
+- search `macro_f1`/`top1` and hardware fields are proxy evidence;
+- retrain150 metrics are PyTorch validation-set evidence;
+- COM5 is deterministic harness-input latency/output sanity, not full NKSID
+  board accuracy;
+- PSNR/SSIM with `input_as_reference` is operator-effect analysis, not
+  clean-reference restoration quality;
+- measured power/energy remains `not measured`.
+
+The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
+[docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md).
 
 ---
 
@@ -149,6 +157,7 @@ and final validation reports for real board latency claims.
     |   |-- lookup_table.py
     |   |-- lut_pipeline.py
     |   `-- report_parser.py
+    |-- metrics/                      # PSNR / SSIM / MSE
     |-- models/                       # 模型构建
     |   `-- builder.py
     |-- data/                         # 数据加载
@@ -184,14 +193,18 @@ and final validation reports for real board latency claims.
 - **部署导出**：ONNX 导出、HLS 项目骨架、report parser。
 - **INT8 量化**：导出权重量化包，供 FPGA/HLS 后端使用。
 - **LUT profiling**：从 HLS report 构建 LUT table。
+- **HLS/Vivado/COM5 证据链**：full-route gate、固定输入板测与稳定性产物。
+- **声呐图像质量**：PSNR/SSIM/MSE dataset mode 与 paired mode。
 - **对比实验**：Fused MBConv vs 标准 MBConv、有/无早期剪枝。
 - **Pareto 优化**：多目标优化与前沿分析。
 
 ### 待实现
 
 - 权重共享超网训练。
-- 真实声呐数据加载（MARIS/UATD）。
-- HLS/Vivado/Vitis 实际调用与板上回测。
+- 四路声呐消融完整闭环。
+- NKSID 完整验证集的样本级板上准确率。
+- 外部功率计或可读监控路径的实测功耗/能耗闭环。
+- 独立的 HLS/LUT 生产链审计归档。
 
 ---
 

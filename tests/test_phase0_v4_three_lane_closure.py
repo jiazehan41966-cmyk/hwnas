@@ -98,6 +98,55 @@ def test_ablation_configs_change_only_stage3_admission(tmp_path):
         assert cfg["search"]["eval_epochs"] == 10
 
 
+def test_ablation_summary_marks_partial_search_state_not_comparison_ready(tmp_path):
+    mod = load_module()
+    base_config = REPO_ROOT / "configs" / "search" / (
+        "nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_physical_"
+        "phase0_v4_sonar_stage3_k3_lowdsp_draft_av7k325.yaml"
+    )
+    output_root = tmp_path / "ablation_results"
+    config_dir = tmp_path / "ablation_configs"
+    run_dir = output_root / "phase0_v4_sonar_ablation_no_sonar_rl300_eval10_seed42"
+    (run_dir / "checkpoints").mkdir(parents=True)
+    (run_dir / "checkpoints" / "search_state.json").write_text(
+        json.dumps(
+            {
+                "total_evaluated": 3,
+                "feasible": 3,
+                "best_candidate": {
+                    "arch_id": "rl_arch_2",
+                    "metrics": {
+                        "macro_f1": 0.596884,
+                        "top1": 0.771154,
+                        "latency_ms": 6.851485,
+                        "lut": 92362,
+                        "dsp": 900,
+                        "bram": 135,
+                    },
+                },
+                "extra": {"episode": 2},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = mod.build_ablation_artifacts(
+        base_config_path=base_config,
+        output_root=output_root,
+        config_dir=config_dir,
+        python_path=Path(".venv_cuda/Scripts/python.exe"),
+    )
+
+    row = next(item for item in payload["rows"] if item["variant"] == "no_sonar")
+    assert row["status"] == "partial_started"
+    assert row["state_source"] == "checkpoints/search_state.json"
+    assert row["total_evaluated"] == 3
+    assert row["latest_episode"] == 2
+    assert row["comparison_ready"] is False
+    assert row["best_arch_id"] == "rl_arch_2"
+    assert row["macro_f1"] == 0.596884
+
+
 def test_measurement_audit_upgrades_route_clean_candidate(tmp_path):
     mod = load_module()
     bitstream = tmp_path / "candidate.bit"

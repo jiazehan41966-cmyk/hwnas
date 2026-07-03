@@ -1,5 +1,9 @@
 ﻿# HW-NAS FPGA Sonar 椤圭洰浠嬬粛
 
+> Legacy design snapshot retained for provenance. Use `../PROGRESS.md` and
+> `../repository_complete_introduction.md` for current implementation and
+> evidence status.
+>
 > Current formal MobileNetV2 mainline: `mbconv`, `fused_mbconv`, `denoise`, `edge`, `skip`.
 >
 > `dw_pw_conv` remains available only for historical or lightweight-compatible

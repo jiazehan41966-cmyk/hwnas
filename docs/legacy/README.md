@@ -7,3 +7,9 @@ For the current repository map and storage policy, use:
 
 - `docs/REPO_LAYOUT.md`
 - `docs/RUN_STORAGE_AUDIT.md`
+
+Retained documents:
+
+- `SEARCH_COMPARISON_PLAN.md`: historical search-comparison plan.
+- `project_overview.md`: early overview; use `../PROGRESS.md` and
+  `../repository_complete_introduction.md` for current status.

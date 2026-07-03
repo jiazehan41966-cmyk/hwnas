@@ -193,6 +193,22 @@ def delta(a: Any, b: Any) -> float | None:
 def render_markdown(payload: dict[str, Any]) -> str:
     summary = payload["summary"]
     rows = payload["rows"]
+    v4_rows = [row for row in rows if row.get("phase") == "v4"]
+    board_ids = [
+        str(row["arch_id"])
+        for row in v4_rows
+        if row.get("evidence_class") == "board-claimable"
+    ]
+    route_only_ids = [
+        str(row["arch_id"])
+        for row in v4_rows
+        if row.get("evidence_class") == "route-clean"
+    ]
+    route_fail_ids = [
+        str(row["arch_id"])
+        for row in v4_rows
+        if row.get("evidence_class") == "route-fail"
+    ]
     lines = [
         "# Phase0 v4 vs v3 Board Evidence Comparison",
         "",
@@ -216,7 +232,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Comparison Table",
             "",
-            "| phase | arch | role | stage3 op | class | macro_f1 | top1 | COM5 ms | cycles | WNS ns | actual DSP | actual LUT | runs |",
+            "| phase | arch | role | stage3 op | class | search macro_f1 | search top1 | COM5 ms | cycles | WNS ns | actual DSP | actual LUT | runs |",
             "|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
@@ -234,11 +250,28 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "## Evidence Boundaries",
             "",
             "- A v4 row is `board-claimable` only when it has full-route PASS, nonnegative WNS, actual DSP <= 700, COM5 `status_code=0`, and the listed measured bitstream hash.",
+            "- The macro_f1/top1 columns are search-proxy metrics; retrain150 validation metrics are reported in the separate retrain comparison artifact.",
             "- Search latency/DSP/LUT columns are proxy estimates and must not be described as real board latency/resources.",
-            "- `rl_arch_60`, `rl_arch_175`, and `rl_arch_193` are route-clean only in this batch because COM5 slots were not spent on them.",
-            "- `rl_arch_116` is a valid negative result: denoise was searchable, but this candidate failed full-route timing/resource gates.",
         ]
     )
+    if board_ids:
+        lines.append(
+            "- Current manifest board-claimable rows: "
+            + ", ".join(f"`{arch_id}`" for arch_id in board_ids)
+            + "."
+        )
+    if route_only_ids:
+        lines.append(
+            "- Current manifest route-clean-only rows: "
+            + ", ".join(f"`{arch_id}`" for arch_id in route_only_ids)
+            + "."
+        )
+    if route_fail_ids:
+        lines.append(
+            "- Current manifest route-fail rows: "
+            + ", ".join(f"`{arch_id}`" for arch_id in route_fail_ids)
+            + "; these remain blocked from COM5 claimability."
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -259,7 +292,7 @@ def build_payload(manifest: dict[str, Any]) -> dict[str, Any]:
     findings: list[str] = []
     if v4_best_macro and v3_best_macro:
         findings.append(
-            f"Best board-claimable v4 macro_f1 row is `{v4_best_macro['arch_id']}` "
+            f"Best board-claimable v4 search-proxy macro_f1 row is `{v4_best_macro['arch_id']}` "
             f"({fmt(v4_best_macro['macro_f1'])}); delta vs best v3 macro_f1 row "
             f"`{v3_best_macro['arch_id']}` is {fmt(delta(v4_best_macro['macro_f1'], v3_best_macro['macro_f1']))}."
         )
@@ -281,13 +314,25 @@ def build_payload(manifest: dict[str, Any]) -> dict[str, Any]:
             f"(DSP {fmt(v4_lowest_dsp['actual_dsp'])}); lowest v3 board row is "
             f"`{v3_lowest_dsp['arch_id']}` (DSP {fmt(v3_lowest_dsp['actual_dsp'])})."
         )
-    findings.append(
-        "`rl_arch_154` (edge) is a board-claimable sonar-op candidate; "
-        "`rl_arch_169` (denoise) is also board-claimable but slower on COM5."
-    )
-    findings.append(
-        "`rl_arch_116` (denoise) remains blocked from COM5 because full-route WNS is negative and actual DSP exceeds 700."
-    )
+    rows_by_id = {str(row.get("arch_id")): row for row in v4_rows}
+    edge_row = rows_by_id.get("rl_arch_154")
+    denoise_row = rows_by_id.get("rl_arch_169")
+    if (
+        edge_row
+        and denoise_row
+        and edge_row.get("evidence_class") == "board-claimable"
+        and denoise_row.get("evidence_class") == "board-claimable"
+    ):
+        findings.append(
+            "`rl_arch_154` (edge) and `rl_arch_169` (denoise) are board-claimable "
+            "sonar-op candidates in the current manifest."
+        )
+    blocked_row = rows_by_id.get("rl_arch_116")
+    if blocked_row and blocked_row.get("evidence_class") == "route-fail":
+        findings.append(
+            "`rl_arch_116` (denoise) remains blocked from COM5 because its current "
+            "full-route evidence fails the timing/resource gate."
+        )
 
     return {
         "generated_at": datetime.now().isoformat(timespec="seconds"),

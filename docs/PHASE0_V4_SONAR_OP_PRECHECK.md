@@ -2,6 +2,12 @@
 
 Last updated: 2026-06-07
 
+Status: historical pre-launch admission snapshot. The precheck evidence remains
+valid for its stated scope, but its `not_launched` statements do not describe
+the later Phase0 v4 execution state. Use
+`docs/PHASE0_V4_SONAR_RESULTS.md` for current search/retrain/route/COM5 and
+image-quality status.
+
 ## Scope
 
 This precheck evaluates whether sonar-specific operators can be admitted into
