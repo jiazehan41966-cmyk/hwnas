@@ -2,7 +2,7 @@ hardware:
   board: alinx_av7k325
   clock_mhz: 200
   quantization_bits: 8
-  max_lut: 50950
+  max_lut: 203800
   max_ff: 407600
   max_bram: 445
   max_dsp: 840

@@ -91,6 +91,8 @@ results/<run_name>/
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速开始与使用指南 |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | 实现进展与功能总结 |
 | [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) | 审计、证据与交接索引 |
+| [docs/REVIEW.md](docs/REVIEW.md) | 当前仓库审查入口与旧快照说明 |
+| [docs/FIRST_PRINCIPLES_AUDIT_20260703.md](docs/FIRST_PRINCIPLES_AUDIT_20260703.md) | 数据协议、算子语义与证据强度重审 |
 | [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) | Phase0 v3 low-DSP full-route and COM5 board-claimable results |
 | [docs/PHASE0_V4_SONAR_RESULTS.md](docs/PHASE0_V4_SONAR_RESULTS.md) | Phase0 v4 search/retrain/route/COM5/image-quality handoff |
 | [docs/SEARCH_CONFIG_CANONICAL.md](docs/SEARCH_CONFIG_CANONICAL.md) | 当前规范搜索配置说明 |
@@ -99,6 +101,15 @@ results/<run_name>/
 ---
 
 ## Current Evidence Status
+
+The 2026-07-03 first-principles audit supersedes broader interpretations of the
+older evidence. Reported Phase0 classification scores are legacy fold-0
+validation results, not untouched-test generalization estimates. The current
+`denoise` and `edge` HLS templates are also not semantically identical to their
+train-time PyTorch blocks. New canonical searches load the semantic-safe
+operator policy and exclude both operators until numeric parity and matching
+weight export exist. See
+[docs/FIRST_PRINCIPLES_AUDIT_20260703.md](docs/FIRST_PRINCIPLES_AUDIT_20260703.md).
 
 The 2026-06-22 Phase0 v4 sonar snapshot contains 7 Pareto route-screen rows:
 6 are route-clean with stable five-run COM5 evidence and 1 (`rl_arch_116`) is
@@ -115,6 +126,9 @@ Evidence boundaries:
 - PSNR/SSIM with `input_as_reference` is operator-effect analysis, not
   clean-reference restoration quality;
 - measured power/energy remains `not measured`.
+- compact reproducible audit evidence is tracked under
+  `artifacts/first_principles_audit_20260703/`; large generated result trees
+  remain local and Git-ignored.
 
 The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
 [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md).

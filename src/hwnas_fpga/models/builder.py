@@ -365,10 +365,13 @@ class DenoiseBlock(nn.Module):
             g = torch.exp(-coords ** 2 / (2 * sigma ** 2))
             gaussian_2d = g.unsqueeze(0) * g.unsqueeze(1)
             gaussian_2d = gaussian_2d / gaussian_2d.sum()
-            smooth_weight[:, 0] = gaussian_2d
+            # Forward applies softmax to keep each kernel non-negative and
+            # normalized. Store logits so the effective initialization is
+            # actually Gaussian.
+            smooth_weight[:, 0] = torch.log(gaussian_2d.clamp_min(1e-12))
         else:
-            # 均值核初始化
-            smooth_weight.fill_(1.0 / (kernel_size * kernel_size))
+            # Equal logits produce an exactly uniform effective kernel.
+            smooth_weight.zero_()
         self.smooth_weight = nn.Parameter(smooth_weight)
         self.smooth_stride = stride
         self.smooth_padding = padding

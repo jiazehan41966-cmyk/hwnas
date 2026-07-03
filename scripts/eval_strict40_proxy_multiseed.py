@@ -291,6 +291,7 @@ def main() -> None:
         use_kfold=bool(dataset_cfg.get("use_kfold", True)),
         valid_size=dataset_cfg.get("valid_size"),
         split_seed=int(dataset_cfg.get("split_seed", base_seed)),
+        image_error_policy=str(dataset_cfg.get("image_error_policy", "raise")),
     )
 
     enumerated_architectures, estimator, search_space = enumerate_architectures(config_path)

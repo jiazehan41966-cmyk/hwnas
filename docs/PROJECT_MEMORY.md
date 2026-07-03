@@ -12,6 +12,7 @@ Primary repository overview:
 
 Static audit archives:
 
+- `E:\1\hwnas\hwnas\docs\FIRST_PRINCIPLES_AUDIT_20260703.md`
 - `E:\1\hwnas\hwnas\docs\audit_structure_discovery.md`
 - `E:\1\hwnas\hwnas\docs\audit_entry_config.md`
 - `E:\1\hwnas\hwnas\docs\audit_candidate_hardware.md`
@@ -20,6 +21,7 @@ Static audit archives:
 
 Supporting result/archive policy documents:
 
+- `E:\1\hwnas\hwnas\docs\REVIEW.md`
 - `E:\1\hwnas\hwnas\docs\RUN_STORAGE_AUDIT.md`
 - `E:\1\hwnas\hwnas\docs\RESULT_RETENTION_DECISIONS.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V3_BOARD_RESULTS.md`
@@ -30,6 +32,7 @@ Supporting result/archive policy documents:
 
 Concrete local archive outputs:
 
+- `E:\1\hwnas\hwnas\results\first_principles_audit_20260703\`
 - `E:\1\hwnas\hwnas\results_archive\2026-04-review\`
 - `E:\1\hwnas\hwnas\results_archive\2026-04-review\ARCHIVE_MANIFEST.txt`
 - `E:\1\hwnas\hwnas\results\phase0_v4_sonar_op_precheck\`
@@ -38,6 +41,11 @@ Concrete local archive outputs:
 - `E:\1\hwnas\hwnas\results\phase0_v4_sonar_stage3_k3_board_experiment\`
 - `E:\1\hwnas\hwnas\results\phase0_v4_sonar_ablation_rl300_20260621\`
 - `E:\1\hwnas\hwnas\results\sonar_image_quality_psnr_ssim_20260622\`
+
+Git-tracked compact evidence:
+
+- `E:\1\hwnas\hwnas\artifacts\first_principles_audit_20260703\README.md`
+- `E:\1\hwnas\hwnas\artifacts\first_principles_audit_20260703\evidence_summary.json`
 
 Current Phase0 v3 board-validation outputs:
 
@@ -58,6 +66,8 @@ Current Phase0 v3 retrained-weight board reinjection outputs:
 
 Covered:
 
+- First-principles audit of NKSID split/integrity, PyTorch/HLS sonar-operator
+  semantics, test discovery, and XC7K325T LUT capacity.
 - Repository structure discovery and real functional layering.
 - Entry points, config flow, run artifact creation, and legacy wrappers.
 - Candidate representation, model construction, and hardware cost mapping.
@@ -73,6 +83,11 @@ Covered:
 Known gap:
 
 - No standalone archived HLS/LUT production-chain audit file was found as of 2026-06-22. Treat HLS/LUT conclusions as partial unless a future file such as `docs/audit_hls_lut_production.md` is added.
+- Acquisition/mission group metadata is absent, so the current image-index
+  split cannot be certified as group-safe.
+- `denoise` and `edge` lack PyTorch-to-fixed-point numeric parity and matching
+  weight-export evidence. Historical route/COM5 results for their simplified
+  HLS templates do not establish deployment of the trained PyTorch blocks.
 
 Current board-claimable Phase0 v3 result:
 
@@ -102,21 +117,26 @@ Current Phase0 v4 sonar result:
   (`3/300` evaluated); all rows have `comparison_ready=false`.
 - Use `docs/PHASE0_V4_SONAR_RESULTS.md` for exact metrics, artifact paths, and
   non-claim boundaries.
+- The 2026-07-03 first-principles audit recalibrates those metrics as legacy
+  fold-0 validation evidence. It does not delete the results, but they are not
+  untouched-test generalization estimates.
 
 ## Read Rules For Future Tasks
 
 For a new repository task:
 
 1. Read this file first.
-2. For a high-level repository explanation, read `docs/repository_complete_introduction.md`.
-3. For entry/config/runtime questions, read `docs/audit_entry_config.md`.
-4. For architecture candidate, model, or hardware-cost questions, read `docs/audit_candidate_hardware.md`.
-5. For search, training, metrics, feasibility, or reproducibility questions, read `docs/audit_search_training_metrics.md`.
-6. For deployment, inference, result tables, figures, checkpoint schema, or artifact consumers, read `docs/audit_deploy_result_consumption.md`.
-7. For storage cleanup or archive policy, read `docs/RUN_STORAGE_AUDIT.md` and `docs/RESULT_RETENTION_DECISIONS.md`.
-8. For Phase0 v3 low-DSP route-aware board results, read `docs/PHASE0_V3_BOARD_RESULTS.md`.
-9. For Phase0 v3 retrained-weight board reinjection results, read `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`.
-10. For Phase0 v4 sonar search/retrain/route/COM5/image-quality status, read `docs/PHASE0_V4_SONAR_RESULTS.md`.
+2. Read `docs/FIRST_PRINCIPLES_AUDIT_20260703.md` before interpreting accuracy,
+   sonar-operator, HLS, or board claims.
+3. For a high-level repository explanation, read `docs/repository_complete_introduction.md`.
+4. For entry/config/runtime questions, read `docs/audit_entry_config.md`.
+5. For architecture candidate, model, or hardware-cost questions, read `docs/audit_candidate_hardware.md`.
+6. For search, training, metrics, feasibility, or reproducibility questions, read `docs/audit_search_training_metrics.md`.
+7. For deployment, inference, result tables, figures, checkpoint schema, or artifact consumers, read `docs/audit_deploy_result_consumption.md`.
+8. For storage cleanup or archive policy, read `docs/RUN_STORAGE_AUDIT.md` and `docs/RESULT_RETENTION_DECISIONS.md`.
+9. For Phase0 v3 low-DSP route-aware board results, read `docs/PHASE0_V3_BOARD_RESULTS.md`.
+10. For Phase0 v3 retrained-weight board reinjection results, read `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`.
+11. For Phase0 v4 sonar search/retrain/route/COM5/image-quality status, read `docs/PHASE0_V4_SONAR_RESULTS.md`.
 
 Do not use memories, assumptions, datasets, metrics, or conclusions from other projects unless the user explicitly asks to connect them.
 

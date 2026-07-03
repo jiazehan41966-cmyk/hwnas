@@ -19,6 +19,7 @@ dataset:
   fold: 0
   num_workers: 4
   normalization: grayscale
+  image_error_policy: raise
 
 search_space:
   family_profile: mobile_anchor
@@ -48,11 +49,11 @@ search_space:
 
 constraints:
   max_latency_ms: 50.0
-  max_power_w: 12.0
+  max_power_w: null
   max_model_size_mb: null
   max_dsp: 840
   max_bram: 445
-  max_lut: 50950
+  max_lut: 203800
   max_memory_bandwidth_gbps: 3.0
   max_offchip_mem_mb: 128.0
 
@@ -63,6 +64,7 @@ hardware:
   estimator: analytic_lut_then_hls
   lut_path: null
   use_dummy_lut: false
+  operator_manifest_path: hls_lut_builder/configs/operator_manifest_semantic_safe.yaml
 
 search:
   method: rl
@@ -79,7 +81,7 @@ search:
   objective_weights:
     accuracy: 1.0
     latency: 0.2
-    energy: 0.1
+    energy: 0.0
     resource: 0.1
 
 training:

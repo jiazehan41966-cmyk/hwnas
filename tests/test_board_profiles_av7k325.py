@@ -20,7 +20,7 @@ class AlinxAv7k325BoardProfileTests(unittest.TestCase):
         profile = get_board_profile("alinx_av7k325")
 
         self.assertEqual(profile.clock_mhz, 200)
-        self.assertEqual(profile.max_lut, 50_950)
+        self.assertEqual(profile.max_lut, 203_800)
         self.assertEqual(profile.max_ff, 407_600)
         self.assertEqual(profile.max_bram, 445)
         self.assertEqual(profile.max_dsp, 840)

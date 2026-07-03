@@ -425,6 +425,10 @@ def run_official_proxyless_search(
         fold=fold,
         num_workers=num_workers,
         device=device,
+        use_kfold=bool(dataset_cfg.get("use_kfold", True)),
+        valid_size=dataset_cfg.get("valid_size"),
+        split_seed=int(dataset_cfg.get("split_seed", project_cfg.get("seed", 42))),
+        image_error_policy=str(dataset_cfg.get("image_error_policy", "raise")),
     )
     search_space = build_search_space(
         config,

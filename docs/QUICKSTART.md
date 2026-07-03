@@ -25,11 +25,30 @@ Last verified: 2026-07-03
 
 ```powershell
 python --version
-python -m pytest tests/test_image_quality_metrics.py tests/test_phase0_v4_three_lane_closure.py -q
+python -m pip install -e ".[dev]"
+python -m pytest -q
 ```
+
+根目录 `pyproject.toml` 将 pytest 收敛到本项目 `tests/`，不会再递归
+收集 `reference/` 下游仓库测试。
 
 生成文件应写入 `results/`、`outputs/` 或 `logs/`，不要提交训练输出、
 checkpoint、Vivado/HLS 临时目录或本地数据集。
+
+正式搜索前建议先执行数据协议审计：
+
+```powershell
+python scripts/audit_nksid_protocol.py `
+  --data-dir data/NKSID `
+  --fold 0 `
+  --neighbor-radius 1 `
+  --hash-files `
+  --output-dir results/first_principles_audit_20260703
+```
+
+NKSID 图像读取默认 `image_error_policy=raise`。坏图会立即终止运行，避免
+用空白图保留原标签并污染指标。仅为复现旧行为时才显式配置
+`image_error_policy: blank`。
 
 ## 3. 搜索空间探测
 
@@ -52,6 +71,10 @@ python run_search_space_probe.py `
 python run_search.py `
   --config configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml
 ```
+
+该默认配置显式加载
+`hls_lut_builder/configs/operator_manifest_semantic_safe.yaml`。在
+PyTorch/HLS 数值语义对齐前，`denoise` 和 `edge` 不进入新的可声明搜索。
 
 快速连通性检查：
 
@@ -137,6 +160,9 @@ python scripts/build_phase0_v4_vs_v3_board_comparison.py
 ## 8. 结果与交接文档
 
 - 当前仓库与审计入口：`docs/PROJECT_MEMORY.md`
+- 当前审查入口：`docs/REVIEW.md`
+- 第一性原理重审：`docs/FIRST_PRINCIPLES_AUDIT_20260703.md`
+- 可提交的精简证据：`artifacts/first_principles_audit_20260703/`
 - Phase0 v3 板级基线：`docs/PHASE0_V3_BOARD_RESULTS.md`
 - Phase0 v4 声呐结果：`docs/PHASE0_V4_SONAR_RESULTS.md`
 - 仓库结构：`docs/REPO_LAYOUT.md`

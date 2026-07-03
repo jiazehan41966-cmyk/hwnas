@@ -9,6 +9,12 @@ incompatible evidence classes. Search proxy, retrain150 validation, Vivado
 route, COM5 deterministic harness measurement, image quality, and measured
 power/energy must be reported separately.
 
+The 2026-07-03 first-principles audit adds two overriding boundaries: these
+classification values are legacy fold-0 validation results rather than
+untouched-test generalization estimates, and the simplified HLS `denoise` and
+`edge` pipelines are not semantically identical to the train-time PyTorch
+blocks.
+
 ## Evidence Status
 
 | Evidence layer | Current status | Claim boundary |
@@ -21,11 +27,16 @@ power/energy must be reported separately.
 | PSNR/SSIM | completed on NKSID val fold 0 with 520 samples | `input_as_reference`; operator-effect/structure-preservation analysis only |
 | Four-way sonar ablation | incomplete | no formal ablation conclusion while `comparison_ready=false` |
 | Measured power/energy | not measured | Vivado/search power remains estimate or proxy |
+| PyTorch/HLS semantic parity | failed for `denoise` and `edge` | route/COM5 validates simplified HLS pipelines, not deployment of the trained PyTorch blocks |
 
 ## Classification Evidence
 
 The search-proxy headline remains `rl_arch_135` with macro_f1 `0.642115` and
 top1 `0.807692`. The corresponding retrain150 validation results are:
+
+These values describe the historical record-0 protocol. Architecture screening,
+best-epoch selection, and final reporting reused that validation record; no
+untouched test set was used.
 
 | Candidate | Stage-3 op | retrain150 macro_f1 | top1 | weighted_f1 |
 |---|---|---:|---:|---:|
@@ -40,8 +51,8 @@ Source:
 
 ## Route And COM5 Evidence
 
-The current closure ledger records 7 Pareto candidates: 6 route-clean,
-five-run COM5 board-claimable rows and 1 route-fail row.
+The current closure ledger records 7 Pareto candidates: 6 route-clean rows with
+five-run COM5 measurements under the historical protocol and 1 route-fail row.
 
 | Candidate | Stage-3 op | WNS ns | actual DSP | COM5 latency ms | Status |
 |---|---|---:|---:|---:|---|
@@ -55,6 +66,8 @@ five-run COM5 board-claimable rows and 1 route-fail row.
 
 Board claimability is limited to the recorded bitstream SHA256 and COM5 run
 set. COM5 is not the power path and is not full validation-set inference.
+For `rl_arch_154` (`edge`) and `rl_arch_169` (`denoise`), it also does not prove
+semantic deployment of the corresponding trained PyTorch operator.
 
 Sources:
 

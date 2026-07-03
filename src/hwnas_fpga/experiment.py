@@ -7,7 +7,7 @@ import json
 import sys
 from contextlib import AbstractContextManager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
@@ -19,7 +19,12 @@ from hwnas_fpga.interfaces import SearchCandidate
 
 
 def _utc_timestamp() -> str:
-    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def _slugify(value: str) -> str:

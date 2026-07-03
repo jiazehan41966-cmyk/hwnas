@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-07-03",
+  "dataset_protocol_audit": {
+    "command": "python scripts/audit_nksid_protocol.py --data-dir data/NKSID --fold 0 --neighbor-radius 1 --hash-files --output-dir results/first_principles_audit_20260703",
+    "sample_count": 2617,
+    "class_counts": {
+      "0": 203,
+      "1": 288,
+      "2": 20,
+      "3": 951,
+      "4": 112,
+      "5": 94,
+      "6": 115,
+      "7": 834
+    },
+    "missing_file_count": 0,
+    "duplicate_path_extra_copies": 0,
+    "exact_duplicate_groups": 0,
+    "exact_duplicate_extra_copies": 0,
+    "split_record_count": 50,
+    "inferred_k": 5,
+    "inferred_repeats": 10,
+    "selected_fold_record": 0,
+    "selected_train_count": 2097,
+    "selected_validation_count": 520,
+    "validation_with_same_class_filename_neighbor_in_train": 498,
+    "filename_neighbor_fraction": 0.9576923076923077,
+    "claim_boundary": "Filename adjacency is a leakage-risk diagnostic, not proof of shared acquisition sequence. Group metadata is required for a definitive group-safe split."
+  },
+  "operator_semantic_parity_audit": {
+    "command": "python scripts/audit_operator_semantic_parity.py --output-dir results/first_principles_audit_20260703",
+    "overall_status": "failed",
+    "denoise": {
+      "pytorch_spatial_branches": 2,
+      "hls_spatial_branches": 1,
+      "semantic_parity": false
+    },
+    "edge": {
+      "pytorch_spatial_branches": 4,
+      "hls_spatial_branches": 1,
+      "semantic_parity": false
+    },
+    "admission_decision": "Block denoise and edge from new claimable searches until matching computation, weight export, and numeric parity are tested."
+  },
+  "verification": {
+    "command": "python -m pytest -q",
+    "tests_passed": 199,
+    "subtests_passed": 28,
+    "elapsed_seconds": 82.48
+  },
+  "generated_files": {
+    "nksid_protocol_audit.json": {
+      "bytes": 15147,
+      "sha256": "c442ae5afe39a6d31bca8b6ab6920e268155a2704eb1e63634348784b71f1b8d"
+    },
+    "nksid_protocol_audit.md": {
+      "bytes": 778,
+      "sha256": "7138f1d0f2de4de05ac22f73a78c6f4601b509c1af076523695f0ea43e69681f"
+    },
+    "operator_semantic_parity_audit.json": {
+      "bytes": 1436,
+      "sha256": "0f89e7f793a48aa7741c59153859e9a3615004babf13df90a5663ea93dfc3953"
+    },
+    "operator_semantic_parity_audit.md": {
+      "bytes": 548,
+      "sha256": "d88ccec70fa744cc4b6a1ac49609547f4cebb9e733c3fb2d492a41ade89efb11"
+    }
+  }
+}

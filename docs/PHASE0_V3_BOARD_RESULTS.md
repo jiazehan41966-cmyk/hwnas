@@ -7,6 +7,10 @@ search and board validation round. It is intentionally result-focused: NAS LUT
 latency remains an estimator value, while the latencies below are real COM5
 board measurements from full-network bitstreams.
 
+The 2026-07-03 first-principles audit preserves these historical route/COM5
+measurements but recalibrates classification metrics as legacy fold-0
+validation evidence, not untouched-test generalization estimates.
+
 ## Scope And Guardrails
 
 - Search family: Phase0 v3 low-DSP route-aware, current84/arch84 strict LUT.

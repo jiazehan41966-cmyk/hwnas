@@ -36,6 +36,12 @@ v1 operator screening confirms that they should enter the LUT:
 - `denoise`
 - `edge`
 
+For new NAS runs, hardware feasibility alone is not sufficient for operator
+admission. The semantic-safe policy is
+`configs/operator_manifest_semantic_safe.yaml`; it pauses `denoise`, `edge`,
+and `mixconv`. The canonical search config loads this policy explicitly.
+Historical manifests remain unchanged for reproducibility.
+
 Explicitly excluded from this round:
 
 - `7x7` and larger kernels

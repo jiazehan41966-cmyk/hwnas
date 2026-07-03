@@ -1,0 +1,50 @@
+# First-principles admission policy. Hardware results are not enough for
+# admission when train-time and HLS computations are different.
+search_policy:
+  default_mainline_search_ops:
+    - conv
+    - mbconv
+    - skip
+  conditional_deployment_ops: []
+  paused_ops:
+    - denoise
+    - edge
+    - mixconv
+  dropped_current_target_ops:
+    - fused_mbconv
+
+operator_status:
+  conv:
+    search_enabled: true
+    deployment_status: ready
+    semantic_parity_verified: true
+  mbconv:
+    search_enabled: true
+    deployment_status: ready
+    semantic_parity_verified: true
+  skip:
+    search_enabled: true
+    deployment_status: ready
+    semantic_parity_verified: true
+  denoise:
+    search_enabled: false
+    deployment_status: paused
+    screening_status: pytorch_hls_semantic_mismatch
+    semantic_parity_verified: false
+    reason: PyTorch has feature plus smoothing branches; admitted HLS has one smoothing branch.
+    revisit_condition: Require matched computation, weight export, and numeric parity before fresh HLS/route evidence.
+  edge:
+    search_enabled: false
+    deployment_status: paused
+    screening_status: pytorch_hls_semantic_mismatch
+    semantic_parity_verified: false
+    reason: PyTorch has four directional branches and 4C fusion; admitted HLS has one spatial branch.
+    revisit_condition: Require matched computation, weight export, and numeric parity before fresh HLS/route evidence.
+  mixconv:
+    search_enabled: false
+    deployment_status: paused
+    semantic_parity_verified: false
+  fused_mbconv:
+    search_enabled: false
+    deployment_status: dropped_current_target
+    semantic_parity_verified: false

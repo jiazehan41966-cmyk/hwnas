@@ -274,6 +274,7 @@ def create_baseline_data_pipeline(
         use_kfold=bool(dataset_cfg.get("use_kfold", True)),
         valid_size=dataset_cfg.get("valid_size"),
         split_seed=int(dataset_cfg.get("split_seed", 42)),
+        image_error_policy=str(dataset_cfg.get("image_error_policy", "raise")),
     )
     class_names = extract_class_names(train_loader.dataset, resolved_num_classes)
     return train_loader, val_loader, class_weights, resolved_num_classes, class_names

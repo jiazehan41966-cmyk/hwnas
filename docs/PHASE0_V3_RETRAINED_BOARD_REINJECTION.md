@@ -7,6 +7,10 @@ checkpoints into isolated Phase0 v3 full-network board harness projects. It is
 separate from `docs/PHASE0_V3_BOARD_RESULTS.md`, which remains the authoritative
 record for the original 2026-06-06 Phase0 v3 board-claimable evidence.
 
+The 2026-07-03 first-principles audit preserves the retrain150 and COM5
+artifacts but treats retrain150 scores as legacy fold-0 validation evidence,
+not untouched-test generalization estimates.
+
 ## Scope And Guardrails
 
 - Target candidates: `rl_arch_186` and `rl_arch_242`.
