@@ -1,0 +1,193 @@
+toolchain:
+  part: xc7k325t-ffg676-2
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: F:/vivado/Vitis_HLS/2023.2/bin/vitis_hls.bat
+  vivado_bin: F:/vivado/Vivado/2023.2/bin/vivado.bat
+workspace:
+  project_root: ../results/v2_arch84_e2e_extension/p
+  report_archive: ../results/v2_arch84_e2e_extension/r
+  csv_path: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_hls.csv
+  manifest_path: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_hls_manifest.yaml
+  synthesis_summary_json: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_hls_synth_summary.json
+  parse_summary_json: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_hls_parse_summary.json
+  downstream_csv_path: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_vivado_downstream.csv
+  downstream_manifest_path: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_vivado_downstream_manifest.yaml
+  downstream_parse_summary_json: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_vivado_downstream_parse_summary.json
+  downstream_summary_json: ../results/v2_arch84_e2e_extension/arch84_e2e_extension_vivado_downstream_summary.json
+  formal_lut_status_json: ../results/v2_arch84_e2e_extension/formal_lut_status_v2_arch84_e2e_extension.json
+measurement_contract:
+  contract_id: packed_stream_v1_arch84_e2e_extension_latency_only
+  declaration: Independent arch_84 e2e extension evidence. These rows are not part of current84 primitive60 or fullcombo84.
+  io_style: packed_stream
+  control_interface: AXI-Lite
+  parameter_storage: deterministic_latency_only_bram
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  fixed_vector_params: 1
+  max_axis_bits: 512
+  pack_ch: 16
+  ch_block: 16
+  tile_order: pixel_major
+  stream_order: pixel_major
+  dsp_pack: '1'
+  pipeline_ii: 1
+  target_ii: 1
+  input_parallelism: 1
+  output_parallelism: 1
+  unroll_factor: 1
+  array_partition_factor: 1
+clock_profiles:
+  c5:
+    period_ns: 5.0
+    target_clock_mhz: 200.0
+implementation_profiles:
+  p16cb16:
+    pack_ch: 16
+    ch_block: 16
+    pipeline_ii: 1
+    target_ii: 1
+    dsp_pack: '1'
+  p16pe16:
+    pack_ch: 16
+    ch_block: 16
+    input_parallelism: 4
+    output_parallelism: 16
+    array_partition_factor: 16
+    pipeline_ii: 2
+    target_ii: 2
+    dsp_pack: '1'
+  sbase:
+    fixed_vector_params: 0
+    max_axis_bits: 4096
+    input_parallelism: 1
+    output_parallelism: 1
+    unroll_factor: 1
+    array_partition_factor: 4
+    pipeline_ii: 1
+    target_ii: 1
+representative_shapes:
+  a84_pwe:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 96
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 1
+  a84_dw:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    stride: 1
+    expand_ratio: 3
+  a84_pwp:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    out_channels: 32
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 0
+  a84_gap:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 32
+    stride: 1
+    padding: 0
+    out_h: 1
+    out_w: 1
+  a84_fc:
+    feature_h: 1
+    feature_w: 1
+    in_channels: 32
+    out_channels: 8
+    stride: 1
+    padding: 0
+    out_h: 1
+    out_w: 1
+operators:
+  dw3:
+    enabled: true
+    template: ../templates/dw_conv_fixed_vector.cpp.tmpl
+    top_function: dwk84
+    op_type: dw_conv_k3
+    shape_refs:
+    - a84_dw
+    implementation_refs:
+    - p16cb16
+    clock_profile_refs:
+    - c5
+    parameters:
+      kernel_size: 3
+      padding: 1
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k3
+  pw21:
+    enabled: true
+    template: ../templates/pw_conv_fixed_vector_v21.cpp.tmpl
+    top_function: pwk84
+    op_type: pw_conv
+    shape_refs:
+    - a84_pwe
+    - a84_pwp
+    implementation_refs:
+    - p16pe16
+    clock_profile_refs:
+    - c5
+    parameters:
+      kernel_size: 1
+      padding: 0
+      tile_order: pixel_major
+      stream_order: pixel_major
+    op_spec_defaults:
+      op: pw_conv
+      groups: 1
+  gap:
+    enabled: true
+    template: ../templates/global_avg_pool.cpp.tmpl
+    top_function: gap84
+    op_type: global_avg_pool
+    shape_refs:
+    - a84_gap
+    implementation_refs:
+    - sbase
+    clock_profile_refs:
+    - c5
+    parameters:
+      kernel_size: 28
+      padding: 0
+      fixed_vector_params: 0
+    op_spec_defaults:
+      op: global_avg_pool
+      groups: 1
+      expand_ratio: 1
+  fc:
+    enabled: true
+    template: ../templates/fc_layer.cpp.tmpl
+    top_function: fc84
+    op_type: fc_layer
+    shape_refs:
+    - a84_fc
+    implementation_refs:
+    - sbase
+    clock_profile_refs:
+    - c5
+    parameters:
+      kernel_size: 1
+      padding: 0
+      fixed_vector_params: 0
+    op_spec_defaults:
+      op: fc_layer
+      groups: 1
+      expand_ratio: 1

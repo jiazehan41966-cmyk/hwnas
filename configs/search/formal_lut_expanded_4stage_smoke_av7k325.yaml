@@ -1,0 +1,124 @@
+project:
+  name: formal-lut-expanded-4stage-smoke-av7k325
+  seed: 42
+  output_dir: results
+  run_name: formal_lut_expanded_4stage_smoke_20ep_100ms
+dataset:
+  name: dummy
+  data_dir: null
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  num_workers: 0
+search_space:
+  family_profile: accuracy_biased
+  macro_type: stage_based
+  stem_stride: 2
+  post_stem_downsample_stride: 1
+  stage_strides:
+  - 1
+  - 2
+  - 2
+  - 2
+  stem_channels: 32
+  stage_base_channels:
+  - 16
+  - 24
+  - 32
+  - 64
+  width_multipliers:
+  - 1.0
+  stage_depth_choices:
+  - - 1
+  - - 1
+  - - 1
+  - - 1
+  kernel_choices:
+  - 1
+  - 3
+  - 5
+  expand_choices:
+  - 1
+  - 3
+  - 6
+  op_choices:
+  - conv
+  - mbconv
+  stage_block_choices:
+  - - op: conv
+      kernel_size: 1
+      expand_ratio: 1
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+    - op: mbconv
+      kernel_size: 5
+      expand_ratio: 3
+    - op: mbconv
+      kernel_size: 3
+      expand_ratio: 6
+    - op: mbconv
+      kernel_size: 5
+      expand_ratio: 6
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 6
+  - - op: mbconv
+      kernel_size: 3
+      expand_ratio: 3
+    - op: mbconv
+      kernel_size: 5
+      expand_ratio: 6
+  head_conv_channels: null
+constraints:
+  max_latency_ms: 100.0
+  max_power_w: 12.0
+  max_model_size_mb: null
+  max_dsp: 840
+  max_bram: 445
+  max_lut: 50950
+  max_memory_bandwidth_gbps: 3.0
+  max_offchip_mem_mb: 128.0
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  estimator: analytic_lut_then_hls
+  lut_path: hls_lut_builder/results/formal_lut_v1.json
+  formal_lut_status_path: hls_lut_builder/results/formal_lut_status_v1.json
+  strict_formal_lut: true
+  lut_allow_shape_only_match: false
+  lut_enable_interpolation: false
+  use_dummy_lut: false
+search:
+  method: rl
+  num_candidates: 20
+  episodes: 20
+  eval_epochs: 0
+  eval_early_stopping_patience: 0
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.01
+  selection_metric: macro_f1
+  pareto:
+    selection_method: rank
+    topk: 5
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
+  reward_cfg:
+    constraint_penalty: 10.0
+    infeasible_penalty_mode: violation_ratio
+    infeasible_base_penalty: 1.0
+    infeasible_penalty_scale: 5.0
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 16
+  epochs: 0
+deployment:
+  export_format: onnx
+  run_hls_validation: false

@@ -1,0 +1,102 @@
+{
+  "board": {
+    "name": "zynq7020",
+    "clock_mhz": 200,
+    "max_lut": 53200,
+    "max_ff": 106400,
+    "max_bram": 140,
+    "max_dsp": 220,
+    "max_power_w": 5.0,
+    "memory_bandwidth_gbps": 4.2,
+    "offchip_mem_mb": 512.0
+  },
+  "search_space": {
+    "image_size": 32,
+    "input_channels": 1,
+    "stem_channels": 8,
+    "stem_stride": 2,
+    "stage_strides": [
+      1,
+      2
+    ],
+    "channel_choices": [
+      8,
+      16
+    ],
+    "depth_choices": [
+      1,
+      2
+    ],
+    "kernel_choices": [
+      3
+    ],
+    "expand_choices": [
+      1,
+      2
+    ],
+    "op_choices": [
+      "conv",
+      "dw_pw_conv",
+      "mbconv",
+      "fused_mbconv",
+      "skip"
+    ]
+  },
+  "entries_requested": 59,
+  "entries_built": 59,
+  "table_stats": {
+    "total_entries": 59,
+    "duplicate_specs": 0,
+    "duplicate_count": 0
+  },
+  "entries_per_op": {
+    "conv": 10,
+    "dw_pw_conv": 9,
+    "fused_mbconv": 18,
+    "mbconv": 18,
+    "skip": 4
+  },
+  "failures": [],
+  "output_json": "E:\\1\\hwnas\\hwnas\\artifacts\\tmp_lut_smoke.json",
+  "output_pkl": "E:\\1\\hwnas\\hwnas\\artifacts\\tmp_lut_smoke.pkl",
+  "validation": {
+    "architectures": [
+      {
+        "arch_id": "baseline",
+        "lut_hits": 3,
+        "lut_misses": 0,
+        "latency_ms": 0.046295,
+        "dsp": 29,
+        "bram": 6,
+        "lut": 1434,
+        "violations": []
+      },
+      {
+        "arch_id": "sample_0",
+        "lut_hits": 5,
+        "lut_misses": 0,
+        "latency_ms": 0.09578,
+        "dsp": 165,
+        "bram": 7,
+        "lut": 4162,
+        "violations": []
+      },
+      {
+        "arch_id": "sample_1",
+        "lut_hits": 4,
+        "lut_misses": 0,
+        "latency_ms": 0.08436,
+        "dsp": 197,
+        "bram": 10,
+        "lut": 5226,
+        "violations": []
+      }
+    ],
+    "lut_stats": {
+      "hits": 12,
+      "misses": 0,
+      "total": 12,
+      "hit_rate": 1.0
+    }
+  }
+}

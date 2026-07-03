@@ -8,12 +8,48 @@ References:
 - HW-PR-NAS: Pareto ranking preservation in surrogate models
 """
 
+import csv
+import hashlib
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
-from dataclasses import dataclass
 import numpy as np
 
 from hwnas_fpga.interfaces import SearchCandidate, CandidateMetrics
 from hwnas_fpga.interfaces import SearchConstraints
+
+
+PARETO_ARTIFACT_METRIC_COLUMNS = (
+    "accuracy",
+    "macro_f1",
+    "weighted_f1",
+    "top1",
+    "top5",
+    "latency_ms",
+    "energy_mj",
+    "dsp",
+    "bram",
+    "lut",
+    "power_w",
+    "memory_bandwidth_gbps",
+    "offchip_mem_mb",
+    "early_expand_pressure",
+    "interconnect_pressure",
+    "memory_pressure",
+    "fanout_pressure",
+    "stream_width",
+    "physical_risk",
+)
+
+PHYSICAL_PARETO_METRICS = {
+    "early_expand_pressure",
+    "interconnect_pressure",
+    "memory_pressure",
+    "fanout_pressure",
+    "stream_width",
+    "physical_risk",
+}
 
 
 # ============================================================================
@@ -71,7 +107,7 @@ def is_dominated(
 
 def compute_pareto_front(
     candidates: List[SearchCandidate],
-    objectives: List[str] = ["accuracy", "latency_ms"],
+    objectives: List[str] = ["top1", "latency_ms"],
     directions: List[str] = ["max", "min"],
 ) -> List[SearchCandidate]:
     """计算 Pareto 前沿
@@ -87,10 +123,10 @@ def compute_pareto_front(
     Example:
         >>> pareto = compute_pareto_front(candidates, ["accuracy", "latency_ms"], ["max", "min"])
     """
-    # 过滤掉没有评估精度或延迟的候选
     valid_candidates = [
-        c for c in candidates
-        if c.metrics.accuracy is not None and c.metrics.latency_ms is not None
+        c
+        for c in candidates
+        if all(getattr(c.metrics, obj, None) is not None for obj in objectives)
     ]
 
     if not valid_candidates:
@@ -116,10 +152,14 @@ def compute_pareto_front(
 def build_pareto_objectives(
     objective_weights: Optional[Dict[str, float]] = None,
     constraints: Optional[SearchConstraints] = None,
+    selection_metric: Optional[str] = None,
 ) -> Tuple[List[str], List[str]]:
     """Build Pareto objectives from config weights and active constraints."""
+    from hwnas_fpga.search.searcher import resolve_pareto_task_metric
+
     weights = objective_weights or {}
-    objectives: List[str] = ["accuracy"]
+    primary_metric = resolve_pareto_task_metric(selection_metric or "macro_f1")
+    objectives: List[str] = [primary_metric]
     directions: List[str] = ["max"]
 
     def add(metric: str, direction: str) -> None:
@@ -132,6 +172,8 @@ def build_pareto_objectives(
     if weights.get("energy", 0.0) > 0 or (constraints and constraints.max_energy_mj is not None):
         add("energy_mj", "min")
 
+    physical = getattr(constraints, "physical", {}) if constraints else {}
+
     resource_requested = any(
         weights.get(key, 0.0) > 0 for key in ("resource", "dsp", "bram", "lut")
     )
@@ -141,7 +183,11 @@ def build_pareto_objectives(
         add("bram", "min")
     if resource_requested or (constraints and constraints.max_lut is not None):
         add("lut", "min")
-    if weights.get("power", 0.0) > 0 or (constraints and constraints.max_power_w is not None):
+    if (
+        weights.get("power", 0.0) > 0
+        or (constraints and constraints.max_power_w is not None)
+        or (isinstance(physical, dict) and physical.get("pareto_power"))
+    ):
         add("power_w", "min")
     if (
         weights.get("memory_bandwidth", 0.0) > 0
@@ -154,7 +200,210 @@ def build_pareto_objectives(
     ):
         add("offchip_mem_mb", "min")
 
+    if isinstance(physical, dict):
+        if weights.get("physical_risk", 0.0) > 0 or physical.get("pareto_physical_risk"):
+            add("physical_risk", "min")
+        if (
+            weights.get("early_expand_pressure", 0.0) > 0
+            or physical.get("pareto_early_expand_pressure")
+            or physical.get("max_early_expand_pressure") is not None
+        ):
+            add("early_expand_pressure", "min")
+        if (
+            weights.get("interconnect_pressure", 0.0) > 0
+            or physical.get("pareto_interconnect_pressure")
+            or physical.get("max_interconnect_pressure") is not None
+        ):
+            add("interconnect_pressure", "min")
+
     return objectives, directions
+
+
+def pareto_encoding_signature(candidate: SearchCandidate) -> str:
+    """Return a stable signature for route-gate de-duplication."""
+    payload = json.dumps(candidate.encoding, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _candidate_to_dict(candidate: SearchCandidate) -> dict[str, Any]:
+    return {
+        "arch_id": candidate.arch_id,
+        "encoding": candidate.encoding,
+        "metrics": asdict(candidate.metrics),
+    }
+
+
+def _metric_dict(candidate: SearchCandidate) -> dict[str, Any]:
+    return asdict(candidate.metrics)
+
+
+def _objective_values(
+    candidate: SearchCandidate,
+    objectives: List[str],
+) -> dict[str, Any]:
+    metrics = _metric_dict(candidate)
+    return {objective: metrics.get(objective) for objective in objectives}
+
+
+def build_pareto_ranked_rows(
+    candidates: List[SearchCandidate],
+    *,
+    pareto_front: List[SearchCandidate],
+    selected_candidates: List[SearchCandidate],
+    ranks: List[int],
+    objectives: List[str],
+    metric_columns: Tuple[str, ...] = PARETO_ARTIFACT_METRIC_COLUMNS,
+) -> List[dict[str, Any]]:
+    """Build an auditable candidate table with ranks, selection flags, and metrics."""
+    front_ids = {id(candidate) for candidate in pareto_front}
+    selected_indices = {
+        id(candidate): index
+        for index, candidate in enumerate(selected_candidates, start=1)
+    }
+    rows: List[dict[str, Any]] = []
+
+    for candidate_index, candidate in enumerate(candidates, start=1):
+        metrics = _metric_dict(candidate)
+        rank = ranks[candidate_index - 1] if candidate_index - 1 < len(ranks) else None
+        rows.append(
+            {
+                "candidate_index": candidate_index,
+                "arch_id": candidate.arch_id,
+                "rank": rank,
+                "pareto_front": id(candidate) in front_ids,
+                "selected": id(candidate) in selected_indices,
+                "selection_index": selected_indices.get(id(candidate)),
+                "encoding": candidate.encoding,
+                "encoding_signature": pareto_encoding_signature(candidate),
+                "objective_values": _objective_values(candidate, objectives),
+                "metrics": {column: metrics.get(column) for column in metric_columns},
+            }
+        )
+
+    return rows
+
+
+def build_pareto_selection_summary(
+    *,
+    candidates: List[SearchCandidate],
+    pareto_front: List[SearchCandidate],
+    selected_candidates: List[SearchCandidate],
+    ranks: List[int],
+    objectives: List[str],
+    directions: List[str],
+    selection_method: str,
+    topk: int,
+    hypervolume: float,
+) -> dict[str, Any]:
+    """Build the canonical pareto_selection.json payload."""
+    ranked_rows = build_pareto_ranked_rows(
+        candidates,
+        pareto_front=pareto_front,
+        selected_candidates=selected_candidates,
+        ranks=ranks,
+        objectives=objectives,
+    )
+    rows_by_id = {
+        id(candidate): row
+        for candidate, row in zip(candidates, ranked_rows)
+    }
+
+    selected_topk: List[dict[str, Any]] = []
+    for selection_index, candidate in enumerate(selected_candidates, start=1):
+        row = rows_by_id.get(id(candidate), {})
+        payload = _candidate_to_dict(candidate)
+        payload.update(
+            {
+                "selection_index": selection_index,
+                "rank": row.get("rank"),
+                "pareto_front": row.get("pareto_front", False),
+                "encoding_signature": row.get(
+                    "encoding_signature",
+                    pareto_encoding_signature(candidate),
+                ),
+                "objective_values": row.get(
+                    "objective_values",
+                    _objective_values(candidate, objectives),
+                ),
+            }
+        )
+        selected_topk.append(payload)
+
+    ranks_payload = [
+        {
+            "arch_id": row["arch_id"],
+            "rank": row["rank"],
+            "pareto_front": row["pareto_front"],
+            "selected": row["selected"],
+            "selection_index": row["selection_index"],
+            "encoding_signature": row["encoding_signature"],
+            "objective_values": row["objective_values"],
+        }
+        for row in ranked_rows
+    ]
+
+    return {
+        "objectives": objectives,
+        "directions": directions,
+        "selection_method": selection_method,
+        "topk": topk,
+        "candidate_count": len(candidates),
+        "pareto_front_size": len(pareto_front),
+        "selected_count": len(selected_candidates),
+        "hypervolume": hypervolume,
+        "metric_columns": list(PARETO_ARTIFACT_METRIC_COLUMNS),
+        "physical_objectives": [
+            objective for objective in objectives if objective in PHYSICAL_PARETO_METRICS
+        ],
+        "selected_topk": selected_topk,
+        "ranks": ranks_payload,
+        "ranked_candidates": ranked_rows,
+    }
+
+
+def write_pareto_selection_artifacts(
+    results_dir: str | Path,
+    summary: dict[str, Any],
+) -> None:
+    """Write JSON and CSV Pareto evidence files under a run results directory."""
+    output_dir = Path(results_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "pareto_selection.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    metric_columns = list(summary.get("metric_columns") or PARETO_ARTIFACT_METRIC_COLUMNS)
+    fieldnames = [
+        "candidate_index",
+        "selection_index",
+        "selected",
+        "pareto_front",
+        "rank",
+        "arch_id",
+        "encoding_signature",
+    ] + metric_columns
+    with (output_dir / "pareto_ranked_candidates.csv").open(
+        "w",
+        encoding="utf-8",
+        newline="",
+    ) as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in summary.get("ranked_candidates", []):
+            metrics = row.get("metrics") if isinstance(row.get("metrics"), dict) else {}
+            writer.writerow(
+                {
+                    "candidate_index": row.get("candidate_index"),
+                    "selection_index": row.get("selection_index"),
+                    "selected": row.get("selected"),
+                    "pareto_front": row.get("pareto_front"),
+                    "rank": row.get("rank"),
+                    "arch_id": row.get("arch_id"),
+                    "encoding_signature": row.get("encoding_signature"),
+                    **{column: metrics.get(column) for column in metric_columns},
+                }
+            )
 
 
 def compute_pareto_front_numpy(
@@ -469,10 +718,16 @@ class ParetoFrontSelector:
         """基于 Pareto 排名选择"""
         ranks = compute_pareto_ranks(candidates, self.objectives, self.directions)
 
-        # 按排名排序，同排名内按精度排序
+        primary_metric = self.objectives[0] if self.objectives else "top1"
         sorted_candidates = sorted(
             zip(ranks, candidates),
-            key=lambda x: (x[0], -(x[1].metrics.accuracy or 0)),
+            key=lambda x: (
+                x[0],
+                -(getattr(x[1].metrics, primary_metric, None) or 0),
+                getattr(x[1].metrics, "physical_risk", None) or float("inf"),
+                x[1].metrics.latency_ms or float("inf"),
+                x[1].metrics.dsp or float("inf"),
+            ),
         )
 
         return [c for _, c in sorted_candidates[:k]]
@@ -502,9 +757,10 @@ class ParetoFrontSelector:
                 continue
 
             # 计算斜率变化
-            prev_acc = sorted_by_latency[i - 1].metrics.accuracy or 0
-            curr_acc = c.metrics.accuracy or 0
-            next_acc = sorted_by_latency[i + 1].metrics.accuracy or 0
+            primary_metric = self.objectives[0] if self.objectives else "top1"
+            prev_acc = getattr(sorted_by_latency[i - 1].metrics, primary_metric, None) or 0
+            curr_acc = getattr(c.metrics, primary_metric, None) or 0
+            next_acc = getattr(sorted_by_latency[i + 1].metrics, primary_metric, None) or 0
 
             prev_lat = sorted_by_latency[i - 1].metrics.latency_ms or 1
             curr_lat = c.metrics.latency_ms or 1

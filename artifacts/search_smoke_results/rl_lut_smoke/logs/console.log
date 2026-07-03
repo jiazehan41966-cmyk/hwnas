@@ -1,0 +1,59 @@
+Run dir: E:\1\hwnas\hwnas\artifacts\search_smoke_results\rl_lut_smoke
+Using device: cpu
+Dataset: dummy
+Search method: rl
+Family profile: default
+
+=== Creating Search Space ===
+Search space created with 4 stages
+
+=== Creating Hardware Estimator ===
+Hardware profile: zynq7020, clock=200MHz, LUT=53200, DSP=220, BRAM=140, BW=4.2GB/s, Off-chip=512.0MB
+LUT query engine enabled
+
+=== Hardware-Driven Pruning ===
+[硬件驱动空间剪枝] 开始预剪枝...
+  初始: channels=(16, 24, 32, 48, 64, 96), depths=(1, 2, 3, 4), ops=('conv', 'dw_pw_conv', 'mbconv', 'fused_mbconv', 'skip')
+  Baseline 满足所有约束，执行板卡感知收缩
+  剪枝后: channels=(16, 24, 32), depths=(1, 2), kernels=(3,), expands=(1, 2), ops=('dw_pw_conv', 'skip')
+  搜索空间减少了约 90.0%
+
+=== Creating Data Loaders ===
+Train samples: 500, Val samples: 100
+Num classes: 8
+
+=== Creating Searcher ===
+Searcher created (method=rl, seed=42)
+
+=== Testing Baseline Architecture ===
+Baseline architecture:
+  Params: 1,872
+  MACs: 8,470,464
+  Latency: 2.35ms
+  Total DSP: 169
+  Total BRAM: 11
+  Total LUT: 5754
+  Peak DSP: 40
+  Peak BRAM: 3
+  Peak LUT: 1512
+  Power: 3.34W
+  Memory BW: 0.199GB/s
+  Off-chip Mem: 0.000MB
+  Violations: ()
+
+=== Starting Search ===
+Episodes: 1
+Starting RL NAS with 1 episodes...
+Device: cpu
+Episode 0/1: Acc=0.0000, Reward=-10.0000, Feasible=False, Loss=-115.9863, Baseline=-1.0000
+
+RL NAS completed!
+Total evaluated: 1
+Feasible: 0
+Infeasible: 1
+
+=== Search Results ===
+No feasible architecture found!
+LUT usage summary: hits=18, misses=0, hit_rate=1.000
+
+=== Done ===

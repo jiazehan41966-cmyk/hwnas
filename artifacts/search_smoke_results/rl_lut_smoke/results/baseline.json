@@ -1,0 +1,195 @@
+{
+  "recorded_at": "2026-03-28T10:22:05Z",
+  "architecture": {
+    "input_channels": 1,
+    "stem_channels": 16,
+    "stem_stride": 2,
+    "head_channels": null,
+    "num_classes": 8,
+    "stages": [
+      {
+        "channels": 16,
+        "depth": 1,
+        "stride": 1,
+        "blocks": [
+          {
+            "op": "dw_pw_conv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          }
+        ]
+      },
+      {
+        "channels": 16,
+        "depth": 1,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "dw_pw_conv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 2
+          }
+        ]
+      },
+      {
+        "channels": 16,
+        "depth": 1,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "dw_pw_conv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 2
+          }
+        ]
+      },
+      {
+        "channels": 16,
+        "depth": 1,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "dw_pw_conv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 2
+          }
+        ]
+      }
+    ]
+  },
+  "cost_estimate": {
+    "params": 1872,
+    "macs": 8470464,
+    "model_size_mb": 0.0017852783203125,
+    "peak_activation_bytes": 200704,
+    "peak_weight_bytes": 400,
+    "peak_buffer_bytes": 201104,
+    "peak_dsp": 40,
+    "peak_bram": 3,
+    "peak_lut": 1512,
+    "total_dsp": 169,
+    "total_bram": 11,
+    "total_lut": 5754,
+    "latency_cycles": 470772,
+    "latency_ms": 2.35386,
+    "power_w": 3.3364,
+    "energy_mj": 7.8534185039999995,
+    "memory_bandwidth_gbps": 0.19930837008148317,
+    "offchip_mem_mb": 0.0,
+    "violations": [],
+    "per_layer": [
+      {
+        "stage_index": -1,
+        "block_index": -1,
+        "op": "stem_conv",
+        "input_resolution": 224,
+        "output_resolution": 112,
+        "in_channels": 1,
+        "out_channels": 16,
+        "params": 144,
+        "macs": 1806336,
+        "weight_bytes": 144,
+        "activation_bytes": 200704,
+        "ideal_dsp": 8,
+        "allocated_dsp": 8,
+        "bram_blocks": 1,
+        "lut": 552,
+        "latency_cycles": 161280
+      },
+      {
+        "stage_index": 0,
+        "block_index": 0,
+        "op": "dw_pw_conv",
+        "input_resolution": 112,
+        "output_resolution": 112,
+        "in_channels": 16,
+        "out_channels": 16,
+        "params": 400,
+        "macs": 5017600,
+        "weight_bytes": 400,
+        "activation_bytes": 200704,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 3,
+        "lut": 1512,
+        "latency_cycles": 232960
+      },
+      {
+        "stage_index": 1,
+        "block_index": 0,
+        "op": "dw_pw_conv",
+        "input_resolution": 112,
+        "output_resolution": 56,
+        "in_channels": 16,
+        "out_channels": 16,
+        "params": 400,
+        "macs": 1254400,
+        "weight_bytes": 400,
+        "activation_bytes": 50176,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 2,
+        "lut": 1288,
+        "latency_cycles": 58240
+      },
+      {
+        "stage_index": 2,
+        "block_index": 0,
+        "op": "dw_pw_conv",
+        "input_resolution": 56,
+        "output_resolution": 28,
+        "in_channels": 16,
+        "out_channels": 16,
+        "params": 400,
+        "macs": 313600,
+        "weight_bytes": 400,
+        "activation_bytes": 12544,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 2,
+        "lut": 1176,
+        "latency_cycles": 14560
+      },
+      {
+        "stage_index": 3,
+        "block_index": 0,
+        "op": "dw_pw_conv",
+        "input_resolution": 28,
+        "output_resolution": 14,
+        "in_channels": 16,
+        "out_channels": 16,
+        "params": 400,
+        "macs": 78400,
+        "weight_bytes": 400,
+        "activation_bytes": 3136,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 2,
+        "lut": 1120,
+        "latency_cycles": 3640
+      },
+      {
+        "stage_index": 4,
+        "block_index": -1,
+        "op": "head_fc",
+        "input_resolution": 14,
+        "output_resolution": 1,
+        "in_channels": 16,
+        "out_channels": 8,
+        "params": 128,
+        "macs": 128,
+        "weight_bytes": 128,
+        "activation_bytes": 8,
+        "ideal_dsp": 1,
+        "allocated_dsp": 1,
+        "bram_blocks": 1,
+        "lut": 106,
+        "latency_cycles": 92
+      }
+    ]
+  }
+}

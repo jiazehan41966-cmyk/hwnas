@@ -1,0 +1,1351 @@
+{
+  "entries": [
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 1,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          32,
+          32
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 4,
+      "bram": 1,
+      "lut": 256,
+      "power_w": 2.6172,
+      "energy_mj": 0.043079111999999996
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.06583,
+      "cycles": 13166,
+      "dsp": 8,
+      "bram": 1,
+      "lut": 328,
+      "power_w": 2.6795999999999998,
+      "energy_mj": 0.176398068
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 8,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.023775,
+      "cycles": 4755,
+      "dsp": 12,
+      "bram": 2,
+      "lut": 560,
+      "power_w": 2.6795999999999998,
+      "energy_mj": 0.06370748999999999
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.023775,
+      "cycles": 4755,
+      "dsp": 12,
+      "bram": 2,
+      "lut": 560,
+      "power_w": 2.6795999999999998,
+      "energy_mj": 0.06370748999999999
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.03109,
+      "cycles": 6218,
+      "dsp": 40,
+      "bram": 3,
+      "lut": 1312,
+      "power_w": 2.8108,
+      "energy_mj": 0.087387772
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.073145,
+      "cycles": 14629,
+      "dsp": 16,
+      "bram": 2,
+      "lut": 656,
+      "power_w": 2.6795999999999998,
+      "energy_mj": 0.195999342
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.073145,
+      "cycles": 14629,
+      "dsp": 32,
+      "bram": 2,
+      "lut": 976,
+      "power_w": 2.8108,
+      "energy_mj": 0.205595966
+    },
+    {
+      "op_spec": {
+        "op": "skip",
+        "kernel_size": 1,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.0,
+      "cycles": 0,
+      "dsp": 0,
+      "bram": 0,
+      "lut": 0,
+      "power_w": 2.5,
+      "energy_mj": 0.0
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.06583,
+      "cycles": 13166,
+      "dsp": 16,
+      "bram": 1,
+      "lut": 504,
+      "power_w": 2.8108,
+      "energy_mj": 0.185034964
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 8,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.023775,
+      "cycles": 4755,
+      "dsp": 20,
+      "bram": 2,
+      "lut": 736,
+      "power_w": 2.8108,
+      "energy_mj": 0.06682677000000001
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.023775,
+      "cycles": 4755,
+      "dsp": 20,
+      "bram": 2,
+      "lut": 736,
+      "power_w": 2.8108,
+      "energy_mj": 0.06682677000000001
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.03109,
+      "cycles": 6218,
+      "dsp": 56,
+      "bram": 3,
+      "lut": 1632,
+      "power_w": 3.0603999999999996,
+      "energy_mj": 0.09514783599999999
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.073145,
+      "cycles": 14629,
+      "dsp": 24,
+      "bram": 2,
+      "lut": 832,
+      "power_w": 2.8108,
+      "energy_mj": 0.205595966
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.073145,
+      "cycles": 14629,
+      "dsp": 48,
+      "bram": 2,
+      "lut": 1296,
+      "power_w": 3.0603999999999996,
+      "energy_mj": 0.22385295799999996
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.06583,
+      "cycles": 13166,
+      "dsp": 32,
+      "bram": 1,
+      "lut": 792,
+      "power_w": 3.0603999999999996,
+      "energy_mj": 0.20146613199999996
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 16,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.023775,
+      "cycles": 4755,
+      "dsp": 40,
+      "bram": 2,
+      "lut": 1128,
+      "power_w": 3.0603999999999996,
+      "energy_mj": 0.07276100999999999
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.023775,
+      "cycles": 4755,
+      "dsp": 40,
+      "bram": 2,
+      "lut": 1128,
+      "power_w": 3.0603999999999996,
+      "energy_mj": 0.07276100999999999
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.03109,
+      "cycles": 6218,
+      "dsp": 144,
+      "bram": 4,
+      "lut": 3344,
+      "power_w": 3.5904,
+      "energy_mj": 0.111625536
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.073145,
+      "cycles": 14629,
+      "dsp": 64,
+      "bram": 2,
+      "lut": 1584,
+      "power_w": 3.0603999999999996,
+      "energy_mj": 0.22385295799999996
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.073145,
+      "cycles": 14629,
+      "dsp": 128,
+      "bram": 3,
+      "lut": 2800,
+      "power_w": 3.5904,
+      "energy_mj": 0.262619808
+    },
+    {
+      "op_spec": {
+        "op": "skip",
+        "kernel_size": 1,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.0,
+      "cycles": 0,
+      "dsp": 0,
+      "bram": 0,
+      "lut": 0,
+      "power_w": 2.5,
+      "energy_mj": 0.0
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 8,
+      "bram": 1,
+      "lut": 312,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.04405354399999999
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 8,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 12,
+      "bram": 2,
+      "lut": 528,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.015911197999999998
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 12,
+      "bram": 2,
+      "lut": 528,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.015911197999999998
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01326,
+      "cycles": 2652,
+      "dsp": 40,
+      "bram": 3,
+      "lut": 1280,
+      "power_w": 2.8108,
+      "energy_mj": 0.037271208
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 16,
+      "bram": 2,
+      "lut": 624,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.048951355999999994
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 32,
+      "bram": 2,
+      "lut": 944,
+      "power_w": 2.8076,
+      "energy_mj": 0.051351004
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 16,
+      "bram": 1,
+      "lut": 488,
+      "power_w": 2.8076,
+      "energy_mj": 0.046213095999999995
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 8,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 20,
+      "bram": 2,
+      "lut": 704,
+      "power_w": 2.8076,
+      "energy_mj": 0.016691182
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 20,
+      "bram": 2,
+      "lut": 704,
+      "power_w": 2.8076,
+      "energy_mj": 0.016691182
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01326,
+      "cycles": 2652,
+      "dsp": 56,
+      "bram": 3,
+      "lut": 1600,
+      "power_w": 3.0572,
+      "energy_mj": 0.040538472
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 24,
+      "bram": 2,
+      "lut": 800,
+      "power_w": 2.8076,
+      "energy_mj": 0.051351004
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 48,
+      "bram": 2,
+      "lut": 1264,
+      "power_w": 3.0572,
+      "energy_mj": 0.055916188
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 16,
+      "bram": 1,
+      "lut": 456,
+      "power_w": 2.8012,
+      "energy_mj": 0.046107752
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 16,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 24,
+      "bram": 2,
+      "lut": 776,
+      "power_w": 2.8012,
+      "energy_mj": 0.016653134
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 24,
+      "bram": 2,
+      "lut": 776,
+      "power_w": 2.8012,
+      "energy_mj": 0.016653134
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01326,
+      "cycles": 2652,
+      "dsp": 112,
+      "bram": 4,
+      "lut": 2704,
+      "power_w": 3.5904,
+      "energy_mj": 0.047608703999999995
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 48,
+      "bram": 2,
+      "lut": 1232,
+      "power_w": 3.0572,
+      "energy_mj": 0.055916188
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 8,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 96,
+      "bram": 3,
+      "lut": 2160,
+      "power_w": 3.5871999999999997,
+      "energy_mj": 0.06560988799999999
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 32,
+      "bram": 1,
+      "lut": 776,
+      "power_w": 3.0572,
+      "energy_mj": 0.050321512
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 16,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 40,
+      "bram": 2,
+      "lut": 1096,
+      "power_w": 3.0572,
+      "energy_mj": 0.018175054
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 40,
+      "bram": 2,
+      "lut": 1096,
+      "power_w": 3.0572,
+      "energy_mj": 0.018175054
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01326,
+      "cycles": 2652,
+      "dsp": 144,
+      "bram": 4,
+      "lut": 3312,
+      "power_w": 3.5904,
+      "energy_mj": 0.047608703999999995
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 64,
+      "bram": 2,
+      "lut": 1552,
+      "power_w": 3.0572,
+      "energy_mj": 0.055916188
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 2,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          16,
+          16
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 128,
+      "bram": 3,
+      "lut": 2768,
+      "power_w": 3.5871999999999997,
+      "energy_mj": 0.06560988799999999
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 8,
+      "bram": 1,
+      "lut": 312,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.04405354399999999
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 8,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 12,
+      "bram": 2,
+      "lut": 528,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.015911197999999998
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 12,
+      "bram": 2,
+      "lut": 528,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.015911197999999998
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.007775,
+      "cycles": 1555,
+      "dsp": 40,
+      "bram": 3,
+      "lut": 1264,
+      "power_w": 2.8076,
+      "energy_mj": 0.02182909
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 16,
+      "bram": 2,
+      "lut": 624,
+      "power_w": 2.6763999999999997,
+      "energy_mj": 0.048951355999999994
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 32,
+      "bram": 2,
+      "lut": 944,
+      "power_w": 2.8076,
+      "energy_mj": 0.051351004
+    },
+    {
+      "op_spec": {
+        "op": "skip",
+        "kernel_size": 1,
+        "in_channels": 8,
+        "out_channels": 8,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.0,
+      "cycles": 0,
+      "dsp": 0,
+      "bram": 0,
+      "lut": 0,
+      "power_w": 2.5,
+      "energy_mj": 0.0
+    },
+    {
+      "op_spec": {
+        "op": "conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.01646,
+      "cycles": 3292,
+      "dsp": 32,
+      "bram": 1,
+      "lut": 776,
+      "power_w": 3.0572,
+      "energy_mj": 0.050321512
+    },
+    {
+      "op_spec": {
+        "op": "dw_pw_conv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 16,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 40,
+      "bram": 2,
+      "lut": 1096,
+      "power_w": 3.0572,
+      "energy_mj": 0.018175054
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.005945,
+      "cycles": 1189,
+      "dsp": 40,
+      "bram": 2,
+      "lut": 1096,
+      "power_w": 3.0572,
+      "energy_mj": 0.018175054
+    },
+    {
+      "op_spec": {
+        "op": "mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.007775,
+      "cycles": 1555,
+      "dsp": 144,
+      "bram": 4,
+      "lut": 3296,
+      "power_w": 3.5871999999999997,
+      "energy_mj": 0.02789048
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 64,
+      "bram": 2,
+      "lut": 1552,
+      "power_w": 3.0572,
+      "energy_mj": 0.055916188
+    },
+    {
+      "op_spec": {
+        "op": "fused_mbconv",
+        "kernel_size": 3,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 2,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.01829,
+      "cycles": 3658,
+      "dsp": 128,
+      "bram": 3,
+      "lut": 2768,
+      "power_w": 3.5871999999999997,
+      "energy_mj": 0.06560988799999999
+    },
+    {
+      "op_spec": {
+        "op": "skip",
+        "kernel_size": 1,
+        "in_channels": 16,
+        "out_channels": 16,
+        "stride": 1,
+        "groups": 1,
+        "expand_ratio": 1,
+        "input_resolution": [
+          8,
+          8
+        ]
+      },
+      "latency_ms": 0.0,
+      "cycles": 0,
+      "dsp": 0,
+      "bram": 0,
+      "lut": 0,
+      "power_w": 2.5,
+      "energy_mj": 0.0
+    }
+  ],
+  "duplicates": {},
+  "metadata": {
+    "kind": "analytical_lut",
+    "board": {
+      "name": "zynq7020",
+      "clock_mhz": 200,
+      "max_lut": 53200,
+      "max_ff": 106400,
+      "max_bram": 140,
+      "max_dsp": 220,
+      "max_power_w": 5.0,
+      "memory_bandwidth_gbps": 4.2,
+      "offchip_mem_mb": 512.0
+    },
+    "search_space": {
+      "image_size": 32,
+      "input_channels": 1,
+      "stem_channels": 8,
+      "stem_stride": 2,
+      "stage_strides": [
+        1,
+        2
+      ],
+      "channel_choices": [
+        8,
+        16
+      ],
+      "depth_choices": [
+        1,
+        2
+      ],
+      "kernel_choices": [
+        3
+      ],
+      "expand_choices": [
+        1,
+        2
+      ],
+      "op_choices": [
+        "conv",
+        "dw_pw_conv",
+        "mbconv",
+        "fused_mbconv",
+        "skip"
+      ]
+    },
+    "entries_requested": 59,
+    "entries_built": 59
+  }
+}

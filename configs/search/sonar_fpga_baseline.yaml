@@ -26,8 +26,9 @@ search_space:
     - conv
     - dw_pw_conv
     - mbconv
-    - fused_mbconv
     - skip
+    - denoise
+    - edge
 
 constraints:
   max_latency_ms: null

@@ -1,0 +1,286 @@
+`timescale 1ns / 1ps
+
+module harness_top (
+    input  wire sys_clk_p,
+    input  wire sys_clk_n,
+    input  wire sys_rst_n,
+    input  wire uart_rx,
+    output wire uart_tx,
+    output wire [{{STATUS_LED_WIDTH}}-1:0] status_led
+);
+
+localparam integer CLK_FREQ_HZ = {{CLK_FREQ_HZ}};
+localparam integer UART_BAUD = {{UART_BAUD}};
+localparam integer BOOT_DELAY_CYCLES = {{BOOT_DELAY_CYCLES}};
+localparam integer STATUS_LED_WIDTH = {{STATUS_LED_WIDTH}};
+
+localparam integer INPUT_TDATA_WIDTH = {{INPUT_TDATA_WIDTH}};
+localparam integer INPUT_KEEP_WIDTH = {{INPUT_KEEP_WIDTH}};
+localparam integer OUTPUT_TDATA_WIDTH = {{OUTPUT_TDATA_WIDTH}};
+localparam integer OUTPUT_KEEP_WIDTH = {{OUTPUT_KEEP_WIDTH}};
+localparam integer INPUT_WORD_COUNT = {{INPUT_WORD_COUNT}};
+localparam integer OUTPUT_WORD_COUNT = {{OUTPUT_WORD_COUNT}};
+
+localparam integer AXIL_ADDR_WIDTH = {{AXIL_ADDR_WIDTH}};
+localparam integer AXIL_DATA_WIDTH = {{AXIL_DATA_WIDTH}};
+
+localparam integer WEIGHTS_DATA_WIDTH = {{WEIGHTS_DATA_WIDTH}};
+localparam integer WEIGHTS_ADDR_WIDTH = {{WEIGHTS_ADDR_WIDTH}};
+localparam integer WEIGHTS_DEPTH = {{WEIGHTS_DEPTH}};
+localparam integer WEIGHTS_HAS_PORT_B = {{WEIGHTS_HAS_PORT_B}};
+
+localparam integer BIASES_DATA_WIDTH = {{BIASES_DATA_WIDTH}};
+localparam integer BIASES_ADDR_WIDTH = {{BIASES_ADDR_WIDTH}};
+localparam integer BIASES_DEPTH = {{BIASES_DEPTH}};
+localparam integer BIASES_HAS_PORT_B = {{BIASES_HAS_PORT_B}};
+
+{{CLOCKING_LOGIC}}
+
+wire rst_n;
+reset_sync u_reset_sync (
+    .clk(clk_main),
+    .rst_n_async(sys_rst_n & clock_ready),
+    .rst_n_sync(rst_n)
+);
+
+reg [31:0] boot_counter = 32'd0;
+reg boot_started = 1'b0;
+wire start_pulse = (boot_counter == BOOT_DELAY_CYCLES - 1) && !boot_started;
+
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        boot_counter <= 32'd0;
+        boot_started <= 1'b0;
+    end else if (!boot_started) begin
+        if (boot_counter == BOOT_DELAY_CYCLES - 1) begin
+            boot_started <= 1'b1;
+        end else begin
+            boot_counter <= boot_counter + 32'd1;
+        end
+    end
+end
+
+wire [INPUT_TDATA_WIDTH-1:0] input_tdata;
+wire [INPUT_KEEP_WIDTH-1:0] input_tkeep;
+wire [INPUT_KEEP_WIDTH-1:0] input_tstrb;
+wire input_tlast;
+wire input_tvalid;
+wire input_tready;
+wire source_done;
+
+axis_rom_source #(
+    .DATA_WIDTH(INPUT_TDATA_WIDTH),
+    .KEEP_WIDTH(INPUT_KEEP_WIDTH),
+    .WORD_COUNT(INPUT_WORD_COUNT),
+    .WORD_MEM_FILE("{{INPUT_WORD_MEM_FILE}}"),
+    .MEM_FILE_00({{INPUT_MEM_FILE_00}}),
+    .MEM_FILE_01({{INPUT_MEM_FILE_01}}),
+    .MEM_FILE_02({{INPUT_MEM_FILE_02}}),
+    .MEM_FILE_03({{INPUT_MEM_FILE_03}}),
+    .MEM_FILE_04({{INPUT_MEM_FILE_04}}),
+    .MEM_FILE_05({{INPUT_MEM_FILE_05}}),
+    .MEM_FILE_06({{INPUT_MEM_FILE_06}}),
+    .MEM_FILE_07({{INPUT_MEM_FILE_07}}),
+    .MEM_FILE_08({{INPUT_MEM_FILE_08}}),
+    .MEM_FILE_09({{INPUT_MEM_FILE_09}}),
+    .MEM_FILE_10({{INPUT_MEM_FILE_10}}),
+    .MEM_FILE_11({{INPUT_MEM_FILE_11}}),
+    .MEM_FILE_12({{INPUT_MEM_FILE_12}}),
+    .MEM_FILE_13({{INPUT_MEM_FILE_13}}),
+    .MEM_FILE_14({{INPUT_MEM_FILE_14}}),
+    .MEM_FILE_15({{INPUT_MEM_FILE_15}}),
+    .MEM_FILE_16({{INPUT_MEM_FILE_16}}),
+    .MEM_FILE_17({{INPUT_MEM_FILE_17}}),
+    .MEM_FILE_18({{INPUT_MEM_FILE_18}}),
+    .MEM_FILE_19({{INPUT_MEM_FILE_19}}),
+    .MEM_FILE_20({{INPUT_MEM_FILE_20}}),
+    .MEM_FILE_21({{INPUT_MEM_FILE_21}}),
+    .MEM_FILE_22({{INPUT_MEM_FILE_22}}),
+    .MEM_FILE_23({{INPUT_MEM_FILE_23}}),
+    .MEM_FILE_24({{INPUT_MEM_FILE_24}}),
+    .MEM_FILE_25({{INPUT_MEM_FILE_25}}),
+    .MEM_FILE_26({{INPUT_MEM_FILE_26}}),
+    .MEM_FILE_27({{INPUT_MEM_FILE_27}}),
+    .MEM_FILE_28({{INPUT_MEM_FILE_28}}),
+    .MEM_FILE_29({{INPUT_MEM_FILE_29}}),
+    .MEM_FILE_30({{INPUT_MEM_FILE_30}}),
+    .MEM_FILE_31({{INPUT_MEM_FILE_31}})
+) u_axis_rom_source (
+    .clk(clk_main),
+    .rst_n(rst_n),
+    .start(start_pulse),
+    .tdata(input_tdata),
+    .tkeep(input_tkeep),
+    .tstrb(input_tstrb),
+    .tlast(input_tlast),
+    .tvalid(input_tvalid),
+    .tready(input_tready),
+    .done(source_done)
+);
+
+wire [OUTPUT_TDATA_WIDTH-1:0] output_tdata;
+wire [OUTPUT_KEEP_WIDTH-1:0] output_tkeep;
+wire [OUTPUT_KEEP_WIDTH-1:0] output_tstrb;
+wire output_tlast;
+wire output_tvalid;
+wire output_tready;
+wire sink_done;
+wire [31:0] output_checksum;
+wire [31:0] output_word_count;
+
+axis_checksum_sink #(
+    .DATA_WIDTH(OUTPUT_TDATA_WIDTH),
+    .KEEP_WIDTH(OUTPUT_KEEP_WIDTH),
+    .EXPECTED_WORD_COUNT(OUTPUT_WORD_COUNT)
+) u_axis_checksum_sink (
+    .clk(clk_main),
+    .rst_n(rst_n),
+    .clear(start_pulse),
+    .tdata(output_tdata),
+    .tkeep(output_tkeep),
+    .tstrb(output_tstrb),
+    .tlast(output_tlast),
+    .tvalid(output_tvalid),
+    .tready(output_tready),
+    .done(sink_done),
+    .checksum(output_checksum),
+    .word_count(output_word_count)
+);
+
+wire axil_done;
+wire axil_busy;
+wire axil_error;
+
+wire s_axi_control_AWVALID;
+wire s_axi_control_AWREADY;
+wire [AXIL_ADDR_WIDTH-1:0] s_axi_control_AWADDR;
+wire s_axi_control_WVALID;
+wire s_axi_control_WREADY;
+wire [AXIL_DATA_WIDTH-1:0] s_axi_control_WDATA;
+wire [(AXIL_DATA_WIDTH/8)-1:0] s_axi_control_WSTRB;
+wire s_axi_control_ARVALID;
+wire s_axi_control_ARREADY;
+wire [AXIL_ADDR_WIDTH-1:0] s_axi_control_ARADDR;
+wire s_axi_control_RVALID;
+wire s_axi_control_RREADY;
+wire [AXIL_DATA_WIDTH-1:0] s_axi_control_RDATA;
+wire [1:0] s_axi_control_RRESP;
+wire s_axi_control_BVALID;
+wire s_axi_control_BREADY;
+wire [1:0] s_axi_control_BRESP;
+
+axi_lite_kernel_ctrl #(
+    .ADDR_WIDTH(AXIL_ADDR_WIDTH),
+    .DATA_WIDTH(AXIL_DATA_WIDTH)
+) u_axi_lite_kernel_ctrl (
+    .clk(clk_main),
+    .rst_n(rst_n),
+    .start(start_pulse),
+    .done(axil_done),
+    .busy(axil_busy),
+    .error(axil_error),
+    .m_axi_awvalid(s_axi_control_AWVALID),
+    .m_axi_awready(s_axi_control_AWREADY),
+    .m_axi_awaddr(s_axi_control_AWADDR),
+    .m_axi_wvalid(s_axi_control_WVALID),
+    .m_axi_wready(s_axi_control_WREADY),
+    .m_axi_wdata(s_axi_control_WDATA),
+    .m_axi_wstrb(s_axi_control_WSTRB),
+    .m_axi_bvalid(s_axi_control_BVALID),
+    .m_axi_bready(s_axi_control_BREADY),
+    .m_axi_bresp(s_axi_control_BRESP),
+    .m_axi_arvalid(s_axi_control_ARVALID),
+    .m_axi_arready(s_axi_control_ARREADY),
+    .m_axi_araddr(s_axi_control_ARADDR),
+    .m_axi_rvalid(s_axi_control_RVALID),
+    .m_axi_rready(s_axi_control_RREADY),
+    .m_axi_rdata(s_axi_control_RDATA),
+    .m_axi_rresp(s_axi_control_RRESP)
+);
+
+wire [31:0] measured_cycles;
+wire counter_running;
+wire counter_done;
+
+cycle_counter u_cycle_counter (
+    .clk(clk_main),
+    .rst_n(rst_n),
+    .clear(start_pulse),
+    .start(start_pulse),
+    .stop(sink_done),
+    .cycles(measured_cycles),
+    .running(counter_running),
+    .done(counter_done)
+);
+
+reg seen_axil_done = 1'b0;
+reg seen_sink_done = 1'b0;
+reg result_sent = 1'b0;
+reg result_start = 1'b0;
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        seen_axil_done <= 1'b0;
+        seen_sink_done <= 1'b0;
+        result_sent <= 1'b0;
+        result_start <= 1'b0;
+    end else if (start_pulse) begin
+        seen_axil_done <= 1'b0;
+        seen_sink_done <= 1'b0;
+        result_sent <= 1'b0;
+        result_start <= 1'b0;
+    end else begin
+        if (axil_done) begin
+            seen_axil_done <= 1'b1;
+        end
+        if (sink_done) begin
+            seen_sink_done <= 1'b1;
+        end
+        if (result_tx_done) begin
+            result_sent <= 1'b1;
+        end
+        result_start <= !result_sent && !result_tx_busy && (seen_axil_done || axil_done) && (seen_sink_done || sink_done);
+    end
+end
+
+wire result_tx_busy;
+wire result_tx_done;
+wire [7:0] result_status_code = axil_error ? 8'd2 : (sink_done ? 8'd0 : 8'd1);
+
+result_uart_tx #(
+    .CLK_FREQ_HZ(CLK_FREQ_HZ),
+    .BAUD(UART_BAUD)
+) u_result_uart_tx (
+    .clk(clk_main),
+    .rst_n(rst_n),
+    .start(result_start),
+    .status_code(result_status_code),
+    .cycles(measured_cycles),
+    .checksum(output_checksum),
+    .word_count(output_word_count),
+    .tx(uart_tx),
+    .busy(result_tx_busy),
+    .done(result_tx_done)
+);
+
+{{WEIGHTS_SUPPORT_LOGIC}}
+
+{{BIASES_SUPPORT_LOGIC}}
+
+wire interrupt;
+
+{{KERNEL_INSTANCE}}
+
+wire [3:0] status_bits;
+assign status_bits[0] = counter_running;
+assign status_bits[1] = sink_done;
+assign status_bits[2] = axil_done;
+assign status_bits[3] = axil_error;
+
+genvar status_idx;
+generate
+    for (status_idx = 0; status_idx < STATUS_LED_WIDTH; status_idx = status_idx + 1) begin : g_status_led
+        assign status_led[status_idx] = status_bits[status_idx];
+    end
+endgenerate
+
+endmodule

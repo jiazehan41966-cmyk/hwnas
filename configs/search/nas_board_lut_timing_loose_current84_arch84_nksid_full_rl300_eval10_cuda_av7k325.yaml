@@ -1,0 +1,125 @@
+project:
+  name: nas-board-lut-timing-loose-current84-arch84-nksid-full-rl300-eval10-cuda-av7k325
+  seed: 42
+  output_dir: results
+  run_name: nas_board_lut_timing_loose_current84_arch84_nksid_full_rl300_eval10_cuda_v1
+
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 8
+  normalization: grayscale
+
+search_space:
+  family_profile: null
+  macro_type: stage_based
+  stem_stride: 2
+  post_stem_downsample_stride: 1
+  stage_strides: [1, 2, 2, 1]
+  stem_channels: 32
+  stage_base_channels: [16, 24, 32, 32]
+  width_multipliers: [1.0]
+  stage_depth_choices:
+    - [1]
+    - [1]
+    - [1]
+    - [1]
+  kernel_choices: [1, 3, 5]
+  expand_choices: [1, 3, 6]
+  op_choices:
+    - conv
+    - mbconv
+    - skip
+  stage_block_choices:
+    - [{op: conv, kernel_size: 1, expand_ratio: 1}]
+    - [
+        {op: mbconv, kernel_size: 3, expand_ratio: 3},
+        {op: mbconv, kernel_size: 5, expand_ratio: 3},
+        {op: mbconv, kernel_size: 3, expand_ratio: 6},
+        {op: mbconv, kernel_size: 5, expand_ratio: 6},
+      ]
+    - [{op: mbconv, kernel_size: 3, expand_ratio: 3}]
+    - [
+        {op: mbconv, kernel_size: 3, expand_ratio: 3},
+        {op: skip, kernel_size: 1, expand_ratio: 1},
+      ]
+  head_conv_channels: null
+
+constraints:
+  max_latency_ms: 1000.0
+  max_power_w: null
+  max_model_size_mb: null
+  max_dsp: null
+  max_bram: null
+  max_lut: null
+  max_memory_bandwidth_gbps: null
+  max_offchip_mem_mb: 256.0
+
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  max_lut: 1000000
+  max_ff: 1000000
+  max_bram: 10000
+  max_dsp: 10000
+  max_power_w: 1000.0
+  memory_bandwidth_gbps: 1000.0
+  offchip_mem_mb: 10000.0
+  estimator: strict_board_lut
+  lut_path: hls_lut_builder/results/nas_board_lut_timing_loose_current84_arch84/nas_board_lut_strict.json
+  formal_lut_status_path: hls_lut_builder/results/nas_board_lut_timing_loose_current84_arch84/nas_board_lut_status.json
+  strict_formal_lut: true
+  strict_lut_label: loose 100 MHz timing-only derived LUT
+  use_lut_for_head_layers: true
+  lut_allow_shape_only_match: false
+  lut_enable_interpolation: false
+  use_dummy_lut: false
+
+search:
+  method: rl
+  num_candidates: 300
+  episodes: 300
+  eval_epochs: 10
+  eval_early_stopping_patience: 3
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.01
+  selection_metric: macro_f1
+  pareto:
+    selection_method: rank
+    topk: 8
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
+  reward_cfg:
+    constraint_penalty: 10.0
+    infeasible_penalty_mode: violation_ratio
+    infeasible_base_penalty: 1.0
+    infeasible_penalty_scale: 5.0
+
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 32
+  epochs: 150
+  early_stopping_patience: null
+
+deployment:
+  export_format: onnx
+  run_hls_validation: false
+
+notes:
+  timing_profile: loose
+  timing_target: 10 ns / 100 MHz
+  latency_scope: NAS candidate latency is cycle-count scaled to 100 MHz from board measurements; final candidate e2e latency still needs COM5 measurement.
+  timing_policy: Existing 200 MHz WNS is reinterpreted against the 100 MHz relaxed target.
+  relaxed_profile_warning: This is for trend comparison only; it is not a new Vivado implementation and not a new COM5 board measurement.
+  official_use: not eligible as an official strict LUT until rerun with 100 MHz implementation constraints and fresh UART measurement.

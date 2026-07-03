@@ -1,0 +1,22 @@
+{
+  "config": "artifacts\\sonar_fpga_baseline_with_lut.yaml",
+  "dataset": null,
+  "data_dir": null,
+  "fold": null,
+  "num_workers": 0,
+  "num_candidates": null,
+  "episodes": 1,
+  "train_epochs": 1,
+  "timeout_minutes": null,
+  "num_classes": null,
+  "batch_size": 8,
+  "image_size": null,
+  "device": null,
+  "seed": null,
+  "family_profile": null,
+  "search_method": "rl",
+  "controller_hidden": null,
+  "controller_lr": null,
+  "output_dir": "artifacts\\search_smoke_results",
+  "run_name": "rl_lut_smoke"
+}

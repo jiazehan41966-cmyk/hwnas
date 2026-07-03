@@ -19,6 +19,21 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 
+# HLS profiling kernels may use finer-grained names than the current NAS search
+# space. Normalize them so a LUT built from HLS manifests can still satisfy the
+# existing query path without requiring every caller to know both vocabularies.
+LUT_OP_ALIASES: Dict[str, str] = {
+    "stem_conv_k3_s2": "conv",
+    "pw_conv": "conv",
+    "conv_bn_relu6": "conv",
+    "inverted_residual": "mbconv",
+}
+
+
+def canonicalize_lut_op_name(op: str) -> str:
+    return LUT_OP_ALIASES.get(str(op).strip(), str(op).strip())
+
+
 # ============================================================================
 # Operator Specifications (类似 FBNet 的 OpBase/OpProperty)
 # ============================================================================
@@ -32,6 +47,7 @@ class OpSpec:
 
     Attributes:
         op: 算子类型 (conv, dw_conv, mbconv, fused_mbconv, skip, etc.)
+            允许更细粒度的 HLS kernel 名称；导入时会归一化到查询口径。
         kernel_size: 卷积核大小
         in_channels: 输入通道数
         out_channels: 输出通道数
@@ -49,15 +65,45 @@ class OpSpec:
     groups: int = 1
     expand_ratio: int = 1
     input_resolution: Tuple[int, int] = (224, 224)
+    bitwidth: int = 8
+    input_parallelism: int = 1
+    output_parallelism: int = 1
+    unroll_factor: int = 1
+    target_clock_mhz: Optional[float] = None
+    pack_ch: Optional[int] = None
+    ch_block: Optional[int] = None
+    target_ii: Optional[int] = None
+    tile_order: Optional[str] = None
+    stream_order: Optional[str] = None
+    dsp_pack: Optional[str] = None
 
     def __post_init__(self):
+        object.__setattr__(self, "op", canonicalize_lut_op_name(self.op))
         # 确保关键参数是整数（用于哈希）
         if isinstance(self.input_resolution, (list, tuple)):
             object.__setattr__(self, "input_resolution", tuple(self.input_resolution))
+        object.__setattr__(self, "bitwidth", int(self.bitwidth))
+        object.__setattr__(self, "input_parallelism", int(self.input_parallelism))
+        object.__setattr__(self, "output_parallelism", int(self.output_parallelism))
+        object.__setattr__(self, "unroll_factor", int(self.unroll_factor))
+        if self.target_clock_mhz is not None:
+            object.__setattr__(self, "target_clock_mhz", float(self.target_clock_mhz))
+        if self.pack_ch is not None:
+            object.__setattr__(self, "pack_ch", int(self.pack_ch))
+        if self.ch_block is not None:
+            object.__setattr__(self, "ch_block", int(self.ch_block))
+        if self.target_ii is not None:
+            object.__setattr__(self, "target_ii", int(self.target_ii))
+        if self.tile_order is not None:
+            object.__setattr__(self, "tile_order", str(self.tile_order))
+        if self.stream_order is not None:
+            object.__setattr__(self, "stream_order", str(self.stream_order))
+        if self.dsp_pack is not None:
+            object.__setattr__(self, "dsp_pack", str(self.dsp_pack))
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
-        return {
+        payload = {
             "op": self.op,
             "kernel_size": self.kernel_size,
             "in_channels": self.in_channels,
@@ -66,7 +112,17 @@ class OpSpec:
             "groups": self.groups,
             "expand_ratio": self.expand_ratio,
             "input_resolution": self.input_resolution,
+            "bitwidth": self.bitwidth,
+            "input_parallelism": self.input_parallelism,
+            "output_parallelism": self.output_parallelism,
+            "unroll_factor": self.unroll_factor,
+            "target_clock_mhz": self.target_clock_mhz,
         }
+        for key in ("pack_ch", "ch_block", "target_ii", "tile_order", "stream_order", "dsp_pack"):
+            value = getattr(self, key)
+            if value is not None:
+                payload[key] = value
+        return payload
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OpSpec":
@@ -80,22 +136,48 @@ class OpSpec:
             groups=data.get("groups", 1),
             expand_ratio=data.get("expand_ratio", 1),
             input_resolution=tuple(data.get("input_resolution", (224, 224))),
+            bitwidth=data.get("bitwidth", 8),
+            input_parallelism=data.get("input_parallelism", 1),
+            output_parallelism=data.get("output_parallelism", 1),
+            unroll_factor=data.get("unroll_factor", 1),
+            target_clock_mhz=data.get("target_clock_mhz"),
+            pack_ch=data.get("pack_ch"),
+            ch_block=data.get("ch_block"),
+            target_ii=data.get("target_ii"),
+            tile_order=data.get("tile_order"),
+            stream_order=data.get("stream_order"),
+            dsp_pack=data.get("dsp_pack"),
+        )
+
+    def shape_signature(self) -> Tuple[Any, ...]:
+        return (
+            self.op,
+            self.kernel_size,
+            self.in_channels,
+            self.out_channels,
+            self.stride,
+            self.groups,
+            self.expand_ratio,
+            self.input_resolution,
+        )
+
+    def implementation_signature(self) -> Tuple[Any, ...]:
+        return (
+            self.bitwidth,
+            self.input_parallelism,
+            self.output_parallelism,
+            self.unroll_factor,
+            self.target_clock_mhz,
+            self.pack_ch,
+            self.ch_block,
+            self.target_ii,
+            self.tile_order,
+            self.stream_order,
+            self.dsp_pack,
         )
 
     def __hash__(self) -> int:
-        # 基于 frozenset 实现哈希（类似 FBNet 的 OpProperty）
-        return hash(
-            (
-                self.op,
-                self.kernel_size,
-                self.in_channels,
-                self.out_channels,
-                self.stride,
-                self.groups,
-                self.expand_ratio,
-                self.input_resolution,
-            )
-        )
+        return hash((*self.shape_signature(), *self.implementation_signature()))
 
 
 # ============================================================================
@@ -126,8 +208,8 @@ class LutEntry:
     dsp: int = 0
     bram: int = 0
     lut: int = 0
-    power_w: float = 0.0
-    energy_mj: float = 0.0
+    power_w: Optional[float] = None
+    energy_mj: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
@@ -155,6 +237,57 @@ class LutEntry:
             power_w=data["power_w"],
             energy_mj=data["energy_mj"],
         )
+
+
+@dataclass(frozen=True)
+class FormalLutStatusEntry:
+    """Formal LUT status entry used by defer-aware NAS experiments."""
+
+    case_name: str
+    status: str
+    op_type: str
+    lookup_op: str
+    defer_reason: Optional[str] = None
+    root_cause_bucket: Optional[str] = None
+    op_spec: OpSpec | None = None
+    board_cycles: Optional[int] = None
+    board_latency_ms: Optional[float] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "FormalLutStatusEntry":
+        return cls(
+            case_name=str(data["case_name"]),
+            status=str(data["status"]),
+            op_type=str(data.get("op_type", data.get("lookup_op", ""))),
+            lookup_op=str(data.get("lookup_op", data.get("op_type", ""))),
+            defer_reason=data.get("defer_reason"),
+            root_cause_bucket=data.get("root_cause_bucket"),
+            op_spec=(
+                OpSpec.from_dict(data["op_spec"])
+                if isinstance(data.get("op_spec"), dict)
+                else None
+            ),
+            board_cycles=(
+                int(data["board_cycles"])
+                if data.get("board_cycles") is not None
+                else None
+            ),
+            board_latency_ms=(
+                float(data["board_latency_ms"])
+                if data.get("board_latency_ms") is not None
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class LutQueryResult:
+    """Structured LUT query result that distinguishes miss vs infeasible."""
+
+    status: str
+    entry: Optional[LutEntry] = None
+    status_entry: Optional[FormalLutStatusEntry] = None
+    matched_by: str = "none"
 
 
 # ============================================================================
@@ -318,16 +451,7 @@ class LutTable:
             if op == "skip" and (kernel_size != 1 or expand_ratio != 1):
                 continue
 
-            lut_op = {
-                "conv": "conv",
-                "dw_pw_conv": "dw_pw_conv",
-                "mbconv": "mbconv",
-                "fused_mbconv": "fused_mbconv",
-                "skip": "skip",
-                "mixconv": "mixconv",
-                "denoise": "denoise",
-                "edge": "edge",
-            }.get(op, op)
+            lut_op = canonicalize_lut_op_name(op)
             groups = in_channels if op in {"dw_pw_conv", "mixconv", "denoise", "edge"} else 1
 
             latency_ms = float(raw_metrics.get("latency_ms", 0.0))
@@ -390,9 +514,20 @@ class LutQueryEngine:
         enable_interpolation: 是否启用插值
     """
 
-    def __init__(self, lut_table: LutTable, enable_interpolation: bool = False):
+    def __init__(
+        self,
+        lut_table: LutTable,
+        enable_interpolation: bool = False,
+        *,
+        allow_shape_only_match: bool = True,
+        strict_formal_lut: bool = False,
+        formal_status_entries: Optional[Dict[OpSpec, FormalLutStatusEntry]] = None,
+    ):
         self.lut_table = lut_table
         self.enable_interpolation = enable_interpolation
+        self.allow_shape_only_match = allow_shape_only_match
+        self.strict_formal_lut = strict_formal_lut
+        self.formal_status_entries = dict(formal_status_entries or {})
 
     def query(self, op_spec: OpSpec) -> Optional[LutEntry]:
         """查询算子的硬件代价
@@ -403,16 +538,79 @@ class LutQueryEngine:
         Returns:
             LutEntry 如果找到，否则尝试插值或返回 None
         """
-        # 1. 精确匹配
+        result = self.query_with_status(op_spec)
+        return result.entry
+
+    def query_with_status(self, op_spec: OpSpec) -> LutQueryResult:
+        """Query LUT and preserve infeasible-vs-miss semantics."""
+        if self.strict_formal_lut:
+            status_entry = self.formal_status_entries.get(op_spec)
+            if status_entry is not None:
+                if str(status_entry.status).strip() == "measured":
+                    entry = self.lut_table.query(op_spec)
+                    if entry is None:
+                        raise KeyError(
+                            f"Formal LUT status marks {status_entry.case_name} as measured "
+                            "but the measured LUT table has no exact entry."
+                        )
+                    return LutQueryResult(
+                        status="measured",
+                        entry=entry,
+                        status_entry=status_entry,
+                        matched_by="formal_exact",
+                    )
+                return LutQueryResult(
+                    status=str(status_entry.status).strip(),
+                    entry=None,
+                    status_entry=status_entry,
+                    matched_by="formal_status",
+                )
+
+            return LutQueryResult(status="missing", entry=None, status_entry=None, matched_by="formal_miss")
+
         entry = self.lut_table.query(op_spec)
         if entry is not None:
-            return entry
+            return LutQueryResult(status="measured", entry=entry, matched_by="exact")
 
-        # 2. 插值查询（如果启用）
+        if self.allow_shape_only_match:
+            shape_only_match = self._query_unique_shape_match(op_spec)
+            if shape_only_match is not None:
+                return LutQueryResult(status="measured", entry=shape_only_match, matched_by="shape_only")
+
         if self.enable_interpolation:
-            return self._interpolate_query(op_spec)
+            interpolated = self._interpolate_query(op_spec)
+            if interpolated is not None:
+                return LutQueryResult(status="measured", entry=interpolated, matched_by="interpolated")
 
+        return LutQueryResult(status="missing", entry=None, matched_by="none")
+
+    def _query_unique_shape_match(self, op_spec: OpSpec) -> Optional[LutEntry]:
+        matches = [
+            entry
+            for spec, entry in self.lut_table._index.items()
+            if spec.shape_signature() == op_spec.shape_signature()
+        ]
+        if len(matches) == 1:
+            return matches[0]
         return None
+
+    @staticmethod
+    def load_formal_status_json(path: str) -> Dict[OpSpec, FormalLutStatusEntry]:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
+            raise ValueError(f"Unsupported formal LUT status JSON format: {path}")
+
+        index: Dict[OpSpec, FormalLutStatusEntry] = {}
+        for raw_entry in entries:
+            entry = FormalLutStatusEntry.from_dict(raw_entry)
+            if entry.op_spec is None:
+                raise ValueError(
+                    f"Formal LUT status entry for case {entry.case_name} is missing op_spec."
+                )
+            index[entry.op_spec] = entry
+        return index
 
     def _interpolate_query(self, op_spec: OpSpec) -> Optional[LutEntry]:
         """插值查询（基于邻近条目）
@@ -429,6 +627,8 @@ class LutQueryEngine:
             and k.stride == op_spec.stride
             and k.groups == op_spec.groups
             and k.expand_ratio == op_spec.expand_ratio
+            and k.input_resolution == op_spec.input_resolution
+            and k.implementation_signature() == op_spec.implementation_signature()
         ]
 
         if not candidates:
@@ -459,6 +659,11 @@ class LutQueryEngine:
             )
 
             # 对每个指标进行插值
+            def interp_optional_float(lower_value: Optional[float], upper_value: Optional[float]) -> Optional[float]:
+                if lower_value is None or upper_value is None:
+                    return None
+                return lower_value + t * (upper_value - lower_value)
+
             interpolated = LutEntry(
                 op_spec=op_spec,
                 latency_ms=lower_entry.latency_ms + t * (upper_entry.latency_ms - lower_entry.latency_ms),
@@ -466,8 +671,8 @@ class LutQueryEngine:
                 dsp=int(lower_entry.dsp + t * (upper_entry.dsp - lower_entry.dsp)),
                 bram=int(lower_entry.bram + t * (upper_entry.bram - lower_entry.bram)),
                 lut=int(lower_entry.lut + t * (upper_entry.lut - lower_entry.lut)),
-                power_w=lower_entry.power_w + t * (upper_entry.power_w - lower_entry.power_w),
-                energy_mj=lower_entry.energy_mj + t * (upper_entry.energy_mj - lower_entry.energy_mj),
+                power_w=interp_optional_float(lower_entry.power_w, upper_entry.power_w),
+                energy_mj=interp_optional_float(lower_entry.energy_mj, upper_entry.energy_mj),
             )
             return interpolated
 
@@ -511,6 +716,11 @@ class LutBuilder:
         bram: int = 0,
         lut: int = 0,
         power_w: float = 0.0,
+        bitwidth: int = 8,
+        input_parallelism: int = 1,
+        output_parallelism: int = 1,
+        unroll_factor: int = 1,
+        target_clock_mhz: Optional[float] = None,
     ) -> "LutBuilder":
         """添加 profiling 结果
 
@@ -539,6 +749,11 @@ class LutBuilder:
             groups=groups,
             expand_ratio=expand_ratio,
             input_resolution=input_resolution,
+            bitwidth=bitwidth,
+            input_parallelism=input_parallelism,
+            output_parallelism=output_parallelism,
+            unroll_factor=unroll_factor,
+            target_clock_mhz=target_clock_mhz,
         )
 
         energy_mj = latency_ms * power_w if power_w > 0 else 0.0

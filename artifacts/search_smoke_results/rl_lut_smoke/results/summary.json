@@ -1,0 +1,68 @@
+{
+  "finished_at": "2026-03-28T10:22:05Z",
+  "status": "completed",
+  "total_evaluated": 1,
+  "feasible": 0,
+  "infeasible": 1,
+  "best_candidate": null,
+  "extra": {
+    "device": "cpu",
+    "search_method": "rl",
+    "search_summary": {
+      "total_evaluated": 1,
+      "feasible": 0,
+      "infeasible": 1
+    },
+    "timeout_minutes": null,
+    "num_candidates": 20,
+    "num_episodes": 1,
+    "train_epochs": 1,
+    "objective_weights": {
+      "accuracy": 1.0,
+      "latency": 0.2,
+      "energy": 0.1,
+      "resource": 0.1
+    },
+    "proxyless": null,
+    "hardware_spec": {
+      "name": "zynq7020",
+      "clock_mhz": 200,
+      "max_lut": 53200,
+      "max_ff": 106400,
+      "max_bram": 140,
+      "max_dsp": 220,
+      "max_power_w": 5.0,
+      "memory_bandwidth_gbps": 4.2,
+      "offchip_mem_mb": 512.0
+    },
+    "lut_stats": {
+      "hits": 18,
+      "misses": 0,
+      "total": 18,
+      "hit_rate": 1.0
+    },
+    "pareto_summary": {
+      "objectives": [
+        "accuracy",
+        "latency_ms",
+        "energy_mj",
+        "dsp",
+        "bram",
+        "lut"
+      ],
+      "directions": [
+        "max",
+        "min",
+        "min",
+        "min",
+        "min",
+        "min"
+      ],
+      "selection_method": "rank",
+      "pareto_front_size": 0,
+      "hypervolume": 0.0,
+      "selected_topk": [],
+      "ranks": []
+    }
+  }
+}

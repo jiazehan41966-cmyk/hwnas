@@ -3,9 +3,13 @@
 from .backbones import (
     BackboneCandidate,
     FBNetLike,
+    MACRO_TEMPLATES,
+    MOBILENET_V2_LIKE_STAGE_SPECS,
     SimpleCNN,
     build_backbone,
     default_backbone_candidates,
+    get_macro_template,
+    list_macro_templates,
 )
 from .builder import (
     ConvBlock,
@@ -32,7 +36,9 @@ __all__ = [
     "FBNetLike",
     "FusedMBConvBlock",
     "HWNASModel",
+    "MACRO_TEMPLATES",
     "MBConvBlock",
+    "MOBILENET_V2_LIKE_STAGE_SPECS",
     "MixConvBlock",
     "SkipBlock",
     "SimpleCNN",
@@ -43,4 +49,6 @@ __all__ = [
     "build_block",
     "build_model",
     "default_backbone_candidates",
+    "get_macro_template",
+    "list_macro_templates",
 ]

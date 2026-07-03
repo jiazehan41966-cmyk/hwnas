@@ -1,0 +1,576 @@
+toolchain:
+  part: xc7k325t-ffg676-2
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: F:/vivado/Vitis_HLS/2023.2/bin/vitis_hls.bat
+  vivado_bin: F:/vivado/Vivado/2023.2/bin/vivado.bat
+workspace:
+  project_root: ../results/v2_failed44_fixed_vector/p
+  report_archive: ../results/v2_failed44_fixed_vector/r
+  csv_path: ../results/v2_failed44_fixed_vector/hls.csv
+  manifest_path: ../results/v2_failed44_fixed_vector/hls_manifest.yaml
+  synthesis_summary_json: ../results/v2_failed44_fixed_vector/hls_synth_summary.json
+  parse_summary_json: ../results/v2_failed44_fixed_vector/hls_parse_summary.json
+  downstream_csv_path: ../results/v2_failed44_fixed_vector/vivado_downstream.csv
+  downstream_manifest_path: ../results/v2_failed44_fixed_vector/vivado_downstream_manifest.yaml
+  downstream_parse_summary_json: ../results/v2_failed44_fixed_vector/vivado_downstream_parse_summary.json
+  downstream_summary_json: ../results/v2_failed44_fixed_vector/vivado_downstream_summary.json
+  formal_lut_status_json: ../results/v2_failed44_fixed_vector/formal_lut_status_v2_failed44_fixed_vector.json
+measurement_contract:
+  contract_id: packed_stream_v1_fixed_vector_v2_failed44
+  declaration: Fixed-vector primitive HLS rerun for the 44 current-implementation
+    defer cases. Disabled MBConv fused templates are represented by pw_expand + dw
+    + pw_project primitive components as a conservative upper-bound decomposition.
+  io_style: packed_stream
+  input_axis_rule: PACK_CH * bitwidth bits
+  output_axis_rule: PACK_CH * bitwidth bits
+  control_interface: AXI-Lite
+  parameter_storage: BRAM
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  fixed_vector_params: 1
+  max_axis_bits: 512
+  pack_ch: 16
+  ch_block: 16
+  tile_order: channel_major_replay
+  stream_order: channel_major_replay
+  dsp_pack: '1'
+  pipeline_ii: 1
+  target_ii: 1
+  input_parallelism: 1
+  output_parallelism: 1
+  unroll_factor: 1
+  array_partition_factor: 1
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+    target_clock_mhz: 200.0
+implementation_profiles:
+  p16_cb16_ii1_dsp1:
+    pack_ch: 16
+    ch_block: 16
+    pipeline_ii: 1
+    target_ii: 1
+    dsp_pack: '1'
+  p16_cb16_ii2_dsp1:
+    pack_ch: 16
+    ch_block: 16
+    pipeline_ii: 2
+    target_ii: 2
+    dsp_pack: '1'
+representative_shapes:
+  failed44_dw_ir160_e3_14_c288_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 288
+    stride: 2
+    expand_ratio: 3
+  failed44_dw_ir160_e6_14_c576_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 576
+    stride: 2
+    expand_ratio: 6
+  failed44_dw_ir24_e3_112_c48_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 48
+    stride: 2
+    expand_ratio: 3
+  failed44_dw_ir24_e6_112_c96_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 96
+    stride: 2
+    expand_ratio: 6
+  failed44_dw_ir320_e3_7_c480_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    stride: 1
+    expand_ratio: 3
+  failed44_dw_ir320_e6_7_c960_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    stride: 1
+    expand_ratio: 6
+  failed44_dw_ir32_e3_56_c72_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 72
+    stride: 2
+    expand_ratio: 3
+  failed44_dw_ir32_e6_56_c144_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 144
+    stride: 2
+    expand_ratio: 6
+  failed44_dw_ir64_e3_28_c96_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    stride: 2
+    expand_ratio: 3
+  failed44_dw_ir64_e6_28_c192_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 192
+    stride: 2
+    expand_ratio: 6
+  failed44_dw_ir96_e3_14_c192_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    stride: 1
+    expand_ratio: 3
+  failed44_dw_ir96_e6_14_c384_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    stride: 1
+    expand_ratio: 6
+  failed44_mb_s3_e3_expand_56_24_72:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 72
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 1
+  failed44_mb_s3_e3_k3_dw_56_c72_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 72
+    stride: 2
+    expand_ratio: 3
+  failed44_mb_s3_e3_k5_dw_56_c72_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 72
+    stride: 2
+    expand_ratio: 3
+  failed44_mb_s3_e3_project_28_72_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 72
+    out_channels: 32
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 0
+  failed44_mb_s3_e6_expand_56_24_144:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 144
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 1
+  failed44_mb_s3_e6_k5_dw_56_c144_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 144
+    stride: 2
+    expand_ratio: 6
+  failed44_mb_s3_e6_project_28_144_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 144
+    out_channels: 32
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 0
+  failed44_mb_s4_e3_expand_28_32_96:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 96
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 1
+  failed44_mb_s4_e3_k3_dw_28_c96_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    stride: 2
+    expand_ratio: 3
+  failed44_mb_s4_e3_k5_dw_28_c96_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    stride: 2
+    expand_ratio: 3
+  failed44_mb_s4_e3_project_14_96_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 64
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 0
+  failed44_mb_s4_e6_expand_28_32_192:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 192
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 1
+  failed44_mb_s4_e6_k3_dw_28_c192_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 192
+    stride: 2
+    expand_ratio: 6
+  failed44_mb_s4_e6_k5_dw_28_c192_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 192
+    stride: 2
+    expand_ratio: 6
+  failed44_mb_s4_e6_project_14_192_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    out_channels: 64
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 0
+  failed44_mb_s5_e3_expand_14_64_192:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 192
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 1
+  failed44_mb_s5_e3_k3_dw_14_c192_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    stride: 1
+    expand_ratio: 3
+  failed44_mb_s5_e3_k5_dw_14_c192_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    stride: 1
+    expand_ratio: 3
+  failed44_mb_s5_e3_project_14_192_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    out_channels: 96
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 0
+  failed44_mb_s5_e6_expand_14_64_384:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 384
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 1
+  failed44_mb_s5_e6_k3_dw_14_c384_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    stride: 1
+    expand_ratio: 6
+  failed44_mb_s5_e6_k5_dw_14_c384_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    stride: 1
+    expand_ratio: 6
+  failed44_mb_s5_e6_project_14_384_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    out_channels: 96
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 0
+  failed44_mb_s6_e3_expand_14_96_288:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 288
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 1
+  failed44_mb_s6_e3_k3_dw_14_c288_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 288
+    stride: 2
+    expand_ratio: 3
+  failed44_mb_s6_e3_k5_dw_14_c288_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 288
+    stride: 2
+    expand_ratio: 3
+  failed44_mb_s6_e3_project_7_288_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 288
+    out_channels: 160
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 0
+  failed44_mb_s6_e6_expand_14_96_576:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 576
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 1
+  failed44_mb_s6_e6_k3_dw_14_c576_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 576
+    stride: 2
+    expand_ratio: 6
+  failed44_mb_s6_e6_k5_dw_14_c576_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 576
+    stride: 2
+    expand_ratio: 6
+  failed44_mb_s6_e6_project_7_576_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 576
+    out_channels: 160
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 0
+  failed44_mb_s7_e3_expand_7_160_480:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 480
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 1
+  failed44_mb_s7_e3_k3_dw_7_c480_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    stride: 1
+    expand_ratio: 3
+  failed44_mb_s7_e3_k5_dw_7_c480_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    stride: 1
+    expand_ratio: 3
+  failed44_mb_s7_e3_project_7_480_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    out_channels: 320
+    stride: 1
+    expand_ratio: 3
+    parameters:
+      apply_relu: 0
+  failed44_mb_s7_e6_expand_7_160_960:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 960
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 1
+  failed44_mb_s7_e6_k3_dw_7_c960_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    stride: 1
+    expand_ratio: 6
+  failed44_mb_s7_e6_k5_dw_7_c960_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    stride: 1
+    expand_ratio: 6
+  failed44_mb_s7_e6_project_7_960_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    out_channels: 320
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 0
+  failed44_pw_head_7_320_1280:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 320
+    out_channels: 1280
+    stride: 1
+    expand_ratio: 1
+    parameters:
+      apply_relu: 1
+  failed44_pw_ir160_expand_e6_14_96_576:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 576
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 1
+  failed44_pw_ir160_proj_e6_7_576_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 576
+    out_channels: 160
+    stride: 1
+    expand_ratio: 6
+    parameters:
+      apply_relu: 0
+operators:
+  dw_conv_k3:
+    enabled: true
+    template: ../templates/dw_conv_fixed_vector.cpp.tmpl
+    top_function: dwk3
+    op_type: dw_conv_k3
+    shape_refs:
+    - failed44_dw_ir160_e3_14_c288_s2
+    - failed44_dw_ir160_e6_14_c576_s2
+    - failed44_dw_ir24_e6_112_c96_s2
+    - failed44_dw_ir320_e3_7_c480_s1
+    - failed44_dw_ir320_e6_7_c960_s1
+    - failed44_dw_ir32_e6_56_c144_s2
+    - failed44_dw_ir64_e3_28_c96_s2
+    - failed44_dw_ir64_e6_28_c192_s2
+    - failed44_dw_ir96_e3_14_c192_s1
+    - failed44_dw_ir96_e6_14_c384_s1
+    - failed44_mb_s3_e3_k3_dw_56_c72_s2
+    - failed44_mb_s4_e3_k3_dw_28_c96_s2
+    - failed44_mb_s4_e6_k3_dw_28_c192_s2
+    - failed44_mb_s5_e3_k3_dw_14_c192_s1
+    - failed44_mb_s5_e6_k3_dw_14_c384_s1
+    - failed44_mb_s6_e3_k3_dw_14_c288_s2
+    - failed44_mb_s6_e6_k3_dw_14_c576_s2
+    - failed44_mb_s7_e3_k3_dw_7_c480_s1
+    - failed44_mb_s7_e6_k3_dw_7_c960_s1
+    implementation_refs:
+    - p16_cb16_ii1_dsp1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k3
+  dw_conv_k5:
+    enabled: true
+    template: ../templates/dw_conv_fixed_vector.cpp.tmpl
+    top_function: dwk5
+    op_type: dw_conv_k5
+    shape_refs:
+    - failed44_dw_ir160_e3_14_c288_s2
+    - failed44_dw_ir160_e6_14_c576_s2
+    - failed44_dw_ir24_e3_112_c48_s2
+    - failed44_dw_ir24_e6_112_c96_s2
+    - failed44_dw_ir320_e3_7_c480_s1
+    - failed44_dw_ir320_e6_7_c960_s1
+    - failed44_dw_ir32_e3_56_c72_s2
+    - failed44_dw_ir32_e6_56_c144_s2
+    - failed44_dw_ir64_e3_28_c96_s2
+    - failed44_dw_ir64_e6_28_c192_s2
+    - failed44_dw_ir96_e3_14_c192_s1
+    - failed44_dw_ir96_e6_14_c384_s1
+    - failed44_mb_s3_e3_k5_dw_56_c72_s2
+    - failed44_mb_s3_e6_k5_dw_56_c144_s2
+    - failed44_mb_s4_e3_k5_dw_28_c96_s2
+    - failed44_mb_s4_e6_k5_dw_28_c192_s2
+    - failed44_mb_s5_e3_k5_dw_14_c192_s1
+    - failed44_mb_s5_e6_k5_dw_14_c384_s1
+    - failed44_mb_s6_e3_k5_dw_14_c288_s2
+    - failed44_mb_s6_e6_k5_dw_14_c576_s2
+    - failed44_mb_s7_e3_k5_dw_7_c480_s1
+    - failed44_mb_s7_e6_k5_dw_7_c960_s1
+    implementation_refs:
+    - p16_cb16_ii2_dsp1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k5
+  pw_conv:
+    enabled: true
+    template: ../templates/pw_conv_fixed_vector.cpp.tmpl
+    top_function: pwk
+    op_type: pw_conv
+    shape_refs:
+    - failed44_mb_s3_e3_expand_56_24_72
+    - failed44_mb_s3_e3_project_28_72_32
+    - failed44_mb_s3_e6_expand_56_24_144
+    - failed44_mb_s3_e6_project_28_144_32
+    - failed44_mb_s4_e3_expand_28_32_96
+    - failed44_mb_s4_e3_project_14_96_64
+    - failed44_mb_s4_e6_expand_28_32_192
+    - failed44_mb_s4_e6_project_14_192_64
+    - failed44_mb_s5_e3_expand_14_64_192
+    - failed44_mb_s5_e3_project_14_192_96
+    - failed44_mb_s5_e6_expand_14_64_384
+    - failed44_mb_s5_e6_project_14_384_96
+    - failed44_mb_s6_e3_expand_14_96_288
+    - failed44_mb_s6_e3_project_7_288_160
+    - failed44_mb_s6_e6_expand_14_96_576
+    - failed44_mb_s6_e6_project_7_576_160
+    - failed44_mb_s7_e3_expand_7_160_480
+    - failed44_mb_s7_e3_project_7_480_320
+    - failed44_mb_s7_e6_expand_7_160_960
+    - failed44_mb_s7_e6_project_7_960_320
+    - failed44_pw_head_7_320_1280
+    - failed44_pw_ir160_expand_e6_14_96_576
+    - failed44_pw_ir160_proj_e6_7_576_160
+    implementation_refs:
+    - p16_cb16_ii1_dsp1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+      apply_relu: 1
+      tile_order: pixel_major
+      stream_order: pixel_major
+    op_spec_defaults:
+      op: pw_conv
+      groups: 1

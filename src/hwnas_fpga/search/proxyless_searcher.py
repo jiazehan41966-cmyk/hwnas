@@ -10,11 +10,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from hwnas_fpga.hardware import CostEstimate, FPGACostEstimator
-from hwnas_fpga.interfaces import SearchCandidate, SearchConstraints
+from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate, SearchConstraints
 from hwnas_fpga.models import ProxylessSuperNet
 from hwnas_fpga.search_space import SearchSpace
 
-from .searcher import BaseSearcher
+from .searcher import BaseSearcher, _metric_display_name, candidate_selection_score
 
 if TYPE_CHECKING:
     from hwnas_fpga.experiment import ExperimentTracker
@@ -100,6 +100,7 @@ class ProxylessSearcher(BaseSearcher):
         grad_reg_loss_params: Optional[dict[str, float]] = None,
         target_hardware: Optional[str] = "latency_ms",
         ref_value: Optional[float] = None,
+        selection_metric: str = "macro_f1",
     ) -> None:
         super().__init__(search_space, cost_estimator, constraints)
         self.seed = int(seed)
@@ -107,6 +108,7 @@ class ProxylessSearcher(BaseSearcher):
         self.warmup_epochs = max(0, int(warmup_epochs))
         self.search_epochs = max(1, int(search_epochs))
         self.max_eval_batches = max(1, int(max_eval_batches))
+        self.selection_metric = str(selection_metric or "macro_f1")
         self.loss_weights = ProxylessLossWeights.from_mapping(objective_weights)
         self.grad_reg = ProxylessGradRegConfig.from_inputs(
             loss_type=grad_reg_loss_type,
@@ -331,38 +333,118 @@ class ProxylessSearcher(BaseSearcher):
             iterator = iter(loader)
             return next(iterator), iterator
 
+    @staticmethod
+    def _resolve_selection_score(summary: dict[str, float], selection_metric: str) -> float:
+        normalized = str(selection_metric or "macro_f1").strip().lower()
+        aliases = {
+            "accuracy": "top1",
+            "top1": "top1",
+            "macro_f1": "macro_f1",
+            "f1": "macro_f1",
+            "weighted_f1": "weighted_f1",
+        }
+        key = aliases.get(normalized, normalized)
+        if key not in summary:
+            raise ValueError(f"Unsupported selection_metric: {selection_metric}")
+        return float(summary[key])
+
     @torch.no_grad()
-    def _evaluate_argmax_accuracy(self, data_loader: DataLoader) -> float:
+    def _evaluate_argmax_summary(
+        self,
+        data_loader: DataLoader,
+        *,
+        criterion: nn.Module,
+        num_classes: int,
+    ) -> dict[str, float]:
         self.supernet.eval()
         self.supernet.activate_argmax_paths()
 
-        correct = 0
-        total = 0
+        total_loss = 0.0
+        total_samples = 0
+        total_topk = 0
+        confusion = torch.zeros(int(num_classes), int(num_classes), dtype=torch.long)
         for step, (inputs, targets) in enumerate(data_loader):
             if step >= self.max_eval_batches:
                 break
             inputs = inputs.to(self.device, non_blocking=True)
             targets = targets.to(self.device, non_blocking=True)
             outputs = self.supernet(inputs)
-            preds = outputs.argmax(dim=1)
-            total += targets.size(0)
-            correct += int((preds == targets).sum().item())
+            loss = criterion(outputs, targets)
 
-        if total <= 0:
-            return 0.0
-        return correct / total
+            predictions = outputs.argmax(dim=1)
+            topk = max(1, min(5, outputs.shape[1]))
+            topk_indices = outputs.topk(topk, dim=1).indices
+
+            total_loss += float(loss.item()) * inputs.size(0)
+            total_samples += int(targets.size(0))
+            total_topk += int(topk_indices.eq(targets.unsqueeze(1)).any(dim=1).sum().item())
+
+            for target, prediction in zip(targets.view(-1).tolist(), predictions.view(-1).tolist()):
+                confusion[int(target), int(prediction)] += 1
+
+        if total_samples <= 0:
+            return {
+                "loss": 0.0,
+                "top1": 0.0,
+                "top5": 0.0,
+                "macro_f1": 0.0,
+                "weighted_f1": 0.0,
+                "num_samples": 0.0,
+            }
+
+        supports = confusion.sum(dim=1)
+        macro_f1 = 0.0
+        weighted_f1 = 0.0
+        for class_index in range(int(confusion.shape[0])):
+            tp = float(confusion[class_index, class_index].item())
+            fp = float(confusion[:, class_index].sum().item() - tp)
+            fn = float(confusion[class_index, :].sum().item() - tp)
+            support = int(supports[class_index].item())
+            precision = tp / (tp + fp) if tp + fp > 0 else 0.0
+            recall = tp / (tp + fn) if tp + fn > 0 else 0.0
+            f1 = (
+                2.0 * precision * recall / (precision + recall)
+                if precision + recall > 0
+                else 0.0
+            )
+            macro_f1 += f1
+            weighted_f1 += f1 * support
+
+        return {
+            "loss": total_loss / max(1, total_samples),
+            "top1": float(confusion.diag().sum().item()) / max(1, total_samples),
+            "top5": total_topk / max(1, total_samples),
+            "macro_f1": macro_f1 / max(1, int(confusion.shape[0])),
+            "weighted_f1": weighted_f1 / max(1, total_samples),
+            "num_samples": float(total_samples),
+        }
 
     def _build_candidate_from_supernet(
         self,
         *,
         arch_id: str,
-        accuracy: float,
+        summary: dict[str, float],
     ) -> tuple[SearchCandidate, bool, CostEstimate]:
         architecture = self.supernet.extract_architecture()
         cost_estimate = self.estimator.estimate(architecture, self.search_space)
         feasible = self.check_feasibility(cost_estimate)
+        selection_score = self._resolve_selection_score(summary, self.selection_metric)
         metrics = cost_estimate.to_candidate_metrics()
-        metrics.accuracy = float(accuracy)
+        metrics = CandidateMetrics(
+            accuracy=float(selection_score),
+            macro_f1=summary.get("macro_f1"),
+            weighted_f1=summary.get("weighted_f1"),
+            top1=summary.get("top1"),
+            top5=summary.get("top5"),
+            latency_ms=metrics.latency_ms,
+            dsp=metrics.dsp,
+            bram=metrics.bram,
+            lut=metrics.lut,
+            power_w=metrics.power_w,
+            energy_mj=metrics.energy_mj,
+            memory_bandwidth_gbps=metrics.memory_bandwidth_gbps,
+            offchip_mem_mb=metrics.offchip_mem_mb,
+        )
         candidate = SearchCandidate(
             arch_id=arch_id,
             encoding=architecture.to_dict(),
@@ -413,10 +495,12 @@ class ProxylessSearcher(BaseSearcher):
         val_loader = val_loader or train_loader
 
         if verbose:
+            metric_label = _metric_display_name(self.selection_metric)
             print(
                 "Proxyless search setup: "
                 f"warmup={self.warmup_epochs}, search={self.search_epochs}, "
-                f"device={self.device}, mixed_ops={len(self.supernet.mixed_ops)}"
+                f"device={self.device}, mixed_ops={len(self.supernet.mixed_ops)}, "
+                f"selection_metric={metric_label}"
             )
 
         # Warmup: optimize only weights with single-path sampling.
@@ -448,7 +532,8 @@ class ProxylessSearcher(BaseSearcher):
         # Alternating optimization.
         self._set_arch_requires_grad(True)
         best_candidate: Optional[SearchCandidate] = None
-        best_accuracy = float("-inf")
+        best_score = float("-inf")
+        metric_label = _metric_display_name(self.selection_metric)
         train_epoch_history: list[dict[str, Any]] = []
 
         for epoch in range(self.search_epochs):
@@ -496,16 +581,21 @@ class ProxylessSearcher(BaseSearcher):
 
                 self._set_weight_requires_grad(True)
 
-            val_acc = self._evaluate_argmax_accuracy(val_loader)
+            val_summary = self._evaluate_argmax_summary(
+                val_loader,
+                criterion=criterion,
+                num_classes=int(num_classes),
+            )
+            val_score = self._resolve_selection_score(val_summary, self.selection_metric)
             arch_id = f"proxyless_epoch_{len(self.evaluated_candidates)}"
             candidate, feasible, cost_estimate = self._build_candidate_from_supernet(
                 arch_id=arch_id,
-                accuracy=val_acc,
+                summary=val_summary,
             )
             self._record_candidate(candidate=candidate, feasible=feasible)
 
-            if feasible and candidate.metrics.accuracy is not None and candidate.metrics.accuracy > best_accuracy:
-                best_accuracy = float(candidate.metrics.accuracy)
+            if feasible and candidate.metrics.accuracy is not None and candidate.metrics.accuracy > best_score:
+                best_score = float(candidate.metrics.accuracy)
                 best_candidate = candidate
 
             epoch_record = {
@@ -513,18 +603,27 @@ class ProxylessSearcher(BaseSearcher):
                 "weight_loss": epoch_weight_loss / max(1, num_steps),
                 "arch_loss": epoch_arch_loss / max(1, num_steps),
                 "hw_penalty": epoch_hw_penalty / max(1, num_steps),
-                "val_acc": float(val_acc),
+                "selection_metric": self.selection_metric,
+                "val_score": float(val_score),
+                "val_top1": float(val_summary["top1"]),
+                "val_top5": float(val_summary["top5"]),
+                "val_macro_f1": float(val_summary["macro_f1"]),
+                "val_weighted_f1": float(val_summary["weighted_f1"]),
                 "feasible": bool(feasible),
             }
             train_epoch_history.append(epoch_record)
-            self.last_training_history = {"epochs": train_epoch_history}
+            self.last_training_history = {
+                "epochs": train_epoch_history,
+                "best_eval": dict(val_summary),
+                "selection_metric": self.selection_metric,
+            }
 
             if artifact_tracker is not None:
                 artifact_tracker.record_candidate(
                     candidate,
                     feasible=feasible,
                     cost_estimate=cost_estimate,
-                    history={"epoch_summary": epoch_record},
+                    history={"epoch_summary": epoch_record, "best_eval": dict(val_summary)},
                     extra={"search_method": "proxyless", "epoch": epoch + 1},
                 )
                 if best_candidate is not None:
@@ -533,9 +632,9 @@ class ProxylessSearcher(BaseSearcher):
                         model_state_dict=self.supernet.state_dict(),
                         history=self.last_training_history,
                         extra={
-                            "selection_metric": "val_accuracy",
+                            "selection_metric": self.selection_metric,
                             "epoch": epoch + 1,
-                            "best_accuracy": best_accuracy,
+                            "best_score": best_score,
                         },
                     )
                 artifact_tracker.update_search_state(
@@ -551,22 +650,21 @@ class ProxylessSearcher(BaseSearcher):
                     f"[Search {epoch + 1}/{self.search_epochs}] "
                     f"w_loss={epoch_record['weight_loss']:.4f}, "
                     f"a_loss={epoch_record['arch_loss']:.4f}, "
-                    f"val_acc={val_acc:.4f}, feasible={feasible}"
+                    f"{metric_label}={val_score:.4f}, feasible={feasible}"
                 )
-
-        if best_candidate is None and self.evaluated_candidates:
-            best_candidate = max(
-                self.evaluated_candidates,
-                key=lambda candidate: float(candidate.metrics.accuracy or 0.0),
-            )
 
         if verbose:
             print("\nProxyless search completed!")
             print(f"Total evaluated: {len(self.evaluated_candidates)}")
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
-            if best_candidate is not None and best_candidate.metrics.accuracy is not None:
-                print(f"Best accuracy: {best_candidate.metrics.accuracy:.4f}")
+            if best_candidate is not None:
+                print(
+                    f"Best {metric_label}: "
+                    f"{candidate_selection_score(best_candidate, self.selection_metric):.4f}"
+                )
+            elif self.evaluated_candidates:
+                print(f"No feasible architecture found among {len(self.evaluated_candidates)} epochs")
 
         return best_candidate
 

@@ -1,0 +1,35 @@
+board_name: ALINX_AV7K325
+target_part: xc7k325t-ffg900-2
+
+clock:
+  port_name_p: sys_clk_p
+  port_name_n: sys_clk_n
+  period_ns: 5.0
+  freq_hz: 200000000
+  package_pin_p: AE10
+  package_pin_n: AF10
+  iostandard: LVDS
+
+reset:
+  port_name: sys_rst_n
+  active_low: true
+  package_pin: AC21
+  iostandard: LVCMOS33
+
+uart:
+  rx_port_name: uart_rx
+  tx_port_name: uart_tx
+  baud: 115200
+  rx_package_pin: AA27
+  package_pin: W28
+  iostandard: LVCMOS33
+
+status_led:
+  port_name: status_led
+  width: 2
+  package_pins:
+    - Y28
+    - AA28
+  iostandard: LVCMOS33
+
+allow_unconstrained_io: false

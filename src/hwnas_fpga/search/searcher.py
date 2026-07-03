@@ -24,6 +24,49 @@ if TYPE_CHECKING:
     from hwnas_fpga.experiment import ExperimentTracker
 
 
+def _metric_display_name(selection_metric: str) -> str:
+    normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"macro_f1", "f1"}:
+        return "MacroF1"
+    if normalized in {"accuracy", "top1"}:
+        return "Top1"
+    if normalized == "weighted_f1":
+        return "WeightedF1"
+    return selection_metric
+
+
+def resolve_pareto_task_metric(selection_metric: str) -> str:
+    """Map selection_metric config to a CandidateMetrics field name."""
+    normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"macro_f1", "f1"}:
+        return "macro_f1"
+    if normalized in {"accuracy", "top1"}:
+        return "top1"
+    if normalized == "weighted_f1":
+        return "weighted_f1"
+    return normalized
+
+
+def candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
+    metrics = candidate.metrics
+    normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"macro_f1", "f1"}:
+        value = metrics.macro_f1 if metrics.macro_f1 is not None else metrics.accuracy
+    elif normalized in {"accuracy", "top1"}:
+        value = metrics.top1 if metrics.top1 is not None else metrics.accuracy
+    elif normalized == "weighted_f1":
+        value = metrics.weighted_f1 if metrics.weighted_f1 is not None else metrics.accuracy
+    else:
+        value = getattr(metrics, normalized, None)
+        if value is None:
+            value = metrics.accuracy
+    return float(value if value is not None else 0.0)
+
+
+def _candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
+    return candidate_selection_score(candidate, selection_metric)
+
+
 class BaseSearcher:
     """搜索器基类"""
 
@@ -140,9 +183,13 @@ class RandomSearcher(BaseSearcher):
         cost_estimator: FPGACostEstimator,
         constraints: Optional[SearchConstraints] = None,
         seed: int = 42,
+        eval_early_stopping_patience: Optional[int] = 2,
+        selection_metric: str = "macro_f1",
     ):
         super().__init__(search_space, cost_estimator, constraints)
         self.rng = random.Random(seed)
+        self.eval_early_stopping_patience = eval_early_stopping_patience
+        self.selection_metric = selection_metric
 
     def sample_candidate(self) -> ArchitectureSpec:
         """采样一个候选架构"""
@@ -196,9 +243,17 @@ class RandomSearcher(BaseSearcher):
                     device=device,
                     val_loader=val_loader,
                     class_weights=class_weights,
-                    early_stopping_patience=2 if val_loader is not None else None,
+                    early_stopping_patience=(
+                        self.eval_early_stopping_patience if val_loader is not None else None
+                    ),
+                    selection_metric=self.selection_metric,
                 )
                 candidate.metrics.accuracy = accuracy
+                best_eval = dict(history.get("best_eval") or {})
+                candidate.metrics.macro_f1 = best_eval.get("macro_f1")
+                candidate.metrics.weighted_f1 = best_eval.get("weighted_f1")
+                candidate.metrics.top1 = best_eval.get("top1")
+                candidate.metrics.top5 = best_eval.get("top5")
                 self.last_trained_model = model
                 self.last_training_history = history
             except Exception as e:
@@ -228,7 +283,8 @@ class RandomSearcher(BaseSearcher):
     ) -> SearchCandidate:
         """执行随机搜索"""
         best_candidate = None
-        best_accuracy = 0.0
+        best_score = float("-inf")
+        metric_label = _metric_display_name(self.selection_metric)
 
         for i in range(num_candidates):
             # 采样架构
@@ -255,15 +311,15 @@ class RandomSearcher(BaseSearcher):
                 )
 
             if is_feasible and verbose:
-                acc = candidate.metrics.accuracy
+                score = _candidate_selection_score(candidate, self.selection_metric)
                 lat = candidate.metrics.latency_ms
                 print(
                     f"[{i+1}/{num_candidates}] {candidate.arch_id}: "
-                    f"Acc={acc:.4f}, Lat={lat:.2f}ms"
+                    f"{metric_label}={score:.4f}, Lat={lat:.2f}ms"
                 )
 
-                if acc > best_accuracy:
-                    best_accuracy = acc
+                if score > best_score:
+                    best_score = score
                     best_candidate = candidate
                     if artifact_tracker and self.last_trained_model is not None:
                         artifact_tracker.save_best_candidate(
@@ -271,8 +327,8 @@ class RandomSearcher(BaseSearcher):
                             model_state_dict=self.last_trained_model.state_dict(),
                             history=self.last_training_history,
                             extra={
-                                "selection_metric": "accuracy",
-                                "best_accuracy": best_accuracy,
+                                "selection_metric": self.selection_metric,
+                                "best_score": best_score,
                                 "iteration": i + 1,
                             },
                         )
@@ -292,7 +348,7 @@ class RandomSearcher(BaseSearcher):
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if best_candidate:
-                print(f"Best accuracy: {best_accuracy:.4f}")
+                print(f"Best {metric_label}: {best_score:.4f}")
 
         return best_candidate
 
@@ -313,8 +369,9 @@ class RandomSearcher(BaseSearcher):
         timeout_seconds = timeout_minutes * 60
 
         best_candidate = None
-        best_accuracy = 0.0
+        best_score = float("-inf")
         iteration = 0
+        metric_label = _metric_display_name(self.selection_metric)
 
         while True:
             # 检查是否超时
@@ -348,16 +405,16 @@ class RandomSearcher(BaseSearcher):
                 )
 
             if is_feasible and verbose:
-                acc = candidate.metrics.accuracy
+                score = _candidate_selection_score(candidate, self.selection_metric)
                 lat = candidate.metrics.latency_ms
                 remaining = timeout_seconds - elapsed
                 print(
                     f"[{iteration}] {candidate.arch_id}: "
-                    f"Acc={acc:.4f}, Lat={lat:.2f}ms, Remaining={remaining:.1f}s"
+                    f"{metric_label}={score:.4f}, Lat={lat:.2f}ms, Remaining={remaining:.1f}s"
                 )
 
-                if acc > best_accuracy:
-                    best_accuracy = acc
+                if score > best_score:
+                    best_score = score
                     best_candidate = candidate
                     if artifact_tracker and self.last_trained_model is not None:
                         artifact_tracker.save_best_candidate(
@@ -365,8 +422,8 @@ class RandomSearcher(BaseSearcher):
                             model_state_dict=self.last_trained_model.state_dict(),
                             history=self.last_training_history,
                             extra={
-                                "selection_metric": "accuracy",
-                                "best_accuracy": best_accuracy,
+                                "selection_metric": self.selection_metric,
+                                "best_score": best_score,
                                 "iteration": iteration,
                                 "mode": "timeout",
                             },
@@ -391,7 +448,7 @@ class RandomSearcher(BaseSearcher):
             print(f"Feasible: {len(self.feasible_candidates)}")
             print(f"Infeasible: {len(self.infeasible_candidates)}")
             if best_candidate:
-                print(f"Best accuracy: {best_accuracy:.4f}")
+                print(f"Best {metric_label}: {best_score:.4f}")
 
         return best_candidate
 
@@ -435,6 +492,8 @@ def create_searcher(
             cost_estimator=cost_estimator,
             constraints=constraints,
             seed=seed,
+            eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
         )
     if method == "rl":
         from .rl_searcher import RLSearcher
@@ -449,6 +508,15 @@ def create_searcher(
             device=kwargs.get("device", "cpu"),
             seed=seed,
             reward_weights=kwargs.get("reward_weights"),
+            reward_cfg=kwargs.get("reward_cfg"),
+            eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
+            controller_temperature=kwargs.get("controller_temperature", 1.0),
+            entropy_coef=kwargs.get("entropy_coef", 0.0),
+            exploration_epsilon_start=kwargs.get("exploration_epsilon_start", 0.0),
+            exploration_epsilon_end=kwargs.get("exploration_epsilon_end"),
+            exploration_epsilon_decay_episodes=kwargs.get("exploration_epsilon_decay_episodes", 0),
+            exploration_bonus=kwargs.get("exploration_bonus", 0.0),
         )
     if method == "proxyless":
         from .proxyless_searcher import ProxylessSearcher
@@ -493,5 +561,6 @@ def create_searcher(
             grad_reg_loss_params=grad_reg_loss_params,
             target_hardware=proxyless_cfg.get("target_hardware", "latency_ms"),
             ref_value=proxyless_cfg.get("ref_value"),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
         )
     raise ValueError(f"Unsupported search method: {method}")

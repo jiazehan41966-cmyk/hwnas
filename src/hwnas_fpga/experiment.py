@@ -95,6 +95,7 @@ class ExperimentTracker:
         search_method: str,
         dataset_name: str,
         run_name: Optional[str] = None,
+        resume: bool = False,
     ) -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         if run_name:
@@ -126,15 +127,29 @@ class ExperimentTracker:
 
         self.console_log_path = self.logs_dir / "console.log"
         self.candidates_jsonl_path = self.results_dir / "candidates.jsonl"
-        self._run_state: dict[str, Any] = {
-            "project_name": project_name,
-            "script_name": script_name,
-            "search_method": search_method,
-            "dataset_name": dataset_name,
-            "run_name": folder_name,
-            "created_at": _utc_timestamp(),
-            "status": "running",
-        }
+        run_info_path = self.root_dir / "run_info.json"
+        if resume and run_info_path.exists():
+            try:
+                self._run_state = json.loads(run_info_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                self._run_state = {}
+        else:
+            self._run_state = {}
+        self._run_state.update(
+            {
+                "project_name": project_name,
+                "script_name": script_name,
+                "search_method": search_method,
+                "dataset_name": dataset_name,
+                "run_name": folder_name,
+                "created_at": self._run_state.get("created_at", _utc_timestamp()),
+                "status": "running",
+            }
+        )
+        if resume:
+            self._run_state["resumed_at"] = _utc_timestamp()
+            self._run_state.pop("finished_at", None)
+            self._run_state.pop("error", None)
         self._write_json(self.root_dir / "run_info.json", self._run_state)
 
     def capture_console(self) -> ConsoleCapture:
@@ -153,6 +168,9 @@ class ExperimentTracker:
 
     def write_pruned_search_space_summary(self, payload: Mapping[str, Any]) -> None:
         self._write_json(self.results_dir / "search_space_pruned_summary.json", payload)
+
+    def write_operator_policy_summary(self, payload: Mapping[str, Any]) -> None:
+        self._write_json(self.results_dir / "operator_policy_summary.json", payload)
 
     def write_baseline(
         self,
@@ -286,6 +304,10 @@ class ExperimentTracker:
         fieldnames = [
             "arch_id",
             "accuracy",
+            "macro_f1",
+            "weighted_f1",
+            "top1",
+            "top5",
             "latency_ms",
             "energy_mj",
             "lut",
@@ -294,6 +316,12 @@ class ExperimentTracker:
             "power_w",
             "memory_bandwidth_gbps",
             "offchip_mem_mb",
+            "early_expand_pressure",
+            "interconnect_pressure",
+            "memory_pressure",
+            "fanout_pressure",
+            "stream_width",
+            "physical_risk",
         ]
         with csv_path.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -304,6 +332,10 @@ class ExperimentTracker:
                     {
                         "arch_id": row["arch_id"],
                         "accuracy": metrics.get("accuracy"),
+                        "macro_f1": metrics.get("macro_f1"),
+                        "weighted_f1": metrics.get("weighted_f1"),
+                        "top1": metrics.get("top1"),
+                        "top5": metrics.get("top5"),
                         "latency_ms": metrics.get("latency_ms"),
                         "energy_mj": metrics.get("energy_mj"),
                         "lut": metrics.get("lut"),
@@ -312,6 +344,12 @@ class ExperimentTracker:
                         "power_w": metrics.get("power_w"),
                         "memory_bandwidth_gbps": metrics.get("memory_bandwidth_gbps"),
                         "offchip_mem_mb": metrics.get("offchip_mem_mb"),
+                        "early_expand_pressure": metrics.get("early_expand_pressure"),
+                        "interconnect_pressure": metrics.get("interconnect_pressure"),
+                        "memory_pressure": metrics.get("memory_pressure"),
+                        "fanout_pressure": metrics.get("fanout_pressure"),
+                        "stream_width": metrics.get("stream_width"),
+                        "physical_risk": metrics.get("physical_risk"),
                     }
                 )
 

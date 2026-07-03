@@ -1,0 +1,457 @@
+source:
+  backbone: mobilenet_v2
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+stem:
+  input_shape:
+  - 1
+  - 1
+  - 224
+  - 224
+  output_shape:
+  - 1
+  - 32
+  - 112
+  - 112
+stages:
+- stage_index: 1
+  stage_name: ir16
+  feature_h: 112
+  feature_w: 112
+  in_channels: 32
+  out_channels: 16
+  stride: 1
+- stage_index: 2
+  stage_name: ir24
+  feature_h: 112
+  feature_w: 112
+  in_channels: 16
+  out_channels: 24
+  stride: 2
+- stage_index: 3
+  stage_name: ir32
+  feature_h: 56
+  feature_w: 56
+  in_channels: 24
+  out_channels: 32
+  stride: 2
+- stage_index: 4
+  stage_name: ir64
+  feature_h: 28
+  feature_w: 28
+  in_channels: 32
+  out_channels: 64
+  stride: 2
+- stage_index: 5
+  stage_name: ir96
+  feature_h: 14
+  feature_w: 14
+  in_channels: 64
+  out_channels: 96
+  stride: 1
+- stage_index: 6
+  stage_name: ir160
+  feature_h: 14
+  feature_w: 14
+  in_channels: 96
+  out_channels: 160
+  stride: 2
+- stage_index: 7
+  stage_name: ir320
+  feature_h: 7
+  feature_w: 7
+  in_channels: 160
+  out_channels: 320
+  stride: 1
+representative_shapes:
+  stem_224_1_32_s2:
+    feature_h: 224
+    feature_w: 224
+    in_channels: 1
+    out_channels: 32
+    stride: 2
+  dw_ir16_e1_112_c32_s1:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 32
+    stride: 1
+    expand_ratio: 1
+  pw_ir16_proj_112_32_16:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 32
+    out_channels: 16
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 1
+  mbconv_stage2_112_16_24_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 24
+    stride: 2
+  dw_ir24_e3_112_c48_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 48
+    stride: 2
+    expand_ratio: 3
+  pw_ir24_expand_e3_112_16_48:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 48
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir24_proj_e3_56_48_24:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 48
+    out_channels: 24
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir24_e6_112_c96_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 96
+    stride: 2
+    expand_ratio: 6
+  pw_ir24_expand_e6_112_16_96:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 96
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir24_proj_e6_56_96_24:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 96
+    out_channels: 24
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage3_56_24_32_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 32
+    stride: 2
+  dw_ir32_e3_56_c72_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 72
+    stride: 2
+    expand_ratio: 3
+  pw_ir32_expand_e3_56_24_72:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 72
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir32_proj_e3_28_72_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 72
+    out_channels: 32
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir32_e6_56_c144_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 144
+    stride: 2
+    expand_ratio: 6
+  pw_ir32_expand_e6_56_24_144:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 144
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir32_proj_e6_28_144_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 144
+    out_channels: 32
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage4_28_32_64_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 64
+    stride: 2
+  dw_ir64_e3_28_c96_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    stride: 2
+    expand_ratio: 3
+  pw_ir64_expand_e3_28_32_96:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 96
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir64_proj_e3_14_96_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 64
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir64_e6_28_c192_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 192
+    stride: 2
+    expand_ratio: 6
+  pw_ir64_expand_e6_28_32_192:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 192
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir64_proj_e6_14_192_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    out_channels: 64
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage5_14_64_96_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 96
+    stride: 1
+  dw_ir96_e3_14_c192_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    stride: 1
+    expand_ratio: 3
+  pw_ir96_expand_e3_14_64_192:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 192
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir96_proj_e3_14_192_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    out_channels: 96
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir96_e6_14_c384_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    stride: 1
+    expand_ratio: 6
+  pw_ir96_expand_e6_14_64_384:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 384
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir96_proj_e6_14_384_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    out_channels: 96
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage6_14_96_160_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 160
+    stride: 2
+  dw_ir160_e3_14_c288_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 288
+    stride: 2
+    expand_ratio: 3
+  pw_ir160_expand_e3_14_96_288:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 288
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir160_proj_e3_7_288_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 288
+    out_channels: 160
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir160_e6_14_c576_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 576
+    stride: 2
+    expand_ratio: 6
+  pw_ir160_expand_e6_14_96_576:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 576
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir160_proj_e6_7_576_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 576
+    out_channels: 160
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage7_7_160_320_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 320
+    stride: 1
+  dw_ir320_e3_7_c480_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    stride: 1
+    expand_ratio: 3
+  pw_ir320_expand_e3_7_160_480:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 480
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir320_proj_e3_7_480_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    out_channels: 320
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir320_e6_7_c960_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    stride: 1
+    expand_ratio: 6
+  pw_ir320_expand_e6_7_160_960:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 960
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir320_proj_e6_7_960_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    out_channels: 320
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  skip_56_24:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 24
+    stride: 1
+  skip_28_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 32
+    stride: 1
+  skip_14_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 64
+    stride: 1
+  skip_14_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+  skip_7_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 160
+    stride: 1
+  pw_head_7_320_1280:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 320
+    out_channels: 1280
+    stride: 1
+  gap_7_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 320
+    out_channels: 320
+    stride: 1
+    padding: 0
+    out_h: 1
+    out_w: 1
+  fc_1_1280_8:
+    feature_h: 1
+    feature_w: 1
+    in_channels: 1280
+    out_channels: 8
+    stride: 1
+    padding: 0
+    out_h: 1
+    out_w: 1
+skip_shapes:
+- feature_h: 56
+  feature_w: 56
+  channels: 24
+- feature_h: 28
+  feature_w: 28
+  channels: 32
+- feature_h: 14
+  feature_w: 14
+  channels: 64
+- feature_h: 14
+  feature_w: 14
+  channels: 96
+- feature_h: 7
+  feature_w: 7
+  channels: 160

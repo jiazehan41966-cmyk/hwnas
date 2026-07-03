@@ -1,0 +1,18 @@
+{
+  "config": "configs/backbone_baseline_nksid_av7k325.yaml",
+  "dataset": null,
+  "data_dir": null,
+  "device": "cuda",
+  "epochs": null,
+  "batch_size": null,
+  "image_size": null,
+  "num_classes": null,
+  "fold": null,
+  "num_workers": null,
+  "seed": null,
+  "output_dir": null,
+  "run_name": "backbone_nksid_av7k325_gpu_formal_20260329_000614",
+  "candidate": null,
+  "cpu_latency_runs": null,
+  "cpu_latency_warmup": null
+}

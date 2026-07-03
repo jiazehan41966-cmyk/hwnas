@@ -1,8 +1,15 @@
 import unittest
 
-from hwnas_fpga.hardware import FPGACostEstimator
+from hwnas_fpga.hardware import FPGACostEstimator, LutEntry, LutQueryEngine, LutTable, OpSpec
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
-from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
+from hwnas_fpga.search_space import (
+    ArchitectureSpec,
+    BlockSpec,
+    ResolvedBlockSpec,
+    SearchSpace,
+    SearchSpaceConfig,
+    StageSpec,
+)
 
 
 class HardwareEstimatorTests(unittest.TestCase):
@@ -65,21 +72,115 @@ class HardwareEstimatorTests(unittest.TestCase):
         estimate = estimator.estimate(self.architecture, self.space)
         self.assertTrue(estimate.violations)
 
+    def test_strict_formal_lut_marks_missing_queries_infeasible(self) -> None:
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=512,
+            ),
+            lut_query_engine=LutQueryEngine(
+                LutTable(),
+                strict_formal_lut=True,
+                formal_status_entries={},
+            ),
+            strict_formal_lut=True,
+        )
+
+        estimate = estimator.estimate(self.architecture, self.space)
+        stats = estimator.get_lut_stats()
+
+        self.assertTrue(
+            any(violation.startswith("formal LUT missing:") for violation in estimate.violations)
+        )
+        self.assertGreater(stats["true_misses"], 0)
+
+    def test_physical_constraints_reject_early_high_resolution_expand(self) -> None:
+        constraints = SearchConstraints(
+            physical={
+                "enabled": True,
+                "early_expand_limits": [
+                    {"min_input_resolution": 112, "max_expand_ratio": 3},
+                ],
+                "pareto_physical_risk": True,
+            }
+        )
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 32,
+                "stem_stride": 2,
+                "stage_strides": [1],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3],
+                "expand_choices": [3, 6],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 6},
+                    ]
+                ],
+                "num_classes": 8,
+                "hardware_constraints": constraints,
+            }
+        )
+        space = SearchSpace(config)
+        architecture = ArchitectureSpec(
+            input_channels=1,
+            stem_channels=32,
+            stem_stride=2,
+            stages=(
+                StageSpec(
+                    channels=24,
+                    depth=1,
+                    stride=1,
+                    blocks=(BlockSpec("mbconv", kernel_size=3, expand_ratio=6, stride=1),),
+                ),
+            ),
+            num_classes=8,
+        )
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=2_000,
+            ),
+            constraints=constraints,
+        )
+
+        estimate = estimator.estimate(architecture, space)
+        metrics = estimate.to_candidate_metrics()
+
+        self.assertTrue(
+            any("expand_ratio=6 exceeds 3" in violation for violation in estimate.violations)
+        )
+        self.assertIsNotNone(metrics.early_expand_pressure)
+        self.assertIsNotNone(metrics.physical_risk)
+        self.assertGreater(metrics.physical_risk or 0.0, 0.0)
+
 
 class SonarOpsCostTests(unittest.TestCase):
-    """声呐算子的硬件代价估计测试"""
-
     def setUp(self) -> None:
         self.space = SearchSpace(SearchSpaceConfig())
         self.estimator = FPGACostEstimator(
             hardware_spec=HardwareSpec(
-                name="test-fpga", clock_mhz=200,
-                max_lut=120_000, max_bram=2_000, max_dsp=512,
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=512,
             ),
         )
 
     def test_sonar_ops_produce_positive_cost(self) -> None:
-        """每种声呐算子的cost估计应产生正值"""
         for seed in range(20):
             arch = self.space.sample(seed=seed)
             estimate = self.estimator.estimate(arch, self.space)
@@ -87,27 +188,154 @@ class SonarOpsCostTests(unittest.TestCase):
             self.assertGreater(estimate.latency_ms, 0, f"seed={seed}: latency should be > 0")
 
     def test_mixconv_has_higher_cost_than_dw_pw(self) -> None:
-        """MixConv (多尺度) 应比单一 DW 卷积的资源消耗更高"""
-        from hwnas_fpga.search_space.space import ResolvedBlockSpec
-
         mixconv_block = ResolvedBlockSpec(
-            stage_index=0, block_index=0, op="mixconv",
-            kernel_size=3, expand_ratio=1, stride=1,
-            in_channels=32, out_channels=32,
-            input_resolution=56, output_resolution=56,
+            stage_index=0,
+            block_index=0,
+            op="mixconv",
+            kernel_size=3,
+            expand_ratio=1,
+            stride=1,
+            in_channels=32,
+            out_channels=32,
+            input_resolution=56,
+            output_resolution=56,
         )
         dw_block = ResolvedBlockSpec(
-            stage_index=0, block_index=0, op="dw_pw_conv",
-            kernel_size=3, expand_ratio=1, stride=1,
-            in_channels=32, out_channels=32,
-            input_resolution=56, output_resolution=56,
+            stage_index=0,
+            block_index=0,
+            op="dw_pw_conv",
+            kernel_size=3,
+            expand_ratio=1,
+            stride=1,
+            in_channels=32,
+            out_channels=32,
+            input_resolution=56,
+            output_resolution=56,
         )
 
         mix_cost = self.estimator._estimate_block(mixconv_block)
         dw_cost = self.estimator._estimate_block(dw_block)
 
-        # MixConv 使用 (3,5,7) 三种kernel，MAC应更高
         self.assertGreater(mix_cost.macs, dw_cost.macs)
+
+
+class OperatorPolicyCostTests(unittest.TestCase):
+    def test_conditional_operator_uses_actual_post_route_fmax_for_latency(self) -> None:
+        lut_table = LutTable(
+            [
+                LutEntry(
+                    op_spec=OpSpec(
+                        op="denoise",
+                        kernel_size=3,
+                        in_channels=32,
+                        out_channels=32,
+                        stride=1,
+                        groups=32,
+                        input_resolution=(56, 56),
+                    ),
+                    latency_ms=0.08,
+                    cycles=20_000,
+                    dsp=16,
+                    bram=4,
+                    lut=512,
+                )
+            ]
+        )
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(name="test-fpga", clock_mhz=200),
+            lut_query_engine=LutQueryEngine(lut_table),
+            operator_policies={
+                "denoise": {
+                    "deployment_status": "conditional",
+                    "achieved_post_route_fmax_mhz": 175.04,
+                    "hardware_cost_policy": {
+                        "latency_rule": "use_actual_post_route_fmax",
+                        "deployable_at_200mhz": False,
+                    },
+                }
+            },
+        )
+        block = ResolvedBlockSpec(
+            stage_index=0,
+            block_index=0,
+            op="denoise",
+            kernel_size=3,
+            expand_ratio=1,
+            stride=1,
+            in_channels=32,
+            out_channels=32,
+            input_resolution=56,
+            output_resolution=56,
+        )
+
+        layer_cost = estimator._estimate_block(block)
+
+        self.assertAlmostEqual(layer_cost.effective_clock_mhz or 0.0, 175.04, places=2)
+        self.assertAlmostEqual(
+            layer_cost.resolved_latency_ms(200.0),
+            20_000 / (175.04 * 1_000.0),
+            places=6,
+        )
+
+    def test_paused_operator_adds_policy_violation(self) -> None:
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(name="test-fpga", clock_mhz=200),
+            operator_policies={
+                "mixconv": {
+                    "search_enabled": False,
+                    "deployment_status": "paused",
+                }
+            },
+        )
+        block = ResolvedBlockSpec(
+            stage_index=0,
+            block_index=0,
+            op="mixconv",
+            kernel_size=3,
+            expand_ratio=1,
+            stride=1,
+            in_channels=32,
+            out_channels=32,
+            input_resolution=56,
+            output_resolution=56,
+        )
+
+        violations = estimator._check_operator_policy((block,))
+
+        self.assertIn("operator mixconv is paused in current target policy", violations)
+
+    def test_conditional_operator_can_be_marked_non_deployable_under_strict_mode(self) -> None:
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(name="test-fpga", clock_mhz=200),
+            operator_policies={
+                "edge": {
+                    "deployment_status": "conditional",
+                    "hardware_cost_policy": {
+                        "deployable_at_200mhz": False,
+                    },
+                }
+            },
+            require_deployable_operators=True,
+        )
+        block = ResolvedBlockSpec(
+            stage_index=0,
+            block_index=0,
+            op="edge",
+            kernel_size=3,
+            expand_ratio=1,
+            stride=1,
+            in_channels=32,
+            out_channels=32,
+            input_resolution=56,
+            output_resolution=56,
+        )
+
+        violations = estimator._check_operator_policy((block,))
+
+        self.assertIn(
+            "operator edge is not deployable at 200MHz under current policy",
+            violations,
+        )
 
 
 if __name__ == "__main__":

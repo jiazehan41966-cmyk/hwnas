@@ -1,0 +1,91 @@
+project:
+  name: sonar-fpga-hwnas
+  seed: 42
+  output_dir: results
+dataset:
+  name: dummy
+  data_dir: null
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  normalization: grayscale
+search_space:
+  macro_type: stage_based
+  stem_stride: 2
+  stage_strides:
+  - 1
+  - 2
+  - 2
+  - 2
+  stem_channels: 16
+  channel_choices:
+  - 16
+  - 24
+  - 32
+  - 48
+  - 64
+  - 96
+  depth_choices:
+  - 1
+  - 2
+  - 3
+  - 4
+  kernel_choices:
+  - 3
+  - 5
+  expand_choices:
+  - 1
+  - 2
+  - 4
+  op_choices:
+  - conv
+  - dw_pw_conv
+  - mbconv
+  - fused_mbconv
+  - skip
+constraints:
+  max_latency_ms: null
+  max_power_w: null
+  max_model_size_mb: null
+  max_dsp: null
+  max_bram: null
+  max_lut: null
+  max_memory_bandwidth_gbps: null
+  max_offchip_mem_mb: null
+hardware:
+  target: fpga
+  board: zynq7020
+  clock_mhz: 200
+  quantization_bits: 8
+  estimator: analytic_lut_then_hls
+  lut_path: artifacts/sonar_fpga_analytical_lut.json
+  use_dummy_lut: false
+search:
+  method: rl
+  warmup_epochs: 10
+  search_epochs: 50
+  topk_candidates: 10
+  num_candidates: 20
+  eval_epochs: 3
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.01
+  pareto:
+    selection_method: rank
+    topk: 5
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 32
+  epochs: 100
+deployment:
+  export_format: onnx
+  run_hls_validation: false

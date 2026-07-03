@@ -1,0 +1,16 @@
+[
+  {
+    "op": "dw_pw_conv",
+    "display_name": "DW-PW Conv",
+    "status": "conditional",
+    "best_macro_f1": 0.0898783294679927,
+    "best_top1": 0.17692307692307693,
+    "best_fpga_latency_ms": 0.309335,
+    "best_cpu_latency_ms": 4.054290000203764,
+    "feasible_runs": 0,
+    "total_runs": 1,
+    "best_candidate": "dw_pw_conv_only",
+    "macro_gap_to_best": 0.0,
+    "rationale": "competitive enough to keep as a stage-limited option"
+  }
+]

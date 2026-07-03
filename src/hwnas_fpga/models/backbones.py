@@ -100,6 +100,104 @@ FBNET_LIKE_STAGE_SPECS = (
     {"channels": 184, "depth": 4, "stride": 2, "expand": 6, "kernel": 5, "groups": 4},
 )
 
+MOBILENET_V2_LIKE_STAGE_SPECS = (
+    {"channels": 24, "depth": 2, "stride": 1, "expand": 1, "kernel": 3},
+    {"channels": 32, "depth": 3, "stride": 2, "expand": 6, "kernel": 3},
+    {"channels": 64, "depth": 4, "stride": 2, "expand": 6, "kernel": 5},
+    {"channels": 96, "depth": 3, "stride": 2, "expand": 6, "kernel": 5},
+)
+
+FBNET_V1_STAGE_SPECS = (
+    {"channels": 24, "depth": 2, "stride": 1, "expand": 3, "kernel": 3},
+    {"channels": 32, "depth": 4, "stride": 2, "expand": 3, "kernel": 5},
+    {"channels": 64, "depth": 4, "stride": 2, "expand": 4, "kernel": 5},
+    {"channels": 112, "depth": 4, "stride": 2, "expand": 4, "kernel": 5},
+)
+
+REFERENCE_FBNET_A_STAGE_BLOCK_SPECS = (
+    (
+        {"op": "skip", "channels": 16, "stride": 1, "expand": 1, "kernel": 3, "groups": 1},
+    ),
+    (
+        {"op": "ir", "channels": 24, "stride": 2, "expand": 3, "kernel": 3, "groups": 1},
+        {"op": "ir", "channels": 24, "stride": 1, "expand": 1, "kernel": 3, "groups": 1},
+        {"op": "skip", "channels": 24, "stride": 1, "expand": 1, "kernel": 3, "groups": 1},
+        {"op": "skip", "channels": 24, "stride": 1, "expand": 1, "kernel": 3, "groups": 1},
+    ),
+    (
+        {"op": "ir", "channels": 32, "stride": 2, "expand": 6, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 32, "stride": 1, "expand": 3, "kernel": 3, "groups": 1},
+        {"op": "ir", "channels": 32, "stride": 1, "expand": 1, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 32, "stride": 1, "expand": 3, "kernel": 3, "groups": 1},
+    ),
+    (
+        {"op": "ir", "channels": 64, "stride": 2, "expand": 6, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 64, "stride": 1, "expand": 3, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 64, "stride": 1, "expand": 1, "kernel": 5, "groups": 2},
+        {"op": "ir", "channels": 64, "stride": 1, "expand": 6, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 112, "stride": 1, "expand": 6, "kernel": 3, "groups": 1},
+        {"op": "ir", "channels": 112, "stride": 1, "expand": 1, "kernel": 5, "groups": 2},
+        {"op": "ir", "channels": 112, "stride": 1, "expand": 3, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 112, "stride": 1, "expand": 1, "kernel": 3, "groups": 2},
+    ),
+    (
+        {"op": "ir", "channels": 184, "stride": 2, "expand": 6, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 184, "stride": 1, "expand": 6, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 184, "stride": 1, "expand": 3, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 184, "stride": 1, "expand": 6, "kernel": 5, "groups": 1},
+        {"op": "ir", "channels": 352, "stride": 1, "expand": 6, "kernel": 5, "groups": 1},
+    ),
+)
+
+MACRO_TEMPLATES: dict[str, dict[str, Any]] = {
+    "mobilenet_v2_like": {
+        "display_name": "MobileNetV2-like",
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": 1280,
+        "stages": MOBILENET_V2_LIKE_STAGE_SPECS,
+    },
+    "fbnet_like": {
+        "display_name": "FBNet-like",
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": 1280,
+        "stages": FBNET_V1_STAGE_SPECS,
+    },
+}
+
+
+def normalize_macro_template_name(name: str) -> str:
+    normalized = str(name).strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "mobilenetv2_like": "mobilenet_v2_like",
+        "mobilenet_like": "mobilenet_v2_like",
+        "mobile_anchor": "mobilenet_v2_like",
+        "mobilenet_v2_like": "mobilenet_v2_like",
+        "fbnet": "fbnet_like",
+        "fbnet_like": "fbnet_like",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def get_macro_template(name: str) -> dict[str, Any]:
+    normalized = normalize_macro_template_name(name)
+    if normalized not in MACRO_TEMPLATES:
+        raise ValueError(f"Unsupported macro template: {name}")
+    template = MACRO_TEMPLATES[normalized]
+    return {
+        "name": normalized,
+        "display_name": template["display_name"],
+        "stem_channels": int(template["stem_channels"]),
+        "stem_stride": int(template["stem_stride"]),
+        "head_channels": int(template["head_channels"]),
+        "stages": tuple(dict(stage) for stage in template["stages"]),
+    }
+
+
+def list_macro_templates() -> dict[str, dict[str, Any]]:
+    return {name: get_macro_template(name) for name in MACRO_TEMPLATES}
+
 
 def _resolve_group_count(desired_groups: int, *channel_dims: int) -> int:
     if desired_groups <= 1:
@@ -240,6 +338,75 @@ class FBNetLike(nn.Module):
         return self.head(x)
 
 
+class ReferenceFBNetA(nn.Module):
+    """Reference FBNet-A macro architecture adapted to the local training pipeline."""
+
+    def __init__(
+        self,
+        *,
+        input_channels: int = 1,
+        num_classes: int = 8,
+        stem_channels: int = 16,
+        head_channels: int = 1504,
+        dropout: float = 0.2,
+    ) -> None:
+        super().__init__()
+        self.stem = nn.Sequential(
+            nn.Conv2d(
+                input_channels,
+                stem_channels,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                bias=False,
+            ),
+            nn.BatchNorm2d(stem_channels),
+            nn.ReLU(inplace=True),
+        )
+
+        stages: list[nn.Module] = []
+        current_channels = stem_channels
+        for stage_specs in REFERENCE_FBNET_A_STAGE_BLOCK_SPECS:
+            blocks: list[nn.Module] = []
+            for block_spec in stage_specs:
+                op_name = str(block_spec["op"])
+                stage_channels = int(block_spec["channels"])
+                stage_stride = int(block_spec["stride"])
+                if op_name == "skip":
+                    if stage_stride != 1 or current_channels != stage_channels:
+                        raise ValueError("Reference FBNet-A skip block expects matching channels and stride=1")
+                    blocks.append(nn.Identity())
+                else:
+                    blocks.append(
+                        FBNetBottleneckBlock(
+                            current_channels,
+                            stage_channels,
+                            expand_ratio=int(block_spec["expand"]),
+                            kernel_size=int(block_spec["kernel"]),
+                            stride=stage_stride,
+                            groups=int(block_spec.get("groups", 1)),
+                        )
+                    )
+                current_channels = stage_channels
+            stages.append(nn.Sequential(*blocks))
+        self.stages = nn.Sequential(*stages)
+
+        self.head = nn.Sequential(
+            nn.Conv2d(current_channels, head_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(head_channels),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+            nn.Linear(head_channels, num_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.stem(x)
+        x = self.stages(x)
+        return self.head(x)
+
+
 def default_backbone_candidates() -> tuple[BackboneCandidate, ...]:
     return (
         BackboneCandidate(
@@ -261,9 +428,9 @@ def default_backbone_candidates() -> tuple[BackboneCandidate, ...]:
             pretrained=False,
         ),
         BackboneCandidate(
-            arch_id="fbnet_like",
-            name="fbnet_like",
-            display_name="FBNet-like",
+            arch_id="fbnet_a",
+            name="fbnet_a",
+            display_name="FBNet-A",
             pretrained=False,
         ),
         BackboneCandidate(
@@ -291,7 +458,10 @@ def normalize_backbone_name(name: str) -> str:
         "shufflenet_v2": "shufflenet_v2",
         "efficientnetb0": "efficientnet_b0",
         "efficientnet_b0": "efficientnet_b0",
-        "fbnet": "fbnet_like",
+        "fbnet": "fbnet_a",
+        "fbnet_a": "fbnet_a",
+        "reference_fbnet_a": "fbnet_a",
+        "fbnet_a_reference": "fbnet_a",
         "fbnet_like": "fbnet_like",
     }
     return aliases.get(normalized, normalized)
@@ -457,6 +627,14 @@ def build_backbone(
 
     if normalized_name == "fbnet_like":
         model = FBNetLike(
+            input_channels=input_channels,
+            num_classes=num_classes,
+            dropout=dropout,
+        )
+        return model, metadata
+
+    if normalized_name == "fbnet_a":
+        model = ReferenceFBNetA(
             input_channels=input_channels,
             num_classes=num_classes,
             dropout=dropout,

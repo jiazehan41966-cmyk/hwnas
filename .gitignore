@@ -1,4 +1,23 @@
 results/
+results_archive/
+outputs/
+/logs/
+/results_port*/
+hls_lut_builder/results/
+hls_lut_builder/board_harness/_vivado_builds/
+hls_lut_builder/board_harness/projects/
+vitis_hls.log
+vivado*.log
+vivado*.jou
+clockInfo.txt
+results-launch/*.nohup.log
+!artifacts/**/results/
+!artifacts/**/results/**
+artifacts/**/*.pkl
+artifacts/**/checkpoints/*.pt
+artifacts/server_snapshots/
+HAO_ Hardware-aware Neural Architecture.pdf
+Sonar_FPGA_NAS_对话全记录.md
 __pycache__/
 *.py[cod]
 .DS_Store

@@ -1,0 +1,779 @@
+toolchain:
+  part: xc7k325t-ffg676-2
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: vitis_hls
+workspace:
+  project_root: ../results/p_refactor_dw
+  report_archive: ../results/r_refactor_dw
+  csv_path: ../configs/hls_lut_builder/results/stageB_dw_refactor_hls.csv
+  manifest_path: ../configs/hls_lut_builder/results/stageB_dw_refactor_hls_manifest.yaml
+  synthesis_summary_json: ../configs/hls_lut_builder/results/stageB_dw_refactor_synth_summary.json
+  parse_summary_json: ../configs/hls_lut_builder/results/stageB_dw_refactor_parse_summary.json
+  downstream_csv_path: ../configs/hls_lut_builder/results/stageB_dw_refactor_vivado.csv
+  downstream_manifest_path: ../configs/hls_lut_builder/results/stageB_dw_refactor_vivado_manifest.yaml
+  downstream_parse_summary_json: ../configs/hls_lut_builder/results/stageB_dw_refactor_vivado_parse_summary.json
+  downstream_summary_json: ../configs/hls_lut_builder/results/stageB_dw_refactor_vivado_summary.json
+measurement_contract:
+  contract_id: packed_stream_v1
+  declaration: LUT data is based on a packed-stream implementation; AXIS width equals
+    packed channel block times 8 bits, using multiple tokens when a single channel
+    vector would exceed the Vitis HLS AXI bitwidth limit.
+  io_style: packed_stream
+  input_axis_rule: packed input channels * 8 bits, segmented across multiple tokens
+    if needed
+  output_axis_rule: packed output channels * 8 bits, segmented across multiple tokens
+    if needed
+  control_interface: AXI-Lite
+  parameter_storage: BRAM
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  pipeline_ii: 2
+  input_parallelism: 1
+  output_parallelism: 1
+  unroll_factor: 1
+  array_partition_factor: 1
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+implementation_profiles:
+  baseline_pi1_po1_u1:
+    input_parallelism: 1
+    output_parallelism: 1
+    unroll_factor: 1
+    array_partition_factor: 1
+representative_shapes:
+  stem_224_1_32_s2:
+    feature_h: 224
+    feature_w: 224
+    in_channels: 1
+    out_channels: 32
+    stride: 2
+  dw_ir16_e1_112_c32_s1:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 32
+    stride: 1
+    expand_ratio: 1
+  pw_ir16_proj_112_32_16:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 32
+    out_channels: 16
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 1
+  mbconv_stage2_112_16_24_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 24
+    stride: 2
+  dw_ir24_e3_112_c48_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 48
+    stride: 2
+    expand_ratio: 3
+  pw_ir24_expand_e3_112_16_48:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 48
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir24_proj_e3_56_48_24:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 48
+    out_channels: 24
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir24_e6_112_c96_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 96
+    stride: 2
+    expand_ratio: 6
+  pw_ir24_expand_e6_112_16_96:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 96
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir24_proj_e6_56_96_24:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 96
+    out_channels: 24
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage3_56_24_32_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 32
+    stride: 2
+  dw_ir32_e3_56_c72_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 72
+    stride: 2
+    expand_ratio: 3
+  pw_ir32_expand_e3_56_24_72:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 72
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir32_proj_e3_28_72_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 72
+    out_channels: 32
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir32_e6_56_c144_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 144
+    stride: 2
+    expand_ratio: 6
+  pw_ir32_expand_e6_56_24_144:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 144
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir32_proj_e6_28_144_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 144
+    out_channels: 32
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage4_28_32_64_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 64
+    stride: 2
+  dw_ir64_e3_28_c96_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 96
+    stride: 2
+    expand_ratio: 3
+  pw_ir64_expand_e3_28_32_96:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 96
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir64_proj_e3_14_96_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 64
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir64_e6_28_c192_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 192
+    stride: 2
+    expand_ratio: 6
+  pw_ir64_expand_e6_28_32_192:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 192
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir64_proj_e6_14_192_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    out_channels: 64
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage5_14_64_96_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 96
+    stride: 1
+  dw_ir96_e3_14_c192_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    stride: 1
+    expand_ratio: 3
+  pw_ir96_expand_e3_14_64_192:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 192
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir96_proj_e3_14_192_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 192
+    out_channels: 96
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir96_e6_14_c384_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    stride: 1
+    expand_ratio: 6
+  pw_ir96_expand_e6_14_64_384:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 384
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir96_proj_e6_14_384_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 384
+    out_channels: 96
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage6_14_96_160_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 160
+    stride: 2
+  dw_ir160_e3_14_c288_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 288
+    stride: 2
+    expand_ratio: 3
+  pw_ir160_expand_e3_14_96_288:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 288
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir160_proj_e3_7_288_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 288
+    out_channels: 160
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir160_e6_14_c576_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 576
+    stride: 2
+    expand_ratio: 6
+  pw_ir160_expand_e6_14_96_576:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 576
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir160_proj_e6_7_576_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 576
+    out_channels: 160
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  mbconv_stage7_7_160_320_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 320
+    stride: 1
+  dw_ir320_e3_7_c480_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    stride: 1
+    expand_ratio: 3
+  pw_ir320_expand_e3_7_160_480:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 480
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 3
+  pw_ir320_proj_e3_7_480_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 480
+    out_channels: 320
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 3
+  dw_ir320_e6_7_c960_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    stride: 1
+    expand_ratio: 6
+  pw_ir320_expand_e6_7_160_960:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 960
+    stride: 1
+    apply_relu: 1
+    expand_ratio: 6
+  pw_ir320_proj_e6_7_960_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 960
+    out_channels: 320
+    stride: 1
+    apply_relu: 0
+    expand_ratio: 6
+  skip_56_24:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 24
+    stride: 1
+  skip_28_32:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 32
+    stride: 1
+  skip_14_64:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 64
+    stride: 1
+  skip_14_96:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+  skip_7_160:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 160
+    stride: 1
+  pw_head_7_320_1280:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 320
+    out_channels: 1280
+    stride: 1
+    apply_relu: 1
+  gap_7_320:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 320
+    out_channels: 320
+    stride: 1
+    padding: 0
+    out_h: 1
+    out_w: 1
+  fc_1_1280_8:
+    feature_h: 1
+    feature_w: 1
+    in_channels: 1280
+    out_channels: 8
+    stride: 1
+    padding: 0
+    out_h: 1
+    out_w: 1
+operators:
+  stem_conv_k3_s2:
+    enabled: false
+    template: ../templates/stem_conv_k3_s2.cpp.tmpl
+    top_function: stem_conv_k3_s2_kernel
+    op_type: stem_conv_k3_s2
+    shape_refs:
+    - stem_224_1_32_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      apply_relu: 1
+    op_spec_defaults:
+      op: stem_conv_k3_s2
+      groups: 1
+      expand_ratio: 1
+  dw_conv_k3:
+    enabled: true
+    template: ../templates/dw_conv.cpp.tmpl
+    top_function: dw_conv_k3_kernel
+    op_type: dw_conv_k3
+    shape_refs:
+    - dw_ir24_e6_112_c96_s2
+    - dw_ir64_e3_28_c96_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k3
+  dw_conv_k5:
+    enabled: true
+    template: ../templates/dw_conv.cpp.tmpl
+    top_function: dw_conv_k5_kernel
+    op_type: dw_conv_k5
+    shape_refs:
+    - dw_ir32_e3_56_c72_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+      apply_relu: 1
+    op_spec_defaults:
+      op: dw_conv_k5
+  pw_conv:
+    enabled: false
+    template: ../templates/pw_conv.cpp.tmpl
+    top_function: pw_conv_kernel
+    op_type: pw_conv
+    shape_refs:
+    - pw_ir16_proj_112_32_16
+    - pw_ir24_expand_e3_112_16_48
+    - pw_ir24_proj_e3_56_48_24
+    - pw_ir24_expand_e6_112_16_96
+    - pw_ir24_proj_e6_56_96_24
+    - pw_ir32_expand_e3_56_24_72
+    - pw_ir32_proj_e3_28_72_32
+    - pw_ir32_expand_e6_56_24_144
+    - pw_ir32_proj_e6_28_144_32
+    - pw_ir64_expand_e3_28_32_96
+    - pw_ir64_proj_e3_14_96_64
+    - pw_ir64_expand_e6_28_32_192
+    - pw_ir64_proj_e6_14_192_64
+    - pw_ir96_expand_e3_14_64_192
+    - pw_ir96_proj_e3_14_192_96
+    - pw_ir96_expand_e6_14_64_384
+    - pw_ir96_proj_e6_14_384_96
+    - pw_ir160_expand_e3_14_96_288
+    - pw_ir160_proj_e3_7_288_160
+    - pw_ir160_expand_e6_14_96_576
+    - pw_ir160_proj_e6_7_576_160
+    - pw_ir320_expand_e3_7_160_480
+    - pw_ir320_proj_e3_7_480_320
+    - pw_ir320_expand_e6_7_160_960
+    - pw_ir320_proj_e6_7_960_320
+    - pw_head_7_320_1280
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+    op_spec_defaults:
+      op: pw_conv
+      groups: 1
+  mbconv_e3_k3:
+    enabled: false
+    template: ../templates/mbconv.cpp.tmpl
+    top_function: mbconv_e3_k3_kernel
+    op_type: mbconv_e3_k3
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage3_56_24_32_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage5_14_64_96_s1
+    - mbconv_stage6_14_96_160_s2
+    - mbconv_stage7_7_160_320_s1
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      expand_ratio: 3
+    op_spec_defaults:
+      op: mbconv_e3_k3
+      groups: 1
+      expand_ratio: 3
+  mbconv_e3_k5:
+    enabled: false
+    template: ../templates/mbconv.cpp.tmpl
+    top_function: mbconv_e3_k5_kernel
+    op_type: mbconv_e3_k5
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage3_56_24_32_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage5_14_64_96_s1
+    - mbconv_stage6_14_96_160_s2
+    - mbconv_stage7_7_160_320_s1
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+      expand_ratio: 3
+    op_spec_defaults:
+      op: mbconv_e3_k5
+      groups: 1
+      expand_ratio: 3
+  mbconv_e6_k3:
+    enabled: false
+    template: ../templates/mbconv.cpp.tmpl
+    top_function: mbconv_e6_k3_kernel
+    op_type: mbconv_e6_k3
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage3_56_24_32_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage5_14_64_96_s1
+    - mbconv_stage6_14_96_160_s2
+    - mbconv_stage7_7_160_320_s1
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      expand_ratio: 6
+    op_spec_defaults:
+      op: mbconv_e6_k3
+      groups: 1
+      expand_ratio: 6
+  mbconv_e6_k5:
+    enabled: false
+    template: ../templates/mbconv.cpp.tmpl
+    top_function: mbconv_e6_k5_kernel
+    op_type: mbconv_e6_k5
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage3_56_24_32_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage5_14_64_96_s1
+    - mbconv_stage6_14_96_160_s2
+    - mbconv_stage7_7_160_320_s1
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+      expand_ratio: 6
+    op_spec_defaults:
+      op: mbconv_e6_k5
+      groups: 1
+      expand_ratio: 6
+  skip:
+    enabled: false
+    template: ../templates/skip.cpp.tmpl
+    top_function: skip_kernel
+    op_type: skip
+    shape_refs:
+    - skip_56_24
+    - skip_28_32
+    - skip_14_64
+    - skip_14_96
+    - skip_7_160
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+    op_spec_defaults:
+      op: skip
+      groups: 1
+      expand_ratio: 1
+  global_avg_pool:
+    enabled: false
+    template: ../templates/global_avg_pool.cpp.tmpl
+    top_function: global_avg_pool_kernel
+    op_type: global_avg_pool
+    shape_refs:
+    - gap_7_320
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 7
+      padding: 0
+    op_spec_defaults:
+      op: global_avg_pool
+      groups: 1
+      expand_ratio: 1
+  fc_layer:
+    enabled: false
+    template: ../templates/fc_layer.cpp.tmpl
+    top_function: fc_layer_kernel
+    op_type: fc_layer
+    shape_refs:
+    - fc_1_1280_8
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+    op_spec_defaults:
+      op: fc_layer
+      groups: 1
+      expand_ratio: 1
+  fused_mbconv_e3_k3:
+    enabled: false
+    template: ../templates/fused_mbconv.cpp.tmpl
+    top_function: fmb_e3_k3_kernel
+    op_type: fused_mbconv_e3_k3
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage6_14_96_160_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      expand_ratio: 3
+    op_spec_defaults:
+      op: fused_mbconv_e3_k3
+      groups: 1
+      expand_ratio: 3
+  fused_mbconv_e6_k3:
+    enabled: false
+    template: ../templates/fused_mbconv.cpp.tmpl
+    top_function: fmb_e6_k3_kernel
+    op_type: fused_mbconv_e6_k3
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage6_14_96_160_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+      expand_ratio: 6
+    op_spec_defaults:
+      op: fused_mbconv_e6_k3
+      groups: 1
+      expand_ratio: 6
+  mixconv:
+    enabled: false
+    template: ../templates/mixconv.cpp.tmpl
+    top_function: mixconv_kernel
+    op_type: mixconv
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage6_14_96_160_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+    op_spec_defaults:
+      op: mixconv
+      groups: 1
+      expand_ratio: 1
+  denoise:
+    enabled: false
+    template: ../templates/denoise.cpp.tmpl
+    top_function: denoise_kernel
+    op_type: denoise
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage6_14_96_160_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+    op_spec_defaults:
+      op: denoise
+      groups: 1
+      expand_ratio: 1
+  edge:
+    enabled: false
+    template: ../templates/edge.cpp.tmpl
+    top_function: edge_kernel
+    op_type: edge
+    shape_refs:
+    - mbconv_stage2_112_16_24_s2
+    - mbconv_stage4_28_32_64_s2
+    - mbconv_stage6_14_96_160_s2
+    implementation_refs:
+    - baseline_pi1_po1_u1
+    clock_profile_refs:
+    - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+    op_spec_defaults:
+      op: edge
+      groups: 1
+      expand_ratio: 1

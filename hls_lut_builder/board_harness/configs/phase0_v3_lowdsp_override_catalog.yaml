@@ -1,0 +1,28 @@
+version: phase0_v3_lowdsp_overrides_v1
+defaults:
+  timing_variant: place_altspread_route_more_global
+  impl_profile: fanout_only
+  argmax_pipeline: true
+  completion_mode: sink_and_argmax
+  fifo_depth: 64
+  fifo_style: lut_registered
+direct:
+  stage0_conv_32_16:
+    l2_stage0_block0_direct: pwlow_a84rec_l2_proj_112_32_16_p8_pe8_simd1_ii4_dsp1_c5
+mbconv:
+  stage1_e3:
+    l3_stage1_block0_pw_expand: pwlow_a84rec_l3_pwe_112_16_48_p8_pe8_simd1_ii4_dsp1_c5
+    l3_stage1_block0_dw: dwlow_a84rec_l3_dw_112_c48_s2_p8_cb8_ii2_dsp1_c5
+    l3_stage1_block0_pw_project: pwlow_a84rec_l3_pwp_56_48_24_p8_pe8_simd1_ii4_dsp1_c5
+  stage1_e6:
+    l3_stage1_block0_pw_expand: pwlow_rlb_l3_pwe_112_16_96_p8_pe8_simd1_ii4_dsp1_c5
+    l3_stage1_block0_dw: dwlow_rlb_l3_dw_112_c96_s2_p8_cb8_ii2_dsp1_c5
+    l3_stage1_block0_pw_project: pwlow_rlb_l3_pwp_56_96_24_p8_pe8_simd1_ii4_dsp1_c5
+  stage2_e3:
+    l4_stage2_block0_pw_expand: pwlow_rlb_l4_pwe_56_24_72_p8_pe8_simd1_ii4_dsp1_c5
+    l4_stage2_block0_dw: dwlow_rlb_l4_dw_56_c72_s2_p8_cb8_ii2_dsp1_c5
+    l4_stage2_block0_pw_project: pwlow_rlb_l4_pwp_28_72_32_p8_pe8_simd1_ii4_dsp1_c5
+  stage3_e3:
+    l5_stage3_block0_pw_expand: pwlow_a84rec_l5_pwe_28_32_96_p8_pe8_simd1_ii4_dsp1_c5
+    l5_stage3_block0_dw: dwlow_a84rec_l5_dw_28_c96_s1_p8_cb8_ii2_dsp1_c5
+    l5_stage3_block0_pw_project: pwlow_a84rec_l5_pwp_28_96_32_p8_pe8_simd1_ii4_dsp1_c5

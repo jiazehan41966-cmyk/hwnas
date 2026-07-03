@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import sys
 from pathlib import Path
 
+import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -73,13 +75,18 @@ def main() -> None:
     dataset_cfg = config.get("dataset", {})
     project_cfg = config.get("project", {})
     training_cfg = config.get("training", {})
+    search_cfg = config.get("search", {})
 
     candidate_path = resolve_candidate_path(args)
     candidate_payload = load_best_candidate_artifact(candidate_path)
     architecture = load_architecture_from_artifact(candidate_path)
 
     seed = pick(args.seed, project_cfg.get("seed"), 42)
+    random.seed(seed)
+    np.random.seed(seed)
     torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
     dataset_name = pick(args.dataset, dataset_cfg.get("name"), "dummy")
     device = pick(args.device, None, "cuda" if torch.cuda.is_available() else "cpu")
@@ -182,6 +189,7 @@ def main() -> None:
                 device=device,
                 class_weights=class_weights,
                 early_stopping_patience=training_cfg.get("early_stopping_patience", 10),
+                selection_metric=search_cfg.get("selection_metric", "macro_f1"),
             )
 
             checkpoint_payload = {

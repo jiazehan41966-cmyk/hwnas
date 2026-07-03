@@ -1,0 +1,326 @@
+toolchain:
+  part: xc7k325t-ffg676-2
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: vitis_hls
+
+workspace:
+  project_root: ../results/projects
+  report_archive: ../results/hls_reports
+  csv_path: ../results/operator_screening_hls.csv
+  manifest_path: ../results/operator_screening_manifest.yaml
+  synthesis_summary_json: ../results/operator_screening_synthesis_summary.json
+  parse_summary_json: ../results/operator_screening_parse_summary.json
+
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  pipeline_ii: 1
+  input_parallelism: 1
+  output_parallelism: 1
+  unroll_factor: 1
+
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+  control_10ns:
+    period_ns: 10.0
+
+implementation_profiles:
+  baseline_pi1_po1_u1:
+    input_parallelism: 1
+    output_parallelism: 1
+    unroll_factor: 1
+
+representative_shapes:
+  conv1x1_h112_c16_c24_s1:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 24
+    kernel_size: 1
+    stride: 1
+  conv1x1_h112_c24_c24_s1:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 24
+    out_channels: 24
+    kernel_size: 1
+    stride: 1
+  conv1x1_h56_c24_c32_s1:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 32
+    kernel_size: 1
+    stride: 1
+  conv1x1_h56_c32_c48_s1:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 32
+    out_channels: 48
+    kernel_size: 1
+    stride: 1
+  conv1x1_h28_c32_c64_s1:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 64
+    kernel_size: 1
+    stride: 1
+  conv1x1_h28_c64_c64_s1:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 64
+    out_channels: 64
+    kernel_size: 1
+    stride: 1
+  conv1x1_h14_c64_c80_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 80
+    kernel_size: 1
+    stride: 1
+  conv1x1_h14_c80_c96_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 80
+    out_channels: 96
+    kernel_size: 1
+    stride: 1
+  conv1x1_h7_c96_c160_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 96
+    out_channels: 160
+    kernel_size: 1
+    stride: 1
+  conv1x1_h7_c160_c320_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 160
+    out_channels: 320
+    kernel_size: 1
+    stride: 1
+
+  conv3x3_h112_c1_c16_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 1
+    out_channels: 16
+    kernel_size: 3
+    stride: 2
+  conv3x3_h112_c16_c16_s1:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 16
+    kernel_size: 3
+    stride: 1
+  conv3x3_h56_c16_c24_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 16
+    out_channels: 24
+    kernel_size: 3
+    stride: 2
+  conv3x3_h56_c24_c24_s1:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 24
+    kernel_size: 3
+    stride: 1
+  conv3x3_h56_c24_c32_s1:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 32
+    kernel_size: 3
+    stride: 1
+  conv3x3_h28_c32_c40_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 40
+    kernel_size: 3
+    stride: 2
+  conv3x3_h28_c40_c48_s1:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 40
+    out_channels: 48
+    kernel_size: 3
+    stride: 1
+  conv3x3_h14_c48_c64_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 48
+    out_channels: 64
+    kernel_size: 3
+    stride: 2
+  conv3x3_h14_c64_c80_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 80
+    kernel_size: 3
+    stride: 1
+  conv3x3_h7_c80_c96_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 80
+    out_channels: 96
+    kernel_size: 3
+    stride: 1
+
+  dwconv3x3_h112_c16_s1:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 16
+    out_channels: 16
+    kernel_size: 3
+    stride: 1
+  dwconv3x3_h112_c24_s2:
+    feature_h: 112
+    feature_w: 112
+    in_channels: 24
+    out_channels: 24
+    kernel_size: 3
+    stride: 2
+  dwconv3x3_h56_c24_s1:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 24
+    out_channels: 24
+    kernel_size: 3
+    stride: 1
+  dwconv3x3_h56_c32_s2:
+    feature_h: 56
+    feature_w: 56
+    in_channels: 32
+    out_channels: 32
+    kernel_size: 3
+    stride: 2
+  dwconv3x3_h28_c32_s1:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 32
+    kernel_size: 3
+    stride: 1
+  dwconv3x3_h28_c40_s2:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 40
+    out_channels: 40
+    kernel_size: 3
+    stride: 2
+  dwconv3x3_h14_c48_s1:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 48
+    out_channels: 48
+    kernel_size: 3
+    stride: 1
+  dwconv3x3_h14_c64_s2:
+    feature_h: 14
+    feature_w: 14
+    in_channels: 64
+    out_channels: 64
+    kernel_size: 3
+    stride: 2
+  dwconv3x3_h7_c80_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 80
+    out_channels: 80
+    kernel_size: 3
+    stride: 1
+  dwconv3x3_h7_c96_s1:
+    feature_h: 7
+    feature_w: 7
+    in_channels: 96
+    out_channels: 96
+    kernel_size: 3
+    stride: 1
+
+operators:
+  conv1x1:
+    enabled: true
+    template: ../templates/conv2d.cpp.tmpl
+    top_function: conv1x1
+    op_type: conv
+    shape_refs:
+      - conv1x1_h112_c16_c24_s1
+      - conv1x1_h112_c24_c24_s1
+      - conv1x1_h56_c24_c32_s1
+      - conv1x1_h56_c32_c48_s1
+      - conv1x1_h28_c32_c64_s1
+      - conv1x1_h28_c64_c64_s1
+      - conv1x1_h14_c64_c80_s1
+      - conv1x1_h14_c80_c96_s1
+      - conv1x1_h7_c96_c160_s1
+      - conv1x1_h7_c160_c320_s1
+    implementation_refs:
+      - baseline_pi1_po1_u1
+    clock_profile_refs:
+      - main_5ns
+      - control_10ns
+    op_spec_defaults:
+      op: conv
+      groups: 1
+      expand_ratio: 1
+
+  conv3x3:
+    enabled: true
+    template: ../templates/conv2d.cpp.tmpl
+    top_function: conv3x3
+    op_type: conv
+    shape_refs:
+      - conv3x3_h112_c1_c16_s2
+      - conv3x3_h112_c16_c16_s1
+      - conv3x3_h56_c16_c24_s2
+      - conv3x3_h56_c24_c24_s1
+      - conv3x3_h56_c24_c32_s1
+      - conv3x3_h28_c32_c40_s2
+      - conv3x3_h28_c40_c48_s1
+      - conv3x3_h14_c48_c64_s2
+      - conv3x3_h14_c64_c80_s1
+      - conv3x3_h7_c80_c96_s1
+    implementation_refs:
+      - baseline_pi1_po1_u1
+    clock_profile_refs:
+      - main_5ns
+      - control_10ns
+    op_spec_defaults:
+      op: conv
+      groups: 1
+      expand_ratio: 1
+
+  dwconv3x3:
+    enabled: true
+    template: ../templates/dwconv2d.cpp.tmpl
+    top_function: dwconv3x3
+    op_type: dw_conv
+    shape_refs:
+      - dwconv3x3_h112_c16_s1
+      - dwconv3x3_h112_c24_s2
+      - dwconv3x3_h56_c24_s1
+      - dwconv3x3_h56_c32_s2
+      - dwconv3x3_h28_c32_s1
+      - dwconv3x3_h28_c40_s2
+      - dwconv3x3_h14_c48_s1
+      - dwconv3x3_h14_c64_s2
+      - dwconv3x3_h7_c80_s1
+      - dwconv3x3_h7_c96_s1
+    implementation_refs:
+      - baseline_pi1_po1_u1
+    clock_profile_refs:
+      - main_5ns
+      - control_10ns
+    op_spec_defaults:
+      op: dw_conv

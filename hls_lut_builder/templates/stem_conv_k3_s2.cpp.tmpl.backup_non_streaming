@@ -1,0 +1,91 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int K = __KERNEL_SIZE__;
+static constexpr int STRIDE = __STRIDE__;
+static constexpr int PAD = __PADDING__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+static constexpr int INPUT_SIZE = IN_CH * IN_H * IN_W;
+static constexpr int OUTPUT_SIZE = OUT_CH * OUT_H * OUT_W;
+static constexpr int WEIGHT_SIZE = OUT_CH * IN_CH * K * K;
+static constexpr int BIAS_SIZE = OUT_CH;
+static constexpr bool APPLY_RELU = (__APPLY_RELU__ != 0);
+
+static inline int input_index(int c, int h, int w) {
+    return (c * IN_H * IN_W) + (h * IN_W) + w;
+}
+
+static inline int weight_index(int oc, int ic, int kh, int kw) {
+    return (oc * IN_CH * K * K) + (ic * K * K) + (kh * K) + kw;
+}
+
+static inline int output_index(int c, int h, int w) {
+    return (c * OUT_H * OUT_W) + (h * OUT_W) + w;
+}
+
+void __TOP_FUNCTION__(
+    hls::stream<axis_t> &input_stream,
+    hls::stream<axis_t> &output_stream,
+    const weight_t weights[WEIGHT_SIZE],
+    const data_t biases[BIAS_SIZE]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    data_t input_buffer[INPUT_SIZE];
+    data_t output_buffer[OUTPUT_SIZE];
+    weight_t weight_buffer[OUT_CH][IN_CH][K][K];
+    data_t bias_buffer[OUT_CH];
+    data_t window[IN_CH][K][K];
+#pragma HLS ARRAY_PARTITION variable=weight_buffer dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=bias_buffer dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=window dim=1 complete
+
+    read_stream_tensor<INPUT_SIZE>(input_stream, input_buffer);
+
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+        bias_buffer[oc] = biases[oc];
+    }
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+        for (int ic = 0; ic < IN_CH; ++ic) {
+            for (int kh = 0; kh < K; ++kh) {
+                for (int kw = 0; kw < K; ++kw) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                    weight_buffer[oc][ic][kh][kw] = weights[weight_index(oc, ic, kh, kw)];
+                }
+            }
+        }
+    }
+
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+        for (int oh = 0; oh < OUT_H; ++oh) {
+            for (int ow = 0; ow < OUT_W; ++ow) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                acc_t acc = bias_buffer[oc];
+                for (int ic = 0; ic < IN_CH; ++ic) {
+                    for (int kh = 0; kh < K; ++kh) {
+                        for (int kw = 0; kw < K; ++kw) {
+                            const int ih = (oh * STRIDE) + kh - PAD;
+                            const int iw = (ow * STRIDE) + kw - PAD;
+                            data_t sample = 0;
+                            if ((ih >= 0) && (ih < IN_H) && (iw >= 0) && (iw < IN_W)) {
+                                sample = input_buffer[input_index(ic, ih, iw)];
+                            }
+                            window[ic][kh][kw] = sample;
+                            acc += static_cast<acc_t>(sample) * weight_buffer[oc][ic][kh][kw];
+                        }
+                    }
+                }
+                output_buffer[output_index(oc, oh, ow)] = APPLY_RELU ? relu6_quant(acc) : saturate_to_data(acc);
+            }
+        }
+    }
+
+    write_stream_tensor<OUTPUT_SIZE>(output_stream, output_buffer);
+}

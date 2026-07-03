@@ -1,0 +1,80 @@
+project:
+  name: search-strategy-budget200-av7k325-small64
+  seed: 42
+  output_dir: results
+  run_name: strategy_compare_budget200_proxyless_official_av7k325_small64
+
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 64
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  normalization: grayscale
+
+search_space:
+  family_profile: small
+  macro_type: stage_based
+  stem_stride: 2
+  stage_strides: [1, 2, 2, 2]
+  stem_channels: 16
+
+constraints:
+  max_latency_ms: 50.0
+  max_power_w: 12.0
+  max_model_size_mb: null
+  max_dsp: 840
+  max_bram: 445
+  max_lut: 50950
+  max_memory_bandwidth_gbps: 3.0
+  max_offchip_mem_mb: 128.0
+
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  estimator: analytic_lut_then_hls
+  lut_path: null
+  use_dummy_lut: false
+
+search:
+  method: proxyless
+  num_candidates: 20
+  episodes: 20
+  eval_epochs: 160
+  timeout_minutes: null
+  controller_hidden: 64
+  controller_lr: 0.01
+  pareto:
+    selection_method: rank
+    topk: 5
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
+  proxyless:
+    warmup_epochs: 40
+    search_epochs: 160
+    weight_lr: 0.025
+    weight_momentum: 0.9
+    weight_decay: 0.0003
+    arch_lr: 0.001
+    arch_weight_decay: 0.0
+    temperature: 1.0
+    stage_channels: [16, 24, 32, 32]
+    stage_depth: 3
+    max_eval_batches: 20
+
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 64
+  epochs: 200
+
+deployment:
+  export_format: onnx
+  run_hls_validation: false

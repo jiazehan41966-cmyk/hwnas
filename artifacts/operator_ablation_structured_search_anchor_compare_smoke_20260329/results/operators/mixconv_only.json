@@ -1,0 +1,2047 @@
+{
+  "arch_id": "mixconv_only",
+  "display_name": "MixConv only",
+  "macro_template": "shufflenet_v2_blueprint",
+  "macro_template_selection": {
+    "macro_template": "shufflenet_v2_blueprint",
+    "macro_template_display_name": "ShuffleNetV2 Blueprint",
+    "selected_backbone_pool_path": "E:\\1\\hwnas\\hwnas\\artifacts\\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\\results\\selected_backbone_pool.json",
+    "selected_backbone_pool_role": "search_anchor",
+    "selected_backbone_pool_arch_id": "shufflenet_v2",
+    "selected_backbone_pool_display_name": "ShuffleNetV2",
+    "selected_backbone_pool_backbone": "shufflenet_v2",
+    "macro_template_source": "experiment_protocol",
+    "macro_template_source_path": "E:\\1\\hwnas\\hwnas\\artifacts\\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\\results\\experiment_protocol.json",
+    "macro_blueprint_arch_id": "shufflenet_v2",
+    "macro_blueprint_display_name": "ShuffleNetV2",
+    "macro_blueprint_backbone": "shufflenet_v2",
+    "macro_template_warnings": [
+      "Collapsed stem and post_stem_downsample into a single effective stem stride for operator ablation."
+    ]
+  },
+  "candidate": {
+    "arch_id": "mixconv_only",
+    "display_name": "MixConv only",
+    "stage_ops": [
+      "mixconv",
+      "mixconv",
+      "mixconv"
+    ],
+    "use_skip_connections": false,
+    "category": "single",
+    "notes": "single-operator macro template"
+  },
+  "architecture": {
+    "input_channels": 1,
+    "stem_channels": 24,
+    "stem_stride": 4,
+    "head_channels": 1024,
+    "num_classes": 8,
+    "stages": [
+      {
+        "channels": 116,
+        "depth": 4,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 2
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          }
+        ]
+      },
+      {
+        "channels": 232,
+        "depth": 8,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 2
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          }
+        ]
+      },
+      {
+        "channels": 464,
+        "depth": 4,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 2
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          },
+          {
+            "op": "mixconv",
+            "kernel_size": 3,
+            "expand_ratio": 1,
+            "stride": 1
+          }
+        ]
+      }
+    ]
+  },
+  "evaluation": {
+    "accuracy": 0.19615384615384615,
+    "macro_f1": 0.1269617579195435,
+    "weighted_f1": 0.18716635567226073,
+    "per_class": [
+      {
+        "class_index": 0,
+        "class_name": "big_propeller",
+        "support": 40,
+        "precision": 0.14285714285714285,
+        "recall": 0.025,
+        "f1": 0.0425531914893617
+      },
+      {
+        "class_index": 1,
+        "class_name": "cylinder",
+        "support": 57,
+        "precision": 0.19066147859922178,
+        "recall": 0.8596491228070176,
+        "f1": 0.31210191082802546
+      },
+      {
+        "class_index": 2,
+        "class_name": "fishing_net",
+        "support": 4,
+        "precision": 0.012048192771084338,
+        "recall": 0.5,
+        "f1": 0.023529411764705882
+      },
+      {
+        "class_index": 3,
+        "class_name": "floats",
+        "support": 190,
+        "precision": 0.7916666666666666,
+        "recall": 0.2,
+        "f1": 0.31932773109243695
+      },
+      {
+        "class_index": 4,
+        "class_name": "iron_pipeline",
+        "support": 22,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      {
+        "class_index": 5,
+        "class_name": "small_propeller",
+        "support": 18,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      {
+        "class_index": 6,
+        "class_name": "soft_pipeline",
+        "support": 23,
+        "precision": 0.24,
+        "recall": 0.2608695652173913,
+        "f1": 0.24999999999999994
+      },
+      {
+        "class_index": 7,
+        "class_name": "tire",
+        "support": 166,
+        "precision": 0.6,
+        "recall": 0.03614457831325301,
+        "f1": 0.06818181818181818
+      }
+    ],
+    "confusion_matrix": [
+      [
+        1,
+        37,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        49,
+        0,
+        4,
+        0,
+        0,
+        4,
+        0
+      ],
+      [
+        1,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        141,
+        4,
+        38,
+        1,
+        2,
+        3,
+        0
+      ],
+      [
+        2,
+        0,
+        13,
+        4,
+        0,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        18,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        6,
+        6,
+        0,
+        0,
+        2,
+        6,
+        3
+      ],
+      [
+        2,
+        5,
+        141,
+        2,
+        0,
+        1,
+        9,
+        6
+      ]
+    ],
+    "loss": 1.5735683312782875,
+    "top1": 0.19615384615384615,
+    "top5": 0.9653846153846154,
+    "num_samples": 520
+  },
+  "training_summary": {
+    "best_epoch": 1,
+    "epochs_completed": 1,
+    "train_time_sec": 12.025267799996072,
+    "selection_metric": "macro_f1",
+    "best_macro_f1": 0.1269617579195435,
+    "best_top1": 0.19615384615384615,
+    "best_top5": 0.9653846153846154,
+    "best_val_loss": 1.5735683312782875
+  },
+  "history": {
+    "train_loss": [
+      2.00300514226194
+    ],
+    "train_acc": [
+      0.2966142107773009
+    ],
+    "val_loss": [
+      1.5735683312782875
+    ],
+    "val_top1": [
+      0.19615384615384615
+    ],
+    "val_top5": [
+      0.9653846153846154
+    ],
+    "val_macro_f1": [
+      0.1269617579195435
+    ],
+    "val_weighted_f1": [
+      0.18716635567226073
+    ],
+    "lr": [
+      0.001
+    ]
+  },
+  "cost_estimate": {
+    "params": 1804648,
+    "macs": 14393888,
+    "model_size_mb": 1.7210464477539062,
+    "cpu_latency_ms": 10.332013333390933,
+    "peak_activation_bytes": 7424,
+    "peak_weight_bytes": 476160,
+    "peak_buffer_bytes": 477184,
+    "peak_dsp": 256,
+    "peak_bram": 104,
+    "peak_lut": 6588,
+    "latency_cycles": 78701,
+    "latency_ms": 0.393505,
+    "power_w": 8.7616,
+    "energy_mj": 3.447733408,
+    "memory_bandwidth_gbps": 4.88154407186694,
+    "offchip_mem_mb": 0.0,
+    "feasible": false,
+    "violations": [
+      "memory bandwidth exceeds max_memory_bandwidth_gbps"
+    ],
+    "per_layer": [
+      {
+        "name": "stem.conv.conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          1,
+          64,
+          64
+        ],
+        "output_shape": [
+          1,
+          24,
+          16,
+          16
+        ],
+        "params": 216,
+        "macs": 55296,
+        "weight_bytes": 216,
+        "activation_bytes": 6144,
+        "ideal_dsp": 12,
+        "allocated_dsp": 12,
+        "bram_blocks": 1,
+        "lut": 464,
+        "latency_cycles": 3292
+      },
+      {
+        "name": "stages.0.0.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          8,
+          16,
+          16
+        ],
+        "output_shape": [
+          1,
+          8,
+          8,
+          8
+        ],
+        "params": 72,
+        "macs": 4608,
+        "weight_bytes": 72,
+        "activation_bytes": 512,
+        "ideal_dsp": 4,
+        "allocated_dsp": 4,
+        "bram_blocks": 1,
+        "lut": 216,
+        "latency_cycles": 823
+      },
+      {
+        "name": "stages.0.0.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          8,
+          16,
+          16
+        ],
+        "output_shape": [
+          1,
+          8,
+          8,
+          8
+        ],
+        "params": 200,
+        "macs": 12800,
+        "weight_bytes": 200,
+        "activation_bytes": 512,
+        "ideal_dsp": 8,
+        "allocated_dsp": 8,
+        "bram_blocks": 1,
+        "lut": 320,
+        "latency_cycles": 1143
+      },
+      {
+        "name": "stages.0.0.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          8,
+          16,
+          16
+        ],
+        "output_shape": [
+          1,
+          8,
+          8,
+          8
+        ],
+        "params": 392,
+        "macs": 25088,
+        "weight_bytes": 392,
+        "activation_bytes": 512,
+        "ideal_dsp": 8,
+        "allocated_dsp": 8,
+        "bram_blocks": 1,
+        "lut": 320,
+        "latency_cycles": 2240
+      },
+      {
+        "name": "stages.0.0.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          24,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "params": 2784,
+        "macs": 178176,
+        "weight_bytes": 2784,
+        "activation_bytes": 7424,
+        "ideal_dsp": 192,
+        "allocated_dsp": 192,
+        "bram_blocks": 1,
+        "lut": 4056,
+        "latency_cycles": 663
+      },
+      {
+        "name": "stages.0.1.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "params": 342,
+        "macs": 21888,
+        "weight_bytes": 342,
+        "activation_bytes": 2432,
+        "ideal_dsp": 19,
+        "allocated_dsp": 19,
+        "bram_blocks": 2,
+        "lut": 606,
+        "latency_cycles": 823
+      },
+      {
+        "name": "stages.0.1.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "params": 950,
+        "macs": 60800,
+        "weight_bytes": 950,
+        "activation_bytes": 2432,
+        "ideal_dsp": 38,
+        "allocated_dsp": 38,
+        "bram_blocks": 4,
+        "lut": 1100,
+        "latency_cycles": 1143
+      },
+      {
+        "name": "stages.0.1.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "params": 1960,
+        "macs": 125440,
+        "weight_bytes": 1960,
+        "activation_bytes": 2560,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 7,
+        "lut": 1152,
+        "latency_cycles": 2240
+      },
+      {
+        "name": "stages.0.1.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "params": 13456,
+        "macs": 861184,
+        "weight_bytes": 13456,
+        "activation_bytes": 7424,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5208,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.0.2.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "params": 342,
+        "macs": 21888,
+        "weight_bytes": 342,
+        "activation_bytes": 2432,
+        "ideal_dsp": 19,
+        "allocated_dsp": 19,
+        "bram_blocks": 2,
+        "lut": 606,
+        "latency_cycles": 823
+      },
+      {
+        "name": "stages.0.2.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "params": 950,
+        "macs": 60800,
+        "weight_bytes": 950,
+        "activation_bytes": 2432,
+        "ideal_dsp": 38,
+        "allocated_dsp": 38,
+        "bram_blocks": 4,
+        "lut": 1100,
+        "latency_cycles": 1143
+      },
+      {
+        "name": "stages.0.2.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "params": 1960,
+        "macs": 125440,
+        "weight_bytes": 1960,
+        "activation_bytes": 2560,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 7,
+        "lut": 1152,
+        "latency_cycles": 2240
+      },
+      {
+        "name": "stages.0.2.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "params": 13456,
+        "macs": 861184,
+        "weight_bytes": 13456,
+        "activation_bytes": 7424,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5208,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.0.3.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "params": 342,
+        "macs": 21888,
+        "weight_bytes": 342,
+        "activation_bytes": 2432,
+        "ideal_dsp": 19,
+        "allocated_dsp": 19,
+        "bram_blocks": 2,
+        "lut": 606,
+        "latency_cycles": 823
+      },
+      {
+        "name": "stages.0.3.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "params": 950,
+        "macs": 60800,
+        "weight_bytes": 950,
+        "activation_bytes": 2432,
+        "ideal_dsp": 38,
+        "allocated_dsp": 38,
+        "bram_blocks": 4,
+        "lut": 1100,
+        "latency_cycles": 1143
+      },
+      {
+        "name": "stages.0.3.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "params": 1960,
+        "macs": 125440,
+        "weight_bytes": 1960,
+        "activation_bytes": 2560,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 7,
+        "lut": 1152,
+        "latency_cycles": 2240
+      },
+      {
+        "name": "stages.0.3.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          116,
+          8,
+          8
+        ],
+        "params": 13456,
+        "macs": 861184,
+        "weight_bytes": 13456,
+        "activation_bytes": 7424,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5208,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.0.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          4,
+          4
+        ],
+        "params": 342,
+        "macs": 5472,
+        "weight_bytes": 342,
+        "activation_bytes": 608,
+        "ideal_dsp": 19,
+        "allocated_dsp": 19,
+        "bram_blocks": 2,
+        "lut": 598,
+        "latency_cycles": 206
+      },
+      {
+        "name": "stages.1.0.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          38,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          38,
+          4,
+          4
+        ],
+        "params": 950,
+        "macs": 15200,
+        "weight_bytes": 950,
+        "activation_bytes": 608,
+        "ideal_dsp": 38,
+        "allocated_dsp": 38,
+        "bram_blocks": 3,
+        "lut": 1092,
+        "latency_cycles": 286
+      },
+      {
+        "name": "stages.1.0.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          40,
+          8,
+          8
+        ],
+        "output_shape": [
+          1,
+          40,
+          4,
+          4
+        ],
+        "params": 1960,
+        "macs": 31360,
+        "weight_bytes": 1960,
+        "activation_bytes": 640,
+        "ideal_dsp": 40,
+        "allocated_dsp": 40,
+        "bram_blocks": 6,
+        "lut": 1144,
+        "latency_cycles": 560
+      },
+      {
+        "name": "stages.1.0.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          116,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 26912,
+        "macs": 430592,
+        "weight_bytes": 26912,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 1202
+      },
+      {
+        "name": "stages.1.1.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.1.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.1.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.1.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.2.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.2.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.2.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.2.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.3.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.3.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.3.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.3.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.4.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.4.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.4.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.4.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.5.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.5.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.5.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.5.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.6.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.6.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.6.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.6.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.1.7.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 693,
+        "macs": 11088,
+        "weight_bytes": 693,
+        "activation_bytes": 1232,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 988,
+        "latency_cycles": 248
+      },
+      {
+        "name": "stages.1.7.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "params": 1925,
+        "macs": 30800,
+        "weight_bytes": 1925,
+        "activation_bytes": 1232,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 1872,
+        "latency_cycles": 344
+      },
+      {
+        "name": "stages.1.7.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "params": 3822,
+        "macs": 61152,
+        "weight_bytes": 3822,
+        "activation_bytes": 1248,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 1880,
+        "latency_cycles": 683
+      },
+      {
+        "name": "stages.1.7.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          232,
+          4,
+          4
+        ],
+        "params": 53824,
+        "macs": 861184,
+        "weight_bytes": 53824,
+        "activation_bytes": 3712,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 5664,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.2.0.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          2,
+          2
+        ],
+        "params": 693,
+        "macs": 2772,
+        "weight_bytes": 693,
+        "activation_bytes": 308,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 984,
+        "latency_cycles": 62
+      },
+      {
+        "name": "stages.2.0.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          77,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          77,
+          2,
+          2
+        ],
+        "params": 1925,
+        "macs": 7700,
+        "weight_bytes": 1925,
+        "activation_bytes": 308,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 3,
+        "lut": 1868,
+        "latency_cycles": 86
+      },
+      {
+        "name": "stages.2.0.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          78,
+          4,
+          4
+        ],
+        "output_shape": [
+          1,
+          78,
+          2,
+          2
+        ],
+        "params": 3822,
+        "macs": 15288,
+        "weight_bytes": 3822,
+        "activation_bytes": 312,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 6,
+        "lut": 1876,
+        "latency_cycles": 171
+      },
+      {
+        "name": "stages.2.0.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          232,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "params": 107648,
+        "macs": 430592,
+        "weight_bytes": 107648,
+        "activation_bytes": 1856,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6588,
+        "latency_cycles": 1202
+      },
+      {
+        "name": "stages.2.1.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "params": 1386,
+        "macs": 5544,
+        "weight_bytes": 1386,
+        "activation_bytes": 616,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 1292,
+        "latency_cycles": 124
+      },
+      {
+        "name": "stages.2.1.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "params": 3850,
+        "macs": 15400,
+        "weight_bytes": 3850,
+        "activation_bytes": 616,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 2484,
+        "latency_cycles": 172
+      },
+      {
+        "name": "stages.2.1.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          156,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          156,
+          2,
+          2
+        ],
+        "params": 7644,
+        "macs": 30576,
+        "weight_bytes": 7644,
+        "activation_bytes": 624,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 2500,
+        "latency_cycles": 342
+      },
+      {
+        "name": "stages.2.1.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "params": 215296,
+        "macs": 861184,
+        "weight_bytes": 215296,
+        "activation_bytes": 1856,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6588,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.2.2.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "params": 1386,
+        "macs": 5544,
+        "weight_bytes": 1386,
+        "activation_bytes": 616,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 1292,
+        "latency_cycles": 124
+      },
+      {
+        "name": "stages.2.2.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "params": 3850,
+        "macs": 15400,
+        "weight_bytes": 3850,
+        "activation_bytes": 616,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 2484,
+        "latency_cycles": 172
+      },
+      {
+        "name": "stages.2.2.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          156,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          156,
+          2,
+          2
+        ],
+        "params": 7644,
+        "macs": 30576,
+        "weight_bytes": 7644,
+        "activation_bytes": 624,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 2500,
+        "latency_cycles": 342
+      },
+      {
+        "name": "stages.2.2.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "params": 215296,
+        "macs": 861184,
+        "weight_bytes": 215296,
+        "activation_bytes": 1856,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6588,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "stages.2.3.dw_convs.0",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "params": 1386,
+        "macs": 5544,
+        "weight_bytes": 1386,
+        "activation_bytes": 616,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 2,
+        "lut": 1292,
+        "latency_cycles": 124
+      },
+      {
+        "name": "stages.2.3.dw_convs.1",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          154,
+          2,
+          2
+        ],
+        "params": 3850,
+        "macs": 15400,
+        "weight_bytes": 3850,
+        "activation_bytes": 616,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 4,
+        "lut": 2484,
+        "latency_cycles": 172
+      },
+      {
+        "name": "stages.2.3.dw_convs.2",
+        "op": "dw_conv",
+        "input_shape": [
+          1,
+          156,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          156,
+          2,
+          2
+        ],
+        "params": 7644,
+        "macs": 30576,
+        "weight_bytes": 7644,
+        "activation_bytes": 624,
+        "ideal_dsp": 64,
+        "allocated_dsp": 64,
+        "bram_blocks": 7,
+        "lut": 2500,
+        "latency_cycles": 342
+      },
+      {
+        "name": "stages.2.3.pw_conv",
+        "op": "conv",
+        "input_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "output_shape": [
+          1,
+          464,
+          2,
+          2
+        ],
+        "params": 215296,
+        "macs": 861184,
+        "weight_bytes": 215296,
+        "activation_bytes": 1856,
+        "ideal_dsp": 256,
+        "allocated_dsp": 256,
+        "bram_blocks": 1,
+        "lut": 6588,
+        "latency_cycles": 2403
+      },
+      {
+        "name": "head.fc1",
+        "op": "linear",
+        "input_shape": [
+          1,
+          464
+        ],
+        "output_shape": [
+          1,
+          1024
+        ],
+        "params": 476160,
+        "macs": 475136,
+        "weight_bytes": 476160,
+        "activation_bytes": 1024,
+        "ideal_dsp": 32,
+        "allocated_dsp": 32,
+        "bram_blocks": 104,
+        "lut": 4480,
+        "latency_cycles": 10606
+      },
+      {
+        "name": "head.fc2",
+        "op": "linear",
+        "input_shape": [
+          1,
+          1024
+        ],
+        "output_shape": [
+          1,
+          8
+        ],
+        "params": 8200,
+        "macs": 8192,
+        "weight_bytes": 8200,
+        "activation_bytes": 8,
+        "ideal_dsp": 4,
+        "allocated_dsp": 4,
+        "bram_blocks": 3,
+        "lut": 136,
+        "latency_cycles": 1463
+      }
+    ]
+  },
+  "ops_used": [
+    "mixconv"
+  ]
+}

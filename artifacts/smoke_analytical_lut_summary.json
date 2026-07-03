@@ -1,0 +1,118 @@
+{
+  "board": {
+    "name": "zynq7020",
+    "clock_mhz": 200,
+    "max_lut": 53200,
+    "max_ff": 106400,
+    "max_bram": 140,
+    "max_dsp": 220,
+    "max_power_w": 5.0,
+    "memory_bandwidth_gbps": 4.2,
+    "offchip_mem_mb": 512.0
+  },
+  "search_space": {
+    "image_size": 224,
+    "input_channels": 1,
+    "stem_channels": 16,
+    "stem_stride": 2,
+    "stage_strides": [
+      1,
+      2,
+      2,
+      2
+    ],
+    "channel_choices": [
+      16,
+      24,
+      32,
+      48,
+      64,
+      96
+    ],
+    "depth_choices": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "kernel_choices": [
+      3,
+      5
+    ],
+    "expand_choices": [
+      1,
+      2,
+      4
+    ],
+    "op_choices": [
+      "conv",
+      "dw_pw_conv",
+      "mbconv",
+      "fused_mbconv",
+      "skip"
+    ]
+  },
+  "entries_requested": 2216,
+  "entries_built": 2216,
+  "table_stats": {
+    "total_entries": 2216,
+    "duplicate_specs": 0,
+    "duplicate_count": 0
+  },
+  "entries_per_op": {
+    "conv": 274,
+    "dw_pw_conv": 274,
+    "fused_mbconv": 822,
+    "mbconv": 822,
+    "skip": 24
+  },
+  "failures": [],
+  "output_json": "E:\\1\\hwnas\\hwnas\\artifacts\\smoke_analytical_lut.json",
+  "output_pkl": "E:\\1\\hwnas\\hwnas\\artifacts\\smoke_analytical_lut.pkl",
+  "validation": {
+    "architectures": [
+      {
+        "arch_id": "baseline",
+        "lut_hits": 4,
+        "lut_misses": 1,
+        "latency_ms": 2.35386,
+        "dsp": 169,
+        "bram": 65,
+        "lut": 5754,
+        "violations": []
+      },
+      {
+        "arch_id": "sample_0",
+        "lut_hits": 9,
+        "lut_misses": 1,
+        "latency_ms": 79.883935,
+        "dsp": 2193,
+        "bram": 98,
+        "lut": 48786,
+        "violations": [
+          "power exceeds hardware max_power_w",
+          "DSP usage exceeds hardware max_dsp"
+        ]
+      },
+      {
+        "arch_id": "sample_1",
+        "lut_hits": 7,
+        "lut_misses": 1,
+        "latency_ms": 22.776255,
+        "dsp": 1965,
+        "bram": 85,
+        "lut": 43802,
+        "violations": [
+          "power exceeds hardware max_power_w",
+          "DSP usage exceeds hardware max_dsp"
+        ]
+      }
+    ],
+    "lut_stats": {
+      "hits": 20,
+      "misses": 3,
+      "total": 23,
+      "hit_rate": 0.8695652173913043
+    }
+  }
+}

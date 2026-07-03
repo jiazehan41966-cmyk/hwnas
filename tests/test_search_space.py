@@ -17,6 +17,7 @@ from hwnas_fpga.search_space import (
 )
 from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
 from hwnas_fpga.hardware import FPGACostEstimator
+from hwnas_fpga.search_space import probe_search_space
 
 
 class SearchSpaceTests(unittest.TestCase):
@@ -64,38 +65,131 @@ class FamilyProfileTests(unittest.TestCase):
     def test_mobile_anchor_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor"})
         self.assertEqual(config.family_profile, "mobile_anchor")
-        self.assertEqual(config.channel_choices, (16, 24, 32, 48, 64))
-        self.assertEqual(config.depth_choices, (1, 2, 3))
-        self.assertEqual(config.op_choices, ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"))
+        self.assertEqual(config.stem_channels, 24)
+        self.assertEqual(config.post_stem_downsample_stride, 1)
+        self.assertEqual(config.stage_strides, (1, 2, 2, 2, 1, 2, 1))
+        self.assertEqual(config.stage_base_channels, (8, 12, 16, 16, 20, 24, 24))
+        self.assertEqual(config.width_multipliers, (0.75, 1.0))
+        self.assertEqual(config.depth_choices_for_stage(3), (2,))
+        self.assertEqual(config.expand_choices, (1, 2))
+        self.assertEqual(
+            config.op_choices,
+            ("mbconv", "denoise", "edge", "skip"),
+        )
+        self.assertEqual(config.head_conv_channels, 320)
+
+    def test_mobile_anchor_baseline_architecture_tracks_anchor_channels(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor", "num_classes": 8})
+        space = SearchSpace(config)
+        architecture = space.baseline_architecture()
+        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (8, 12, 16, 16, 20, 24, 24))
+        self.assertEqual(space.validate(architecture), [])
+
+    def test_mobile_anchor_baseline_architecture_adapts_after_pruning(self) -> None:
+        pruned_config = SearchSpaceConfig.from_dict(
+            {
+                "family_profile": "mobile_anchor",
+                "num_classes": 8,
+                "stage_channel_choices": [
+                    [6, 8, 10],
+                    [9, 12, 15],
+                    [12, 16, 20],
+                    [12, 14],
+                    [15, 18, 22],
+                    [18, 20],
+                    [18, 20, 28],
+                ],
+            }
+        )
+        pruned_space = SearchSpace(pruned_config)
+        architecture = pruned_space.baseline_architecture()
+        self.assertEqual(tuple(stage.channels for stage in architecture.stages), (8, 12, 16, 14, 18, 20, 20))
+        self.assertEqual(pruned_space.validate(architecture), [])
+
+    def test_small_profile_resolves_expected_choices(self) -> None:
+        config = SearchSpaceConfig.from_dict({"family_profile": "small"})
+        self.assertEqual(config.family_profile, "small")
+        self.assertEqual(config.channel_choices, (16, 24, 32))
+        self.assertEqual(config.depth_choices, (1, 2))
+        self.assertEqual(config.kernel_choices, (3,))
+        self.assertEqual(config.op_choices, ("dw_pw_conv", "skip"))
 
     def test_accuracy_biased_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "accuracy_biased"})
-        self.assertEqual(config.stem_channels, 24)
-        self.assertEqual(config.depth_choices, (2, 3, 4))
-        self.assertIn("conv", config.op_choices)
+        self.assertEqual(config.stem_channels, 32)
+        self.assertEqual(config.post_stem_downsample_stride, 1)
+        self.assertEqual(config.stage_strides, (1, 2, 2, 2, 1, 2, 1))
+        self.assertEqual(config.stage_base_channels, (16, 24, 32, 64, 96, 160, 320))
+        self.assertEqual(config.width_multipliers, (1.0, 1.25))
+        self.assertEqual(config.depth_choices_for_stage(3), (4, 5))
+        self.assertEqual(config.expand_choices, (3, 6))
+        self.assertNotIn("conv", config.op_choices)
         self.assertIn("edge", config.op_choices)
+        self.assertIn("denoise", config.op_choices)
+        self.assertEqual(config.head_conv_channels, 1280)
 
     def test_lightweight_sonar_profile_resolves_expected_choices(self) -> None:
         config = SearchSpaceConfig.from_dict({"family_profile": "lightweight_sonar"})
-        self.assertEqual(config.channel_choices, (16, 24, 32))
-        self.assertEqual(config.expand_choices, (1, 2))
+        self.assertEqual(config.stem_channels, 24)
+        self.assertEqual(config.post_stem_downsample_stride, 2)
+        self.assertEqual(config.stage_strides, (2, 2, 2))
+        self.assertEqual(config.stage_base_channels, (24, 48, 96))
+        self.assertEqual(config.width_multipliers, (0.5, 0.75, 1.0))
+        self.assertEqual(config.depth_choices_for_stage(1), (2, 3, 4))
+        self.assertEqual(config.expand_choices, (1, 2, 4))
+        self.assertEqual(config.kernel_choices, (3,))
         self.assertNotIn("conv", config.op_choices)
-        self.assertIn("mixconv", config.op_choices)
+        self.assertNotIn("mixconv", config.op_choices)
+        self.assertIn("denoise", config.op_choices)
+        self.assertEqual(config.head_conv_channels, 1024)
 
     def test_explicit_config_overrides_profile_defaults(self) -> None:
         config = SearchSpaceConfig.from_dict(
             {
                 "family_profile": "mobile_anchor",
-                "channel_choices": [16, 24],
-                "depth_choices": [1],
+                "stage_channel_choices": [
+                    [16, 24],
+                    [24, 32],
+                    [32, 48],
+                    [48, 64],
+                    [64, 96],
+                    [96, 160],
+                    [160, 320],
+                ],
+                "stage_depth_choices": [[1], [1], [1], [1], [1], [1], [1]],
             }
         )
-        self.assertEqual(config.channel_choices, (16, 24))
-        self.assertEqual(config.depth_choices, (1,))
+        self.assertEqual(config.stage_channel_choices[0], (16, 24))
+        self.assertEqual(config.stage_channel_choices[-1], (160, 320))
+        self.assertEqual(config.depth_choices_for_stage(0), (1,))
 
     def test_unknown_family_profile_raises(self) -> None:
         with self.assertRaises(ValueError):
             SearchSpaceConfig.from_dict({"family_profile": "unknown_profile"})
+
+    def test_stage_specific_choices_and_shuffle_head_are_derived(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "stem_channels": 24,
+                "stem_stride": 2,
+                "post_stem_downsample_stride": 2,
+                "stage_strides": [2, 2, 2],
+                "stage_base_channels": [116, 232, 464],
+                "width_multipliers": [0.5, 0.75, 1.0, 1.25],
+                "stage_depth_choices": [[3, 4, 5], [6, 7, 8, 9], [3, 4, 5]],
+                "kernel_choices": [3, 5],
+                "expand_choices": [1, 2, 4, 6],
+                "op_choices": ["dw_pw_conv", "mbconv", "fused_mbconv", "skip"],
+                "head_conv_channels": 1024,
+            }
+        )
+        self.assertEqual(config.stage_count, 3)
+        self.assertEqual(config.stage_channel_choices[0], (58, 87, 116, 145))
+        self.assertEqual(config.stage_channel_choices[1], (116, 174, 232, 290))
+        self.assertEqual(config.stage_channel_choices[2], (232, 348, 464, 580))
+        self.assertEqual(config.depth_choices_for_stage(1), (6, 7, 8, 9))
+        self.assertEqual(config.post_stem_downsample_stride, 2)
+        self.assertEqual(config.head_conv_channels, 1024)
 
 
 class SonarOpsSearchSpaceTests(unittest.TestCase):
@@ -106,9 +200,10 @@ class SonarOpsSearchSpaceTests(unittest.TestCase):
         self.space = SearchSpace(SearchSpaceConfig())
 
     def test_sonar_ops_in_default_choices(self) -> None:
-        """声呐算子默认包含在搜索空间中"""
-        for op in SONAR_OPS:
-            self.assertIn(op, self.space.config.op_choices)
+        """主线默认搜索空间保留 denoise/edge，默认关闭 mixconv"""
+        self.assertIn("denoise", self.space.config.op_choices)
+        self.assertIn("edge", self.space.config.op_choices)
+        self.assertNotIn("mixconv", self.space.config.op_choices)
 
     def test_sample_with_sonar_ops_is_valid(self) -> None:
         """含声呐算子的采样架构应能通过验证"""
@@ -214,7 +309,10 @@ class HardwarePruningTests(unittest.TestCase):
         self.assertEqual(pruned.config.depth_choices, (1, 2))
         self.assertEqual(pruned.config.kernel_choices, (3,))
         self.assertNotIn("conv", pruned.config.op_choices)
+        self.assertNotIn("mixconv", pruned.config.op_choices)
+        self.assertNotIn("edge", pruned.config.op_choices)
         self.assertNotIn("fused_mbconv", pruned.config.op_choices)
+        self.assertIn("mbconv", pruned.config.op_choices)
 
     def test_require_feasible_sampling_falls_back_to_feasible_architecture(self) -> None:
         constraints = SearchConstraints(
@@ -246,6 +344,163 @@ class HardwarePruningTests(unittest.TestCase):
         baseline_estimate = estimator.estimate(pruned_space.baseline_architecture(), pruned_space)
         self.assertTrue(pruned_space.is_valid(architecture))
         self.assertLessEqual(len(estimate.violations), len(baseline_estimate.violations))
+
+
+class SearchSpaceProbeTests(unittest.TestCase):
+    def test_probe_summary_counts_all_samples(self) -> None:
+        constraints = SearchConstraints(max_latency_ms=50.0, max_dsp=220, max_bram=140, max_lut=53_200)
+        space = SearchSpace(SearchSpaceConfig.from_dict({"family_profile": "lightweight_sonar", "num_classes": 8, "hardware_constraints": constraints}))
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="zynq7020",
+                clock_mhz=200,
+                max_lut=53_200,
+                max_bram=140,
+                max_dsp=220,
+                memory_bandwidth_gbps=4.2,
+                offchip_mem_mb=128.0,
+            ),
+            constraints=constraints,
+        )
+
+        records, summary = probe_search_space(space.pre_prune(estimator), estimator, num_samples=12, seed=7)
+        self.assertEqual(len(records), 12)
+        self.assertEqual(summary["total_samples"], 12)
+        self.assertEqual(summary["feasible_samples"] + summary["infeasible_samples"], 12)
+        self.assertGreaterEqual(summary["feasible_ratio"], 0.0)
+        self.assertLessEqual(summary["feasible_ratio"], 1.0)
+        self.assertIsNotNone(summary["metrics_all"]["latency_ms"])
+
+    def test_probe_reports_violations_under_tight_constraints(self) -> None:
+        constraints = SearchConstraints(max_latency_ms=0.001, max_dsp=10, max_bram=2, max_lut=500)
+        space = SearchSpace(SearchSpaceConfig(hardware_constraints=constraints, num_classes=8))
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="tiny-fpga",
+                clock_mhz=200,
+                max_lut=500,
+                max_bram=2,
+                max_dsp=10,
+                offchip_mem_mb=1.0,
+            ),
+            constraints=constraints,
+        )
+
+        _records, summary = probe_search_space(space, estimator, num_samples=6, seed=11)
+        self.assertEqual(summary["feasible_samples"], 0)
+        self.assertGreater(summary["infeasible_samples"], 0)
+        self.assertTrue(summary["violation_counts"])
+
+    def test_resolve_blocks_after_post_stem_downsample(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 24,
+                "stem_stride": 2,
+                "post_stem_downsample_stride": 2,
+                "stage_strides": [2, 2, 2],
+                "stage_base_channels": [116, 232, 464],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[4], [8], [4]],
+                "kernel_choices": [3],
+                "expand_choices": [1],
+                "op_choices": ["dw_pw_conv"],
+                "head_conv_channels": 1024,
+                "num_classes": 8,
+            }
+        )
+        space = SearchSpace(config)
+        architecture = space.baseline_architecture()
+        resolved = space.resolve_blocks(architecture)
+        self.assertEqual(resolved[0].input_resolution, 56)
+        model = build_model(architecture, num_classes=8)
+        with torch.no_grad():
+            stem_output = model.stem(torch.randn(1, 1, 224, 224))
+            pooled = model.post_stem_downsample(stem_output)
+        self.assertEqual(pooled.shape[-1], resolved[0].input_resolution)
+
+    def test_stage_block_choices_constrain_sampling_and_validation(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 32,
+                "stem_stride": 2,
+                "stage_strides": [1, 2],
+                "stage_base_channels": [16, 24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1], [1]],
+                "stage_block_choices": [
+                    [{"op": "conv", "kernel_size": 1, "expand_ratio": 1}],
+                    [{"op": "mbconv", "kernel_size": 3, "expand_ratio": 3}],
+                ],
+                "num_classes": 8,
+            }
+        )
+        space = SearchSpace(config)
+        architecture = space.sample(seed=7)
+
+        self.assertEqual(architecture.stages[0].blocks[0].op, "conv")
+        self.assertEqual(architecture.stages[0].blocks[0].kernel_size, 1)
+        self.assertEqual(architecture.stages[1].blocks[0].op, "mbconv")
+        self.assertEqual(space.validate(architecture), [])
+
+        payload = architecture.to_dict()
+        payload["stages"][0]["blocks"][0]["kernel_size"] = 3
+        invalid = ArchitectureSpec.from_dict(payload)
+        self.assertFalse(space.is_valid(invalid))
+
+    def test_pre_prune_filters_stage_block_choices_with_physical_limits(self) -> None:
+        constraints = SearchConstraints(
+            physical={
+                "enabled": True,
+                "early_expand_limits": [
+                    {"min_input_resolution": 112, "max_expand_ratio": 3},
+                ],
+            }
+        )
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 32,
+                "stem_stride": 2,
+                "stage_strides": [1],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3],
+                "expand_choices": [3, 6],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 6},
+                    ]
+                ],
+                "num_classes": 8,
+                "hardware_constraints": constraints,
+            }
+        )
+        space = SearchSpace(config)
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(
+                name="test-fpga",
+                clock_mhz=200,
+                max_lut=120_000,
+                max_bram=2_000,
+                max_dsp=2_000,
+            ),
+            constraints=constraints,
+        )
+
+        pruned = space.pre_prune(estimator)
+        remaining_expands = {
+            block.expand_ratio for block in pruned.config.stage_block_choices[0]
+        }
+
+        self.assertEqual(remaining_expands, {3})
 
 
 if __name__ == "__main__":

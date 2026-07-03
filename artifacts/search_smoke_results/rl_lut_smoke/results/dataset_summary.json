@@ -1,0 +1,14 @@
+{
+  "dataset": "dummy",
+  "data_dir": null,
+  "fold": 0,
+  "use_kfold": true,
+  "valid_size": null,
+  "split_seed": 42,
+  "image_size": 224,
+  "batch_size": 8,
+  "train_samples": 500,
+  "val_samples": 100,
+  "num_classes": 8,
+  "class_weights": null
+}

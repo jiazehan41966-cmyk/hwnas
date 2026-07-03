@@ -1,0 +1,9 @@
+boot_delay_cycles: 1024
+uart_baud: 115200
+result_packet_magic:
+  - 165
+  - 90
+status_codes:
+  ok: 0
+  sink_incomplete: 1
+  control_error: 2

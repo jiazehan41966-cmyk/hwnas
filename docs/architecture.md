@@ -228,6 +228,7 @@ src/hwnas_fpga/
 ├── models/              # 可训练 backbone 与 block 定义
 ├── search_space/        # 架构编码、采样、合法性检查
 ├── hardware/            # 资源模型、延迟估计器、HLS 适配
+├── metrics/             # PSNR/SSIM 等独立评估指标
 ├── search/              # 各类搜索器与 Pareto 选择
 ├── training/            # supernet 训练、候选重训练、评估
 ├── deploy/              # 导出、量化、FPGA 工具链接口
@@ -242,6 +243,8 @@ src/hwnas_fpga/
   - 只定义“能搜什么”和“是否合法”
 - `hardware`
   - 只负责硬件成本预测或实测，不负责精度训练
+- `metrics`
+  - 提供可复用的评估函数；图像质量指标与分类指标分开报告
 - `search`
   - 只负责采样、更新、选择，不关心数据 IO 细节
 - `training`

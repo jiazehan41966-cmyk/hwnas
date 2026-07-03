@@ -1,0 +1,36 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[1],
+    const acc_t biases[1]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    (void)weights;
+    (void)biases;
+
+    for (int h = 0; h < IN_H; ++h) {
+        for (int w = 0; w < IN_W; ++w) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+            input_axis_t in_packet = input_stream.read();
+            output_axis_t out_packet;
+            out_packet.data = in_packet.data;
+            out_packet.keep = -1;
+            out_packet.strb = -1;
+            out_packet.last = ((h == (IN_H - 1)) && (w == (IN_W - 1))) ? 1 : 0;
+            output_stream.write(out_packet);
+        }
+    }
+}

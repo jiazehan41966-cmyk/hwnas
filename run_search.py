@@ -11,22 +11,28 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from hwnas_fpga.experiment import ExperimentTracker
+from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate
 from hwnas_fpga.runtime import (
+    apply_operator_policies_to_search_space,
     build_constraints,
     build_cost_estimator,
     build_hardware_spec,
     build_search_space,
     create_data_pipeline,
+    load_anchor_profile_from_pool,
     load_config,
     pick,
 )
 from hwnas_fpga.search import (
     ParetoFrontSelector,
     build_pareto_objectives,
+    build_pareto_selection_summary,
+    candidate_selection_score,
     compute_hypervolume,
     compute_pareto_front,
     compute_pareto_ranks,
     create_searcher,
+    write_pareto_selection_artifacts,
 )
 from hwnas_fpga.search_space import list_family_profiles
 
@@ -45,6 +51,132 @@ def _candidate_to_dict(candidate):
     }
 
 
+def _candidate_from_dict(payload: dict | None) -> SearchCandidate | None:
+    if payload is None:
+        return None
+    return SearchCandidate(
+        arch_id=payload["arch_id"],
+        encoding=payload["encoding"],
+        metrics=CandidateMetrics(**payload.get("metrics", {})),
+    )
+
+
+def _resolve_family_profile(args: argparse.Namespace, config: dict) -> tuple[str | None, str | None]:
+    search_space_cfg = config.setdefault("search_space", {})
+
+    if args.family_profile is not None:
+        search_space_cfg["family_profile"] = args.family_profile
+        return str(args.family_profile), "cli"
+
+    if args.backbone_pool is not None and search_space_cfg.get("family_profile") is None:
+        resolved_profile = load_anchor_profile_from_pool(args.backbone_pool, args.anchor_role)
+        if resolved_profile is not None:
+            search_space_cfg["family_profile"] = resolved_profile
+            return resolved_profile, "pool"
+
+    existing_profile = search_space_cfg.get("family_profile")
+    if existing_profile is not None:
+        return str(existing_profile), "config"
+    return None, None
+
+
+def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) -> int:
+    candidates_path = tracker.results_dir / "candidates.jsonl"
+    search_state_path = tracker.checkpoints_dir / "search_state.json"
+    controller_latest_path = tracker.checkpoints_dir / "controller_latest.pt"
+    controller_best_path = tracker.checkpoints_dir / "controller_best.pt"
+
+    if not candidates_path.exists():
+        raise FileNotFoundError(f"Missing resume candidates log: {candidates_path}")
+    if not search_state_path.exists():
+        raise FileNotFoundError(f"Missing resume search state: {search_state_path}")
+    if not controller_latest_path.exists():
+        raise FileNotFoundError(f"Missing resume controller checkpoint: {controller_latest_path}")
+
+    records = [
+        json.loads(line)
+        for line in candidates_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    search_state = json.loads(search_state_path.read_text(encoding="utf-8"))
+    latest_ckpt = torch.load(controller_latest_path, map_location=device)
+    best_ckpt = (
+        torch.load(controller_best_path, map_location=device)
+        if controller_best_path.exists()
+        else {}
+    )
+
+    searcher.evaluated_candidates.clear()
+    searcher.feasible_candidates.clear()
+    searcher.infeasible_candidates.clear()
+    for record in records:
+        candidate = _candidate_from_dict(record.get("candidate"))
+        if candidate is None:
+            continue
+        searcher.evaluated_candidates.append(candidate)
+        if record.get("feasible", True):
+            searcher.feasible_candidates.append(candidate)
+        else:
+            searcher.infeasible_candidates.append(candidate)
+
+    searcher.best_candidate = _candidate_from_dict(search_state.get("best_candidate"))
+    searcher.best_reward = float(best_ckpt.get("best_reward", float("-inf")))
+    searcher.best_selection_score = float(
+        best_ckpt.get(
+            "best_selection_score",
+            float("-inf"),
+        )
+    )
+    if (
+        searcher.best_selection_score == float("-inf")
+        and searcher.best_candidate is not None
+    ):
+        selection_metric = str(
+            search_state.get("extra", {}).get("selection_metric", "macro_f1")
+        )
+        searcher.best_selection_score = candidate_selection_score(
+            searcher.best_candidate,
+            selection_metric,
+        )
+    searcher.baseline = float(latest_ckpt.get("baseline", searcher.baseline))
+    searcher.controller.load_state_dict(latest_ckpt["controller_state_dict"])
+    searcher.controller_optimizer.load_state_dict(latest_ckpt["optimizer_state_dict"])
+
+    stats = {
+        "max_accuracy": 0.0,
+        "max_latency": 1.0,
+        "max_energy": 1.0,
+        "max_dsp": 1.0,
+        "max_bram": 1.0,
+        "max_lut": 1.0,
+    }
+    for record in records:
+        candidate = record.get("candidate", {})
+        metrics = candidate.get("metrics", {})
+        accuracy = metrics.get("accuracy")
+        latency = metrics.get("latency_ms")
+        energy = metrics.get("energy_mj")
+        dsp = metrics.get("dsp")
+        bram = metrics.get("bram")
+        lut = metrics.get("lut")
+        if accuracy is not None:
+            stats["max_accuracy"] = max(stats["max_accuracy"], float(accuracy))
+        if latency is not None:
+            stats["max_latency"] = max(stats["max_latency"], float(latency))
+        if energy is not None:
+            stats["max_energy"] = max(stats["max_energy"], float(energy))
+        if dsp is not None:
+            stats["max_dsp"] = max(stats["max_dsp"], float(dsp))
+        if bram is not None:
+            stats["max_bram"] = max(stats["max_bram"], float(bram))
+        if lut is not None:
+            stats["max_lut"] = max(stats["max_lut"], float(lut))
+    searcher.reward_function._stats.update(stats)
+
+    resumed_episode = int(latest_ckpt.get("episode", len(records) - 1)) + 1
+    return resumed_episode
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="HW-NAS FPGA Sonar Search")
     parser.add_argument("--config", type=str, default=None, help="YAML config path")
@@ -61,11 +193,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image-size", type=int, default=None)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--lut", type=str, default=None, help="Path to LUT json file for zero-latency evaluation")
     parser.add_argument(
         "--family-profile",
         type=str,
         default=None,
         choices=tuple(sorted(list_family_profiles().keys())),
+    )
+    parser.add_argument(
+        "--backbone-pool",
+        type=str,
+        default=None,
+        help=(
+            "Path to selected_backbone_pool.json produced by run_backbone_baseline. "
+            "If provided, resolves --anchor-role to a family_profile automatically."
+        ),
+    )
+    parser.add_argument(
+        "--anchor-role",
+        type=str,
+        default="search_anchor",
+        choices=("search_anchor", "accuracy_anchor", "lightweight_anchor"),
+        help="Which anchor role to use from the backbone pool (default: search_anchor).",
     )
     parser.add_argument(
         "--search-method",
@@ -77,15 +226,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--controller-lr", type=float, default=None)
     parser.add_argument("--output-dir", type=str, default=None, help="Run artifact root directory")
     parser.add_argument("--run-name", type=str, default=None, help="Optional explicit run directory name")
+    parser.add_argument("--resume", action="store_true", help="Resume an interrupted run")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    config.setdefault("search_space", {})
-    if args.family_profile is not None:
-        config["search_space"]["family_profile"] = args.family_profile
+    family_profile, family_profile_source = _resolve_family_profile(args, config)
+
+    if args.lut is not None:
+        config.setdefault("hardware", {})
+        config["hardware"]["lut_path"] = args.lut
 
     dataset_cfg = config.get("dataset", {})
     project_cfg = config.get("project", {})
@@ -102,6 +254,25 @@ def main() -> None:
     search_method = pick(args.search_method, search_cfg.get("method"), "random")
     if search_method not in {"random", "rl", "proxyless"}:
         raise ValueError(f"Unsupported search method: {search_method}")
+
+    if search_method == "proxyless":
+        _default_device = (
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available()
+            else "cpu"
+        )
+        device = pick(args.device, None, _default_device)
+        if not args.config:
+            raise ValueError("--config is required for official ProxylessNAS search")
+        from hwnas_fpga.search.official_proxyless_runner import run_official_proxyless_search
+
+        print("[run_search] proxyless method delegates to reference/ProxylessNAS clone")
+        run_official_proxyless_search(
+            config_path=args.config,
+            device=device,
+            resume=args.resume,
+        )
+        return
 
     _default_device = (
         "cuda" if torch.cuda.is_available()
@@ -121,12 +292,21 @@ def main() -> None:
     num_candidates = pick(args.num_candidates, search_cfg.get("num_candidates"), 20)
     num_episodes = pick(args.episodes, search_cfg.get("episodes"), 20)
     train_epochs = pick(args.train_epochs, search_cfg.get("eval_epochs"), 3)
+    eval_early_stopping_patience = search_cfg.get("eval_early_stopping_patience", 2)
     timeout_minutes = pick(args.timeout_minutes, search_cfg.get("timeout_minutes"), None)
     num_classes = pick(args.num_classes, dataset_cfg.get("num_classes"), None)
     output_dir = pick(args.output_dir, project_cfg.get("output_dir"), "results")
     run_name = pick(args.run_name, project_cfg.get("run_name"), None)
     controller_hidden = pick(args.controller_hidden, search_cfg.get("controller_hidden"), 64)
     controller_lr = pick(args.controller_lr, search_cfg.get("controller_lr"), 0.01)
+    controller_temperature = float(search_cfg.get("controller_temperature", 1.0))
+    entropy_coef = float(search_cfg.get("controller_entropy_coef", search_cfg.get("entropy_coef", 0.0)))
+    exploration_epsilon_start = float(search_cfg.get("exploration_epsilon_start", 0.0))
+    exploration_epsilon_end = search_cfg.get("exploration_epsilon_end")
+    if exploration_epsilon_end is not None:
+        exploration_epsilon_end = float(exploration_epsilon_end)
+    exploration_epsilon_decay_episodes = int(search_cfg.get("exploration_epsilon_decay_episodes", 0))
+    exploration_bonus = float(search_cfg.get("exploration_bonus", 0.0))
 
     output_root = Path(output_dir).expanduser()
     if not output_root.is_absolute():
@@ -139,6 +319,7 @@ def main() -> None:
         search_method=search_method,
         dataset_name=dataset_name,
         run_name=run_name,
+        resume=args.resume,
     )
     tracker.save_config(config, vars(args))
 
@@ -148,10 +329,12 @@ def main() -> None:
             print(f"Using device: {device}")
             print(f"Dataset: {dataset_name}")
             print(f"Search method: {search_method}")
-            print(
-                "Family profile: "
-                f"{config.get('search_space', {}).get('family_profile', 'default')}"
-            )
+            print(f"Family profile: {family_profile or 'default'}")
+            if family_profile_source == "pool":
+                print(
+                    "[backbone-pool] "
+                    f"anchor_role={args.anchor_role!r} -> family_profile={family_profile!r}"
+                )
             if data_dir:
                 print(f"Data dir: {data_dir}")
 
@@ -173,12 +356,34 @@ def main() -> None:
                     "image_size": search_space.config.image_size,
                     "stem_channels": search_space.config.stem_channels,
                     "stem_stride": search_space.config.stem_stride,
+                    "post_stem_downsample_stride": search_space.config.post_stem_downsample_stride,
                     "stage_strides": list(search_space.config.stage_strides),
+                    "stage_base_channels": (
+                        None
+                        if search_space.config.stage_base_channels is None
+                        else list(search_space.config.stage_base_channels)
+                    ),
+                    "width_multipliers": (
+                        None
+                        if search_space.config.width_multipliers is None
+                        else list(search_space.config.width_multipliers)
+                    ),
+                    "stage_channel_choices": (
+                        None
+                        if search_space.config.stage_channel_choices is None
+                        else [list(group) for group in search_space.config.stage_channel_choices]
+                    ),
+                    "stage_depth_choices": (
+                        None
+                        if search_space.config.stage_depth_choices is None
+                        else [list(group) for group in search_space.config.stage_depth_choices]
+                    ),
                     "channel_choices": list(search_space.config.channel_choices),
                     "depth_choices": list(search_space.config.depth_choices),
                     "kernel_choices": list(search_space.config.kernel_choices),
                     "expand_choices": list(search_space.config.expand_choices),
                     "op_choices": list(search_space.config.op_choices),
+                    "head_conv_channels": search_space.config.head_conv_channels,
                     "family_profile": search_space.config.family_profile,
                 }
             )
@@ -198,6 +403,28 @@ def main() -> None:
             )
             if estimator.lut_query_engine is not None:
                 print("LUT query engine enabled")
+            search_space, policy_summary = apply_operator_policies_to_search_space(
+                search_space,
+                estimator.operator_policies,
+            )
+            tracker.write_operator_policy_summary(policy_summary)
+            if policy_summary["removed_ops"]:
+                print("Operator policy filter removed:")
+                for item in policy_summary["removed_ops"]:
+                    print(
+                        f"  - {item['op']} "
+                        f"(status={item.get('deployment_status')}, reason={item.get('reason') or 'n/a'})"
+                    )
+            if policy_summary["conditional_ops"]:
+                print("Conditional hardware-cost operators:")
+                for item in policy_summary["conditional_ops"]:
+                    print(
+                        f"  - {item['op']}: "
+                        f"latency_rule={item.get('latency_rule')}, "
+                        f"post_route_fmax={item.get('achieved_post_route_fmax_mhz')}MHz, "
+                        f"deployable_at_200mhz={item.get('deployable_at_200mhz')}"
+                    )
+            print(f"Search ops after policy filter: {search_space.config.op_choices}")
 
             print("\n=== Hardware-Driven Pruning ===")
             search_space = search_space.pre_prune(estimator)
@@ -207,12 +434,34 @@ def main() -> None:
                     "image_size": search_space.config.image_size,
                     "stem_channels": search_space.config.stem_channels,
                     "stem_stride": search_space.config.stem_stride,
+                    "post_stem_downsample_stride": search_space.config.post_stem_downsample_stride,
                     "stage_strides": list(search_space.config.stage_strides),
+                    "stage_base_channels": (
+                        None
+                        if search_space.config.stage_base_channels is None
+                        else list(search_space.config.stage_base_channels)
+                    ),
+                    "width_multipliers": (
+                        None
+                        if search_space.config.width_multipliers is None
+                        else list(search_space.config.width_multipliers)
+                    ),
+                    "stage_channel_choices": (
+                        None
+                        if search_space.config.stage_channel_choices is None
+                        else [list(group) for group in search_space.config.stage_channel_choices]
+                    ),
+                    "stage_depth_choices": (
+                        None
+                        if search_space.config.stage_depth_choices is None
+                        else [list(group) for group in search_space.config.stage_depth_choices]
+                    ),
                     "channel_choices": list(search_space.config.channel_choices),
                     "depth_choices": list(search_space.config.depth_choices),
                     "kernel_choices": list(search_space.config.kernel_choices),
                     "expand_choices": list(search_space.config.expand_choices),
                     "op_choices": list(search_space.config.op_choices),
+                    "head_conv_channels": search_space.config.head_conv_channels,
                     "family_profile": search_space.config.family_profile,
                     "pruned": True,
                 }
@@ -260,6 +509,8 @@ def main() -> None:
 
             print("\n=== Creating Searcher ===")
             objective_weights = search_cfg.get("objective_weights", {})
+            reward_cfg = dict(search_cfg.get("reward_cfg") or {})
+            selection_metric = str(search_cfg.get("selection_metric", "macro_f1"))
             proxyless_cfg = search_cfg.get("proxyless", {})
             searcher = create_searcher(
                 search_space=search_space,
@@ -270,11 +521,48 @@ def main() -> None:
                 controller_hidden_dim=controller_hidden,
                 controller_lr=controller_lr,
                 train_epochs_per_arch=train_epochs,
+                eval_early_stopping_patience=eval_early_stopping_patience,
                 device=device,
                 reward_weights=objective_weights,
+                reward_cfg=reward_cfg,
                 proxyless_cfg=proxyless_cfg,
+                selection_metric=selection_metric,
+                controller_temperature=controller_temperature,
+                entropy_coef=entropy_coef,
+                exploration_epsilon_start=exploration_epsilon_start,
+                exploration_epsilon_end=exploration_epsilon_end,
+                exploration_epsilon_decay_episodes=exploration_epsilon_decay_episodes,
+                exploration_bonus=exploration_bonus,
             )
-            print(f"Searcher created (method={search_method}, seed={seed})")
+            print(f"Searcher created (method={search_method}, seed={seed}, selection_metric={selection_metric})")
+            if search_method == "rl":
+                print(
+                    "RL exploration config: "
+                    f"temperature={controller_temperature}, "
+                    f"entropy_coef={entropy_coef}, "
+                    f"epsilon_start={exploration_epsilon_start}, "
+                    f"epsilon_end={exploration_epsilon_end}, "
+                    f"epsilon_decay_episodes={exploration_epsilon_decay_episodes}, "
+                    f"exploration_bonus={exploration_bonus}"
+                )
+            if search_method == "rl" and reward_cfg:
+                print(
+                    "RL reward config: "
+                    f"constraint_penalty={reward_cfg.get('constraint_penalty', 10.0)}, "
+                    f"mode={reward_cfg.get('infeasible_penalty_mode', 'fixed')}, "
+                    f"base={reward_cfg.get('infeasible_base_penalty', 1.0)}, "
+                    f"scale={reward_cfg.get('infeasible_penalty_scale', 5.0)}"
+                )
+            resume_episode = 0
+            if args.resume:
+                if search_method != "rl":
+                    raise ValueError("Resume is currently only supported for RL search")
+                resume_episode = _restore_rl_resume_state(searcher, tracker, device)
+                print(
+                    "Resume state restored: "
+                    f"{len(searcher.evaluated_candidates)} evaluated, "
+                    f"next episode={resume_episode}"
+                )
 
             print("\n=== Testing Baseline Architecture ===")
             baseline_arch = search_space.baseline_architecture()
@@ -293,10 +581,21 @@ def main() -> None:
             print(f"  Memory BW: {baseline_cost.memory_bandwidth_gbps:.3f}GB/s")
             print(f"  Off-chip Mem: {baseline_cost.offchip_mem_mb:.3f}MB")
             print(f"  Violations: {baseline_cost.violations}")
+            conditional_layers = [
+                layer for layer in baseline_cost.per_layer if layer.effective_clock_mhz is not None
+            ]
+            if conditional_layers:
+                print("  Conditional operator latency sources:")
+                for layer in conditional_layers:
+                    print(
+                        f"    - {layer.op}: latency={layer.resolved_latency_ms(hardware_spec.clock_mhz):.4f}ms, "
+                        f"effective_clock={layer.effective_clock_mhz:.2f}MHz, cycles={layer.latency_cycles}"
+                    )
             tracker.write_baseline(
                 architecture=baseline_arch.to_dict(),
                 cost_estimate=baseline_cost,
             )
+            estimator.reset_lut_stats()
 
             print("\n=== Starting Search ===")
             if search_method == "rl":
@@ -306,6 +605,7 @@ def main() -> None:
                     val_loader=val_loader,
                     num_classes=resolved_num_classes,
                     num_episodes=num_episodes,
+                    start_episode=resume_episode,
                     timeout_minutes=timeout_minutes,
                     device=device,
                     verbose=True,
@@ -355,6 +655,7 @@ def main() -> None:
             pareto_objectives, pareto_directions = build_pareto_objectives(
                 objective_weights,
                 constraints,
+                selection_metric=selection_metric,
             )
             pareto_front = compute_pareto_front(
                 searcher.feasible_candidates,
@@ -381,28 +682,50 @@ def main() -> None:
                     objectives=pareto_objectives,
                     directions=pareto_directions,
                 )
-            pareto_summary = {
-                "objectives": pareto_objectives,
-                "directions": pareto_directions,
-                "selection_method": pareto_method,
-                "pareto_front_size": len(pareto_front),
-                "hypervolume": hypervolume,
-                "selected_topk": [_candidate_to_dict(candidate) for candidate in pareto],
-                "ranks": [
-                    {"arch_id": candidate.arch_id, "rank": rank}
-                    for candidate, rank in zip(searcher.feasible_candidates, pareto_ranks)
-                ],
-            }
-            (tracker.results_dir / "pareto_selection.json").write_text(
-                json.dumps(pareto_summary, ensure_ascii=False, indent=2),
+            pareto_summary = build_pareto_selection_summary(
+                candidates=searcher.feasible_candidates,
+                pareto_front=pareto_front,
+                selected_candidates=pareto,
+                ranks=pareto_ranks,
+                objectives=pareto_objectives,
+                directions=pareto_directions,
+                selection_method=pareto_method,
+                topk=pareto_topk,
+                hypervolume=hypervolume,
+            )
+            write_pareto_selection_artifacts(tracker.results_dir, pareto_summary)
+            lut_stats = estimator.get_lut_stats()
+            (tracker.results_dir / "lut_stats.json").write_text(
+                json.dumps(lut_stats, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-            lut_stats = estimator.get_lut_stats()
+            deferred_summary = {
+                "deferred_hits": lut_stats.get("deferred_hits", 0),
+                "deferred_hits_by_op": lut_stats.get("deferred_hits_by_op", {}),
+                "deferred_hits_by_case": lut_stats.get("deferred_hits_by_case", {}),
+                "deferred_hits_by_reason": lut_stats.get("deferred_hits_by_reason", {}),
+                "true_misses": lut_stats.get("true_misses", 0),
+                "true_misses_by_op": lut_stats.get("true_misses_by_op", {}),
+                "true_misses_by_shape": lut_stats.get("true_misses_by_shape", {}),
+                "fallback_rate": lut_stats.get("fallback_rate", 0.0),
+                "strict_formal_lut": lut_stats.get("strict_formal_lut", False),
+            }
+            (tracker.results_dir / "deferred_hit_summary.json").write_text(
+                json.dumps(deferred_summary, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
 
             print("\n=== Search Results ===")
             if best_candidate:
                 print(f"Best architecture: {best_candidate.arch_id}")
-                print(f"  Accuracy: {best_candidate.metrics.accuracy:.4f}")
+                best_score = candidate_selection_score(best_candidate, selection_metric)
+                print(f"  Score ({selection_metric}): {best_score:.4f}")
+                if best_candidate.metrics.macro_f1 is not None:
+                    print(f"  Macro-F1: {best_candidate.metrics.macro_f1:.4f}")
+                if best_candidate.metrics.top1 is not None:
+                    print(f"  Top-1: {best_candidate.metrics.top1:.4f}")
+                if best_candidate.metrics.top5 is not None:
+                    print(f"  Top-5: {best_candidate.metrics.top5:.4f}")
                 print(f"  Latency: {best_candidate.metrics.latency_ms:.2f}ms")
                 print(f"  DSP: {best_candidate.metrics.dsp}")
                 print(f"  BRAM: {best_candidate.metrics.bram}")
@@ -425,9 +748,10 @@ def main() -> None:
                 if pareto:
                     print(f"\n=== Top {len(pareto)} Candidates (Pareto Selected) ===")
                     for index, candidate in enumerate(pareto, start=1):
+                        pareto_score = candidate_selection_score(candidate, selection_metric)
                         print(
                             f"{index}. {candidate.arch_id}: "
-                            f"Acc={candidate.metrics.accuracy:.4f}, "
+                            f"{selection_metric}={pareto_score:.4f}, "
                             f"Lat={candidate.metrics.latency_ms:.2f}ms"
                         )
             else:
@@ -454,7 +778,22 @@ def main() -> None:
                     "num_candidates": num_candidates,
                     "num_episodes": num_episodes,
                     "train_epochs": train_epochs,
+                    "eval_early_stopping_patience": eval_early_stopping_patience,
+                    "selection_metric": selection_metric,
                     "objective_weights": objective_weights,
+                    "reward_cfg": reward_cfg if search_method == "rl" else None,
+                    "rl_exploration": (
+                        {
+                            "controller_temperature": controller_temperature,
+                            "entropy_coef": entropy_coef,
+                            "exploration_epsilon_start": exploration_epsilon_start,
+                            "exploration_epsilon_end": exploration_epsilon_end,
+                            "exploration_epsilon_decay_episodes": exploration_epsilon_decay_episodes,
+                            "exploration_bonus": exploration_bonus,
+                        }
+                        if search_method == "rl"
+                        else None
+                    ),
                     "proxyless": proxyless_cfg if search_method == "proxyless" else None,
                     "hardware_spec": {
                         "name": hardware_spec.name,

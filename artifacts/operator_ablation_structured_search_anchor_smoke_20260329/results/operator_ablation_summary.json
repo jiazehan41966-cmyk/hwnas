@@ -1,0 +1,28 @@
+[
+  {
+    "arch_id": "dw_pw_conv_only",
+    "display_name": "DW-PW Conv only",
+    "macro_template": "shufflenet_v2_blueprint",
+    "macro_template_source": "experiment_protocol",
+    "selected_pool_role": "search_anchor",
+    "selected_pool_backbone": "shufflenet_v2",
+    "category": "single",
+    "stage_ops": "dw_pw_conv,dw_pw_conv,dw_pw_conv",
+    "use_skip_connections": false,
+    "ops_used": "dw_pw_conv",
+    "params": 1734440,
+    "macs": 13296672,
+    "cpu_latency_ms": 4.054290000203764,
+    "fpga_latency_ms": 0.309335,
+    "top1": 0.17692307692307693,
+    "top5": 0.8961538461538462,
+    "macro_f1": 0.0898783294679927,
+    "weighted_f1": 0.17228097635229123,
+    "peak_dsp": 256,
+    "peak_bram": 104,
+    "peak_lut": 6588,
+    "power_w": 8.7616,
+    "feasible": false,
+    "violations": "memory bandwidth exceeds max_memory_bandwidth_gbps"
+  }
+]

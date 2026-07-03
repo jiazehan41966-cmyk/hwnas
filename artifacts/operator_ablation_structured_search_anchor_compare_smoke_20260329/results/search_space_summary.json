@@ -1,0 +1,52 @@
+{
+  "macro_template": "shufflenet_v2_blueprint",
+  "stage_count": 3,
+  "stem_channels": 24,
+  "stem_stride": 4,
+  "head_channels": 1024,
+  "stage_specs": [
+    {
+      "stage_name": "shuffle116",
+      "channels": 116,
+      "depth": 4,
+      "stride": 2,
+      "expand": 1,
+      "kernel": 3
+    },
+    {
+      "stage_name": "shuffle232",
+      "channels": 232,
+      "depth": 8,
+      "stride": 2,
+      "expand": 1,
+      "kernel": 3
+    },
+    {
+      "stage_name": "shuffle464",
+      "channels": 464,
+      "depth": 4,
+      "stride": 2,
+      "expand": 1,
+      "kernel": 3
+    }
+  ],
+  "op_choices": [
+    "dw_pw_conv",
+    "mbconv",
+    "mixconv"
+  ],
+  "macro_template_display_name": "ShuffleNetV2 Blueprint",
+  "selected_backbone_pool_path": "E:\\1\\hwnas\\hwnas\\artifacts\\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\\results\\selected_backbone_pool.json",
+  "selected_backbone_pool_role": "search_anchor",
+  "selected_backbone_pool_arch_id": "shufflenet_v2",
+  "selected_backbone_pool_display_name": "ShuffleNetV2",
+  "selected_backbone_pool_backbone": "shufflenet_v2",
+  "macro_template_source": "experiment_protocol",
+  "macro_template_source_path": "E:\\1\\hwnas\\hwnas\\artifacts\\backbone_baseline_nksid_av7k325_formal_structured_20260329_011516\\results\\experiment_protocol.json",
+  "macro_blueprint_arch_id": "shufflenet_v2",
+  "macro_blueprint_display_name": "ShuffleNetV2",
+  "macro_blueprint_backbone": "shufflenet_v2",
+  "macro_template_warnings": [
+    "Collapsed stem and post_stem_downsample into a single effective stem stride for operator ablation."
+  ]
+}

@@ -1,0 +1,2 @@
+arch_id,accuracy,latency_ms,energy_mj,lut,bram,dsp,power_w,memory_bandwidth_gbps,offchip_mem_mb
+rl_arch_0,0.0,1.20773,5.92512338,9002,11,357,4.906,0.6106132993301483,0.0

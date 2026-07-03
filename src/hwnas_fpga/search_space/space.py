@@ -12,52 +12,73 @@ if TYPE_CHECKING:
 
 
 DEFAULT_STAGE_STRIDES = (1, 2, 2, 2)
+# Full capability set retained for legacy and auxiliary profiles. Canonical
+# MobileNetV2-family search profiles below define the current formal mainline,
+# which now excludes fused_mbconv and mixconv from the default operator set.
 DEFAULT_OP_CHOICES = (
     "conv",
     "dw_pw_conv",
     "mbconv",
-    "fused_mbconv",
     "skip",
-    "mixconv",  # 声呐专用多尺度卷积
-    "denoise",  # 声呐专用去噪块
-    "edge",     # 声呐专用边缘感知块
+    "denoise",
+    "edge",
 )
 
-# 声呐专用算子集合
 SONAR_OPS = {"mixconv", "denoise", "edge"}
 
-# 硬件驱动剪枝相关的算子分类
-HIGH_LUT_OPS = {"mixconv", "edge", "mbconv"}  # 高LUT消耗的算子
-HIGH_DSP_OPS = {"conv", "fused_mbconv"}        # 高DSP消耗的算子
-LIGHTWEIGHT_OPS = {"skip", "dw_pw_conv", "denoise"}  # 轻量级算子
+# v1 mainline search keeps mbconv as the primary block operator and
+# preferentially removes irregular sonar-heavy operators first.
+HIGH_LUT_OPS = {"mixconv", "edge"}
+HIGH_DSP_OPS = {"conv"}
+# dw_pw_conv remains available for historical lightweight profiles, but is no
+# longer part of the formal MobileNetV2 mainline after operator screening.
+LIGHTWEIGHT_OPS = {"skip", "dw_pw_conv", "denoise"}
 
 FAMILY_PROFILES: dict[str, dict[str, Any]] = {
-    "mobile_anchor": {
-        "stem_channels": 16,
-        "stage_strides": (1, 2, 2, 2),
-        "channel_choices": (16, 24, 32, 48, 64),
-        "depth_choices": (1, 2, 3),
-        "kernel_choices": (3, 5),
-        "expand_choices": (1, 2, 4),
-        "op_choices": ("dw_pw_conv", "mbconv", "fused_mbconv", "skip"),
-    },
-    "accuracy_biased": {
-        "stem_channels": 24,
-        "stage_strides": (1, 2, 2, 2),
-        "channel_choices": (24, 32, 48, 64, 96),
-        "depth_choices": (2, 3, 4),
-        "kernel_choices": (3, 5),
-        "expand_choices": (2, 4),
-        "op_choices": ("conv", "mbconv", "fused_mbconv", "mixconv", "denoise", "edge"),
-    },
-    "lightweight_sonar": {
+    "small": {
         "stem_channels": 16,
         "stage_strides": (1, 2, 2, 2),
         "channel_choices": (16, 24, 32),
         "depth_choices": (1, 2),
+        "kernel_choices": (3,),
+        "expand_choices": (1, 2),
+        "op_choices": ("dw_pw_conv", "skip"),
+    },
+    "mobile_anchor": {
+        "stem_channels": 24,
+        "post_stem_downsample_stride": 1,
+        "stage_strides": (1, 2, 2, 2, 1, 2, 1),
+        "stage_base_channels": (8, 12, 16, 16, 20, 24, 24),
+        "width_multipliers": (0.75, 1.0),
+        "stage_depth_choices": ((1,), (1, 2), (1, 2), (2,), (1, 2), (1, 2), (1,)),
         "kernel_choices": (3, 5),
         "expand_choices": (1, 2),
-        "op_choices": ("dw_pw_conv", "skip", "mixconv", "denoise", "edge"),
+        "op_choices": ("mbconv", "denoise", "edge", "skip"),
+        "head_conv_channels": 320,
+    },
+    "accuracy_biased": {
+        "stem_channels": 32,
+        "post_stem_downsample_stride": 1,
+        "stage_strides": (1, 2, 2, 2, 1, 2, 1),
+        "stage_base_channels": (16, 24, 32, 64, 96, 160, 320),
+        "width_multipliers": (1.0, 1.25),
+        "stage_depth_choices": ((1, 2), (2, 3, 4), (3, 4), (4, 5), (3, 4), (3, 4), (1, 2)),
+        "kernel_choices": (3, 5),
+        "expand_choices": (3, 6),
+        "op_choices": ("mbconv", "denoise", "edge", "skip"),
+        "head_conv_channels": 1280,
+    },
+    "lightweight_sonar": {
+        "stem_channels": 24,
+        "post_stem_downsample_stride": 2,
+        "stage_strides": (2, 2, 2),
+        "stage_base_channels": (24, 48, 96),
+        "width_multipliers": (0.5, 0.75, 1.0),
+        "stage_depth_choices": ((1, 2, 3), (2, 3, 4), (1, 2, 3)),
+        "kernel_choices": (3,),
+        "expand_choices": (1, 2, 4),
+        "op_choices": ("dw_pw_conv", "skip", "denoise"),
+        "head_conv_channels": 1024,
     },
 }
 
@@ -66,8 +87,25 @@ def _as_int_tuple(values: Union[Sequence[int], Sequence[str]]) -> tuple[int, ...
     return tuple(int(value) for value in values)
 
 
+def _as_float_tuple(values: Sequence[Union[int, float, str]]) -> tuple[float, ...]:
+    return tuple(float(value) for value in values)
+
+
+def _as_nested_int_tuple(values: Sequence[Sequence[Union[int, str]]]) -> tuple[tuple[int, ...], ...]:
+    return tuple(tuple(int(item) for item in group) for group in values)
+
+
 def _as_str_tuple(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(str(value) for value in values)
+
+
+def _as_stage_block_choices(
+    values: Sequence[Sequence[Mapping[str, Any]]],
+) -> tuple[tuple["BlockSpec", ...], ...]:
+    return tuple(
+        tuple(BlockSpec.from_dict(item) for item in group)
+        for group in values
+    )
 
 
 def _resolve_family_profile(name: Optional[str]) -> dict[str, Any]:
@@ -106,12 +144,19 @@ class SearchSpaceConfig:
     image_size: int = 224
     stem_channels: int = 16
     stem_stride: int = 2
+    post_stem_downsample_stride: int = 1
     stage_strides: tuple[int, ...] = DEFAULT_STAGE_STRIDES
+    stage_base_channels: Optional[tuple[int, ...]] = None
+    width_multipliers: Optional[tuple[float, ...]] = None
+    stage_channel_choices: Optional[tuple[tuple[int, ...], ...]] = None
+    stage_depth_choices: Optional[tuple[tuple[int, ...], ...]] = None
     channel_choices: tuple[int, ...] = (16, 24, 32, 48, 64, 96)
     depth_choices: tuple[int, ...] = (1, 2, 3, 4)
     kernel_choices: tuple[int, ...] = (3, 5)
     expand_choices: tuple[int, ...] = (1, 2, 4)
     op_choices: tuple[str, ...] = DEFAULT_OP_CHOICES
+    stage_block_choices: Optional[tuple[tuple["BlockSpec", ...], ...]] = None
+    head_conv_channels: Optional[int] = None
     head_channels: Optional[int] = None
     num_classes: Optional[int] = None
     hardware_constraints: Optional[SearchConstraints] = None  # 硬件约束参数
@@ -127,10 +172,79 @@ class SearchSpaceConfig:
             raise ValueError("stem_channels must be positive")
         if self.stem_stride <= 0:
             raise ValueError("stem_stride must be positive")
+        if self.post_stem_downsample_stride <= 0:
+            raise ValueError("post_stem_downsample_stride must be positive")
         if not self.stage_strides:
             raise ValueError("stage_strides must not be empty")
         if any(stride <= 0 for stride in self.stage_strides):
             raise ValueError("stage_strides must be positive")
+
+        if self.stage_base_channels is not None:
+            if len(self.stage_base_channels) != self.stage_count:
+                raise ValueError("stage_base_channels length must match stage_strides")
+            if any(channel <= 0 for channel in self.stage_base_channels):
+                raise ValueError("stage_base_channels must be positive")
+
+        if self.width_multipliers is not None:
+            if not self.width_multipliers:
+                raise ValueError("width_multipliers must not be empty")
+            if any(multiplier <= 0 for multiplier in self.width_multipliers):
+                raise ValueError("width_multipliers must be positive")
+
+        derived_stage_channel_choices = self.stage_channel_choices
+        if (
+            derived_stage_channel_choices is None
+            and self.stage_base_channels is not None
+            and self.width_multipliers is not None
+        ):
+            derived_stage_channel_choices = tuple(
+                tuple(
+                    sorted(
+                        {
+                            max(1, int(round(base_channel * multiplier)))
+                            for multiplier in self.width_multipliers
+                        }
+                    )
+                )
+                for base_channel in self.stage_base_channels
+            )
+
+        if derived_stage_channel_choices is not None:
+            if len(derived_stage_channel_choices) != self.stage_count:
+                raise ValueError("stage_channel_choices length must match stage_strides")
+            normalized_stage_channel_choices = tuple(
+                tuple(sorted({int(channel) for channel in choices}))
+                for choices in derived_stage_channel_choices
+            )
+            if any(not choices for choices in normalized_stage_channel_choices):
+                raise ValueError("stage_channel_choices must not contain empty groups")
+            if any(channel <= 0 for choices in normalized_stage_channel_choices for channel in choices):
+                raise ValueError("stage_channel_choices must be positive")
+            object.__setattr__(self, "stage_channel_choices", normalized_stage_channel_choices)
+            object.__setattr__(
+                self,
+                "channel_choices",
+                tuple(sorted({channel for choices in normalized_stage_channel_choices for channel in choices})),
+            )
+
+        if self.stage_depth_choices is not None:
+            if len(self.stage_depth_choices) != self.stage_count:
+                raise ValueError("stage_depth_choices length must match stage_strides")
+            normalized_stage_depth_choices = tuple(
+                tuple(sorted({int(depth) for depth in choices}))
+                for choices in self.stage_depth_choices
+            )
+            if any(not choices for choices in normalized_stage_depth_choices):
+                raise ValueError("stage_depth_choices must not contain empty groups")
+            if any(depth <= 0 for choices in normalized_stage_depth_choices for depth in choices):
+                raise ValueError("stage_depth_choices must be positive")
+            object.__setattr__(self, "stage_depth_choices", normalized_stage_depth_choices)
+            object.__setattr__(
+                self,
+                "depth_choices",
+                tuple(sorted({depth for choices in normalized_stage_depth_choices for depth in choices})),
+            )
+
         if any(channel <= 0 for channel in self.channel_choices):
             raise ValueError("channel_choices must be positive")
         if any(depth <= 0 for depth in self.depth_choices):
@@ -139,6 +253,26 @@ class SearchSpaceConfig:
             raise ValueError("kernel_choices must be positive")
         if any(expand <= 0 for expand in self.expand_choices):
             raise ValueError("expand_choices must be positive")
+        if self.stage_block_choices is not None:
+            if len(self.stage_block_choices) != self.stage_count:
+                raise ValueError("stage_block_choices length must match stage_strides")
+            normalized_stage_block_choices = tuple(
+                tuple(
+                    BlockSpec(
+                        op=str(block.op),
+                        kernel_size=int(block.kernel_size),
+                        expand_ratio=int(block.expand_ratio),
+                        stride=int(block.stride),
+                    )
+                    for block in choices
+                )
+                for choices in self.stage_block_choices
+            )
+            if any(not choices for choices in normalized_stage_block_choices):
+                raise ValueError("stage_block_choices must not contain empty groups")
+            object.__setattr__(self, "stage_block_choices", normalized_stage_block_choices)
+        if self.head_conv_channels is not None and self.head_conv_channels <= 0:
+            raise ValueError("head_conv_channels must be positive")
         # 移除op_choices限制，允许扩展新算子
         # unsupported = set(self.op_choices) - set(DEFAULT_OP_CHOICES)
         # if unsupported:
@@ -147,6 +281,21 @@ class SearchSpaceConfig:
     @property
     def stage_count(self) -> int:
         return len(self.stage_strides)
+
+    def channel_choices_for_stage(self, stage_index: int) -> tuple[int, ...]:
+        if self.stage_channel_choices is not None:
+            return self.stage_channel_choices[stage_index]
+        return self.channel_choices
+
+    def depth_choices_for_stage(self, stage_index: int) -> tuple[int, ...]:
+        if self.stage_depth_choices is not None:
+            return self.stage_depth_choices[stage_index]
+        return self.depth_choices
+
+    def block_choices_for_stage(self, stage_index: int) -> Optional[tuple["BlockSpec", ...]]:
+        if self.stage_block_choices is None:
+            return None
+        return self.stage_block_choices[stage_index]
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "SearchSpaceConfig":
@@ -161,8 +310,18 @@ class SearchSpaceConfig:
             data["stage_strides"] = tuple([1] + [2] * (stage_count - 1))
         if "stem_stride" in data:
             data["stem_stride"] = int(data["stem_stride"])
+        if "post_stem_downsample_stride" in data:
+            data["post_stem_downsample_stride"] = int(data["post_stem_downsample_stride"])
         if "stage_strides" in data:
             data["stage_strides"] = _as_int_tuple(data["stage_strides"])
+        if "stage_base_channels" in data:
+            data["stage_base_channels"] = _as_int_tuple(data["stage_base_channels"])
+        if "width_multipliers" in data:
+            data["width_multipliers"] = _as_float_tuple(data["width_multipliers"])
+        if "stage_channel_choices" in data:
+            data["stage_channel_choices"] = _as_nested_int_tuple(data["stage_channel_choices"])
+        if "stage_depth_choices" in data:
+            data["stage_depth_choices"] = _as_nested_int_tuple(data["stage_depth_choices"])
         if "channel_choices" in data:
             data["channel_choices"] = _as_int_tuple(data["channel_choices"])
         if "depth_choices" in data:
@@ -173,6 +332,10 @@ class SearchSpaceConfig:
             data["expand_choices"] = _as_int_tuple(data["expand_choices"])
         if "op_choices" in data:
             data["op_choices"] = _as_str_tuple(data["op_choices"])
+        if "stage_block_choices" in data and data["stage_block_choices"] is not None:
+            data["stage_block_choices"] = _as_stage_block_choices(data["stage_block_choices"])
+        if "head_conv_channels" in data and data["head_conv_channels"] is not None:
+            data["head_conv_channels"] = int(data["head_conv_channels"])
         return cls(**data)
 
 
@@ -243,6 +406,8 @@ class ArchitectureSpec:
     stem_channels: int
     stages: tuple[StageSpec, ...]
     stem_stride: int = 2
+    post_stem_downsample_stride: int = 1
+    head_conv_channels: Optional[int] = None
     head_channels: Optional[int] = None
     num_classes: Optional[int] = None
 
@@ -251,6 +416,8 @@ class ArchitectureSpec:
             "input_channels": self.input_channels,
             "stem_channels": self.stem_channels,
             "stem_stride": self.stem_stride,
+            "post_stem_downsample_stride": self.post_stem_downsample_stride,
+            "head_conv_channels": self.head_conv_channels,
             "head_channels": self.head_channels,
             "num_classes": self.num_classes,
             "stages": [stage.to_dict() for stage in self.stages],
@@ -262,7 +429,13 @@ class ArchitectureSpec:
             input_channels=int(payload["input_channels"]),
             stem_channels=int(payload["stem_channels"]),
             stem_stride=int(payload.get("stem_stride", 2)),
+            post_stem_downsample_stride=int(payload.get("post_stem_downsample_stride", 1)),
             stages=tuple(StageSpec.from_dict(stage) for stage in payload["stages"]),
+            head_conv_channels=(
+                None
+                if payload.get("head_conv_channels") is None
+                else int(payload["head_conv_channels"])
+            ),
             head_channels=(
                 None
                 if payload.get("head_channels") is None
@@ -297,6 +470,42 @@ class SearchSpace:
     def from_dict(cls, payload: Mapping[str, Any]) -> "SearchSpace":
         return cls(SearchSpaceConfig.from_dict(payload))
 
+    @staticmethod
+    def _physical_constraints_config(
+        constraints: Optional[SearchConstraints],
+    ) -> dict[str, Any]:
+        if constraints is None:
+            return {}
+        physical = getattr(constraints, "physical", None)
+        if not isinstance(physical, dict) or not physical:
+            return {}
+        if physical.get("enabled") is False:
+            return {}
+        return dict(physical)
+
+    @staticmethod
+    def _block_choice_allowed_by_physical(
+        block: BlockSpec,
+        *,
+        input_resolution: int,
+        physical: Mapping[str, Any],
+    ) -> bool:
+        if block.op not in {"mbconv", "fused_mbconv"}:
+            return True
+        for rule in physical.get("early_expand_limits", ()) or ():
+            if not isinstance(rule, Mapping):
+                continue
+            min_resolution = rule.get("min_input_resolution", rule.get("min_resolution"))
+            max_expand_ratio = rule.get("max_expand_ratio")
+            if min_resolution is None or max_expand_ratio is None:
+                continue
+            if (
+                int(input_resolution) >= int(min_resolution)
+                and int(block.expand_ratio) > int(max_expand_ratio)
+            ):
+                return False
+        return True
+
     def pre_prune(self, cost_estimator: "FPGACostEstimator") -> "SearchSpace":
         """根据FPGA资源约束预判缩减搜索空间。
 
@@ -328,9 +537,12 @@ class SearchSpace:
         effective_budgets = self._resolve_effective_budgets(cost_estimator)
         new_channels = self.config.channel_choices
         new_depths = self.config.depth_choices
+        new_stage_channel_choices = self.config.stage_channel_choices
+        new_stage_depth_choices = self.config.stage_depth_choices
         new_ops = self.config.op_choices
         new_kernels = self.config.kernel_choices
         new_expands = self.config.expand_choices
+        new_stage_block_choices = self.config.stage_block_choices
 
         if estimate.violations:
             print(f"  Baseline 违反约束: {estimate.violations}")
@@ -403,13 +615,74 @@ class SearchSpace:
         if not new_expands:
             new_expands = (min(self.config.expand_choices),)
 
+        if self.config.stage_channel_choices is not None:
+            allowed_channels = set(new_channels)
+            new_stage_channel_choices = tuple(
+                tuple(channel for channel in stage_choices if channel in allowed_channels) or (min(stage_choices),)
+                for stage_choices in self.config.stage_channel_choices
+            )
+        if self.config.stage_depth_choices is not None:
+            allowed_depths = set(new_depths)
+            new_stage_depth_choices = tuple(
+                tuple(depth for depth in stage_choices if depth in allowed_depths) or (min(stage_choices),)
+                for stage_choices in self.config.stage_depth_choices
+            )
+
+        physical = self._physical_constraints_config(constraints)
+        if self.config.stage_block_choices is not None and physical:
+            filtered_stage_block_choices: list[tuple[BlockSpec, ...]] = []
+            current_resolution = max(1, ceil(self.config.image_size / self.config.stem_stride))
+            current_resolution = max(
+                1,
+                ceil(current_resolution / self.config.post_stem_downsample_stride),
+            )
+            for stage_index, choices in enumerate(self.config.stage_block_choices):
+                filtered = tuple(
+                    block
+                    for block in choices
+                    if self._block_choice_allowed_by_physical(
+                        block,
+                        input_resolution=current_resolution,
+                        physical=physical,
+                    )
+                )
+                filtered_stage_block_choices.append(filtered or choices)
+                current_resolution = max(
+                    1,
+                    ceil(current_resolution / self.config.stage_strides[stage_index]),
+                )
+            new_stage_block_choices = tuple(filtered_stage_block_choices)
+
+        if new_stage_block_choices is not None:
+            block_ops = {
+                str(block.op)
+                for choices in new_stage_block_choices
+                for block in choices
+            }
+            block_kernels = {
+                int(block.kernel_size)
+                for choices in new_stage_block_choices
+                for block in choices
+            }
+            block_expands = {
+                int(block.expand_ratio)
+                for choices in new_stage_block_choices
+                for block in choices
+            }
+            new_ops = tuple(sorted(set(new_ops) | block_ops))
+            new_kernels = tuple(sorted(set(new_kernels) | block_kernels))
+            new_expands = tuple(sorted(set(new_expands) | block_expands))
+
         new_config = replace(
             self.config,
+            stage_channel_choices=new_stage_channel_choices,
+            stage_depth_choices=new_stage_depth_choices,
             channel_choices=new_channels,
             depth_choices=new_depths,
             kernel_choices=new_kernels,
             expand_choices=new_expands,
             op_choices=new_ops,
+            stage_block_choices=new_stage_block_choices,
         )
 
         reduction = self._calculate_reduction_ratio(self.config, new_config)
@@ -424,17 +697,36 @@ class SearchSpace:
     
     def _calculate_reduction_ratio(self, old_config: SearchSpaceConfig, new_config: SearchSpaceConfig) -> float:
         """计算搜索空间缩减比例"""
-        old_size = (
-            len(old_config.channel_choices) *
-            len(old_config.depth_choices) *
-            len(old_config.op_choices)
-        )
-        new_size = (
-            len(new_config.channel_choices) *
-            len(new_config.depth_choices) *
-            len(new_config.op_choices)
-        )
-        
+        def size(config: SearchSpaceConfig) -> int:
+            channel_factor = 1
+            if config.stage_channel_choices is not None:
+                for choices in config.stage_channel_choices:
+                    channel_factor *= max(1, len(choices))
+            else:
+                channel_factor = max(1, len(config.channel_choices)) ** config.stage_count
+
+            depth_factor = 1
+            if config.stage_depth_choices is not None:
+                for choices in config.stage_depth_choices:
+                    depth_factor *= max(1, len(choices))
+            else:
+                depth_factor = max(1, len(config.depth_choices)) ** config.stage_count
+
+            if config.stage_block_choices is not None:
+                block_factor = 1
+                for choices in config.stage_block_choices:
+                    block_factor *= max(1, len(choices))
+            else:
+                block_factor = (
+                    max(1, len(config.op_choices))
+                    * max(1, len(config.kernel_choices))
+                    * max(1, len(config.expand_choices))
+                ) ** config.stage_count
+            return channel_factor * depth_factor * block_factor
+
+        old_size = size(old_config)
+        new_size = size(new_config)
+
         if old_size == 0:
             return 0.0
         return ((old_size - new_size) / old_size) * 100
@@ -443,34 +735,87 @@ class SearchSpace:
         """检查搜索空间是否已进行过预剪枝"""
         return self._pruned
 
+    def concrete_block_choices_for_stage(
+        self,
+        *,
+        stage_index: int,
+        in_channels: int,
+        out_channels: int,
+        stride: int,
+    ) -> Optional[tuple[BlockSpec, ...]]:
+        choices = self.config.block_choices_for_stage(stage_index)
+        if choices is None:
+            return None
+
+        concrete: list[BlockSpec] = []
+        for choice in choices:
+            if choice.op == "skip" and (stride != 1 or in_channels != out_channels):
+                continue
+            concrete.append(
+                BlockSpec(
+                    op=choice.op,
+                    kernel_size=1 if choice.op == "skip" else int(choice.kernel_size),
+                    expand_ratio=1 if choice.op == "skip" else int(choice.expand_ratio),
+                    stride=int(stride),
+                )
+            )
+
+        if not concrete:
+            raise ValueError(
+                f"no legal stage_block_choices for stage={stage_index}, "
+                f"in_channels={in_channels}, out_channels={out_channels}, stride={stride}"
+            )
+        return tuple(concrete)
+
     def baseline_architecture(self) -> ArchitectureSpec:
         stages: list[StageSpec] = []
         current_channels = self.config.stem_channels
-        base_channels = min(self.config.channel_choices)
-        base_depth = min(self.config.depth_choices)
         base_kernel = min(self.config.kernel_choices)
         base_expand = min(self.config.expand_choices)
 
-        for stride in self.config.stage_strides:
-            channels = max(base_channels, current_channels)
+        for stage_index, stride in enumerate(self.config.stage_strides):
+            stage_channel_choices = self.config.channel_choices_for_stage(stage_index)
+            stage_depth_choices = self.config.depth_choices_for_stage(stage_index)
+            if self.config.stage_base_channels is not None:
+                preferred_channels = self.config.stage_base_channels[stage_index]
+                if preferred_channels in stage_channel_choices:
+                    channels = preferred_channels
+                else:
+                    smaller_or_equal = [value for value in stage_channel_choices if value <= preferred_channels]
+                    if smaller_or_equal:
+                        channels = max(smaller_or_equal)
+                    else:
+                        channels = min(stage_channel_choices)
+            else:
+                channels = min(stage_channel_choices)
+            base_depth = min(stage_depth_choices)
             blocks: list[BlockSpec] = []
             for block_index in range(base_depth):
                 block_stride = stride if block_index == 0 else 1
                 in_channels = current_channels if block_index == 0 else channels
-                valid_ops = self.available_ops(
+                stage_block_choices = self.concrete_block_choices_for_stage(
+                    stage_index=stage_index,
                     in_channels=in_channels,
                     out_channels=channels,
                     stride=block_stride,
                 )
-                preferred_op = "dw_pw_conv" if "dw_pw_conv" in valid_ops else valid_ops[0]
-                blocks.append(
-                    self._build_block(
-                        op=preferred_op,
+                if stage_block_choices is not None:
+                    blocks.append(stage_block_choices[0])
+                else:
+                    valid_ops = self.available_ops(
+                        in_channels=in_channels,
+                        out_channels=channels,
                         stride=block_stride,
-                        kernel_size=base_kernel,
-                        expand_ratio=base_expand,
                     )
-                )
+                    preferred_op = "dw_pw_conv" if "dw_pw_conv" in valid_ops else valid_ops[0]
+                    blocks.append(
+                        self._build_block(
+                            op=preferred_op,
+                            stride=block_stride,
+                            kernel_size=base_kernel,
+                            expand_ratio=base_expand,
+                        )
+                    )
             stages.append(
                 StageSpec(
                     channels=channels,
@@ -485,7 +830,9 @@ class SearchSpace:
             input_channels=self.config.input_channels,
             stem_channels=self.config.stem_channels,
             stem_stride=self.config.stem_stride,
+            post_stem_downsample_stride=self.config.post_stem_downsample_stride,
             stages=tuple(stages),
+            head_conv_channels=self.config.head_conv_channels,
             head_channels=self.config.head_channels,
             num_classes=self.config.num_classes,
         )
@@ -542,13 +889,30 @@ class SearchSpace:
         stages: list[StageSpec] = []
         current_channels = self.config.stem_channels
 
-        for stride in self.config.stage_strides:
-            channels = self._choose_channel(random, prefer_lightweight=prefer_lightweight)
-            depth = self._choose_depth(random, prefer_lightweight=prefer_lightweight)
+        for stage_index, stride in enumerate(self.config.stage_strides):
+            channels = self._choose_channel(
+                random,
+                stage_index=stage_index,
+                prefer_lightweight=prefer_lightweight,
+            )
+            depth = self._choose_depth(
+                random,
+                stage_index=stage_index,
+                prefer_lightweight=prefer_lightweight,
+            )
             blocks: list[BlockSpec] = []
             for block_index in range(depth):
                 block_stride = stride if block_index == 0 else 1
                 in_channels = current_channels if block_index == 0 else channels
+                stage_block_choices = self.concrete_block_choices_for_stage(
+                    stage_index=stage_index,
+                    in_channels=in_channels,
+                    out_channels=channels,
+                    stride=block_stride,
+                )
+                if stage_block_choices is not None:
+                    blocks.append(random.choice(stage_block_choices))
+                    continue
                 valid_ops = self.available_ops(
                     in_channels=in_channels,
                     out_channels=channels,
@@ -586,7 +950,9 @@ class SearchSpace:
             input_channels=self.config.input_channels,
             stem_channels=self.config.stem_channels,
             stem_stride=self.config.stem_stride,
+            post_stem_downsample_stride=self.config.post_stem_downsample_stride,
             stages=tuple(stages),
+            head_conv_channels=self.config.head_conv_channels,
             head_channels=self.config.head_channels,
             num_classes=self.config.num_classes,
         )
@@ -626,6 +992,15 @@ class SearchSpace:
         baseline_estimate = cost_estimator.estimate(baseline, self)
         if not baseline_estimate.violations:
             return baseline
+        baseline_violation_score = (
+            len(baseline_estimate.violations),
+            baseline_estimate.latency_ms
+            + baseline_estimate.energy_mj
+            + baseline_estimate.resource_dsp
+            + baseline_estimate.resource_lut,
+        )
+        if best_violation_score is None or baseline_violation_score <= best_violation_score:
+            return baseline
         if best_candidate is not None:
             return best_candidate
         return baseline
@@ -660,18 +1035,30 @@ class SearchSpace:
             errors.append(
                 "architecture stem_stride does not match the search space configuration"
             )
+        if architecture.post_stem_downsample_stride != self.config.post_stem_downsample_stride:
+            errors.append(
+                "architecture post_stem_downsample_stride does not match the search space configuration"
+            )
+        if architecture.head_conv_channels != self.config.head_conv_channels:
+            errors.append(
+                "architecture head_conv_channels does not match the search space configuration"
+            )
         if len(architecture.stages) != self.config.stage_count:
             errors.append("architecture stage count does not match stage_strides")
             return errors
 
         current_channels = architecture.stem_channels
         current_resolution = max(1, ceil(self.config.image_size / architecture.stem_stride))
+        current_resolution = max(
+            1,
+            ceil(current_resolution / architecture.post_stem_downsample_stride),
+        )
         for stage_index, (stage, expected_stride) in enumerate(
             zip(architecture.stages, self.config.stage_strides)
         ):
-            if stage.channels not in self.config.channel_choices:
+            if stage.channels not in self.config.channel_choices_for_stage(stage_index):
                 errors.append(f"stage {stage_index} uses unsupported channels={stage.channels}")
-            if stage.depth not in self.config.depth_choices:
+            if stage.depth not in self.config.depth_choices_for_stage(stage_index):
                 errors.append(f"stage {stage_index} uses unsupported depth={stage.depth}")
             if stage.stride != expected_stride:
                 errors.append(
@@ -686,6 +1073,24 @@ class SearchSpace:
             for block_index, block in enumerate(stage.blocks):
                 block_in_channels = current_channels if block_index == 0 else stage.channels
                 block_stride = stage.stride if block_index == 0 else 1
+                stage_block_choices = self.concrete_block_choices_for_stage(
+                    stage_index=stage_index,
+                    in_channels=block_in_channels,
+                    out_channels=stage.channels,
+                    stride=block_stride,
+                )
+                if stage_block_choices is not None:
+                    allowed_keys = {
+                        (choice.op, choice.kernel_size, choice.expand_ratio, choice.stride)
+                        for choice in stage_block_choices
+                    }
+                    if (block.op, block.kernel_size, block.expand_ratio, block.stride) not in allowed_keys:
+                        errors.append(
+                            f"stage {stage_index} block {block_index} block choice is unsupported"
+                        )
+                    current_channels = stage.channels
+                    current_resolution = max(1, ceil(current_resolution / block.stride))
+                    continue
                 expected_ops = self.available_ops(
                     in_channels=block_in_channels,
                     out_channels=stage.channels,
@@ -748,6 +1153,10 @@ class SearchSpace:
         resolved: list[ResolvedBlockSpec] = []
         current_channels = architecture.stem_channels
         current_resolution = max(1, ceil(self.config.image_size / architecture.stem_stride))
+        current_resolution = max(
+            1,
+            ceil(current_resolution / architecture.post_stem_downsample_stride),
+        )
         for stage_index, stage in enumerate(architecture.stages):
             for block_index, block in enumerate(stage.blocks):
                 block_in_channels = current_channels if block_index == 0 else stage.channels
@@ -810,17 +1219,31 @@ class SearchSpace:
             ),
         }
 
-    def _choose_channel(self, random: Random, *, prefer_lightweight: bool) -> int:
+    def _choose_channel(
+        self,
+        random: Random,
+        *,
+        stage_index: int,
+        prefer_lightweight: bool,
+    ) -> int:
+        channel_choices = self.config.channel_choices_for_stage(stage_index)
         if not prefer_lightweight:
-            return random.choice(self.config.channel_choices)
-        weights = [1.0 / max(1, channel) for channel in self.config.channel_choices]
-        return _weighted_choice(random, self.config.channel_choices, weights)
+            return random.choice(channel_choices)
+        weights = [1.0 / max(1, channel) for channel in channel_choices]
+        return _weighted_choice(random, channel_choices, weights)
 
-    def _choose_depth(self, random: Random, *, prefer_lightweight: bool) -> int:
+    def _choose_depth(
+        self,
+        random: Random,
+        *,
+        stage_index: int,
+        prefer_lightweight: bool,
+    ) -> int:
+        depth_choices = self.config.depth_choices_for_stage(stage_index)
         if not prefer_lightweight:
-            return random.choice(self.config.depth_choices)
-        weights = [1.0 / max(1, depth) for depth in self.config.depth_choices]
-        return _weighted_choice(random, self.config.depth_choices, weights)
+            return random.choice(depth_choices)
+        weights = [1.0 / max(1, depth) for depth in depth_choices]
+        return _weighted_choice(random, depth_choices, weights)
 
     def _choose_kernel(self, random: Random, *, prefer_lightweight: bool) -> int:
         if not prefer_lightweight:

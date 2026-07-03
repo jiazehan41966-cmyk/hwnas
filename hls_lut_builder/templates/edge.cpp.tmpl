@@ -1,0 +1,173 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int K = 3;
+static constexpr int PAD = 1;
+static constexpr int STRIDE = __STRIDE__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+static constexpr int PADDED_W = IN_W + (2 * PAD);
+static constexpr int CH_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+
+static inline int edge_weight_index(int c, int kh, int kw) {
+    return (c * K * K) + (kh * K) + kw;
+}
+
+static inline int pointwise_weight_index(int oc, int ic) {
+    return (IN_CH * K * K) + (oc * IN_CH) + ic;
+}
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[(IN_CH * K * K) + (OUT_CH * IN_CH)],
+    const acc_t biases[IN_CH + OUT_CH]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    data_t line_buffer[IN_CH][K][PADDED_W];
+    data_t incoming_channels[IN_CH];
+    data_t edge_channels[IN_CH];
+    data_t output_channels[OUT_CH];
+    acc_t acc_tile[CH_TILE];
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=2 complete
+#pragma HLS ARRAY_PARTITION variable=incoming_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=edge_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=output_channels dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int c = 0; c < IN_CH; ++c) {
+        for (int kh = 0; kh < K; ++kh) {
+            for (int pw = 0; pw < PADDED_W; ++pw) {
+                line_buffer[c][kh][pw] = 0;
+            }
+        }
+    }
+
+    int out_row = 0;
+    int out_col = 0;
+    for (int ph = 0; ph < IN_H + (2 * PAD); ++ph) {
+        for (int pw = 0; pw < PADDED_W; ++pw) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+            const bool input_valid =
+                (ph >= PAD) && (ph < (PAD + IN_H)) &&
+                (pw >= PAD) && (pw < (PAD + IN_W));
+
+            if (input_valid) {
+                input_axis_t in_packet = input_stream.read();
+                unpack_axis_channels<IN_CH>(in_packet, incoming_channels);
+            } else {
+                for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS UNROLL factor=CH_TILE
+                    incoming_channels[ic] = 0;
+                }
+            }
+
+            for (int ic = 0; ic < IN_CH; ++ic) {
+#pragma HLS UNROLL factor=CH_TILE
+                for (int kh = 0; kh < K - 1; ++kh) {
+#pragma HLS UNROLL
+                    line_buffer[ic][kh][pw] = line_buffer[ic][kh + 1][pw];
+                }
+                line_buffer[ic][K - 1][pw] = incoming_channels[ic];
+            }
+
+            const bool output_valid =
+                (ph >= (K - 1)) && (pw >= (K - 1)) &&
+                (((ph - (K - 1)) % STRIDE) == 0) &&
+                (((pw - (K - 1)) % STRIDE) == 0) &&
+                (out_row < OUT_H) && (out_col < OUT_W);
+
+            if (output_valid) {
+                const int window_base = pw - (K - 1);
+
+                for (int ic_base = 0; ic_base < IN_CH; ic_base += CH_TILE) {
+                    for (int lane = 0; lane < CH_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int ic = ic_base + lane;
+                        acc_tile[lane] = (ic < IN_CH) ? biases[ic] : static_cast<acc_t>(0);
+                    }
+
+                    for (int kh = 0; kh < K; ++kh) {
+                        for (int kw = 0; kw < K; ++kw) {
+                            const int column = window_base + kw;
+                            for (int lane = 0; lane < CH_TILE; ++lane) {
+#pragma HLS UNROLL
+                                const int ic = ic_base + lane;
+                                if (ic < IN_CH) {
+                                    const data_t sample = line_buffer[ic][kh][column];
+                                    acc_tile[lane] +=
+                                        static_cast<acc_t>(sample) *
+                                        static_cast<acc_t>(weights[edge_weight_index(ic, kh, kw)]);
+                                }
+                            }
+                        }
+                    }
+
+                    for (int lane = 0; lane < CH_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int ic = ic_base + lane;
+                        if (ic < IN_CH) {
+                            acc_t edge_value = acc_tile[lane];
+                            if (edge_value < 0) {
+                                edge_value = -edge_value;
+                            }
+                            edge_channels[ic] = saturate_to_data(edge_value);
+                        }
+                    }
+                }
+
+                for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        acc_tile[lane] = (oc < OUT_CH) ? biases[IN_CH + oc] : static_cast<acc_t>(0);
+                    }
+
+                    for (int ic = 0; ic < IN_CH; ++ic) {
+                        const data_t sample = edge_channels[ic];
+                        for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                            const int oc = oc_base + lane;
+                            if (oc < OUT_CH) {
+                                acc_tile[lane] +=
+                                    static_cast<acc_t>(sample) *
+                                    static_cast<acc_t>(weights[pointwise_weight_index(oc, ic)]);
+                            }
+                        }
+                    }
+
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        if (oc < OUT_CH) {
+                            output_channels[oc] = saturate_to_data(acc_tile[lane]);
+                        }
+                    }
+                }
+
+                output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(
+                    output_channels,
+                    (out_row == (OUT_H - 1)) && (out_col == (OUT_W - 1))
+                );
+                output_stream.write(out_packet);
+
+                ++out_col;
+                if (out_col == OUT_W) {
+                    out_col = 0;
+                    ++out_row;
+                }
+            }
+        }
+    }
+}

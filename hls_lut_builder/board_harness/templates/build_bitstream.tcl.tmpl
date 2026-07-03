@@ -1,0 +1,59 @@
+set project_name "{{PROJECT_NAME}}"
+set target_part "{{TARGET_PART}}"
+set vivado_project_dir "{{VIVADO_PROJECT_DIR}}"
+set rtl_dir "{{RTL_DIR}}"
+set export_rtl_dir "{{EXPORT_RTL_DIR}}"
+set constraint_file "{{CONSTRAINT_FILE}}"
+set bitstream_output_dir "{{BITSTREAM_OUTPUT_DIR}}"
+set reports_output_dir "{{REPORTS_OUTPUT_DIR}}"
+set artifact_basename "{{ARTIFACT_BASENAME}}"
+set top_name "harness_top"
+
+create_project $project_name $vivado_project_dir -part $target_part -force
+
+set rtl_files [concat \
+    [glob -nocomplain -directory $rtl_dir *.v] \
+    [glob -nocomplain -directory $export_rtl_dir *.v] \
+]
+
+if {[llength $rtl_files] == 0} {
+    error "No RTL files found for harness build."
+}
+
+foreach rtl_file $rtl_files {
+    add_files -norecurse $rtl_file
+}
+
+if {[file exists $constraint_file]} {
+    read_xdc $constraint_file
+}
+
+set_property top $top_name [current_fileset]
+update_compile_order -fileset sources_1
+
+launch_runs synth_1 -jobs 8
+wait_on_run synth_1
+
+if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
+    error "Synthesis failed"
+}
+
+launch_runs impl_1 -to_step route_design -jobs 8
+wait_on_run impl_1
+
+if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
+    puts "INFO: impl_1 progress = [get_property PROGRESS [get_runs impl_1]]"
+}
+
+file mkdir $bitstream_output_dir
+file mkdir $reports_output_dir
+
+open_run impl_1
+{{OPTIONAL_DRC_RELAX}}
+report_timing_summary -file ${reports_output_dir}/timing_summary.rpt
+report_utilization -file ${reports_output_dir}/utilization.rpt
+report_clock_utilization -file ${reports_output_dir}/clock_utilization.rpt
+write_bitstream -force ${bitstream_output_dir}/${artifact_basename}.bit
+
+puts "Bitstream generated: ${bitstream_output_dir}/${artifact_basename}.bit"
+exit
