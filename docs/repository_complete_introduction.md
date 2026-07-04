@@ -8,6 +8,7 @@
 
 | 归档文件 | 主题 | 在本介绍中的用途 |
 | --- | --- | --- |
+| `docs/FIRST_PRINCIPLES_AUDIT_20260703.md` | 第一性原理重审 | 数据协议、算子语义、证据强度与板卡资源纠偏 |
 | `docs/audit_structure_discovery.md` | 仓库结构发现 | 真实功能分层、入口类别、目录职责、异常边界 |
 | `docs/audit_entry_config.md` | 入口与配置闭环审计 | 主入口、配置流向、输出目录、resume 语义、legacy 入口 |
 | `docs/audit_candidate_hardware.md` | 候选表示与硬件代价审计 | ArchitectureSpec 到模型、硬件估计、CandidateMetrics 的映射 |
@@ -15,6 +16,10 @@
 | `docs/audit_deploy_result_consumption.md` | 部署与结果消费审计 | checkpoint、ONNX/INT8/HLS stub、推理和 reporting schema |
 
 当前没有发现独立的 `docs/audit_hls_lut*.md` 或 `docs/audit_hls_lut_production*.md`。因此本文中关于 HLS/LUT 生产链的描述来自结构发现、入口配置审计、候选硬件审计和部署消费审计中已经覆盖的部分；operator manifest、模板、Vitis/Vivado/board harness 的完整生产链仍应以独立审计补齐。
+
+解释优先级：2026-07-03 第一性原理重审晚于下列静态归档。若旧文档把
+fold-0 指标解释为最终泛化结果，或把简化 HLS `denoise`/`edge` 解释为
+训练期 PyTorch 算子的部署证据，以第一性原理重审的边界为准。
 
 ## 2. 仓库一句话定位
 
@@ -323,6 +328,8 @@ hls_lut_builder/configs
 | P1 | `CandidateMetrics.accuracy` 在部分路径可能保存 selection score，不稳定等于 top1 | 搜索排序、结果消费、论文图表 |
 | P1 | Proxyless expected hardware metrics 与 `FPGACostEstimator.estimate()` 口径不同 | Proxyless 搜索期硬件惩罚与最终候选落盘指标 |
 | P1 | `mixconv.kernel_size` 在 search/LUT key 与模型/分析代价中语义不一致 | 同构候选可能查不同 LUT 条目 |
+| P1 | NKSID 当前 image-index fold 有高 filename-adjacency 泄漏风险，且无 acquisition group 元数据 | 泛化结论与显著性 |
+| P1 | PyTorch 与 HLS `denoise`/`edge` 算法不一致 | 算子部署声明与硬件代价 |
 | P1 | ONNX metadata 对 search checkpoint 可能丢失 best metrics | 部署 artifact 可复现性 |
 | P1 | 旧 visualization 仍以 accuracy 为主 | 与 macro_f1/top1 优先口径冲突 |
 | P2 | `num_classes/head` 存在配置、数据加载、模型构建、cost head 多来源 | 模型 head 与 cost head 一致性 |

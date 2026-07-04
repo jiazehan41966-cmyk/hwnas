@@ -99,6 +99,7 @@ def main() -> None:
     use_kfold = bool(dataset_cfg.get("use_kfold", True))
     valid_size = dataset_cfg.get("valid_size")
     split_seed = int(dataset_cfg.get("split_seed", seed))
+    image_error_policy = str(dataset_cfg.get("image_error_policy", "raise"))
     epochs = pick(args.epochs, training_cfg.get("epochs"), 100)
     output_dir = pick(args.output_dir, project_cfg.get("output_dir"), "results")
     run_name = pick(args.run_name, project_cfg.get("run_name"), None)
@@ -137,6 +138,7 @@ def main() -> None:
                 use_kfold=use_kfold,
                 valid_size=valid_size,
                 split_seed=split_seed,
+                image_error_policy=image_error_policy,
             )
 
             tracker.write_dataset_summary(
@@ -147,6 +149,7 @@ def main() -> None:
                     "use_kfold": use_kfold,
                     "valid_size": valid_size,
                     "split_seed": split_seed,
+                    "image_error_policy": image_error_policy,
                     "image_size": image_size,
                     "batch_size": batch_size,
                     "train_samples": len(train_loader.dataset),

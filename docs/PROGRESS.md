@@ -7,7 +7,9 @@ Last updated: 2026-07-03; latest consolidated evidence snapshot: 2026-06-22.
 项目已具备从搜索空间、随机/RL/Proxyless 搜索、独立重训练、LUT 估计、
 HLS/Vivado route gate 到 COM5 固定输入板测的闭环。结论必须按证据层
 报告，不能把搜索 proxy、重训练验证、route、COM5、图像质量或功耗混为
-一类。
+一类。2026-07-03 第一性原理重审进一步确认：现有分类指标属于旧
+fold-0 验证协议，`denoise`/`edge` 的 PyTorch 与 HLS 实现不具备语义
+一致性，不能据此声明训练算子已经部署。
 
 ## 已完成
 
@@ -37,7 +39,7 @@ retrain150 权重重注入证据。
 2026-06-22 证据快照包含：
 
 - 7 个 Pareto route-screen 候选；
-- 6 个 route-clean 且具备五次稳定 COM5 测量的 board-claimable 候选；
+- 6 个 route-clean 且具备五次稳定 COM5 测量的历史协议候选；
 - 1 个 full-route fail 候选 `rl_arch_116`；
 - 5 个候选完成 retrain150；
 - NKSID val fold 0 的 520 张图完成 PSNR/SSIM/MSE 分析。
@@ -53,11 +55,15 @@ retrain150 权重重注入证据。
 | 完整板上验证集精度 | 未运行 | 有可追踪的 NKSID 样本级板上推理结果 |
 | 实测功耗/能耗 | `not measured` | 外部功率计或可读监控 CSV 通过验收 |
 | 独立 HLS/LUT 生产链审计 | 文档缺口 | 新增 `docs/audit_hls_lut_production.md` |
+| acquisition-group-safe 外层测试协议 | 元数据缺失 | 获得 mission/sequence group 并完成外层测试 |
+| PyTorch/HLS 算子语义一致性 | `denoise`/`edge` 未通过 | 匹配计算、权重导出和 fixed-point 数值对齐 |
 
 ## 报告红线
 
 - `macro_f1`、`top1` 优先；`accuracy` 不自动等于 `top1`。
 - NAS LUT `latency_ms` 是估计值，不是 COM5 实测延迟。
 - COM5 只证明当前 bitstream 与固定 harness 输入下的延迟/输出一致性。
+- fold-0 的 search/retrain 指标不是独立测试集泛化估计。
+- 简化 HLS `denoise`/`edge` 的 route/COM5 不能证明训练期 PyTorch 算子已部署。
 - `input_as_reference` 的 PSNR/SSIM 只用于算子影响/结构保持分析。
 - 没有外部功率数据时，power/energy 必须写 `not measured`。

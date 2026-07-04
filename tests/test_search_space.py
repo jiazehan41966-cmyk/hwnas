@@ -7,6 +7,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from hwnas_fpga.models import build_model
+from hwnas_fpga.models.builder import DenoiseBlock
 from hwnas_fpga.search_space import (
     FAMILY_PROFILES,
     ArchitectureSpec,
@@ -23,6 +24,12 @@ from hwnas_fpga.search_space import probe_search_space
 class SearchSpaceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.space = SearchSpace(SearchSpaceConfig())
+
+    def test_denoise_gaussian_parameterization_matches_effective_kernel(self) -> None:
+        block = DenoiseBlock(1, 1, kernel_size=3, use_gaussian=True)
+        effective = torch.softmax(block.smooth_weight.view(1, -1), dim=1).view(3, 3)
+        self.assertGreater(effective[1, 1].item(), effective[0, 0].item())
+        self.assertTrue(torch.isclose(effective.sum(), torch.tensor(1.0)))
 
     def test_sample_is_valid(self) -> None:
         architecture = self.space.sample(seed=7)

@@ -66,6 +66,38 @@ class NKSIDDatasetTests(unittest.TestCase):
             self.assertEqual(len(train_loader.dataset) + len(val_loader.dataset), len(NKSID_CLASSES))
             self.assertEqual(class_weights.numel(), len(NKSID_CLASSES))
 
+    def test_corrupt_image_fails_closed_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dataset_root = self._create_fake_nksid_root(Path(tmpdir))
+            corrupt_path = dataset_root / NKSID_CLASSES[0] / f"{NKSID_CLASSES[0]}_0.png"
+            corrupt_path.write_bytes(b"not an image")
+            dataset = NKSIDDataset(
+                data_dir=str(dataset_root),
+                image_size=32,
+                fold=0,
+                split="train",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "image load failed"):
+                _ = dataset[0]
+
+    def test_corrupt_image_blank_policy_is_explicit_opt_in(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dataset_root = self._create_fake_nksid_root(Path(tmpdir))
+            corrupt_path = dataset_root / NKSID_CLASSES[0] / f"{NKSID_CLASSES[0]}_0.png"
+            corrupt_path.write_bytes(b"not an image")
+            dataset = NKSIDDataset(
+                data_dir=str(dataset_root),
+                image_size=32,
+                fold=0,
+                split="train",
+                image_error_policy="blank",
+            )
+
+            image, label = dataset[0]
+            self.assertEqual(image.shape, (1, 32, 32))
+            self.assertEqual(label, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

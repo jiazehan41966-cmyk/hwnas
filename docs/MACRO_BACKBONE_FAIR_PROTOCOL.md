@@ -1,7 +1,14 @@
 # Macro Backbone Fair Protocol
 
-This document defines the recommended fair rerun protocol for the macro
-backbone comparison on NKSID + AV7K325 before restarting later NAS stages.
+This document freezes the historical 2026-04-17 fair rerun protocol for the
+macro backbone comparison on NKSID + AV7K325. It is retained for artifact
+reproduction, not as the current physical-board or generalization protocol.
+
+The explicit `LUT<=50950` value below used the XC7K325T slice count as a LUT
+limit. The corrected physical capacity is `203800` LUTs. The fold-0 split also
+lacks acquisition-group metadata. New experiments must start from the current
+semantic-safe config and first-principles audit rather than silently editing
+this frozen protocol.
 
 Canonical config:
 

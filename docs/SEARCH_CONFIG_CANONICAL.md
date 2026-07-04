@@ -1,7 +1,7 @@
 # Canonical Search Configs After Fair Macro Rerun
 
-This note records the canonical search configs after the fair scratch-only macro
-backbone rerun on `2026-04-17`.
+This note records the historical fair scratch-only macro backbone configs from
+`2026-04-17` and the semantic-safe default adopted on `2026-07-03`.
 
 Macro anchor source:
 
@@ -19,7 +19,7 @@ Canonical config entry points:
 
 | Purpose | Config |
 | --- | --- |
-| Generic mobile-anchor search space | [nksid_fpga_search_mobile_anchor_av7k325.yaml](../configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml) |
+| Current semantic-safe default | [nksid_fpga_search_mobile_anchor_av7k325.yaml](../configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml) |
 | Generic accuracy-biased search space | [nksid_fpga_search_accuracy_biased_av7k325.yaml](../configs/search/nksid_fpga_search_accuracy_biased_av7k325.yaml) |
 | Generic lightweight search space | [nksid_fpga_search_lightweight_sonar_av7k325.yaml](../configs/search/nksid_fpga_search_lightweight_sonar_av7k325.yaml) |
 | Random baseline on the new mobile anchor | [nksid_random_baseline_mobile_anchor_mobilenet_v2_av7k325_200.yaml](../configs/search/nksid_random_baseline_mobile_anchor_mobilenet_v2_av7k325_200.yaml) |
@@ -33,10 +33,19 @@ Notes:
 - The older generic `nksid_fpga_search*.yaml` entry points have been moved under
   `configs/search/legacy/` so the top-level config directory only exposes the
   current formal paths.
-- New formal mobile-anchor experiments should use the `*_mobilenet_v2_*`
-  configs above.
-- After operator screening, the canonical MobileNetV2-family searchable set is
-  `mbconv`, `fused_mbconv`, `denoise`, `edge`, and `skip`.
+- New experiments should start from the semantic-safe default. The dated
+  random/RL/Proxyless comparison configs are historical protocols until they
+  are explicitly refreshed.
+- The default config declares `mbconv`, `denoise`, `edge`, and `skip`, then
+  loads `hls_lut_builder/configs/operator_manifest_semantic_safe.yaml`.
+  Runtime policy filtering keeps `mbconv` and `skip`; `denoise` and `edge`
+  remain paused until matching computation, weight export, and numeric parity
+  are verified.
+- The XC7K325T physical capacity is `203800` LUTs. Historical configs that
+  explicitly contain `50950` preserve the old slice-count constraint and must
+  not be silently relabeled as the corrected protocol.
+- Search-time power/energy estimates are not measured board objectives. The
+  current default disables the power hard cap and energy reward.
 - `dw_pw_conv` has been removed from the formal MobileNetV2 search profiles.
 - `mixconv` remains an optional ablation operator rather than part of the main
   formal MobileNetV2 search space.

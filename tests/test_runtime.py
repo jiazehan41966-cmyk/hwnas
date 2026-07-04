@@ -23,6 +23,7 @@ from hwnas_fpga.runtime import (
     load_anchor_profile_from_pool,
     load_config,
     load_lut_query_engine,
+    load_operator_policies,
 )
 
 
@@ -36,6 +37,26 @@ class BoardProfileTests(unittest.TestCase):
 
 
 class SearchSpaceRuntimeTests(unittest.TestCase):
+    def test_canonical_search_uses_semantic_safe_operator_policy(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        config = load_config(
+            str(
+                repo_root
+                / "configs"
+                / "search"
+                / "nksid_fpga_search_mobile_anchor_av7k325.yaml"
+            )
+        )
+
+        policies = load_operator_policies(config)
+
+        self.assertFalse(policies["denoise"]["search_enabled"])
+        self.assertFalse(policies["edge"]["search_enabled"])
+        self.assertEqual(
+            config["hardware"]["operator_manifest_path"],
+            "hls_lut_builder/configs/operator_manifest_semantic_safe.yaml",
+        )
+
     def test_build_search_space_applies_family_profile_defaults(self) -> None:
         search_space = build_search_space(
             {

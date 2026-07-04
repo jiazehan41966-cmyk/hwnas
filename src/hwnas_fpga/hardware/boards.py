@@ -23,7 +23,7 @@ BOARD_PROFILES: dict[str, HardwareSpec] = {
     "kintex7_xc7k325": HardwareSpec(
         name="Kintex-7 XC7K325T",
         clock_mhz=250,
-        max_lut=50_950,
+        max_lut=203_800,
         max_ff=407_600,
         max_bram=445,
         max_dsp=840,
@@ -34,7 +34,7 @@ BOARD_PROFILES: dict[str, HardwareSpec] = {
     "alinx_av7k325": HardwareSpec(
         name="ALINX AV7K325 (XC7K325T-2FFG900I)",
         clock_mhz=200,
-        max_lut=50_950,
+        max_lut=203_800,
         max_ff=407_600,
         max_bram=445,
         max_dsp=840,

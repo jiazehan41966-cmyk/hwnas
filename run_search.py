@@ -289,6 +289,7 @@ def main() -> None:
     use_kfold = bool(dataset_cfg.get("use_kfold", True))
     valid_size = dataset_cfg.get("valid_size")
     split_seed = int(dataset_cfg.get("split_seed", seed))
+    image_error_policy = str(dataset_cfg.get("image_error_policy", "raise"))
     num_candidates = pick(args.num_candidates, search_cfg.get("num_candidates"), 20)
     num_episodes = pick(args.episodes, search_cfg.get("episodes"), 20)
     train_epochs = pick(args.train_epochs, search_cfg.get("eval_epochs"), 3)
@@ -481,6 +482,7 @@ def main() -> None:
                 use_kfold=use_kfold,
                 valid_size=valid_size,
                 split_seed=split_seed,
+                image_error_policy=image_error_policy,
             )
             print(f"Train samples: {len(train_loader.dataset)}, Val samples: {len(val_loader.dataset)}")
             print(f"Num classes: {resolved_num_classes}")
@@ -498,6 +500,7 @@ def main() -> None:
                     "use_kfold": use_kfold,
                     "valid_size": valid_size,
                     "split_seed": split_seed,
+                    "image_error_policy": image_error_policy,
                     "image_size": image_size,
                     "batch_size": batch_size,
                     "train_samples": len(train_loader.dataset),

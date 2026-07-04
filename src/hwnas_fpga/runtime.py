@@ -362,6 +362,7 @@ def create_data_pipeline(
     use_kfold: bool = True,
     valid_size: Optional[float | int] = None,
     split_seed: int = 42,
+    image_error_policy: str = "raise",
 ) -> tuple[Any, Any, Optional[torch.Tensor], int]:
     pin_memory = device.startswith("cuda")
 
@@ -379,6 +380,7 @@ def create_data_pipeline(
             use_kfold=use_kfold,
             valid_size=valid_size,
             split_seed=split_seed,
+            image_error_policy=image_error_policy,
         )
         resolved_num_classes = num_classes or NKSIDDataset.NUM_CLASSES
         return train_loader, val_loader, class_weights, resolved_num_classes

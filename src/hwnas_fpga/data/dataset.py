@@ -256,6 +256,7 @@ class NKSIDDataset(Dataset):
         use_kfold: bool = True,
         split: str = "train",  # "train" or "val"
         output_channels: int = 1, # 1 为灰度图, 3 为 RGB (适配预训练模型)
+        image_error_policy: str = "raise",
     ):
         """
         初始化NKSID数据集。
@@ -281,6 +282,12 @@ class NKSIDDataset(Dataset):
         self.use_kfold = use_kfold
         self.split = split
         self.output_channels = output_channels
+        self.image_error_policy = str(image_error_policy).strip().lower()
+        if self.image_error_policy not in {"raise", "blank"}:
+            raise ValueError(
+                "image_error_policy must be 'raise' or 'blank', "
+                f"got: {image_error_policy}"
+            )
         self.classes = list(self.CLASSES)
         self.label_to_class = {idx: name for idx, name in enumerate(self.classes)}
         
@@ -467,12 +474,9 @@ class NKSIDDataset(Dataset):
         
         # 加载图像
         try:
-            image = Image.open(img_path)
-            
-            # 通道适配: 转为灰度或RGB
             target_mode = 'RGB' if self.output_channels == 3 else 'L'
-            if image.mode != target_mode:
-                image = image.convert(target_mode)
+            with Image.open(img_path) as source:
+                image = source.convert(target_mode)
             
             # 应用变换
             if self.transform:
@@ -489,6 +493,10 @@ class NKSIDDataset(Dataset):
             return image, label
             
         except Exception as e:
+            if self.image_error_policy == "raise":
+                raise RuntimeError(
+                    f"NKSID image load failed for index={idx}, path={img_path}"
+                ) from e
             print(f"[NKSID] 加载图像失败: {img_path}, 错误: {e}")
             # 返回一个空白图像
             target_mode = 'RGB' if self.output_channels == 3 else 'L'
@@ -679,6 +687,7 @@ def create_nksid_dataloaders(
     use_kfold: bool = True,
     valid_size: Optional[Union[int, float]] = None,
     split_seed: int = 42,
+    image_error_policy: str = "raise",
 ) -> Tuple[DataLoader, DataLoader, torch.Tensor]:
     """
     创建NKSID数据集的数据加载器。
@@ -707,6 +716,7 @@ def create_nksid_dataloaders(
             fold=fold,
             use_kfold=False,
             split="full",
+            image_error_policy=image_error_policy,
         )
         val_full = NKSIDDataset(
             data_dir=data_dir,
@@ -715,6 +725,7 @@ def create_nksid_dataloaders(
             fold=fold,
             use_kfold=False,
             split="full",
+            image_error_policy=image_error_policy,
         )
         total = len(train_full)
         if total <= 1:
@@ -757,6 +768,7 @@ def create_nksid_dataloaders(
             fold=fold,
             use_kfold=use_kfold,
             split="train",
+            image_error_policy=image_error_policy,
         )
 
         # 创建验证集
@@ -767,6 +779,7 @@ def create_nksid_dataloaders(
             fold=fold,
             use_kfold=use_kfold,
             split="val",
+            image_error_policy=image_error_policy,
         )
 
         # 获取类别权重

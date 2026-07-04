@@ -48,6 +48,12 @@ measurement. The main corrections in this v1 harness are:
 This is sufficient for single-operator board timing validation and sanity
 checking. It does not yet provide high-throughput dynamic tensor upload.
 
+It also does not establish train-time/deployment semantic parity. The
+2026-07-03 audit found that the current HLS `denoise` and `edge` pipelines are
+algorithmically different from their PyTorch blocks. Their route/COM5 evidence
+is valid only for the simplified HLS pipelines until matching computation,
+weight export, and numeric parity tests exist.
+
 The UART result packet is emitted only after both of the following conditions
 have been observed:
 

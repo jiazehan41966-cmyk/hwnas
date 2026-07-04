@@ -58,6 +58,7 @@ def main() -> None:
     use_kfold = bool(dataset_cfg.get("use_kfold", True))
     valid_size = dataset_cfg.get("valid_size")
     split_seed = int(dataset_cfg.get("split_seed", project_cfg.get("seed", 42)))
+    image_error_policy = str(dataset_cfg.get("image_error_policy", "raise"))
 
     checkpoint = Path(args.checkpoint).expanduser().resolve()
     output_path = (
@@ -84,6 +85,7 @@ def main() -> None:
         use_kfold=use_kfold,
         valid_size=valid_size,
         split_seed=split_seed,
+        image_error_policy=image_error_policy,
     )
     criterion = nn.CrossEntropyLoss(
         weight=None if class_weights is None else class_weights.to(device)
