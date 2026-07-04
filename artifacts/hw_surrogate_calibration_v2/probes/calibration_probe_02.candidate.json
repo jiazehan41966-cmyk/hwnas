@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "role": "hardware_calibration_probe_not_search_result",
+  "frozen_before_route_measurement": true,
+  "candidate": {
+    "arch_id": "calibration_probe_02",
+    "encoding": {
+      "input_channels": 1,
+      "stem_channels": 24,
+      "stem_stride": 2,
+      "post_stem_downsample_stride": 1,
+      "head_conv_channels": 320,
+      "head_channels": null,
+      "num_classes": 8,
+      "stages": [
+        {
+          "channels": 6,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 12,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 12,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 12,
+          "depth": 2,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 2
+            },
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 15,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 18,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 18,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "skip",
+              "kernel_size": 1,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        }
+      ]
+    },
+    "metrics": {
+      "latency_ms": 1.93328,
+      "dsp": 378,
+      "lut": 10852,
+      "bram": 210
+    }
+  },
+  "architecture_sha256": "2c6cd64dd6682e408d30398450c4aff550a27f7b0999d7e702747f3ddc8b753a",
+  "selection_features": {
+    "depth": 8.0,
+    "channel_sum": 93.0,
+    "skip_fraction": 0.125,
+    "latency_ms": 1.93328,
+    "dsp": 378.0,
+    "lut": 10852.0,
+    "bram": 210.0
+  },
+  "analytic_violations": []
+}

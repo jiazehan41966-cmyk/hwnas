@@ -8,6 +8,12 @@ from .recipe import (
     build_warmup_cosine_scheduler,
     train_with_recipe,
 )
+from .protocol_reporting import (
+    canonical_sha256,
+    hierarchical_paired_bootstrap,
+    protocol_claimability,
+    sha256_file,
+)
 from .retrain import (
     evaluate_model,
     load_architecture_from_artifact,
@@ -23,11 +29,15 @@ __all__ = [
     "Trainer",
     "build_train_criterion",
     "build_warmup_cosine_scheduler",
+    "canonical_sha256",
     "create_optimizer",
     "evaluate_model",
+    "hierarchical_paired_bootstrap",
     "load_architecture_from_artifact",
     "load_best_candidate_artifact",
     "retrain_architecture",
+    "protocol_claimability",
+    "sha256_file",
     "train_model",
     "train_with_recipe",
 ]

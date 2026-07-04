@@ -27,6 +27,7 @@ import argparse
 import json
 import random
 import statistics
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -42,6 +43,11 @@ from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
 from hwnas_fpga.training import load_architecture_from_artifact
 from hwnas_fpga.training.recipe import RecipeConfig, train_with_recipe
+from hwnas_fpga.training.protocol_reporting import (
+    canonical_sha256,
+    protocol_claimability,
+    sha256_file,
+)
 from hwnas_fpga.training.trainer import evaluate_classifier
 
 
@@ -67,7 +73,8 @@ def build_run_model(args: argparse.Namespace, num_classes: int) -> tuple[nn.Modu
         )
         return model, {
             "model_source": "candidate",
-            "candidate_path": str(args.candidate_path),
+            "candidate_path": str(Path(args.candidate_path).resolve()),
+            "architecture": architecture.to_dict(),
         }
 
     model, metadata = build_backbone(
@@ -107,6 +114,52 @@ def per_class_f1(confusion: list[list[int]]) -> list[float]:
     return scores
 
 
+def resolve_dataset_root(data_dir: str | Path) -> Path:
+    root = Path(data_dir).expanduser().resolve()
+    nested = root / "NKSID"
+    if (nested / "train_abs.txt").exists():
+        return nested
+    return root
+
+
+def git_commit() -> str | None:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=Path(__file__).resolve().parent,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def dataset_provenance(data_dir: str | Path) -> dict:
+    root = resolve_dataset_root(data_dir)
+    files = {}
+    for name in ("train_abs.txt", "kfold_train.txt", "kfold_val.txt"):
+        path = root / name
+        if not path.exists():
+            raise FileNotFoundError(f"Frozen protocol requires {path}")
+        files[name] = {
+            "path": str(path),
+            "sha256": sha256_file(path),
+            "size_bytes": path.stat().st_size,
+        }
+    return {
+        "dataset_root": str(root),
+        "files": files,
+    }
+
+
+def load_checkpoint_state(path: Path) -> dict[str, torch.Tensor]:
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    if isinstance(payload, dict) and isinstance(payload.get("model_state_dict"), dict):
+        return payload["model_state_dict"]
+    if isinstance(payload, dict) and all(torch.is_tensor(value) for value in payload.values()):
+        return payload
+    raise ValueError(f"Unsupported checkpoint payload: {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", default="data/NKSID")
@@ -119,7 +172,14 @@ def main() -> int:
     parser.add_argument("--folds", default="0,1,2,3,4")
     parser.add_argument("--seeds", default="42,43,44")
     parser.add_argument("--epochs", type=int, default=150)
-    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
+    parser.add_argument(
+        "--amp",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="enable CUDA automatic mixed precision (ignored on CPU)",
+    )
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
@@ -134,11 +194,30 @@ def main() -> int:
     parser.add_argument("--output-dir", default="results/protocol")
     parser.add_argument("--run-name", default=None)
     parser.add_argument("--save-checkpoints", action="store_true")
+    parser.add_argument(
+        "--resume",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="reuse completed fold/seed records when the run fingerprint matches",
+    )
+    parser.add_argument("--force", action="store_true",
+                        help="replace incompatible run metadata instead of failing")
+    parser.add_argument(
+        "--selection-provenance",
+        choices=("baseline_predeclared", "legacy_fold0_selected", "new_nested"),
+        default=None,
+        help="how the architecture/model family was selected",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     folds = parse_int_list(args.folds)
     seeds = parse_int_list(args.seeds)
+    if len(folds) != len(set(folds)) or len(seeds) != len(set(seeds)):
+        raise ValueError("folds and seeds must not contain duplicates")
+    selection_provenance = args.selection_provenance or (
+        "legacy_fold0_selected" if args.candidate_path else "baseline_predeclared"
+    )
     run_name = args.run_name or (
         f"protocol_{args.arch if not args.candidate_path else 'candidate'}"
         f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -154,12 +233,73 @@ def main() -> int:
         label_smoothing=args.label_smoothing,
         logit_adjust_tau=args.logit_adjust_tau,
         early_stopping_patience=args.early_stopping_patience,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        amp=args.amp,
     )
+
+    data_provenance = dataset_provenance(args.data_dir)
+    candidate_provenance = None
+    if args.candidate_path:
+        candidate_path = Path(args.candidate_path).expanduser().resolve()
+        candidate_provenance = {
+            "path": str(candidate_path),
+            "sha256": sha256_file(candidate_path),
+        }
+    immutable_config = {
+        "protocol": "nksid_outer5fold_inner_contiguous_v1",
+        "folds": folds,
+        "seeds": seeds,
+        "recipe": recipe.to_dict(),
+        "batch_size": args.batch_size,
+        "image_size": args.image_size,
+        "inner_val_fraction": args.inner_val_fraction,
+        "arch": args.arch,
+        "pretrained": args.pretrained,
+        "candidate": candidate_provenance,
+        "selection_provenance": selection_provenance,
+        "dataset": data_provenance,
+    }
+    run_fingerprint = canonical_sha256(immutable_config)
+    manifest_path = run_dir / "run_manifest.json"
+    if manifest_path.exists() and not args.force:
+        existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        existing_fingerprint = existing_manifest.get("run_fingerprint")
+        if existing_fingerprint != run_fingerprint:
+            raise RuntimeError(
+                f"Refusing to resume incompatible run {run_dir}: "
+                f"{existing_fingerprint} != {run_fingerprint}. Use --force or a new --run-name."
+            )
+    manifest = {
+        "protocol": "nksid_outer5fold_inner_contiguous_v1",
+        "run_name": run_name,
+        "run_fingerprint": run_fingerprint,
+        "created_or_checked": datetime.now().isoformat(timespec="seconds"),
+        "git_commit": git_commit(),
+        "immutable_config": immutable_config,
+        "planned_pairs": [
+            {"fold": fold, "seed": seed} for fold in folds for seed in seeds
+        ],
+        "completed_pairs": [],
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     runs: list[dict] = []
     class_names: list[str] | None = None
     for fold in folds:
         for seed in seeds:
+            run_tag = f"fold{fold}_seed{seed}"
+            record_path = run_dir / f"run_{run_tag}.json"
+            checkpoint_path = run_dir / f"best_{run_tag}.pt"
+            if args.resume and record_path.exists():
+                existing_record = json.loads(record_path.read_text(encoding="utf-8"))
+                checkpoint_ready = not args.save_checkpoints or checkpoint_path.exists()
+                if (
+                    existing_record.get("run_fingerprint") == run_fingerprint
+                    and checkpoint_ready
+                ):
+                    print(f"\n=== fold {fold} seed {seed}: resume existing record ===")
+                    runs.append(existing_record)
+                    continue
             print(f"\n=== fold {fold} seed {seed} ===")
             set_global_seed(seed)
             bundle = create_protocol_dataloaders(
@@ -212,25 +352,71 @@ def main() -> int:
                 "outer_per_class_f1": per_class_f1(outer_summary["confusion_matrix"]),
                 "split": bundle["split"].to_dict(),
                 "model": model_meta,
+                "selection_provenance": selection_provenance,
+                "run_fingerprint": run_fingerprint,
+                "split_sha256": canonical_sha256(bundle["split"].to_dict()),
+                "provenance": {
+                    "git_commit": manifest["git_commit"],
+                    "dataset": data_provenance,
+                    "candidate": candidate_provenance,
+                },
             }
-            runs.append(record)
-
-            run_tag = f"fold{fold}_seed{seed}"
-            with (run_dir / f"run_{run_tag}.json").open("w", encoding="utf-8") as handle:
-                json.dump(record, handle, indent=2)
             if args.save_checkpoints:
-                torch.save(result.best_state, run_dir / f"best_{run_tag}.pt")
+                checkpoint_payload = {
+                    "schema_version": 2,
+                    "protocol": "nksid_outer5fold_inner_contiguous_v1",
+                    "fold": fold,
+                    "seed": seed,
+                    "model_state_dict": result.best_state,
+                    "architecture": model_meta.get("architecture"),
+                    "source_candidate": candidate_provenance,
+                    "model": model_meta,
+                    "metrics": record["outer_val"],
+                    "best_epoch": result.best_epoch,
+                    "selection_provenance": selection_provenance,
+                    "run_fingerprint": run_fingerprint,
+                    "split_sha256": record["split_sha256"],
+                }
+                torch.save(checkpoint_payload, checkpoint_path)
+                record["checkpoint"] = {
+                    "path": str(checkpoint_path.resolve()),
+                    "sha256": sha256_file(checkpoint_path),
+                    "schema_version": 2,
+                }
+            record_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+            runs.append(record)
             print(
                 f"fold {fold} seed {seed}: outer macro_f1={outer_summary['macro_f1']:.4f} "
                 f"top1={outer_summary['top1']:.4f} (best epoch {result.best_epoch})"
             )
 
     class_names = class_names or list(NKSID_CLASSES)
+    claimability = protocol_claimability(
+        folds=folds,
+        seeds=seeds,
+        completed_pairs=[(r["fold"], r["seed"]) for r in runs],
+        selection_provenance=selection_provenance,
+    )
+    manifest["completed_pairs"] = [
+        {"fold": r["fold"], "seed": r["seed"]} for r in runs
+    ]
+    manifest["claimability"] = claimability
+    manifest["updated"] = datetime.now().isoformat(timespec="seconds")
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
     aggregate = {
         "protocol": "nksid_outer5fold_inner_contiguous_v1",
         "generated": datetime.now().isoformat(timespec="seconds"),
         "run_name": run_name,
         "device": device,
+        "run_fingerprint": run_fingerprint,
+        "claimability": claimability,
+        "provenance": {
+            "git_commit": manifest["git_commit"],
+            "dataset": data_provenance,
+            "candidate": candidate_provenance,
+            "manifest": str(manifest_path.resolve()),
+        },
         "recipe": recipe.to_dict(),
         "model": runs[0]["model"] if runs else None,
         "folds": folds,
@@ -256,6 +442,9 @@ def main() -> int:
         "",
         f"- protocol: `nksid_outer5fold_inner_contiguous_v1`",
         f"- folds: {folds}, seeds: {seeds}, epochs: {recipe.epochs}, device: {device}",
+        f"- claimable: `{claimability['claimable']}`",
+        f"- claim_scope: `{claimability['claim_scope']}`",
+        f"- nas_generalization_claimable: `{claimability['nas_generalization_claimable']}`",
         f"- model: {aggregate['model']}",
         "",
         "| metric | mean | std | n |",
@@ -268,6 +457,9 @@ def main() -> int:
     lines += ["", "| class | mean outer F1 |", "|---|---:|"]
     for name, value in zip(class_names, aggregate["per_class_f1_mean"]):
         lines.append(f"| {name} | {value:.4f} |")
+    if claimability["warnings"]:
+        lines += ["", "## Claim warnings", ""]
+        lines.extend(f"- {warning}" for warning in claimability["warnings"])
     (run_dir / "protocol_summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"\nSummary written to {run_dir / 'protocol_summary.json'}")

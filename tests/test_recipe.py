@@ -112,6 +112,29 @@ class TrainWithRecipeTests(unittest.TestCase):
             any(value.is_cuda for value in result.best_state.values())
         )
 
+    def test_gradient_accumulation_and_cpu_amp_fallback(self) -> None:
+        torch.manual_seed(2)
+        inputs = torch.randn(20, 4)
+        targets = (inputs[:, 0] > 0).long()
+        loader = DataLoader(TensorDataset(inputs, targets), batch_size=3)
+        model = nn.Linear(4, 2)
+        result = train_with_recipe(
+            model,
+            train_loader=loader,
+            inner_val_loader=loader,
+            num_classes=2,
+            recipe=RecipeConfig(
+                epochs=2,
+                gradient_accumulation_steps=4,
+                amp=True,
+                logit_adjust_tau=0.0,
+            ),
+            device="cpu",
+            verbose=False,
+        )
+        self.assertEqual(result.history["recipe"]["gradient_accumulation_steps"], 4)
+        self.assertTrue(result.history["recipe"]["amp"])
+
 
 if __name__ == "__main__":
     unittest.main()

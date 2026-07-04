@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-04T15:43:48",
+  "config": "E:\\1\\hwnas\\hwnas\\configs\\search\\nksid_fpga_search_mobile_anchor_av7k325.yaml",
+  "config_sha256": "d1755f3726cc15d81532e5e0b743c65e8f56e6a77569e85f69ace15138f85a16",
+  "seed": 20260704,
+  "sample_count_requested": 2048,
+  "unique_sample_count": 2047,
+  "exact_semantic_safe_space_cardinality": 15728640,
+  "operator_policy": {
+    "original_ops": [
+      "mbconv",
+      "denoise",
+      "edge",
+      "skip"
+    ],
+    "kept_ops": [
+      "mbconv",
+      "skip"
+    ],
+    "removed_ops": [
+      {
+        "op": "denoise",
+        "deployment_status": "paused",
+        "reason": "PyTorch has feature plus smoothing branches; admitted HLS has one smoothing branch."
+      },
+      {
+        "op": "edge",
+        "deployment_status": "paused",
+        "reason": "PyTorch has four directional branches and 4C fusion; admitted HLS has one spatial branch."
+      }
+    ],
+    "conditional_ops": []
+  },
+  "selection": "maximin over normalized depth/channel/skip/analytic-cost features",
+  "measurement_status": "frozen_unmeasured",
+  "probes": [
+    {
+      "probe_id": "calibration_probe_01",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\probes\\calibration_probe_01.candidate.json",
+      "payload_sha256": "443f74af48ec30bfb0aca3aff98c704ca90e45916709251bdfa8ecfc6df33d1e",
+      "architecture_sha256": "6f8bdaa33bcd0d0c6d4e019776c20db5a87f1ab2dce82536332ae47a5a0c63c8",
+      "features": {
+        "depth": 12.0,
+        "channel_sum": 110.0,
+        "skip_fraction": 0.0,
+        "latency_ms": 2.505875,
+        "dsp": 935.0,
+        "lut": 22382.0,
+        "bram": 232.0
+      }
+    },
+    {
+      "probe_id": "calibration_probe_02",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\probes\\calibration_probe_02.candidate.json",
+      "payload_sha256": "a8ff6fbcc57e739e887993af5847ee7750a1b33dbb919c12f6706ea97cdf262f",
+      "architecture_sha256": "2c6cd64dd6682e408d30398450c4aff550a27f7b0999d7e702747f3ddc8b753a",
+      "features": {
+        "depth": 8.0,
+        "channel_sum": 93.0,
+        "skip_fraction": 0.125,
+        "latency_ms": 1.93328,
+        "dsp": 378.0,
+        "lut": 10852.0,
+        "bram": 210.0
+      }
+    },
+    {
+      "probe_id": "calibration_probe_03",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\probes\\calibration_probe_03.candidate.json",
+      "payload_sha256": "7da978e2c2e529a05a67b6bb4f0b6dee8af6db821e1386329cfa02d36a5acb57",
+      "architecture_sha256": "f61bbe4ed56e5b83f308ee965ef61002ed270e57a28e821b736d8c6965511107",
+      "features": {
+        "depth": 11.0,
+        "channel_sum": 120.0,
+        "skip_fraction": 0.45454545454545453,
+        "latency_ms": 1.97628,
+        "dsp": 488.0,
+        "lut": 12788.0,
+        "bram": 244.0
+      }
+    },
+    {
+      "probe_id": "calibration_probe_04",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\probes\\calibration_probe_04.candidate.json",
+      "payload_sha256": "8956eed08f1b000843b1482799ce15581d2ba86f10f0a1484bfeb9441c5032f5",
+      "architecture_sha256": "53ba061c59c83e8cfbaf4ca8be5da9d81e4b8606a80309de5b8ba15323c1d68b",
+      "features": {
+        "depth": 8.0,
+        "channel_sum": 120.0,
+        "skip_fraction": 0.0,
+        "latency_ms": 1.995245,
+        "dsp": 764.0,
+        "lut": 18158.0,
+        "bram": 227.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "role": "hardware_calibration_probe_not_search_result",
+  "frozen_before_route_measurement": true,
+  "candidate": {
+    "arch_id": "calibration_probe_01",
+    "encoding": {
+      "input_channels": 1,
+      "stem_channels": 24,
+      "stem_stride": 2,
+      "post_stem_downsample_stride": 1,
+      "head_conv_channels": 320,
+      "head_channels": null,
+      "num_classes": 8,
+      "stages": [
+        {
+          "channels": 6,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 9,
+          "depth": 2,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 2
+            },
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 16,
+          "depth": 2,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 2
+            },
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 16,
+          "depth": 2,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 2
+            },
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 15,
+          "depth": 2,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 1
+            },
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 24,
+          "depth": 2,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 2
+            },
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 24,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 2,
+              "stride": 1
+            }
+          ]
+        }
+      ]
+    },
+    "metrics": {
+      "latency_ms": 2.505875,
+      "dsp": 935,
+      "lut": 22382,
+      "bram": 232
+    }
+  },
+  "architecture_sha256": "6f8bdaa33bcd0d0c6d4e019776c20db5a87f1ab2dce82536332ae47a5a0c63c8",
+  "selection_features": {
+    "depth": 12.0,
+    "channel_sum": 110.0,
+    "skip_fraction": 0.0,
+    "latency_ms": 2.505875,
+    "dsp": 935.0,
+    "lut": 22382.0,
+    "bram": 232.0
+  },
+  "analytic_violations": [
+    "DSP usage exceeds max_dsp",
+    "DSP usage exceeds hardware max_dsp"
+  ]
+}

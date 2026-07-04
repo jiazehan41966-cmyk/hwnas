@@ -44,6 +44,8 @@ class RecipeConfig:
     selection_metric: str = "macro_f1"
     early_stopping_patience: Optional[int] = None
     topk: int = 5
+    gradient_accumulation_steps: int = 1
+    amp: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -58,6 +60,8 @@ class RecipeConfig:
             "selection_metric": self.selection_metric,
             "early_stopping_patience": self.early_stopping_patience,
             "topk": self.topk,
+            "gradient_accumulation_steps": self.gradient_accumulation_steps,
+            "amp": self.amp,
         }
 
 
@@ -150,6 +154,9 @@ def train_with_recipe(
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model = model.to(device)
+    accumulation_steps = max(1, int(recipe.gradient_accumulation_steps))
+    amp_enabled = bool(recipe.amp and str(device).startswith("cuda"))
+    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     train_criterion = build_train_criterion(recipe, class_counts=class_counts).to(device)
     eval_criterion = nn.CrossEntropyLoss().to(device)
     optimizer = create_optimizer(
@@ -189,16 +196,29 @@ def train_with_recipe(
         total_loss = 0.0
         total_correct = 0
         total_samples = 0
-        for inputs, targets in train_loader:
+        optimizer.zero_grad(set_to_none=True)
+        batch_count = len(train_loader)
+        for batch_index, (inputs, targets) in enumerate(train_loader):
             inputs = inputs.to(device)
             targets = targets.to(device)
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = train_criterion(outputs, targets)
-            loss.backward()
-            optimizer.step()
+            with torch.amp.autocast(
+                device_type="cuda",
+                enabled=amp_enabled,
+            ):
+                outputs = model(inputs)
+                unscaled_loss = train_criterion(outputs, targets)
+                loss = unscaled_loss / accumulation_steps
+            scaler.scale(loss).backward()
+            should_step = (
+                (batch_index + 1) % accumulation_steps == 0
+                or batch_index + 1 == batch_count
+            )
+            if should_step:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
 
-            total_loss += loss.item() * inputs.size(0)
+            total_loss += unscaled_loss.item() * inputs.size(0)
             total_correct += outputs.argmax(dim=1).eq(targets).sum().item()
             total_samples += targets.size(0)
 
