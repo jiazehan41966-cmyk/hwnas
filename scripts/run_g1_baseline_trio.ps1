@@ -4,6 +4,8 @@
 # record, so re-running this script after an interruption is safe.
 
 $ErrorActionPreference = "Continue"
+$env:PYTHONUNBUFFERED = "1"
+$env:PYTHONIOENCODING = "utf-8"
 $repo = "E:\1\hwnas\hwnas"
 $py = Join-Path $repo ".venv_cuda\Scripts\python.exe"
 $logDir = Join-Path $repo "results\protocol"
