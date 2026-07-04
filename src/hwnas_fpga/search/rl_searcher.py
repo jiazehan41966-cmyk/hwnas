@@ -222,20 +222,21 @@ class Controller(nn.Module):
         self,
         stage_idx: int,
         block_idx: int,
-        prev_choices: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """前向传播，返回各决策类型的logits
+
+        注意：这是一个按位置分解的策略（factorized policy）——logits 只依赖
+        (stage_idx, block_idx)，不建模决策之间的依赖。项目的 strict40 与 B1
+        对比实验均未显示其优于随机搜索；RL 仅作为论文对比方法保留，
+        主线搜索请使用 run_supernet.py（SPOS 权重共享）。
 
         Args:
             stage_idx: 当前stage索引
             block_idx: 当前block索引
-            prev_choices: 之前的决策（用于建模依赖关系）
 
         Returns:
             各决策类型的logits字典
         """
-        # 构建输入特征
-        # 简化：使用stage和block索引的embedding
         stage_emb = self._get_embedding(stage_idx, self.max_stages)
         block_emb = self._get_embedding(block_idx, self.max_blocks_per_stage)
 

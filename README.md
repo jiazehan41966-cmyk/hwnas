@@ -39,6 +39,9 @@ python3 scripts/measure_sonar_image_quality.py --data-dir data/NKSID --split val
 
 # 冻结评估协议（外层5折 × 多seed，唯一可对外声明的分类指标入口）
 python3 run_eval_protocol.py --arch mobilenet_v2 --epochs 150 --folds 0,1,2,3,4 --seeds 42,43,44
+
+# SPOS 超网搜索（阶段3主线，取代 300×3epoch 的 RL/Random 代理评估）
+python3 run_supernet.py --config configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml --fold 0 --seed 42 --epochs 40 --num-candidates 200
 ```
 
 详细使用说明：[docs/QUICKSTART.md](docs/QUICKSTART.md)

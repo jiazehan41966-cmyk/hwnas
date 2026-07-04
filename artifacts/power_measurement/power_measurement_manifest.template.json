@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "measurement_source": "external_power_meter_csv",
+  "rail_scope": "board_input_total",
+  "instrument": {
+    "model": "TODO",
+    "sample_rate_hz": 0,
+    "calibration": "TODO"
+  },
+  "bitstream_sha256": "TODO_64_HEX",
+  "contains_programming": false,
+  "contains_uart_upload": false,
+  "idle_csvs": [
+    "raw/idle_01.csv",
+    "raw/idle_02.csv",
+    "raw/idle_03.csv"
+  ],
+  "active_captures": [
+    {"csv": "raw/active_01.csv", "inference_count": 1000},
+    {"csv": "raw/active_02.csv", "inference_count": 1000},
+    {"csv": "raw/active_03.csv", "inference_count": 1000}
+  ]
+}

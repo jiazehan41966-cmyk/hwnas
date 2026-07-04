@@ -135,6 +135,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--impl-profile", choices=("default", "fanout_only", "fanout_floorplan"), default="default")
     parser.add_argument("--argmax-pipeline", action="store_true")
     parser.add_argument(
+        "--dynamic-validation",
+        action="store_true",
+        help=(
+            "Generate the repeatable UART v1 input/output harness instead of the "
+            "legacy boot-time fixed-ROM harness."
+        ),
+    )
+    parser.add_argument(
+        "--dynamic-uart-baud",
+        type=int,
+        default=921_600,
+        help="Compile-time UART baud for --dynamic-validation.",
+    )
+    parser.add_argument(
         "--completion-mode",
         choices=("axil_and_sink", "sink_and_argmax"),
         default="axil_and_sink",
@@ -182,6 +196,14 @@ def parse_args() -> argparse.Namespace:
         and not args.trained_checkpoint
     ):
         parser.error("--trained-checkpoint is required with --parameter-mode trained_checkpoint_mem")
+    if (
+        args.mode in {"generate", "build", "all"}
+        and args.dynamic_validation
+        and args.parameter_mode != "trained_checkpoint_mem"
+    ):
+        parser.error(
+            "--dynamic-validation requires --parameter-mode trained_checkpoint_mem"
+        )
     return args
 
 
@@ -610,6 +632,8 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
         args.watchdog_cycles,
         argmax_pipeline=args.argmax_pipeline,
         completion_mode=args.completion_mode,
+        dynamic_validation=args.dynamic_validation,
+        dynamic_uart_baud=args.dynamic_uart_baud,
     )
     fullcombo.write_constraints(project, board_config)
     artifact = target_name(name)
@@ -621,10 +645,19 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
         "run_name": name,
         "module_name": "sonar_classifier_e2e_harness",
         "board_config": str(board_config),
-        "harness_kind": "single_full_network_latency_only_harness",
+        "harness_kind": (
+            "dynamic_validation_uart_v1"
+            if args.dynamic_validation
+            else "single_full_network_latency_only_harness"
+        ),
         "implementation_variant": True,
-        "parameter_mode": "latency_only_deterministic",
+        "parameter_mode": args.parameter_mode,
         "accuracy_claim": "none",
+        "validation_eligibility": (
+            "eligible_only_after_full_outer_validation_bit_exact_run"
+            if args.dynamic_validation
+            else "fixed_input_latency_only"
+        ),
         "timing_variant": args.timing_variant,
         "impl_profile": args.impl_profile,
         "component_overrides": override_records,
@@ -635,6 +668,10 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "argmax_pipeline": bool(args.argmax_pipeline),
         "completion_mode": args.completion_mode,
+        "dynamic_validation": bool(args.dynamic_validation),
+        "dynamic_uart_baud": (
+            int(args.dynamic_uart_baud) if args.dynamic_validation else None
+        ),
         "harness_fifo_depth": args.fifo_depth,
         "harness_fifo_style": args.fifo_style,
         "impl_profile_artifacts": impl_artifacts,

@@ -29,6 +29,11 @@ from .rl_searcher import (
     RewardFunction,
 )
 from .proxyless_searcher import ProxylessSearcher
+from .supernet import (
+    MobileAnchorSupernet,
+    evaluate_candidate as evaluate_supernet_candidate,
+    train_supernet,
+)
 
 __all__ = [
     "BaseSearcher",
@@ -57,4 +62,7 @@ __all__ = [
     "RLSearcher",
     "RewardFunction",
     "ProxylessSearcher",
+    "MobileAnchorSupernet",
+    "evaluate_supernet_candidate",
+    "train_supernet",
 ]

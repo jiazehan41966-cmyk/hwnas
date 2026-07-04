@@ -16,6 +16,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import json
 import re
 import statistics
@@ -31,9 +32,11 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from hwnas_fpga.data.dataset import create_protocol_dataloaders
 from hwnas_fpga.deploy.ptq_eval import apply_ptq, stratified_calibration_indices
+from hwnas_fpga.deploy.qat import finalize_qat, prepare_qat
 from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
 from hwnas_fpga.training import load_architecture_from_artifact
+from hwnas_fpga.training.recipe import RecipeConfig, train_with_recipe
 from hwnas_fpga.training.trainer import evaluate_classifier
 from hwnas_fpga.training.protocol_reporting import canonical_sha256, sha256_file
 
@@ -82,6 +85,20 @@ def main() -> int:
     parser.add_argument("--fold", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max-allowed-drop", type=float, default=0.02)
+    parser.add_argument(
+        "--qat-on-fail",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument("--qat-epochs", type=int, default=20)
+    parser.add_argument("--qat-lr", type=float, default=1e-5)
+    parser.add_argument("--max-qat-drop", type=float, default=0.05)
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
+    parser.add_argument(
+        "--amp",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--device", default=None)
     args = parser.parse_args()
@@ -145,6 +162,7 @@ def main() -> int:
         else:
             raise ValueError(f"Unsupported checkpoint payload: {path}")
         model.load_state_dict(state)
+        fp32_for_qat = deepcopy(model)
         model = model.to(device).eval()
 
         fp32_summary = evaluate_classifier(
@@ -193,6 +211,93 @@ def main() -> int:
             drop_macro_f1 <= args.max_allowed_drop
             and drop_top1 <= args.max_allowed_drop
         )
+        qat_record = None
+        qat_gate_pass = False
+        if not gate_pass and args.qat_on_fail:
+            qat_model = fp32_for_qat.to(device)
+            qat_prepare = prepare_qat(
+                qat_model,
+                calibration_loader,
+                device=device,
+            )
+            qat_result = train_with_recipe(
+                qat_model,
+                train_loader=bundle["train_loader"],
+                inner_val_loader=bundle["inner_val_loader"],
+                num_classes=num_classes,
+                recipe=RecipeConfig(
+                    epochs=args.qat_epochs,
+                    lr=args.qat_lr,
+                    weight_decay=1e-5,
+                    warmup_epochs=min(2, max(0, args.qat_epochs - 1)),
+                    label_smoothing=0.1,
+                    logit_adjust_tau=1.0,
+                    gradient_accumulation_steps=args.gradient_accumulation_steps,
+                    amp=args.amp,
+                ),
+                device=device,
+                class_counts=bundle["train_class_counts"].tolist(),
+            )
+            qat_model.load_state_dict(qat_result.best_state)
+            qat_summary = evaluate_classifier(
+                qat_model,
+                bundle["outer_val_loader"],
+                criterion=criterion,
+                device=device,
+                num_classes=num_classes,
+            )
+            qat_macro_drop = fp32_summary["macro_f1"] - qat_summary["macro_f1"]
+            qat_top1_drop = fp32_summary["top1"] - qat_summary["top1"]
+            qat_gate_pass = (
+                qat_macro_drop <= args.max_qat_drop
+                and qat_top1_drop <= args.max_qat_drop
+            )
+            finalized = finalize_qat(qat_model)
+            qat_checkpoint = run_dir / f"qat_best_fold{fold}_seed{seed}.pt"
+            architecture_payload = (
+                checkpoint_payload.get("architecture")
+                if isinstance(checkpoint_payload, dict)
+                else None
+            )
+            if architecture_payload is None and args.candidate_path:
+                architecture_payload = load_architecture_from_artifact(
+                    args.candidate_path
+                ).to_dict()
+            torch.save(
+                {
+                    "schema_version": 2,
+                    "protocol": "nksid_outer5fold_inner_contiguous_v1",
+                    "fold": fold,
+                    "seed": seed,
+                    "model_state_dict": finalized.state_dict(),
+                    "architecture": architecture_payload,
+                    "metrics": {
+                        key: qat_summary[key]
+                        for key in ("macro_f1", "top1", "weighted_f1")
+                    },
+                    "quantization": qat_prepare,
+                    "source_checkpoint_sha256": sha256_file(path),
+                    "claim_boundary": (
+                        "QAT checkpoint passed the software accuracy gate; "
+                        "HLS and board parity remain required."
+                    ),
+                },
+                qat_checkpoint,
+            )
+            qat_record = {
+                "metrics": {
+                    key: qat_summary[key]
+                    for key in ("macro_f1", "top1", "weighted_f1")
+                },
+                "best_epoch": qat_result.best_epoch,
+                "macro_f1_drop": qat_macro_drop,
+                "top1_drop": qat_top1_drop,
+                "gate_pass": qat_gate_pass,
+                "max_allowed_drop": args.max_qat_drop,
+                "prepare": qat_prepare,
+                "checkpoint": str(qat_checkpoint.resolve()),
+                "checkpoint_sha256": sha256_file(qat_checkpoint),
+            }
         record = {
             "fold": fold,
             "seed": seed,
@@ -216,6 +321,17 @@ def main() -> int:
                 "top1_drop": drop_top1,
                 "required_action": "proceed_to_parity" if gate_pass else "qat_required",
             },
+            "qat": qat_record,
+            "deployment_accuracy_gate": {
+                "pass": gate_pass or qat_gate_pass,
+                "selected_path": (
+                    "ptq"
+                    if gate_pass
+                    else "qat"
+                    if qat_gate_pass
+                    else "blocked"
+                ),
+            },
         }
         records.append(record)
         print(
@@ -236,9 +352,13 @@ def main() -> int:
         "records": records,
         "claim_boundary": records[0]["ptq"]["claim_boundary"],
         "ptq_gate": {
-            "pass": all(record["ptq_gate"]["pass"] for record in records),
+            "pass": all(
+                record["deployment_accuracy_gate"]["pass"] for record in records
+            ),
             "max_allowed_drop": args.max_allowed_drop,
-            "failure_action": "run matching-scheme QAT before HLS/board validation",
+            "failure_action": (
+                "stop before HLS/board validation and localize quantization-sensitive layers"
+            ),
         },
     }
     output_path = run_dir / "int8_ptq_summary.json"

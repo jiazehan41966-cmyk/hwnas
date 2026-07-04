@@ -31,7 +31,9 @@ PARETO_ARTIFACT_METRIC_COLUMNS = (
     "dsp",
     "bram",
     "lut",
-    "power_w",
+    # power_w intentionally excluded: it is a linear heuristic, not a
+    # measurement; keeping it out of default artifact columns prevents
+    # accidental use in Pareto claims (2026-07-03 audit finding #4).
     "memory_bandwidth_gbps",
     "offchip_mem_mb",
     "early_expand_pressure",
@@ -183,9 +185,12 @@ def build_pareto_objectives(
         add("bram", "min")
     if resource_requested or (constraints and constraints.max_lut is not None):
         add("lut", "min")
+    # power_w is a linear heuristic, not a measurement (audit finding #4).
+    # It never enters the Pareto front implicitly via max_power_w; feasibility
+    # filtering still applies. Explicit opt-in only, and any result using it
+    # must be labeled estimate-only.
     if (
         weights.get("power", 0.0) > 0
-        or (constraints and constraints.max_power_w is not None)
         or (isinstance(physical, dict) and physical.get("pareto_power"))
     ):
         add("power_w", "min")
