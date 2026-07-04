@@ -326,6 +326,31 @@ def apply_operator_policies_to_search_space(
     return filtered_space, summary
 
 
+def load_analytic_calibration(config: dict[str, Any]) -> Optional[dict[str, float]]:
+    """Load analytic-model calibration factors referenced by the config.
+
+    ``hardware.analytic_calibration_path`` points at the JSON emitted by
+    ``scripts/calibrate_hw_surrogate.py``; either the file's
+    ``recommended_analytic_calibration`` block or a flat factor dict is
+    accepted. A configured-but-missing file is an error: silently searching
+    with an uncalibrated surrogate is exactly the failure mode the
+    calibration exists to prevent.
+    """
+    hardware_cfg = config.get("hardware", {})
+    calibration_path = hardware_cfg.get("analytic_calibration_path")
+    if not calibration_path:
+        return None
+    path = Path(calibration_path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"hardware.analytic_calibration_path does not exist: {path}"
+        )
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    factors = payload.get("recommended_analytic_calibration", payload)
+    return {str(key): float(value) for key, value in factors.items()}
+
+
 def build_cost_estimator(
     config: dict[str, Any],
     *,
@@ -345,6 +370,7 @@ def build_cost_estimator(
         strict_formal_lut=bool(hardware_cfg.get("strict_formal_lut", False)),
         strict_lut_label=str(hardware_cfg.get("strict_lut_label", "formal LUT")),
         use_lut_for_head_layers=bool(hardware_cfg.get("use_lut_for_head_layers", False)),
+        analytic_calibration=load_analytic_calibration(config),
     )
 
 

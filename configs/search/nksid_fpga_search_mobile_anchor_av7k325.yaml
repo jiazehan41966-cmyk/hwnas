@@ -65,6 +65,11 @@ hardware:
   lut_path: null
   use_dummy_lut: false
   operator_manifest_path: hls_lut_builder/configs/operator_manifest_semantic_safe.yaml
+  # Fitted against 10 routed harness runs (scripts/calibrate_hw_surrogate.py).
+  # Residuals after calibration: DSP +/-6.4%, LUT +/-10.9%, BRAM +/-7.4%;
+  # latency_scale is a conservative screening bound (worst underestimate),
+  # real latency ranking must come from HLS/board evidence.
+  analytic_calibration_path: artifacts/hw_surrogate_calibration/hw_surrogate_calibration.json
 
 search:
   method: rl

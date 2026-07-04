@@ -114,6 +114,7 @@ class FPGACostEstimator:
         strict_formal_lut: bool = False,
         strict_lut_label: str = "formal LUT",
         use_lut_for_head_layers: bool = False,
+        analytic_calibration: Optional[dict[str, float]] = None,
     ) -> None:
         if quantization_bits <= 0:
             raise ValueError("quantization_bits must be positive")
@@ -133,6 +134,20 @@ class FPGACostEstimator:
         self.strict_formal_lut = bool(strict_formal_lut)
         self.strict_lut_label = str(strict_lut_label or "formal LUT").strip() or "formal LUT"
         self.use_lut_for_head_layers = bool(use_lut_for_head_layers)
+        # Multiplicative correction for the analytic fallback model, fitted
+        # against routed board evidence (scripts/calibrate_hw_surrogate.py).
+        # Applied only to analytic-fallback layers, never to LUT-measured
+        # entries, which already track post-route reality.
+        calibration = dict(analytic_calibration or {})
+        self.analytic_calibration = {
+            "latency_scale": float(calibration.get("latency_scale", 1.0)),
+            "dsp_scale": float(calibration.get("dsp_scale", 1.0)),
+            "lut_scale": float(calibration.get("lut_scale", 1.0)),
+            "bram_scale": float(calibration.get("bram_scale", 1.0)),
+        }
+        for key, value in self.analytic_calibration.items():
+            if value <= 0:
+                raise ValueError(f"analytic_calibration {key} must be positive, got {value}")
         self.lut_hits = 0  # LUT hit counter
         self.lut_misses = 0  # LUT miss counter
         self.true_lut_misses = 0
@@ -644,6 +659,12 @@ class FPGACostEstimator:
             latency_cycles = max(1, _div_up(macs, throughput))
             bram_blocks = _div_up(pooled_bytes + activation_bytes + weight_bytes, BRAM_BLOCK_BYTES)
             lut = lut_bias + allocated_dsp * 10 + output_channels * 4
+            latency_cycles, allocated_dsp, lut, bram_blocks = self._calibrate_analytic(
+                latency_cycles=latency_cycles,
+                dsp=allocated_dsp,
+                lut=lut,
+                bram=bram_blocks,
+            )
             latency_ms_override = None
             effective_clock_mhz = None
 
@@ -756,6 +777,13 @@ class FPGACostEstimator:
         tile_weight_bytes = min(weight_bytes, 8 * BRAM_BLOCK_BYTES)
         bram_blocks = _div_up(input_bytes + activation_bytes + tile_weight_bytes, BRAM_BLOCK_BYTES)
         lut = self._estimate_lut(block=block, allocated_dsp=allocated_dsp)
+        latency_cycles, allocated_dsp, lut, bram_blocks = self._calibrate_analytic(
+            latency_cycles=latency_cycles,
+            dsp=allocated_dsp,
+            lut=lut,
+            bram=bram_blocks,
+        )
+        ideal_dsp = allocated_dsp
 
         return LayerCost(
             stage_index=block.stage_index,
@@ -779,6 +807,22 @@ class FPGACostEstimator:
                 cycles=latency_cycles,
             ),
             effective_clock_mhz=latency_clock_mhz,
+        )
+
+    def _calibrate_analytic(
+        self,
+        *,
+        latency_cycles: int,
+        dsp: int,
+        lut: int,
+        bram: int,
+    ) -> tuple[int, int, int, int]:
+        calibration = self.analytic_calibration
+        return (
+            max(1, int(round(latency_cycles * calibration["latency_scale"]))),
+            max(0, int(round(dsp * calibration["dsp_scale"]))),
+            max(0, int(round(lut * calibration["lut_scale"]))),
+            max(0, int(round(bram * calibration["bram_scale"]))),
         )
 
     def _operator_policy_for(self, op: str) -> dict[str, Any]:

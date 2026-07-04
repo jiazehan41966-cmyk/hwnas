@@ -96,6 +96,7 @@ results/<run_name>/
 | [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) | 审计、证据与交接索引 |
 | [docs/REVIEW.md](docs/REVIEW.md) | 当前仓库审查入口与旧快照说明 |
 | [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | 冻结评估协议（外层5折×多seed，唯一可声明入口） |
+| [artifacts/hw_surrogate_calibration/hw_surrogate_calibration.md](artifacts/hw_surrogate_calibration/hw_surrogate_calibration.md) | 解析模型 vs 布线实测校准（10 组配对，资源残差 ≤±11%） |
 | [docs/FIRST_PRINCIPLES_AUDIT_20260703.md](docs/FIRST_PRINCIPLES_AUDIT_20260703.md) | 数据协议、算子语义与证据强度重审 |
 | [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) | Phase0 v3 low-DSP full-route and COM5 board-claimable results |
 | [docs/PHASE0_V4_SONAR_RESULTS.md](docs/PHASE0_V4_SONAR_RESULTS.md) | Phase0 v4 search/retrain/route/COM5/image-quality handoff |
