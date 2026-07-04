@@ -16,7 +16,9 @@ HLS fixed-point pipeline; the board chain must still verify numeric parity.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+import random
+from collections import defaultdict
+from typing import Any, Optional, Sequence
 
 import torch
 import torch.nn as nn
@@ -28,6 +30,50 @@ def quantize_dequantize(tensor: torch.Tensor, scale: float) -> torch.Tensor:
     if scale <= 0:
         return tensor
     return torch.clamp(torch.round(tensor / scale), -127.0, 127.0) * scale
+
+
+def stratified_calibration_indices(
+    labels: Sequence[int],
+    candidate_indices: Sequence[int],
+    *,
+    max_samples: int = 512,
+    seed: int = 42,
+) -> list[int]:
+    """Select a deterministic, approximately proportional training-only subset."""
+    if max_samples <= 0:
+        raise ValueError("max_samples must be positive")
+    by_class: dict[int, list[int]] = defaultdict(list)
+    for index in candidate_indices:
+        by_class[int(labels[int(index)])].append(int(index))
+    if not by_class:
+        raise ValueError("candidate_indices is empty")
+    rng = random.Random(seed)
+    for values in by_class.values():
+        rng.shuffle(values)
+    target = min(int(max_samples), sum(len(values) for values in by_class.values()))
+    selected: list[int] = []
+    # First preserve rare-class coverage, then fill proportionally by cycling
+    # through classes according to remaining population.
+    for label in sorted(by_class):
+        if by_class[label] and len(selected) < target:
+            selected.append(by_class[label].pop())
+    while len(selected) < target:
+        available = [
+            (label, len(values)) for label, values in by_class.items() if values
+        ]
+        if not available:
+            break
+        total = sum(count for _, count in available)
+        draw = rng.randrange(total)
+        cumulative = 0
+        chosen = available[-1][0]
+        for label, count in available:
+            cumulative += count
+            if draw < cumulative:
+                chosen = label
+                break
+        selected.append(by_class[chosen].pop())
+    return sorted(selected)
 
 
 class FakeQuantizedOp(nn.Module):
@@ -116,6 +162,7 @@ def apply_ptq(
         "scheme": "symmetric_per_tensor",
         "num_quantized_ops": len(wrapped),
         "num_calibration_batches": batches_used,
+        "calibration_source": "training_side_only",
         "activation_scales": [float(op.act_scale.item()) for op in wrapped],
         "weight_scales": [op.weight_scale for op in wrapped],
         "claim_boundary": (

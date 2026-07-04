@@ -900,6 +900,9 @@ def create_protocol_dataloaders(
         "train_loader": train_loader,
         "inner_val_loader": inner_val_loader,
         "outer_val_loader": outer_val_loader,
+        # Exposed for deterministic training-side calibration subsets. Callers
+        # must index it only with split.train_indices, never outer_val_indices.
+        "eval_dataset": eval_view,
         "split": split,
         "num_classes": num_classes,
         "classes": list(train_view.classes),

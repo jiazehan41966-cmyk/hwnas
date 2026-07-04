@@ -8,6 +8,7 @@ from hwnas_fpga.deploy.ptq_eval import (
     FakeQuantizedOp,
     apply_ptq,
     quantize_dequantize,
+    stratified_calibration_indices,
 )
 
 
@@ -83,6 +84,30 @@ class ApplyPtqTests(unittest.TestCase):
     def test_rejects_model_without_quantizable_ops(self) -> None:
         with self.assertRaises(ValueError):
             apply_ptq(nn.Sequential(nn.ReLU()), self._make_loader(), device="cpu")
+
+
+class CalibrationSubsetTests(unittest.TestCase):
+    def test_is_deterministic_and_keeps_rare_class(self) -> None:
+        labels = [0] * 20 + [1] * 2 + [2]
+        first = stratified_calibration_indices(
+            labels,
+            list(range(len(labels))),
+            max_samples=10,
+            seed=42,
+        )
+        second = stratified_calibration_indices(
+            labels,
+            list(range(len(labels))),
+            max_samples=10,
+            seed=42,
+        )
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 10)
+        self.assertEqual({labels[index] for index in first}, {0, 1, 2})
+
+    def test_rejects_empty_candidates(self) -> None:
+        with self.assertRaises(ValueError):
+            stratified_calibration_indices([], [], max_samples=10)
 
 
 if __name__ == "__main__":

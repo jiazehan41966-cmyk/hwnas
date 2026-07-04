@@ -25,15 +25,17 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader, Subset
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from hwnas_fpga.data.dataset import create_protocol_dataloaders
-from hwnas_fpga.deploy.ptq_eval import apply_ptq
+from hwnas_fpga.deploy.ptq_eval import apply_ptq, stratified_calibration_indices
 from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
 from hwnas_fpga.training import load_architecture_from_artifact
 from hwnas_fpga.training.trainer import evaluate_classifier
+from hwnas_fpga.training.protocol_reporting import canonical_sha256, sha256_file
 
 CHECKPOINT_PATTERN = re.compile(r"^best_fold(?P<fold>\d+)_seed(?P<seed>\d+)\.pt$")
 
@@ -76,7 +78,10 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--inner-val-fraction", type=float, default=0.15)
-    parser.add_argument("--calibration-batches", type=int, default=16)
+    parser.add_argument("--calibration-samples", type=int, default=512)
+    parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--max-allowed-drop", type=float, default=0.02)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--device", default=None)
     args = parser.parse_args()
@@ -88,6 +93,18 @@ def main() -> int:
         for path in run_dir.glob("best_fold*_seed*.pt")
     )
     checkpoints = [(path, match) for path, match in checkpoints if match]
+    if args.fold is not None:
+        checkpoints = [
+            (path, match)
+            for path, match in checkpoints
+            if int(match.group("fold")) == args.fold
+        ]
+    if args.seed is not None:
+        checkpoints = [
+            (path, match)
+            for path, match in checkpoints
+            if int(match.group("seed")) == args.seed
+        ]
     if not checkpoints:
         print(
             f"No best_fold*_seed*.pt checkpoints in {run_dir}; "
@@ -115,7 +132,18 @@ def main() -> int:
         num_classes = bundle["num_classes"]
 
         model = build_run_model(args, num_classes)
-        state = torch.load(path, map_location="cpu", weights_only=True)
+        checkpoint_payload = torch.load(path, map_location="cpu", weights_only=False)
+        if (
+            isinstance(checkpoint_payload, dict)
+            and isinstance(checkpoint_payload.get("model_state_dict"), dict)
+        ):
+            state = checkpoint_payload["model_state_dict"]
+        elif isinstance(checkpoint_payload, dict) and all(
+            torch.is_tensor(value) for value in checkpoint_payload.values()
+        ):
+            state = checkpoint_payload
+        else:
+            raise ValueError(f"Unsupported checkpoint payload: {path}")
         model.load_state_dict(state)
         model = model.to(device).eval()
 
@@ -127,11 +155,28 @@ def main() -> int:
             num_classes=num_classes,
         )
 
-        # Calibrate on training-side batches only, then re-evaluate.
+        labels = [int(label) for _, label in bundle["eval_dataset"].samples]
+        calibration_indices = stratified_calibration_indices(
+            labels,
+            bundle["split"].train_indices,
+            max_samples=args.calibration_samples,
+            seed=seed,
+        )
+        if set(calibration_indices) & set(bundle["split"].outer_val_indices):
+            raise RuntimeError("PTQ calibration leaked into outer validation")
+        calibration_loader = DataLoader(
+            Subset(bundle["eval_dataset"], calibration_indices),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            pin_memory=str(device).startswith("cuda"),
+        )
+
+        # Calibrate on a fixed, stratified training-side subset only.
         ptq_meta = apply_ptq(
             model,
-            bundle["train_loader"],
-            num_calibration_batches=args.calibration_batches,
+            calibration_loader,
+            num_calibration_batches=len(calibration_loader),
             device=device,
         )
         int8_summary = evaluate_classifier(
@@ -142,6 +187,12 @@ def main() -> int:
             num_classes=num_classes,
         )
 
+        drop_macro_f1 = fp32_summary["macro_f1"] - int8_summary["macro_f1"]
+        drop_top1 = fp32_summary["top1"] - int8_summary["top1"]
+        gate_pass = (
+            drop_macro_f1 <= args.max_allowed_drop
+            and drop_top1 <= args.max_allowed_drop
+        )
         record = {
             "fold": fold,
             "seed": seed,
@@ -150,9 +201,21 @@ def main() -> int:
             "int8": {key: int8_summary[key] for key in ("macro_f1", "top1", "weighted_f1")},
             "delta_macro_f1": int8_summary["macro_f1"] - fp32_summary["macro_f1"],
             "delta_top1": int8_summary["top1"] - fp32_summary["top1"],
-            "ptq": {key: ptq_meta[key] for key in (
-                "num_quantized_ops", "num_calibration_batches", "claim_boundary"
-            )},
+            "checkpoint_sha256": sha256_file(path),
+            "calibration": {
+                "source": "inner_train_eval_transform",
+                "sample_count": len(calibration_indices),
+                "indices_sha256": canonical_sha256(calibration_indices),
+                "outer_overlap": 0,
+            },
+            "ptq": ptq_meta,
+            "ptq_gate": {
+                "pass": gate_pass,
+                "max_allowed_drop": args.max_allowed_drop,
+                "macro_f1_drop": drop_macro_f1,
+                "top1_drop": drop_top1,
+                "required_action": "proceed_to_parity" if gate_pass else "qat_required",
+            },
         }
         records.append(record)
         print(
@@ -162,6 +225,7 @@ def main() -> int:
         )
 
     aggregate = {
+        "schema_version": 2,
         "generated": datetime.now().isoformat(timespec="seconds"),
         "protocol_run": str(run_dir),
         "device": device,
@@ -171,6 +235,11 @@ def main() -> int:
         "delta_top1": summarize([r["delta_top1"] for r in records]),
         "records": records,
         "claim_boundary": records[0]["ptq"]["claim_boundary"],
+        "ptq_gate": {
+            "pass": all(record["ptq_gate"]["pass"] for record in records),
+            "max_allowed_drop": args.max_allowed_drop,
+            "failure_action": "run matching-scheme QAT before HLS/board validation",
+        },
     }
     output_path = run_dir / "int8_ptq_summary.json"
     output_path.write_text(json.dumps(aggregate, indent=2), encoding="utf-8")
@@ -181,7 +250,7 @@ def main() -> int:
             f"INT8 - FP32 macro_f1: {delta['mean']:+.4f} +/- {delta['std']:.4f} "
             f"(n={delta['n']})"
         )
-    return 0
+    return 0 if aggregate["ptq_gate"]["pass"] else 2
 
 
 if __name__ == "__main__":
