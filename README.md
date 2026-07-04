@@ -36,6 +36,9 @@ python3 run_build_lut.py --manifest configs/hardware/lut_manifest_example.yaml -
 
 # 声呐图像 PSNR/SSIM（默认 input_as_reference，仅作算子影响分析）
 python3 scripts/measure_sonar_image_quality.py --data-dir data/NKSID --split val --fold 0
+
+# 冻结评估协议（外层5折 × 多seed，唯一可对外声明的分类指标入口）
+python3 run_eval_protocol.py --arch mobilenet_v2 --epochs 150 --folds 0,1,2,3,4 --seeds 42,43,44
 ```
 
 详细使用说明：[docs/QUICKSTART.md](docs/QUICKSTART.md)
@@ -92,6 +95,7 @@ results/<run_name>/
 | [docs/PROGRESS.md](docs/PROGRESS.md) | 实现进展与功能总结 |
 | [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) | 审计、证据与交接索引 |
 | [docs/REVIEW.md](docs/REVIEW.md) | 当前仓库审查入口与旧快照说明 |
+| [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | 冻结评估协议（外层5折×多seed，唯一可声明入口） |
 | [docs/FIRST_PRINCIPLES_AUDIT_20260703.md](docs/FIRST_PRINCIPLES_AUDIT_20260703.md) | 数据协议、算子语义与证据强度重审 |
 | [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) | Phase0 v3 low-DSP full-route and COM5 board-claimable results |
 | [docs/PHASE0_V4_SONAR_RESULTS.md](docs/PHASE0_V4_SONAR_RESULTS.md) | Phase0 v4 search/retrain/route/COM5/image-quality handoff |

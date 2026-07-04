@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
@@ -674,7 +674,7 @@ class FPGACostEstimator:
     def _estimate_block(self, block: ResolvedBlockSpec) -> LayerCost:
         latency_clock_mhz = self._effective_clock_mhz(block.op)
         latency_ms_override: Optional[float] = None
-        # 1. 灏濊瘯 LUT 鏌ヨ锛堝鏋滃彲鐢級
+        # 1. 优先尝试 LUT 查询（如可用）
         if self.lut_query_engine:
             op_spec = self._block_to_op_spec(block)
             shape_record = self._block_shape_record(block)
@@ -687,7 +687,7 @@ class FPGACostEstimator:
                     cycles=lut_entry.cycles,
                     fallback_latency_ms=lut_entry.latency_ms,
                 )
-                # 璁＄畻鍏朵粬鍒嗘瀽鎸囨爣锛坧arams, macs 绛夛級
+                # 其余分析指标（params、macs 等）仍走解析模型
                 params, macs = self._block_params_macs(block)
                 weight_bytes = params * self._bytes_per_scalar
                 activation_bytes = self._tensor_bytes(block.output_resolution, block.out_channels)
@@ -712,50 +712,14 @@ class FPGACostEstimator:
                     latency_ms_override=latency_ms_override,
                     effective_clock_mhz=latency_clock_mhz,
                 )
-            if (
-                self.strict_formal_lut
-                and query_result.status not in {"measured", "missing"}
-            ):
-                self.deferred_hits += 1
-                status_entry = query_result.status_entry
-                record = {
-                    "op": block.op,
-                    "lookup_op": op_spec.op,
-                    "shape": shape_record,
-                    "status": query_result.status,
-                    "defer_reason": (
-                        None if status_entry is None else status_entry.defer_reason
-                    ),
-                    "case_name": (
-                        None if status_entry is None else status_entry.case_name
-                    ),
-                }
-                self.deferred_hit_records.append(record)
-                violation_reason = (
-                    status_entry.defer_reason
-                    if status_entry is not None and status_entry.defer_reason
-                    else query_result.status
-                )
-                self._estimate_dynamic_violations.append(
-                    f"{self.strict_lut_label} infeasible: {op_spec.op} ({violation_reason})"
-                )
-            else:
-                self.lut_misses += 1
-                self.true_lut_misses += 1
-                if self.strict_formal_lut and query_result.status == "missing":
-                    self._estimate_dynamic_violations.append(
-                        f"{self.strict_lut_label} missing: {op_spec.op}"
-                    )
-                self.true_miss_records.append(
-                    {
-                        "op": block.op,
-                        "lookup_op": op_spec.op,
-                        "shape": shape_record,
-                        "status": query_result.status,
-                    }
-                )
+            self._record_lut_non_hit(
+                logical_op=block.op,
+                op_spec=op_spec,
+                query_result=query_result,
+                shape=shape_record,
+            )
 
-        # 2. 鍥為€€鍒板垎鏋愭ā鍨?
+        # 2. 回退到解析模型
         if block.op == "skip":
             input_bytes = self._tensor_bytes(block.input_resolution, block.in_channels)
             output_bytes = self._tensor_bytes(block.output_resolution, block.out_channels)
@@ -1016,10 +980,10 @@ class FPGACostEstimator:
             )
             return fused_params + project_params, fused_macs + project_macs, raw_dsp
 
-        # 澹板憪涓撶敤澶氬昂搴﹀嵎绉?(MixConv)
+        # 声呐专用多尺度卷积 (MixConv)
         if block.op == "mixconv":
-            # MixConv 浣跨敤3,5,7涓夌kernel_size骞惰
-            # 鎬诲弬鏁?= sum(姣忎釜kernel鐨刣w鍙傛暟) + pw鍙傛暟
+            # MixConv 使用 3,5,7 三种 kernel_size 并行
+            # 总参数 = sum(每个 kernel 的 dw 参数) + pw 参数
             dw_params = 0
             dw_macs = 0
             kernel_sizes = (3, 5, 7)
@@ -1040,7 +1004,7 @@ class FPGACostEstimator:
                 * block.in_channels
                 * block.out_channels
             )
-            # DSP浼拌锛?涓苟琛孌W + 1涓狿W
+            # DSP 估计：3 个并行 DW + 1 个 PW
             raw_dsp = max(
                 max(
                     self._conv_dsp(
@@ -1060,9 +1024,9 @@ class FPGACostEstimator:
             )
             return dw_params + pw_params, dw_macs + pw_macs, raw_dsp
 
-        # 澹板憪涓撶敤鍘诲櫔鍧?(DenoiseBlock)
+        # 声呐专用去噪块 (DenoiseBlock)
         if block.op == "denoise":
-            # DW + PW (绫讳技dw_pw_conv浣嗗甫骞虫粦)
+            # DW + PW（类似 dw_pw_conv 但带平滑分支）
             dw_params = block.in_channels * block.kernel_size * block.kernel_size
             pw_params = block.in_channels * block.out_channels
             dw_macs = (
@@ -1094,9 +1058,9 @@ class FPGACostEstimator:
             )
             return dw_params + pw_params, dw_macs + pw_macs, raw_dsp
 
-        # 澹板憪涓撶敤杈圭紭鎰熺煡鍧?(EdgeAwareBlock)
+        # 声呐专用边缘感知块 (EdgeAwareBlock)
         if block.op == "edge":
-            # 4涓柟鍚戠殑杈圭紭妫€娴?+ 铻嶅悎PW
+            # 4 个方向的边缘检测 + 融合 PW
             edge_params = block.in_channels * block.kernel_size * block.kernel_size * 4
             fusion_params = block.in_channels * 4 * block.out_channels
             edge_macs = (
@@ -1203,7 +1167,7 @@ class FPGACostEstimator:
         return _div_up(max(1, min(in_features, 256)) * max(1, min(out_features, 64)), 256 * self._pack_factor)
 
     def _block_to_op_spec(self, block: ResolvedBlockSpec) -> OpSpec:
-        """灏?ResolvedBlockSpec 杞崲涓?OpSpec锛岀敤浜?LUT 鏌ヨ"""
+        """将 ResolvedBlockSpec 转换为 OpSpec，用于 LUT 查询"""
         # 查询侧继续使用 NAS/search-space 的 block 名称。
         # HLS profiling manifest 里更细粒度的 kernel 名称
         # （例如 conv_bn_relu6 / inverted_residual）会在 OpSpec 导入阶段
@@ -1219,7 +1183,7 @@ class FPGACostEstimator:
             "edge": "edge",
         }
 
-        # 纭畾鍒嗙粍鏁?
+        # 确定分组数
         groups = 1
         if block.op in {"dw_pw_conv", "mixconv", "denoise", "edge"}:
             groups = block.in_channels  # depthwise
@@ -1236,17 +1200,17 @@ class FPGACostEstimator:
         )
 
     def _block_params_macs(self, block: ResolvedBlockSpec) -> tuple[int, int]:
-        """璁＄畻 block 鐨勫弬鏁伴噺鍜?MACs"""
+        """计算 block 的参数量和 MACs"""
         if block.op == "skip":
             return 0, 0
 
-        # 瀵逛簬澹板憪涓撶敤绠楀瓙锛岀洿鎺ヤ娇鐢?_block_complexity
-        # 杩欎簺绠楀瓙閮芥湁鏈夋晥鐨勫鏉傚害璁＄畻
+        # 对于声呐专用算子，直接使用 _block_complexity
+        # 这些算子都有有效的复杂度计算
         params, macs, _ = self._block_complexity(block)
         return params, macs
 
     def get_lut_stats(self) -> dict[str, Any]:
-        """鑾峰彇 LUT 缁熻淇℃伅"""
+        """获取 LUT 统计信息"""
         total = self.lut_hits + self.lut_misses + self.deferred_hits
         deferred_by_op = Counter(record["lookup_op"] for record in self.deferred_hit_records)
         deferred_by_case = Counter(

@@ -15,11 +15,20 @@ from .dataset import (
     create_dataloader,
     create_dummy_dataloaders,
     create_nksid_dataloaders,
+    create_protocol_dataloaders,
     # 工具函数
     get_sonar_transforms,
     download_nksid_dataset,
     # 常量
     NKSID_CLASSES,
+)
+from .protocol import (
+    OuterFold,
+    ProtocolError,
+    ProtocolSplit,
+    build_protocol_split,
+    contiguous_inner_split,
+    load_outer_folds,
 )
 
 __all__ = [
@@ -31,6 +40,14 @@ __all__ = [
     "create_dataloader",
     "create_dummy_dataloaders",
     "create_nksid_dataloaders",
+    "create_protocol_dataloaders",
+    # 冻结评估协议
+    "OuterFold",
+    "ProtocolError",
+    "ProtocolSplit",
+    "build_protocol_split",
+    "contiguous_inner_split",
+    "load_outer_folds",
     # 工具函数
     "get_sonar_transforms",
     "download_nksid_dataset",
