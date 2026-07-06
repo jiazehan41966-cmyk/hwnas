@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "One line of full_network_evidence.jsonl",
+  "type": "object",
+  "required": [
+    "fingerprint",
+    "family",
+    "independent_probe",
+    "canonical_architecture_sha256",
+    "operator_parallelism_profile",
+    "int8_config",
+    "fpga_part",
+    "target_clock_mhz",
+    "tool_versions",
+    "harness_version",
+    "hls",
+    "route",
+    "com5"
+  ],
+  "properties": {
+    "fingerprint": {"type": "string", "minLength": 64, "maxLength": 64},
+    "family": {"const": "mainline_mbconv_skip"},
+    "independent_probe": {"type": "boolean"},
+    "canonical_architecture_sha256": {"type": "string", "minLength": 64, "maxLength": 64},
+    "operator_parallelism_profile": {"type": "object"},
+    "int8_config": {"type": "object"},
+    "fpga_part": {"const": "xc7k325t-ffg900-2"},
+    "target_clock_mhz": {"const": 200},
+    "tool_versions": {"type": "object"},
+    "harness_version": {"type": "string"},
+    "hls": {
+      "type": "object",
+      "required": ["composed_cycles", "dsp", "lut", "bram"]
+    },
+    "route": {
+      "type": "object",
+      "required": ["dsp", "lut", "bram"]
+    },
+    "com5": {
+      "type": "object",
+      "required": ["cycles"]
+    }
+  }
+}

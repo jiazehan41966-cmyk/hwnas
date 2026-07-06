@@ -22,12 +22,16 @@ if str(SRC_ROOT) not in sys.path:
 from hwnas_fpga.hardware import FPGACostEstimator, parse_hls_report
 from hwnas_fpga.hardware.calibration_v2 import (
     HARDWARE_METRICS,
+    RESOURCE_METRICS,
     architecture_family,
     canonical_sha256,
     deduplicate_pairs,
     evidence_fingerprint,
     fit_ratio_model,
+    fit_robust_affine,
+    validate_affine_independent,
     validate_ratio_model,
+    validate_ratio_model_independent,
     validation_gate,
 )
 from hwnas_fpga.interfaces import HardwareSpec
@@ -39,6 +43,10 @@ DEFAULT_STRICT_LUT = REPO_ROOT / "hls_lut_builder" / "results" / "formal_lut_str
 DEFAULT_STRICT_STATUS = REPO_ROOT / "hls_lut_builder" / "results" / "formal_lut_status_strict40_v1.json"
 DEFAULT_THREE_TIER = REPO_ROOT / "hls_lut_builder" / "results" / "three_tier_operator_summary.csv"
 DEFAULT_OUTPUT = REPO_ROOT / "artifacts" / "hw_surrogate_calibration_v2"
+DEFAULT_FULL_NETWORK = DEFAULT_OUTPUT / "full_network_evidence.jsonl"
+DEFAULT_HLS_SHORTLIST = (
+    REPO_ROOT / "results" / "calibration_probe_hls_shortlist" / "shortlist_summary.json"
+)
 
 NETWORK_BUDGETS = {
     "latency_ms": 50.0,
@@ -53,6 +61,113 @@ def read_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Expected JSON object: {path}")
     return payload
+
+
+def read_jsonl_if_present(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            if not isinstance(payload, dict):
+                raise ValueError(f"{path}:{line_number} must be a JSON object")
+            rows.append(payload)
+    return rows
+
+
+def full_network_tier(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Fit on historical mainline networks and validate only frozen probes."""
+
+    fingerprints = [str(row.get("fingerprint", "")) for row in rows]
+    if any(not value for value in fingerprints):
+        raise ValueError("full-network evidence requires a fingerprint")
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("full-network evidence contains duplicate fingerprints")
+    if any(row.get("family") != "mainline_mbconv_skip" for row in rows):
+        raise ValueError("semantic-mismatch operators cannot enter mainline calibration")
+
+    training = [row for row in rows if row.get("independent_probe") is not True]
+    probes = [row for row in rows if row.get("independent_probe") is True]
+    resource_models = {}
+    resource_validations = {}
+    gates = {}
+    for metric in RESOURCE_METRICS:
+        train_pairs = [
+            {
+                "fingerprint": row["fingerprint"],
+                "family": row["family"],
+                "estimated": {metric: (row.get("hls") or {}).get(metric)},
+                "measured": {metric: (row.get("route") or {}).get(metric)},
+            }
+            for row in training
+        ]
+        probe_pairs = [
+            {
+                "fingerprint": row["fingerprint"],
+                "family": row["family"],
+                "estimated": {metric: (row.get("hls") or {}).get(metric)},
+                "measured": {metric: (row.get("route") or {}).get(metric)},
+            }
+            for row in probes
+        ]
+        model = fit_ratio_model(train_pairs, metric=metric)
+        validation = validate_ratio_model_independent(
+            model,
+            probe_pairs,
+            metric=metric,
+            budget=NETWORK_BUDGETS[metric],
+        )
+        resource_models[metric] = model
+        resource_validations[metric] = validation
+        gates[metric] = validation_gate(metric, validation)
+
+    cycle_training = [
+        {
+            "fingerprint": row["fingerprint"],
+            "estimated": {"cycles": (row.get("hls") or {}).get("composed_cycles")},
+            "measured": {"cycles": (row.get("com5") or {}).get("cycles")},
+        }
+        for row in training
+    ]
+    cycle_probes = [
+        {
+            "fingerprint": row["fingerprint"],
+            "estimated": {"cycles": (row.get("hls") or {}).get("composed_cycles")},
+            "measured": {"cycles": (row.get("com5") or {}).get("cycles")},
+        }
+        for row in probes
+    ]
+    latency_model = fit_robust_affine(cycle_training)
+    latency_validation = validate_affine_independent(
+        latency_model,
+        cycle_probes,
+        budget=NETWORK_BUDGETS["latency_ms"] * 200_000.0,
+    )
+    gates["latency_ms"] = validation_gate("latency_ms", latency_validation)
+    return {
+        "total_unique_networks": len(rows),
+        "fit_networks": len(training),
+        "independent_probe_networks": len(probes),
+        "resource_models": resource_models,
+        "latency_model": latency_model,
+        "independent_validation": {
+            **resource_validations,
+            "latency_ms": latency_validation,
+        },
+        "gates": gates,
+        "required_identity_fields": [
+            "canonical_architecture_sha256",
+            "operator_parallelism_profile",
+            "int8_config",
+            "fpga_part",
+            "target_clock_mhz",
+            "tool_versions",
+            "harness_version",
+        ],
+    }
 
 
 def op_key(op_spec: dict[str, Any]) -> str:
@@ -360,6 +475,8 @@ def main() -> int:
     parser.add_argument("--strict-lut", default=str(DEFAULT_STRICT_LUT))
     parser.add_argument("--strict-status", default=str(DEFAULT_STRICT_STATUS))
     parser.add_argument("--three-tier", default=str(DEFAULT_THREE_TIER))
+    parser.add_argument("--full-network-evidence", default=str(DEFAULT_FULL_NETWORK))
+    parser.add_argument("--hls-shortlist-summary", default=str(DEFAULT_HLS_SHORTLIST))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args()
 
@@ -369,6 +486,10 @@ def main() -> int:
     )
     three_tier_hls_route, hls_board_cycles = load_three_tier(Path(args.three_tier))
     network_pairs = load_network_pairs(Path(args.legacy_network))
+    full_network_rows = read_jsonl_if_present(Path(args.full_network_evidence))
+    network_calibration = full_network_tier(full_network_rows)
+    shortlist_path = Path(args.hls_shortlist_summary)
+    shortlist = read_json(shortlist_path) if shortlist_path.exists() else {}
 
     # strict40 is status-authoritative. Do not count the compact three-tier
     # snapshot again when it names the same operator case.
@@ -407,26 +528,55 @@ def main() -> int:
     diagnostic_mainline_gates = tiers[
         "legacy_analytic_to_route_com5_network_diagnostic"
     ]["gates"]
+    independent_gates = network_calibration["gates"]
     external_probe_gate = {
         "required": 4,
-        "completed": 0,
-        "pass": False,
-        "reason": "four frozen semantic-safe full-network probes are not routed/measured yet",
+        "completed": network_calibration["independent_probe_networks"],
+        "pass": network_calibration["independent_probe_networks"] == 4,
+        "reason": (
+            "exactly four frozen semantic-safe full-network probes must be "
+            "routed and measured without entering the fit"
+        ),
     }
+    evidence_count_gate = network_calibration["total_unique_networks"] >= 8
+    hls_coverage_gate = (
+        shortlist.get("g2_hls_coverage_pass") is True
+        and int(shortlist.get("evidence_complete_count", 0))
+        == int(shortlist.get("candidate_count", -1))
+        and int(shortlist.get("candidate_count", 0)) > 0
+    )
     operational_gates = {}
-    for metric, gate in diagnostic_mainline_gates.items():
-        operational_gates[metric] = {
-            **gate,
-            "hard_screening_enabled": False,
-            "mode": "pass_through_to_hls",
-            "reasons": list(gate.get("reasons", []))
-            + ["independent full-network probe gate incomplete"],
-        }
+    prerequisites = external_probe_gate["pass"] and evidence_count_gate
+    for metric in HARDWARE_METRICS:
+        gate = independent_gates[metric]
+        if prerequisites:
+            operational_gates[metric] = gate
+        else:
+            operational_gates[metric] = {
+                **gate,
+                "hard_screening_enabled": False,
+                "mode": "pass_through_to_hls",
+                "reasons": list(gate.get("reasons", []))
+                + ["independent full-network evidence gate incomplete"],
+            }
+    interval_gate = prerequisites and all(
+        gate["hard_screening_enabled"] for gate in independent_gates.values()
+    )
+    g2_pass = interval_gate and hls_coverage_gate
+    blockers = []
+    if not external_probe_gate["pass"]:
+        blockers.append("four frozen independent full-network probes are incomplete")
+    if not evidence_count_gate:
+        blockers.append("fewer than eight unique semantic-safe full-network samples")
+    if not interval_gate:
+        blockers.append("independent interval-screening quality gates are not all PASS")
+    if not hls_coverage_gate:
+        blockers.append("candidate HLS shortlist coverage is not 100%")
     payload = {
         "schema_version": 2,
         "generated": datetime.now().isoformat(timespec="seconds"),
         "target": {
-            "fpga_part": "xc7k325t-ffg676-2",
+            "fpga_part": "xc7k325t-ffg900-2",
             "clock_mhz": 200.0,
             "bit_width": 8,
             "budgets": NETWORK_BUDGETS,
@@ -445,6 +595,7 @@ def main() -> int:
             "semantic_mismatch_network_unique_rows": len(semantic_mismatch_network),
         },
         "tiers": tiers,
+        "full_network_calibration": network_calibration,
         "network_rows": mainline_network,
         "semantic_mismatch_rows": semantic_mismatch_network,
         "strict40_evidence": strict_evidence,
@@ -452,17 +603,21 @@ def main() -> int:
         "screening_policy": {
             "gates": operational_gates,
             "diagnostic_in_sample_gates": diagnostic_mainline_gates,
+            "independent_probe_gates": independent_gates,
             "rule": (
                 "certified_reject only when a validated optimistic lower bound "
                 "exceeds budget; failed gates pass through to HLS"
             ),
             "power_energy": "not_measured_not_an_objective",
         },
-        "g2_pass": False,
-        "g2_blockers": [
-            "four frozen independent full-network probes are not route/COM5 complete",
-            "candidate-level HLS evidence completeness has not passed for a shortlist",
-        ],
+        "hls_shortlist": {
+            "path": str(shortlist_path.resolve()),
+            "coverage_pass": hls_coverage_gate,
+            "candidate_count": shortlist.get("candidate_count", 0),
+            "evidence_complete_count": shortlist.get("evidence_complete_count", 0),
+        },
+        "g2_pass": g2_pass,
+        "g2_blockers": blockers,
     }
 
     output_dir = Path(args.output_dir)

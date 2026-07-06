@@ -55,7 +55,7 @@ def evidence_fingerprint(
     *,
     operator_profile: str = "baseline_pi1_po1_u1",
     bit_width: int = 8,
-    fpga_part: str = "xc7k325t-ffg676-2",
+    fpga_part: str = "xc7k325t-ffg900-2",
     target_clock_mhz: float = 200.0,
     tool_version: str = "unknown",
     harness_version: str = "unknown",
@@ -301,6 +301,187 @@ def validate_ratio_model(
         "false_accepts": false_accepts,
         "false_reject_rate": false_rejects / decisions if decisions else None,
         "false_accept_rate": false_accepts / decisions if decisions else None,
+        "budget": budget,
+        "details": details,
+    }
+
+
+def validate_ratio_model_independent(
+    model: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    metric: str,
+    budget: float | None = None,
+) -> dict[str, Any]:
+    """Validate one frozen ratio model without refitting on held-out probes."""
+
+    usable = [
+        row
+        for row in rows
+        if row.get("estimated", {}).get(metric) is not None
+        and row.get("measured", {}).get(metric) is not None
+        and float(row["estimated"][metric]) > 0
+        and float(row["measured"][metric]) > 0
+    ]
+    predictions: list[float] = []
+    measured_values: list[float] = []
+    errors: list[float] = []
+    false_rejects = 0
+    false_accepts = 0
+    details = []
+    for row in usable:
+        interval = predict_interval(
+            model,
+            estimated=float(row["estimated"][metric]),
+            family=str(row.get("family", "unknown")),
+            source="independent_frozen_probe",
+        )
+        measured = float(row["measured"][metric])
+        point = float(interval["point"])
+        predictions.append(point)
+        measured_values.append(measured)
+        errors.append(abs(point - measured) / measured)
+        if budget is not None and interval["lower"] is not None:
+            actual_feasible = measured <= float(budget)
+            false_rejects += int(
+                float(interval["lower"]) > float(budget) and actual_feasible
+            )
+            false_accepts += int(
+                float(interval["upper"]) <= float(budget) and not actual_feasible
+            )
+        details.append(
+            {
+                "fingerprint": row.get("fingerprint"),
+                "family": row.get("family"),
+                "estimated": row["estimated"][metric],
+                "measured": measured,
+                "predicted": interval,
+            }
+        )
+    if not usable:
+        return {"metric": metric, "available": False, "n": 0}
+    return {
+        "metric": metric,
+        "available": True,
+        "validation_scope": "independent_frozen_probe",
+        "n": len(usable),
+        "mape": statistics.fmean(errors),
+        "mdape": statistics.median(errors),
+        "p90_ape": percentile(errors, 0.90),
+        "spearman": spearman(predictions, measured_values),
+        "false_rejects": false_rejects,
+        "false_accepts": false_accepts,
+        "false_reject_rate": false_rejects / len(usable),
+        "false_accept_rate": false_accepts / len(usable),
+        "budget": budget,
+        "details": details,
+    }
+
+
+def fit_robust_affine(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    estimated_key: str = "cycles",
+    measured_key: str = "cycles",
+) -> dict[str, Any]:
+    """Fit a median-slope affine latency model with empirical residual bounds."""
+
+    usable = [
+        (
+            float(row["estimated"][estimated_key]),
+            float(row["measured"][measured_key]),
+        )
+        for row in rows
+        if row.get("estimated", {}).get(estimated_key) is not None
+        and row.get("measured", {}).get(measured_key) is not None
+    ]
+    if len(usable) < 2:
+        return {"available": False, "n": len(usable)}
+    slopes = [
+        (right_y - left_y) / (right_x - left_x)
+        for index, (left_x, left_y) in enumerate(usable)
+        for right_x, right_y in usable[index + 1 :]
+        if right_x != left_x
+    ]
+    if not slopes:
+        return {"available": False, "n": len(usable), "reason": "constant predictor"}
+    slope = statistics.median(slopes)
+    intercept = statistics.median(y - slope * x for x, y in usable)
+    residuals = [y - (intercept + slope * x) for x, y in usable]
+    return {
+        "available": True,
+        "n": len(usable),
+        "method": "median_pairwise_slope_median_intercept",
+        "intercept": intercept,
+        "slope": slope,
+        "residual_lower": min(residuals),
+        "residual_upper": max(residuals),
+    }
+
+
+def validate_affine_independent(
+    model: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    budget: float | None = None,
+) -> dict[str, Any]:
+    """Validate composed-HLS-to-board cycles on frozen full-network probes."""
+
+    if model.get("available") is not True:
+        return {"metric": "latency_ms", "available": False, "n": 0}
+    usable = [
+        row
+        for row in rows
+        if row.get("estimated", {}).get("cycles") is not None
+        and row.get("measured", {}).get("cycles") is not None
+    ]
+    points = []
+    measured_values = []
+    errors = []
+    false_rejects = 0
+    false_accepts = 0
+    details = []
+    for row in usable:
+        x = float(row["estimated"]["cycles"])
+        measured = float(row["measured"]["cycles"])
+        point = float(model["intercept"]) + float(model["slope"]) * x
+        lower = max(0.0, point + 1.05 * float(model["residual_lower"]))
+        upper = max(lower, point + 1.05 * float(model["residual_upper"]))
+        points.append(point)
+        measured_values.append(measured)
+        errors.append(abs(point - measured) / measured)
+        if budget is not None:
+            actual_feasible = measured <= float(budget)
+            false_rejects += int(lower > float(budget) and actual_feasible)
+            false_accepts += int(upper <= float(budget) and not actual_feasible)
+        details.append(
+            {
+                "fingerprint": row.get("fingerprint"),
+                "estimated_cycles": x,
+                "measured_cycles": measured,
+                "predicted": {
+                    "lower": lower,
+                    "point": point,
+                    "upper": upper,
+                    "source": "independent_frozen_probe",
+                },
+            }
+        )
+    if not usable:
+        return {"metric": "latency_ms", "available": False, "n": 0}
+    return {
+        "metric": "latency_ms",
+        "available": True,
+        "validation_scope": "independent_frozen_probe",
+        "n": len(usable),
+        "mape": statistics.fmean(errors),
+        "mdape": statistics.median(errors),
+        "p90_ape": percentile(errors, 0.90),
+        "spearman": spearman(points, measured_values),
+        "false_rejects": false_rejects,
+        "false_accepts": false_accepts,
+        "false_reject_rate": false_rejects / len(usable),
+        "false_accept_rate": false_accepts / len(usable),
         "budget": budget,
         "details": details,
     }

@@ -23,6 +23,7 @@ from hwnas_fpga.runtime import (
     load_config,
     pick,
 )
+from hwnas_fpga.research_gates import require_stage3_search_gate
 from hwnas_fpga.search import (
     ParetoFrontSelector,
     build_pareto_objectives,
@@ -250,6 +251,11 @@ def main() -> None:
     dataset_name = pick(args.dataset, dataset_cfg.get("name"), "dummy")
     if dataset_name not in {"dummy", "nksid"}:
         dataset_name = "dummy"
+    stage3_gate = require_stage3_search_gate(
+        Path(__file__).resolve().parent,
+        dataset_name=dataset_name,
+        config=config,
+    )
 
     search_method = pick(args.search_method, search_cfg.get("method"), "random")
     if search_method not in {"random", "rl", "proxyless"}:
@@ -330,6 +336,11 @@ def main() -> None:
             print(f"Using device: {device}")
             print(f"Dataset: {dataset_name}")
             print(f"Search method: {search_method}")
+            print(
+                "Stage-3 gate: "
+                f"{stage3_gate['status']} "
+                f"(space={stage3_gate['semantic_safe_search_space_cardinality']:,})"
+            )
             print(f"Family profile: {family_profile or 'default'}")
             if family_profile_source == "pool":
                 print(

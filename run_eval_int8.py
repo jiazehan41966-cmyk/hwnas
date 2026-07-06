@@ -31,7 +31,11 @@ from torch.utils.data import DataLoader, Subset
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from hwnas_fpga.data.dataset import create_protocol_dataloaders
-from hwnas_fpga.deploy.ptq_eval import apply_ptq, stratified_calibration_indices
+from hwnas_fpga.deploy.ptq_eval import (
+    apply_ptq,
+    restore_identity_bn_export_model,
+    stratified_calibration_indices,
+)
 from hwnas_fpga.deploy.qat import finalize_qat, prepare_qat
 from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
@@ -82,8 +86,9 @@ def main() -> int:
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--inner-val-fraction", type=float, default=0.15)
     parser.add_argument("--calibration-samples", type=int, default=512)
-    parser.add_argument("--fold", type=int, default=None)
-    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--fold", type=int, default=1)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--deployment-target", default="rl_arch_193")
     parser.add_argument("--max-allowed-drop", type=float, default=0.02)
     parser.add_argument(
         "--qat-on-fail",
@@ -102,6 +107,25 @@ def main() -> int:
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--device", default=None)
     args = parser.parse_args()
+
+    if not args.candidate_path:
+        raise ValueError("G4 requires the frozen rl_arch_193 candidate artifact")
+    candidate_payload = json.loads(
+        Path(args.candidate_path).read_text(encoding="utf-8")
+    )
+    candidate_record = candidate_payload.get("candidate", candidate_payload)
+    candidate_arch_id = str(candidate_record.get("arch_id", ""))
+    if candidate_arch_id != args.deployment_target:
+        raise ValueError(
+            f"G4 target must be {args.deployment_target}, got {candidate_arch_id!r}"
+        )
+    fixed_target = (
+        candidate_arch_id == "rl_arch_193"
+        and args.fold == 1
+        and args.seed == 42
+    )
+    if not fixed_target:
+        raise ValueError("first board-accuracy chain is fixed to rl_arch_193/fold1/seed42")
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     run_dir = Path(args.protocol_run)
@@ -215,6 +239,7 @@ def main() -> int:
         qat_gate_pass = False
         if not gate_pass and args.qat_on_fail:
             qat_model = fp32_for_qat.to(device)
+            qat_export_template = deepcopy(fp32_for_qat).cpu()
             qat_prepare = prepare_qat(
                 qat_model,
                 calibration_loader,
@@ -253,6 +278,11 @@ def main() -> int:
                 and qat_top1_drop <= args.max_qat_drop
             )
             finalized = finalize_qat(qat_model)
+            exportable_qat = restore_identity_bn_export_model(
+                finalized,
+                qat_export_template,
+                qat_prepare["bn_folding"]["pairs"],
+            )
             qat_checkpoint = run_dir / f"qat_best_fold{fold}_seed{seed}.pt"
             architecture_payload = (
                 checkpoint_payload.get("architecture")
@@ -269,7 +299,7 @@ def main() -> int:
                     "protocol": "nksid_outer5fold_inner_contiguous_v1",
                     "fold": fold,
                     "seed": seed,
-                    "model_state_dict": finalized.state_dict(),
+                    "model_state_dict": exportable_qat.state_dict(),
                     "architecture": architecture_payload,
                     "metrics": {
                         key: qat_summary[key]
@@ -344,6 +374,13 @@ def main() -> int:
         "schema_version": 2,
         "generated": datetime.now().isoformat(timespec="seconds"),
         "protocol_run": str(run_dir),
+        "deployment_target": {
+            "arch_id": candidate_arch_id,
+            "fold": args.fold,
+            "seed": args.seed,
+            "candidate_path": str(Path(args.candidate_path).resolve()),
+            "candidate_sha256": sha256_file(Path(args.candidate_path)),
+        },
         "device": device,
         "fp32_macro_f1": summarize([r["fp32"]["macro_f1"] for r in records]),
         "int8_macro_f1": summarize([r["int8"]["macro_f1"] for r in records]),

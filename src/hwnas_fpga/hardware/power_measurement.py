@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import re
 import statistics
 from pathlib import Path
 from typing import Any, Mapping
@@ -86,7 +87,20 @@ def audit_power_manifest(
             resolve_capture_path(source_path, str(entry["csv"]))
         )
         capture["inference_count"] = int(entry["inference_count"])
+        receipt_value = entry.get("run_repeat_receipt")
+        receipt = None
+        if receipt_value:
+            receipt_path = resolve_capture_path(source_path, str(receipt_value))
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8-sig"))
+            if not isinstance(receipt, dict):
+                raise ValueError(f"{receipt_path} must contain a JSON object")
+            capture["run_repeat_receipt"] = {
+                "path": str(receipt_path),
+                "sha256": sha256_file(receipt_path),
+                "payload": receipt,
+            }
         active.append(capture)
+    bitstream_sha256 = str(manifest.get("bitstream_sha256", ""))
     gates = {
         "rail_scope": manifest.get("rail_scope") == "board_input_total",
         "measurement_source": manifest.get("measurement_source")
@@ -96,7 +110,12 @@ def audit_power_manifest(
             (manifest.get("instrument") or {}).get("sample_rate_hz", 0)
         )
         > 0,
-        "bitstream_sha256": len(str(manifest.get("bitstream_sha256", ""))) == 64,
+        "instrument_calibration": bool(
+            str((manifest.get("instrument") or {}).get("calibration", "")).strip()
+        )
+        and str((manifest.get("instrument") or {}).get("calibration", "")).upper()
+        != "TODO",
+        "bitstream_sha256": bool(re.fullmatch(r"[0-9a-fA-F]{64}", bitstream_sha256)),
         "contains_programming_false": manifest.get("contains_programming") is False,
         "contains_uart_upload_false": manifest.get("contains_uart_upload") is False,
         "idle_repetitions": len(idle) >= 3,
@@ -107,7 +126,41 @@ def audit_power_manifest(
         and all(capture["duration_s"] >= 60.0 for capture in active),
         "active_inference_count": bool(active)
         and all(capture["inference_count"] >= 1000 for capture in active),
+        "active_run_repeat_receipts": bool(active)
+        and all(capture.get("run_repeat_receipt") for capture in active),
     }
+    gates["receipt_count_match"] = bool(active) and all(
+        capture.get("run_repeat_receipt")
+        and int(capture["run_repeat_receipt"]["payload"].get("repeat_count", -1))
+        == capture["inference_count"]
+        for capture in active
+    )
+    gates["receipt_bitstream_match"] = bool(active) and all(
+        capture.get("run_repeat_receipt")
+        and str(
+            capture["run_repeat_receipt"]["payload"].get("bitstream_sha256", "")
+        ).lower()
+        == bitstream_sha256.lower()
+        for capture in active
+    )
+    gates["receipt_active_duration"] = bool(active) and all(
+        capture.get("run_repeat_receipt")
+        and float(
+            capture["run_repeat_receipt"]["payload"].get(
+                "host_active_elapsed_s", 0
+            )
+        )
+        >= 60.0
+        for capture in active
+    )
+    gates["receipt_excludes_upload_and_programming"] = bool(active) and all(
+        capture.get("run_repeat_receipt")
+        and capture["run_repeat_receipt"]["payload"].get("contains_programming")
+        is False
+        and capture["run_repeat_receipt"]["payload"].get("contains_uart_upload")
+        is False
+        for capture in active
+    )
     idle_power = (
         statistics.fmean(capture["time_weighted_mean_w"] for capture in idle)
         if idle
@@ -173,4 +226,3 @@ def load_and_audit_power_manifest(path: str | Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("power manifest must be a JSON object")
     return audit_power_manifest(payload, manifest_path=manifest_path)
-

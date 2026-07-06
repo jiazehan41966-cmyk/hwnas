@@ -9,6 +9,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from hwnas_fpga.deploy.fixed_point import FixedPointContract
+from hwnas_fpga.deploy.ptq_eval import fold_batch_norms_inplace
+
 
 def fake_quant_ste(tensor: torch.Tensor, scale: torch.Tensor | float) -> torch.Tensor:
     scale_tensor = torch.as_tensor(scale, dtype=tensor.dtype, device=tensor.device)
@@ -85,6 +88,7 @@ def prepare_qat(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device).eval()
+    folded_pairs = fold_batch_norms_inplace(model)
     wrapped: list[QATQuantizedOp] = []
     _wrap(model, wrapped)
     if not wrapped:
@@ -99,6 +103,12 @@ def prepare_qat(
         module.freeze_calibration()
     return {
         "scheme": "symmetric_per_tensor_ste",
+        "fixed_point_contract": FixedPointContract().to_dict(),
+        "bn_folding": {
+            "enabled": True,
+            "folded_pair_count": len(folded_pairs),
+            "pairs": folded_pairs,
+        },
         "num_quantized_ops": len(wrapped),
         "num_calibration_batches": batches,
         "activation_scales": [float(module.act_scale.item()) for module in wrapped],
@@ -130,4 +140,3 @@ def finalize_qat(model: nn.Module) -> nn.Module:
 
     unwrap(finalized)
     return finalized
-

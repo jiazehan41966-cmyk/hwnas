@@ -26,6 +26,11 @@ crc32:u32`
 
 CRC32 covers `version` through `repeat_count`.
 
+For `RUN_REPEAT`, `cycles` is the final repeated inference's cycle count,
+not a 32-bit accumulated total that can overflow. `repeat_count` reports the
+number completed; host wall time and the external meter CSV define the active
+power interval.
+
 Board accuracy is claimable only when every expected sample has `status=0`,
 matching sample ID, valid CRC, and logits exactly equal to the frozen
 bit-exact software reference.

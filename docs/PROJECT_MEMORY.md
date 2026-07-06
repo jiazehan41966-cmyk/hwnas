@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-07-03
+Last updated: 2026-07-06
 
 Purpose: this file is the persistent local memory index for the HW-NAS FPGA Sonar repository. New tasks in this workspace should read this file first when they need repository context, audit history, archive paths, or workflow boundaries.
 
@@ -29,6 +29,11 @@ Supporting result/archive policy documents:
 - `E:\1\hwnas\hwnas\docs\PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V4_SONAR_OP_PRECHECK.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V4_SONAR_RESULTS.md`
+- `E:\1\hwnas\hwnas\docs\EVAL_PROTOCOL.md`
+- `E:\1\hwnas\hwnas\docs\EXTERNAL_SONAR_DATASETS.md`
+- `E:\1\hwnas\hwnas\docs\MEASUREMENT_FIRST_REBUILD.md`
+- `E:\1\hwnas\hwnas\docs\PROXY_RELIABILITY_AUDIT.md`
+- `E:\1\hwnas\hwnas\docs\PROXY_RELIABILITY_AUDIT_V2.md`
 
 Concrete local archive outputs:
 
@@ -42,10 +47,16 @@ Concrete local archive outputs:
 - `E:\1\hwnas\hwnas\results\phase0_v4_sonar_ablation_rl300_20260621\`
 - `E:\1\hwnas\hwnas\results\sonar_image_quality_psnr_ssim_20260622\`
 
-Git-tracked compact evidence:
+Compact evidence archives:
 
 - `E:\1\hwnas\hwnas\artifacts\first_principles_audit_20260703\README.md`
 - `E:\1\hwnas\hwnas\artifacts\first_principles_audit_20260703\evidence_summary.json`
+- `E:\1\hwnas\hwnas\artifacts\datasets\roboflow_cylider2_v6_source_index.json`
+- `E:\1\hwnas\hwnas\artifacts\measurement_first_rebuild\status.json`
+- `E:\1\hwnas\hwnas\artifacts\measurement_first_rebuild\status.md`
+- `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\README.md`
+- `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary.json`
+- `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary_v2.json`
 
 Current Phase0 v3 board-validation outputs:
 
@@ -79,15 +90,30 @@ Covered:
 - Phase0 v4 sonar-op precheck evidence roots for the local-only stage3 k3 pilot and launch-readiness package.
 - Phase0 v4 retrain150, full-route, five-run COM5, partial-ablation, and
   PSNR/SSIM evidence boundaries, summarized in `docs/PHASE0_V4_SONAR_RESULTS.md`.
+- Frozen evaluation protocol and measurement-first G0--G5 status ledger, with
+  missing training, HLS, route, board, and power evidence left explicitly
+  `PENDING`, `FROZEN`, `PAUSED`, or `NOT_MEASURED`.
+- Traceable external-sonar dataset registration and local manifest boundaries;
+  these detection/mixed-task sources are not merged with NKSID classification
+  metrics.
+- Proxy Reliability Gate 0 v1/v2 manifests, execution invariants, and staged
+  evidence rules.
 
 Known gap:
 
-- No standalone archived HLS/LUT production-chain audit file was found as of 2026-06-22. Treat HLS/LUT conclusions as partial unless a future file such as `docs/audit_hls_lut_production.md` is added.
+- No standalone archived HLS/LUT production-chain audit file was found as of 2026-07-06. Treat HLS/LUT conclusions as partial unless a future file such as `docs/audit_hls_lut_production.md` is added.
 - Acquisition/mission group metadata is absent, so the current image-index
   split cannot be certified as group-safe.
 - `denoise` and `edge` lack PyTorch-to-fixed-point numeric parity and matching
   weight-export evidence. Historical route/COM5 results for their simplified
   HLS templates do not establish deployment of the trained PyTorch blocks.
+- Proxy Reliability Gate 0 infrastructure is implemented, but v2 formal
+  execution remains `0/1200` trajectories. The v2 trajectories expand to the
+  same 48-architecture × 5-seed × 5-outer-fold × 6-budget analysis grid; local
+  CPU one-epoch benchmarks are `formal_eligible=false`. Until the complete
+  crossed grid is collected, the status is `not_ready`; existing strict40
+  proximity does not establish either RL superiority or formal RL/Random
+  equivalence.
 
 Current board-claimable Phase0 v3 result:
 
@@ -137,6 +163,14 @@ For a new repository task:
 9. For Phase0 v3 low-DSP route-aware board results, read `docs/PHASE0_V3_BOARD_RESULTS.md`.
 10. For Phase0 v3 retrained-weight board reinjection results, read `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`.
 11. For Phase0 v4 sonar search/retrain/route/COM5/image-quality status, read `docs/PHASE0_V4_SONAR_RESULTS.md`.
+12. For frozen evaluation and current measurement gates, read `docs/EVAL_PROTOCOL.md`,
+    `docs/MEASUREMENT_FIRST_REBUILD.md`, and
+    `artifacts/measurement_first_rebuild/status.json`.
+13. For Proxy Reliability Gate 0, read `docs/PROXY_RELIABILITY_AUDIT.md` and
+    `docs/PROXY_RELIABILITY_AUDIT_V2.md`; v2 execution status supersedes the
+    v1 workload estimate without deleting the v1 archive.
+14. For external-sonar source provenance and task-boundary questions, read
+    `docs/EXTERNAL_SONAR_DATASETS.md`.
 
 Do not use memories, assumptions, datasets, metrics, or conclusions from other projects unless the user explicitly asks to connect them.
 

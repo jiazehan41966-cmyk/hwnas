@@ -81,6 +81,7 @@ def summarize_records(
     confusion = [[0 for _ in range(num_classes)] for _ in range(num_classes)]
     numeric_mismatches = 0
     protocol_failures = 0
+    transport_failures = 0
     cycles = []
     for row in by_id.values():
         label = int(row["label"])
@@ -89,6 +90,7 @@ def summarize_records(
             confusion[label][prediction] += 1
         numeric_mismatches += int(row.get("numeric_match") is not True)
         protocol_failures += int(int(row.get("status", -1)) != 0)
+        transport_failures += int(row.get("transport_crc_valid") is not True)
         cycles.append(int(row["cycles"]))
     completed = set(by_id)
     missing = sorted(expected_sample_ids - completed)
@@ -103,6 +105,7 @@ def summarize_records(
         "extra_sample_ids": extra,
         "duplicate_record_count": duplicates,
         "protocol_failure_count": protocol_failures,
+        "transport_failure_count": transport_failures,
         "numeric_mismatch_count": numeric_mismatches,
         "top1": correct / total if total else None,
         "macro_f1": statistics.fmean(f1) if f1 else None,
@@ -118,6 +121,7 @@ def summarize_records(
             and not extra
             and duplicates == 0
             and protocol_failures == 0
+            and transport_failures == 0
             and numeric_mismatches == 0
             and bool(expected_sample_ids)
         ),
@@ -155,6 +159,11 @@ def main() -> int:
     parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--expected-payload-bytes", type=int, default=224 * 224)
     parser.add_argument("--bitstream", required=True)
+    parser.add_argument(
+        "--parity-summary",
+        required=True,
+        help="PASS output from scripts/audit_int8_hls_parity.py",
+    )
     parser.add_argument("--output-dir", default="results/board_dynamic_validation")
     parser.add_argument(
         "--require-expected-logits",
@@ -175,6 +184,12 @@ def main() -> int:
     if not bitstream_path.exists():
         raise FileNotFoundError(bitstream_path)
     bitstream_hash = sha256_file(bitstream_path)
+    parity_path = Path(args.parity_summary).resolve()
+    parity_summary = json.loads(parity_path.read_text(encoding="utf-8"))
+    if parity_summary.get("overall_pass") is not True:
+        raise RuntimeError(
+            "board validation is blocked until HLS integer parity is PASS"
+        )
 
     for row in samples:
         payload_path = Path(row["payload_path"]).expanduser().resolve()
@@ -200,6 +215,7 @@ def main() -> int:
                     "manifest_count": len(samples),
                     "already_completed": len(completed_ids),
                     "bitstream_sha256": bitstream_hash,
+                    "parity_summary_sha256": sha256_file(parity_path),
                     "dry_run": True,
                 },
                 indent=2,
@@ -259,13 +275,18 @@ def main() -> int:
                     "path": sample.get("path"),
                     "label": int(sample["label"]),
                     "status": response.status,
+                    "response_command": response.command,
                     "cycles": response.cycles,
                     "logits": list(response.logits),
                     "argmax": response.argmax,
                     "checksum": response.checksum,
+                    "transport_crc_valid": True,
+                    "response_crc32": response.frame_crc32,
+                    "repeat_count": response.repeat_count,
                     "expected_logits": list(expected_logits),
                     "numeric_match": numeric_match,
-                    "retries_used": attempt,
+                    "attempt_count": attempt,
+                    "retry_count": attempt - 1,
                     "host_elapsed_ms": host_elapsed_ms,
                     "baud": selected_baud,
                     "bitstream_sha256": bitstream_hash,
@@ -284,6 +305,8 @@ def main() -> int:
             "manifest_sha256": sha256_file(manifest_path),
             "bitstream": str(bitstream_path),
             "bitstream_sha256": bitstream_hash,
+            "parity_summary": str(parity_path),
+            "parity_summary_sha256": sha256_file(parity_path),
             "baud": selected_baud,
             "claim_boundary": (
                 "Single frozen outer fold/seed deployment-chain evidence; "

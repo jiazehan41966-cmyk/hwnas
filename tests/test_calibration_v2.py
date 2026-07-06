@@ -5,7 +5,11 @@ from hwnas_fpga.hardware.calibration_v2 import (
     classify_intervals,
     deduplicate_pairs,
     evidence_fingerprint,
+    fit_ratio_model,
+    fit_robust_affine,
+    validate_affine_independent,
     validate_ratio_model,
+    validate_ratio_model_independent,
     validation_gate,
 )
 
@@ -72,6 +76,57 @@ class ValidationTests(unittest.TestCase):
         ]
         result = validate_ratio_model(rows, metric="latency_ms", budget=10)
         self.assertFalse(validation_gate("latency_ms", result)["hard_screening_enabled"])
+
+    def test_independent_ratio_validation_is_not_refit(self) -> None:
+        train = [
+            {
+                "fingerprint": f"train-{index}",
+                "family": "mbconv",
+                "estimated": {"lut": value},
+                "measured": {"lut": value * 2},
+            }
+            for index, value in enumerate((10, 20, 30, 40))
+        ]
+        probes = [
+            {
+                "fingerprint": f"probe-{index}",
+                "family": "mbconv",
+                "estimated": {"lut": value},
+                "measured": {"lut": value * 2},
+            }
+            for index, value in enumerate((15, 25, 35, 45))
+        ]
+        model = fit_ratio_model(train, metric="lut")
+        result = validate_ratio_model_independent(
+            model,
+            probes,
+            metric="lut",
+            budget=100,
+        )
+        self.assertEqual(result["validation_scope"], "independent_frozen_probe")
+        self.assertEqual(result["mape"], 0.0)
+
+    def test_affine_board_overhead_is_explicit(self) -> None:
+        train = [
+            {
+                "estimated": {"cycles": value},
+                "measured": {"cycles": 100 + 2 * value},
+            }
+            for value in (10, 20, 30, 40)
+        ]
+        probes = [
+            {
+                "fingerprint": f"p{value}",
+                "estimated": {"cycles": value},
+                "measured": {"cycles": 100 + 2 * value},
+            }
+            for value in (15, 25, 35, 45)
+        ]
+        model = fit_robust_affine(train)
+        self.assertAlmostEqual(model["intercept"], 100)
+        self.assertAlmostEqual(model["slope"], 2)
+        validation = validate_affine_independent(model, probes)
+        self.assertEqual(validation["mape"], 0.0)
 
 
 class ScreeningTests(unittest.TestCase):

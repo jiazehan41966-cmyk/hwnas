@@ -18,12 +18,84 @@ from __future__ import annotations
 
 import random
 from collections import defaultdict
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 import torch
 import torch.nn as nn
 
 from hwnas_fpga.deploy.quantization import quantize_tensor_symmetric
+from hwnas_fpga.deploy.fixed_point import FixedPointContract
+
+
+def fold_batch_norms_inplace(model: nn.Module) -> list[dict[str, str]]:
+    """Fold adjacent Conv2d/BatchNorm2d pairs while preserving their paths."""
+
+    model.eval()
+    folded: list[dict[str, str]] = []
+
+    def visit(parent: nn.Module, prefix: str) -> None:
+        children = list(parent.named_children())
+        for index in range(len(children) - 1):
+            conv_name, conv = children[index]
+            bn_name, bn = children[index + 1]
+            if isinstance(conv, nn.Conv2d) and isinstance(bn, nn.BatchNorm2d):
+                fused = torch.nn.utils.fusion.fuse_conv_bn_eval(conv, bn)
+                setattr(parent, conv_name, fused)
+                setattr(parent, bn_name, nn.Identity())
+                folded.append(
+                    {
+                        "conv": f"{prefix}{conv_name}",
+                        "bn": f"{prefix}{bn_name}",
+                    }
+                )
+        for name, child in list(parent.named_children()):
+            if not isinstance(child, nn.Identity):
+                visit(child, f"{prefix}{name}.")
+
+    visit(model, "")
+    return folded
+
+
+def restore_identity_bn_export_model(
+    finalized_folded_model: nn.Module,
+    original_template: nn.Module,
+    folded_pairs: Sequence[Mapping[str, str]],
+) -> nn.Module:
+    """Encode fused Conv+BN parameters in the original checkpoint topology.
+
+    The restored BN is an exact identity except that its beta stores the fused
+    convolution bias. Folding it again in the HLS exporter recovers the same
+    effective weight and bias.
+    """
+
+    source_modules = dict(finalized_folded_model.named_modules())
+    target_modules = dict(original_template.named_modules())
+    paired_conv = {str(item["conv"]): str(item["bn"]) for item in folded_pairs}
+    with torch.no_grad():
+        for name, target in target_modules.items():
+            source = source_modules.get(name)
+            if not isinstance(target, (nn.Conv2d, nn.Linear)):
+                continue
+            if not isinstance(source, target.__class__):
+                raise ValueError(f"missing finalized module for {name}")
+            target.weight.copy_(source.weight)
+            if name in paired_conv:
+                bn = target_modules.get(paired_conv[name])
+                if not isinstance(bn, nn.BatchNorm2d):
+                    raise ValueError(f"missing original BatchNorm for {name}")
+                if target.bias is not None:
+                    target.bias.zero_()
+                bn.running_mean.zero_()
+                bn.running_var.fill_(1.0)
+                bn.weight.fill_((1.0 + float(bn.eps)) ** 0.5)
+                if source.bias is None:
+                    bn.bias.zero_()
+                else:
+                    bn.bias.copy_(source.bias)
+                bn.num_batches_tracked.zero_()
+            elif target.bias is not None and source.bias is not None:
+                target.bias.copy_(source.bias)
+    return original_template
 
 
 def quantize_dequantize(tensor: torch.Tensor, scale: float) -> torch.Tensor:
@@ -141,6 +213,7 @@ def apply_ptq(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device).eval()
+    folded_pairs = fold_batch_norms_inplace(model)
     wrapped = _wrap_quantizable_modules(model, bit_width=bit_width)
     if not wrapped:
         raise ValueError("model contains no quantizable Conv2d/Linear modules")
@@ -160,6 +233,12 @@ def apply_ptq(
     return {
         "bit_width": bit_width,
         "scheme": "symmetric_per_tensor",
+        "fixed_point_contract": FixedPointContract().to_dict(),
+        "bn_folding": {
+            "enabled": True,
+            "folded_pair_count": len(folded_pairs),
+            "pairs": folded_pairs,
+        },
         "num_quantized_ops": len(wrapped),
         "num_calibration_batches": batches_used,
         "calibration_source": "training_side_only",

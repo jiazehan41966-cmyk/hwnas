@@ -333,6 +333,10 @@ def write_full_network_top(
     classifier_class_count = int(last["constants"].get("OUT_CH", max(1, output_width // 8)))
     input_byte_count = input_word_count * input_keep
     input_addr_width = max(1, (input_byte_count - 1).bit_length())
+    if dynamic_validation and (input_width != 8 or input_keep != 1):
+        raise ValueError(
+            "dynamic validation BRAM source currently requires byte-wide INT8 input"
+        )
     if dynamic_validation and (output_width < 64 or classifier_class_count != 8):
         raise ValueError(
             "dynamic validation requires one output word containing exactly 8 INT8 logits"
@@ -532,13 +536,13 @@ reg run_active = 1'b0;
 reg completion_armed = 1'b0;
 reg [31:0] runs_remaining = 32'd0;
 reg [31:0] requested_repeat_count = 32'd0;
-reg [31:0] aggregate_cycles = 32'd0;
 reg [7:0] active_command = 8'd0;
 reg [31:0] active_sample_id = 32'd0;
 
 wire uart_rx_byte_valid;
 wire [7:0] uart_rx_byte_data;
 wire uart_rx_framing_error;
+reg uart_rx_framing_latched = 1'b0;
 uart_rx_byte #(.CLK_FREQ_HZ(CLK_FREQ_HZ), .BAUD(UART_BAUD)) u_uart_rx_byte (
     .clk(clk_main), .rst(!rst_n), .uart_rx(uart_rx),
     .byte_valid(uart_rx_byte_valid), .byte_data(uart_rx_byte_data),
@@ -567,6 +571,14 @@ dynamic_validation_rx #(
     .payload_len(rx_payload_len), .repeat_count(rx_repeat_count),
     .crc_ok(rx_crc_ok), .error_code(rx_error_code)
 );
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n)
+        uart_rx_framing_latched <= 1'b0;
+    else if (uart_rx_framing_error)
+        uart_rx_framing_latched <= 1'b1;
+    else if (rx_command_valid)
+        uart_rx_framing_latched <= 1'b0;
+end
 
 wire response_busy;
 wire response_done;
@@ -642,7 +654,6 @@ always @(posedge clk_main or negedge rst_n) begin
         completion_armed <= 1'b0;
         runs_remaining <= 32'd0;
         requested_repeat_count <= 32'd0;
-        aggregate_cycles <= 32'd0;
         active_command <= 8'd0;
         active_sample_id <= 32'd0;
         response_start <= 1'b0;
@@ -685,7 +696,7 @@ always @(posedge clk_main or negedge rst_n) begin
                 response_checksum <= 32'd0;
                 response_repeat_count <= 32'd0;
                 response_start <= 1'b1;
-            end else if (uart_rx_framing_error) begin
+            end else if (uart_rx_framing_latched) begin
                 response_status <= STATUS_UART_FRAMING;
                 response_command <= rx_command;
                 response_sample_id <= rx_sample_id;
@@ -711,7 +722,6 @@ always @(posedge clk_main or negedge rst_n) begin
                 active_sample_id <= rx_sample_id;
                 requested_repeat_count <= 32'd1;
                 runs_remaining <= 32'd1;
-                aggregate_cycles <= 32'd0;
                 completion_armed <= 1'b0;
                 run_active <= 1'b1;
                 start_pulse <= 1'b1;
@@ -725,7 +735,6 @@ always @(posedge clk_main or negedge rst_n) begin
                 active_sample_id <= rx_sample_id;
                 requested_repeat_count <= rx_repeat_count;
                 runs_remaining <= rx_repeat_count;
-                aggregate_cycles <= 32'd0;
                 completion_armed <= 1'b0;
                 run_active <= 1'b1;
                 start_pulse <= 1'b1;
@@ -751,14 +760,13 @@ always @(posedge clk_main or negedge rst_n) begin
                     (watchdog_expired ? STATUS_WATCHDOG : STATUS_OK);
                 response_command <= active_command;
                 response_sample_id <= active_sample_id;
-                response_cycles <= aggregate_cycles + current_result_cycles;
+                response_cycles <= current_result_cycles;
                 response_logits <= output_logits;
                 response_argmax <= output_argmax;
                 response_checksum <= output_checksum;
                 response_repeat_count <= requested_repeat_count;
                 response_start <= 1'b1;
             end else begin
-                aggregate_cycles <= aggregate_cycles + current_result_cycles;
                 runs_remaining <= runs_remaining - 32'd1;
                 completion_armed <= 1'b0;
                 start_pulse <= 1'b1;

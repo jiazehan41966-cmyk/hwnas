@@ -13,6 +13,7 @@ class SummaryTests(unittest.TestCase):
                 "label": 0,
                 "argmax": 0,
                 "status": 0,
+                "transport_crc_valid": True,
                 "numeric_match": True,
                 "cycles": 10,
             },
@@ -21,6 +22,7 @@ class SummaryTests(unittest.TestCase):
                 "label": 1,
                 "argmax": 1,
                 "status": 0,
+                "transport_crc_valid": True,
                 "numeric_match": True,
                 "cycles": 12,
             },
@@ -36,6 +38,7 @@ class SummaryTests(unittest.TestCase):
                 "label": 0,
                 "argmax": 0,
                 "status": 0,
+                "transport_crc_valid": True,
                 "numeric_match": False,
                 "cycles": 10,
             }

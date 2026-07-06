@@ -434,6 +434,20 @@ Dynamic Phase0 evidence is maintained separately:
 - `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`
 - `docs/PHASE0_V4_SONAR_RESULTS.md`
 
+Current measurement and research-gate archives are maintained separately:
+
+- `docs/EVAL_PROTOCOL.md`
+- `docs/MEASUREMENT_FIRST_REBUILD.md`
+- `docs/PROXY_RELIABILITY_AUDIT.md`
+- `docs/PROXY_RELIABILITY_AUDIT_V2.md`
+- `docs/EXTERNAL_SONAR_DATASETS.md`
+
+Proxy Reliability Gate 0 v2 reduces formal execution to 1,200 reusable
+150-epoch trajectories, but the current formal count is still `0/1200`.
+The completed CPU one-epoch benchmarks are explicitly ineligible as formal
+evidence, so Gate 0 remains `not_ready`. External detection/mixed-task datasets
+also remain separate from NKSID classification and board evidence.
+
 后续如果补做 HLS/LUT 生产链审计，应新增：
 
 ```text

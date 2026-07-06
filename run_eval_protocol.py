@@ -133,6 +133,56 @@ def git_commit() -> str | None:
     return result.stdout.strip() if result.returncode == 0 else None
 
 
+def git_code_provenance(run_dir: Path) -> dict:
+    root = Path(__file__).resolve().parent
+    commit = git_commit()
+    status_result = subprocess.run(
+        ["git", "status", "--porcelain=v1"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    diff_result = subprocess.run(
+        ["git", "diff", "--binary", "HEAD", "--", "."],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    patch_path = run_dir / "code_patch.diff"
+    patch_path.write_bytes(diff_result.stdout)
+    untracked_result = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    untracked = []
+    allowed_suffixes = {".py", ".yaml", ".yml", ".json", ".toml"}
+    for relative in untracked_result.stdout.splitlines():
+        path = root / relative
+        if path.is_file() and path.suffix.lower() in allowed_suffixes:
+            untracked.append(
+                {
+                    "path": relative.replace("\\", "/"),
+                    "sha256": sha256_file(path),
+                }
+            )
+    state = {
+        "commit": commit,
+        "dirty": bool(status_result.stdout.strip()),
+        "status_sha256": canonical_sha256(status_result.stdout.splitlines()),
+        "tracked_patch": {
+            "path": str(patch_path.resolve()),
+            "sha256": sha256_file(patch_path),
+        },
+        "untracked_code": untracked,
+    }
+    state["code_state_sha256"] = canonical_sha256(state)
+    return state
+
+
 def dataset_provenance(data_dir: str | Path) -> dict:
     root = resolve_dataset_root(data_dir)
     files = {}
@@ -193,7 +243,12 @@ def main() -> int:
     parser.add_argument("--device", default=None)
     parser.add_argument("--output-dir", default="results/protocol")
     parser.add_argument("--run-name", default=None)
-    parser.add_argument("--save-checkpoints", action="store_true")
+    parser.add_argument(
+        "--save-checkpoints",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="save the selected inner-validation checkpoint (required for claimability)",
+    )
     parser.add_argument(
         "--resume",
         action=argparse.BooleanOptionalAction,
@@ -245,6 +300,7 @@ def main() -> int:
             "path": str(candidate_path),
             "sha256": sha256_file(candidate_path),
         }
+    code_provenance = git_code_provenance(run_dir)
     immutable_config = {
         "protocol": "nksid_outer5fold_inner_contiguous_v1",
         "folds": folds,
@@ -258,6 +314,7 @@ def main() -> int:
         "candidate": candidate_provenance,
         "selection_provenance": selection_provenance,
         "dataset": data_provenance,
+        "code_state_sha256": code_provenance["code_state_sha256"],
     }
     run_fingerprint = canonical_sha256(immutable_config)
     manifest_path = run_dir / "run_manifest.json"
@@ -265,16 +322,24 @@ def main() -> int:
         existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         existing_fingerprint = existing_manifest.get("run_fingerprint")
         if existing_fingerprint != run_fingerprint:
-            raise RuntimeError(
-                f"Refusing to resume incompatible run {run_dir}: "
-                f"{existing_fingerprint} != {run_fingerprint}. Use --force or a new --run-name."
+            completed_records = list(run_dir.glob("run_fold*_seed*.json"))
+            if completed_records:
+                raise RuntimeError(
+                    f"Refusing to resume incompatible run {run_dir}: "
+                    f"{existing_fingerprint} != {run_fingerprint}. "
+                    "Use --force or a new --run-name."
+                )
+            print(
+                "[protocol] replacing incompatible empty manifest; "
+                "no fold/seed records exist"
             )
     manifest = {
         "protocol": "nksid_outer5fold_inner_contiguous_v1",
         "run_name": run_name,
         "run_fingerprint": run_fingerprint,
         "created_or_checked": datetime.now().isoformat(timespec="seconds"),
-        "git_commit": git_commit(),
+        "git_commit": code_provenance["commit"],
+        "code_provenance": code_provenance,
         "immutable_config": immutable_config,
         "planned_pairs": [
             {"fold": fold, "seed": seed} for fold in folds for seed in seeds
@@ -357,6 +422,7 @@ def main() -> int:
                 "split_sha256": canonical_sha256(bundle["split"].to_dict()),
                 "provenance": {
                     "git_commit": manifest["git_commit"],
+                    "code_state_sha256": code_provenance["code_state_sha256"],
                     "dataset": data_provenance,
                     "candidate": candidate_provenance,
                 },
@@ -396,6 +462,17 @@ def main() -> int:
         seeds=seeds,
         completed_pairs=[(r["fold"], r["seed"]) for r in runs],
         selection_provenance=selection_provenance,
+        outer_validation_used_for_selection=False,
+        provenance_complete=(
+            args.save_checkpoints
+            and bool(manifest["git_commit"])
+            and len(str(code_provenance.get("code_state_sha256", ""))) == 64
+            and all(
+                len(str((r.get("checkpoint") or {}).get("sha256", ""))) == 64
+                and len(str(r.get("split_sha256", ""))) == 64
+                for r in runs
+            )
+        ),
     )
     manifest["completed_pairs"] = [
         {"fold": r["fold"], "seed": r["seed"]} for r in runs
@@ -413,6 +490,7 @@ def main() -> int:
         "claimability": claimability,
         "provenance": {
             "git_commit": manifest["git_commit"],
+            "code": code_provenance,
             "dataset": data_provenance,
             "candidate": candidate_provenance,
             "manifest": str(manifest_path.resolve()),

@@ -16,8 +16,8 @@
     "raw/idle_03.csv"
   ],
   "active_captures": [
-    {"csv": "raw/active_01.csv", "inference_count": 1000},
-    {"csv": "raw/active_02.csv", "inference_count": 1000},
-    {"csv": "raw/active_03.csv", "inference_count": 1000}
+    {"csv": "raw/active_01.csv", "inference_count": 3000, "run_repeat_receipt": "raw/run_repeat_01.json"},
+    {"csv": "raw/active_02.csv", "inference_count": 3000, "run_repeat_receipt": "raw/run_repeat_02.json"},
+    {"csv": "raw/active_03.csv", "inference_count": 3000, "run_repeat_receipt": "raw/run_repeat_03.json"}
   ]
 }

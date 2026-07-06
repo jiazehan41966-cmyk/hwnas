@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import struct
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import BinaryIO
 
 
@@ -37,6 +37,7 @@ class BoardResponse:
     argmax: int
     checksum: int
     repeat_count: int
+    frame_crc32: int | None = field(default=None, compare=False)
 
 
 def crc32(data: bytes) -> int:
@@ -105,7 +106,8 @@ def decode_response(frame: bytes) -> BoardResponse:
     if frame[:2] != RESPONSE_MAGIC:
         raise ValueError("bad response magic")
     body = frame[2:-4]
-    if crc32(body) != struct.unpack("<I", frame[-4:])[0]:
+    observed_crc = struct.unpack("<I", frame[-4:])[0]
+    if crc32(body) != observed_crc:
         raise ValueError("response CRC mismatch")
     unpacked = RESPONSE_BODY.unpack(body)
     version, status, command, sample_id, cycles = unpacked[:5]
@@ -122,6 +124,7 @@ def decode_response(frame: bytes) -> BoardResponse:
         argmax=int(argmax),
         checksum=int(checksum),
         repeat_count=int(repeat_count),
+        frame_crc32=int(observed_crc),
     )
 
 
@@ -150,4 +153,3 @@ def repeat_payload(repeat_count: int) -> bytes:
     if repeat_count <= 0:
         raise ValueError("repeat_count must be positive")
     return struct.pack("<I", int(repeat_count))
-

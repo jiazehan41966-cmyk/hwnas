@@ -41,6 +41,8 @@ def protocol_claimability(
     seeds: Sequence[int],
     completed_pairs: Iterable[tuple[int, int]],
     selection_provenance: str,
+    outer_validation_used_for_selection: bool = False,
+    provenance_complete: bool = True,
 ) -> dict[str, Any]:
     normalized_folds = tuple(sorted(set(int(value) for value in folds)))
     normalized_seeds = tuple(sorted(set(int(value) for value in seeds)))
@@ -54,6 +56,8 @@ def protocol_claimability(
         normalized_folds == REQUIRED_FOLDS
         and normalized_seeds == REQUIRED_SEEDS
         and observed_pairs == expected_pairs
+        and not outer_validation_used_for_selection
+        and provenance_complete
     )
     legacy_fold0_only = normalized_folds == (0,)
     legacy_selected = selection_provenance == "legacy_fold0_selected"
@@ -73,7 +77,8 @@ def protocol_claimability(
         )
     if not protocol_complete:
         warnings.append(
-            "Formal reporting requires exactly folds 0-4 and seeds 42,43,44."
+            "Formal reporting requires exactly folds 0-4, seeds 42,43,44, "
+            "no outer-validation selection, and complete provenance."
         )
     return {
         "claimable": protocol_complete,
@@ -81,6 +86,10 @@ def protocol_claimability(
         "claim_scope": claim_scope,
         "legacy": legacy_fold0_only,
         "selection_provenance": selection_provenance,
+        "outer_validation_used_for_selection": bool(
+            outer_validation_used_for_selection
+        ),
+        "provenance_complete": bool(provenance_complete),
         "nas_generalization_claimable": protocol_complete and not legacy_selected,
         "required_folds": list(REQUIRED_FOLDS),
         "required_seeds": list(REQUIRED_SEEDS),
@@ -163,4 +172,3 @@ def hierarchical_paired_bootstrap(
         "iterations": max(1, int(iterations)),
         "bootstrap_seed": seed,
     }
-

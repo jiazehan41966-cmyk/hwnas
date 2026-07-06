@@ -1,0 +1,49 @@
+schema_version: 1
+protocol: nksid_outer5fold_inner_contiguous_v1
+dataset:
+  official_split_files:
+    - train_abs.txt
+    - kfold_train.txt
+    - kfold_val.txt
+  outer_folds: [0, 1, 2, 3, 4]
+  outer_validation_role: final_report_only
+  inner_validation:
+    source: outer_train_only
+    method: per_class_contiguous_filename_block
+    fraction: 0.15
+formal_reporting:
+  seeds: [42, 43, 44]
+  run_count_per_model: 15
+  checkpoint_required: true
+  provenance_sha256_required: true
+  report_mean_std: true
+  primary_metric: macro_f1
+  secondary_metrics: [top1, weighted_f1, per_class_f1]
+  small_classes: [fishing_net, small_propeller]
+training_recipe:
+  epochs: 150
+  optimizer: adamw
+  scheduler: cosine_with_warmup
+  warmup_epochs: 5
+  label_smoothing: 0.1
+  imbalance: logit_adjustment
+  logit_adjust_tau: 1.0
+  amp: true
+  batch_size: 8
+  gradient_accumulation_steps: 4
+  effective_batch_size: 32
+baselines:
+  - id: mobilenet_v2_scratch
+    selection_provenance: baseline_predeclared
+  - id: mobilenet_v2_grayscale_imagenet
+    selection_provenance: baseline_predeclared
+    pretrained_loaded_required: true
+  - id: rl_arch_135
+    selection_provenance: legacy_fold0_selected
+    claim_scope: frozen_legacy_selected_architecture_benchmark
+decision_rule:
+  comparison: mobilenet_v2_grayscale_imagenet_minus_rl_arch_135
+  metric: macro_f1
+  practical_margin: 0.03
+  bootstrap_iterations: 10000
+  require_ci95_low_above_zero: true

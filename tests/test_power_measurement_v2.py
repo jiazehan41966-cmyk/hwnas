@@ -27,11 +27,34 @@ class PowerAuditTests(unittest.TestCase):
                 _write_capture(idle_path, 5.0)
                 _write_capture(active_path, 7.0)
                 idle.append(idle_path.name)
-                active.append({"csv": active_path.name, "inference_count": 1000})
+                receipt_path = root / f"receipt_{index}.json"
+                receipt_path.write_text(
+                    json.dumps(
+                        {
+                            "repeat_count": 1000,
+                            "bitstream_sha256": "a" * 64,
+                            "host_active_elapsed_s": 60.0,
+                            "contains_programming": False,
+                            "contains_uart_upload": False,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                active.append(
+                    {
+                        "csv": active_path.name,
+                        "inference_count": 1000,
+                        "run_repeat_receipt": receipt_path.name,
+                    }
+                )
             manifest = {
                 "measurement_source": "external_power_meter_csv",
                 "rail_scope": "board_input_total",
-                "instrument": {"model": "test", "sample_rate_hz": 1},
+                "instrument": {
+                    "model": "test",
+                    "sample_rate_hz": 1,
+                    "calibration": "traceable-test",
+                },
                 "bitstream_sha256": "a" * 64,
                 "contains_programming": False,
                 "contains_uart_upload": False,
@@ -59,7 +82,11 @@ class PowerAuditTests(unittest.TestCase):
                     {
                         "measurement_source": "external_power_meter_csv",
                         "rail_scope": "board_input_total",
-                        "instrument": {"model": "test", "sample_rate_hz": 1},
+                        "instrument": {
+                            "model": "test",
+                            "sample_rate_hz": 1,
+                            "calibration": "traceable-test",
+                        },
                         "bitstream_sha256": "a" * 64,
                         "contains_programming": False,
                         "contains_uart_upload": False,

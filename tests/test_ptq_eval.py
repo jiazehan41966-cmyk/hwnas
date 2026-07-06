@@ -7,7 +7,9 @@ from torch.utils.data import DataLoader, TensorDataset
 from hwnas_fpga.deploy.ptq_eval import (
     FakeQuantizedOp,
     apply_ptq,
+    fold_batch_norms_inplace,
     quantize_dequantize,
+    restore_identity_bn_export_model,
     stratified_calibration_indices,
 )
 
@@ -84,6 +86,39 @@ class ApplyPtqTests(unittest.TestCase):
     def test_rejects_model_without_quantizable_ops(self) -> None:
         with self.assertRaises(ValueError):
             apply_ptq(nn.Sequential(nn.ReLU()), self._make_loader(), device="cpu")
+
+    def test_bn_is_folded_before_weight_quantization(self) -> None:
+        model = nn.Sequential(
+            nn.Conv2d(1, 2, 3, padding=1, bias=False),
+            nn.BatchNorm2d(2),
+            nn.ReLU(),
+        ).eval()
+        inputs = torch.randn(4, 1, 8, 8)
+        loader = DataLoader(
+            TensorDataset(inputs, torch.zeros(4, dtype=torch.long)),
+            batch_size=2,
+        )
+        meta = apply_ptq(model, loader, device="cpu")
+        self.assertEqual(meta["bn_folding"]["folded_pair_count"], 1)
+        self.assertIsInstance(model[1], nn.Identity)
+        self.assertTrue(meta["fixed_point_contract"]["bn_folding"])
+
+    def test_fused_qat_weights_can_return_to_original_topology(self) -> None:
+        template = nn.Sequential(
+            nn.Conv2d(1, 2, 3, padding=1, bias=False),
+            nn.BatchNorm2d(2),
+        ).eval()
+        fused = __import__("copy").deepcopy(template)
+        pairs = fold_batch_norms_inplace(fused)
+        restored = restore_identity_bn_export_model(
+            fused,
+            __import__("copy").deepcopy(template),
+            pairs,
+        ).eval()
+        probe = torch.randn(2, 1, 8, 8)
+        self.assertTrue(
+            torch.allclose(fused(probe), restored(probe), atol=1e-5)
+        )
 
 
 class CalibrationSubsetTests(unittest.TestCase):

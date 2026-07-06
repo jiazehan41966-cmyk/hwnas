@@ -19,6 +19,25 @@ class ClaimabilityTests(unittest.TestCase):
         self.assertTrue(result["claimable"])
         self.assertTrue(result["nas_generalization_claimable"])
 
+    def test_outer_selection_or_missing_provenance_blocks_claim(self) -> None:
+        pairs = [(fold, seed) for fold in range(5) for seed in (42, 43, 44)]
+        leaked = protocol_claimability(
+            folds=range(5),
+            seeds=(42, 43, 44),
+            completed_pairs=pairs,
+            selection_provenance="baseline_predeclared",
+            outer_validation_used_for_selection=True,
+        )
+        missing = protocol_claimability(
+            folds=range(5),
+            seeds=(42, 43, 44),
+            completed_pairs=pairs,
+            selection_provenance="baseline_predeclared",
+            provenance_complete=False,
+        )
+        self.assertFalse(leaked["claimable"])
+        self.assertFalse(missing["claimable"])
+
     def test_partial_protocol_is_not_claimable(self) -> None:
         result = protocol_claimability(
             folds=(0,),

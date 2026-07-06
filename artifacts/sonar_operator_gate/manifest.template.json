@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "operators": {
+    "denoise": {
+      "quantization_contract": "per_tensor_symmetric_int8_v1",
+      "software_spec_sha256": "TODO",
+      "hls_spec_sha256": "TODO",
+      "weight_export_complete": false,
+      "weight_export_sha256": "TODO",
+      "parity": {
+        "real_sample_count": 0,
+        "boundary_tensor_count": 0,
+        "random_tensor_count": 0,
+        "compared_element_count": 0,
+        "mismatch_count": 0
+      },
+      "matched_control": {
+        "output_shape_equal": false,
+        "control_parameters": 0,
+        "operator_parameters": 0,
+        "control_macs": 0,
+        "operator_macs": 0
+      },
+      "hls": {
+        "evidence_complete": false,
+        "route_feasible": false
+      }
+    },
+    "edge": {
+      "quantization_contract": "per_tensor_symmetric_int8_v1",
+      "software_spec_sha256": "TODO",
+      "hls_spec_sha256": "TODO",
+      "weight_export_complete": false,
+      "weight_export_sha256": "TODO",
+      "parity": {
+        "real_sample_count": 0,
+        "boundary_tensor_count": 0,
+        "random_tensor_count": 0,
+        "compared_element_count": 0,
+        "mismatch_count": 0
+      },
+      "matched_control": {
+        "output_shape_equal": false,
+        "control_parameters": 0,
+        "operator_parameters": 0,
+        "control_macs": 0,
+        "operator_macs": 0
+      },
+      "hls": {
+        "evidence_complete": false,
+        "route_feasible": false
+      }
+    }
+  },
+  "ablation_variants": {
+    "mbconv_control": {"folds": [], "seeds": [], "completed_runs": 0, "claimable": false, "outer_leakage": false},
+    "denoise": {"folds": [], "seeds": [], "completed_runs": 0, "claimable": false, "outer_leakage": false},
+    "edge": {"folds": [], "seeds": [], "completed_runs": 0, "claimable": false, "outer_leakage": false},
+    "denoise_edge": {"folds": [], "seeds": [], "completed_runs": 0, "claimable": false, "outer_leakage": false}
+  },
+  "comparisons_vs_control": {
+    "denoise": {"method": "paired_stratified_bootstrap", "iterations": 0, "macro_f1_mean_delta": 0, "p_value": 1},
+    "edge": {"method": "paired_stratified_bootstrap", "iterations": 0, "macro_f1_mean_delta": 0, "p_value": 1},
+    "denoise_edge": {"method": "paired_stratified_bootstrap", "iterations": 0, "macro_f1_mean_delta": 0, "p_value": 1}
+  }
+}

@@ -101,6 +101,7 @@ results/<run_name>/
 | [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | 冻结评估协议（外层5折×多seed，唯一可声明入口） |
 | [artifacts/hw_surrogate_calibration/hw_surrogate_calibration.md](artifacts/hw_surrogate_calibration/hw_surrogate_calibration.md) | 解析模型 vs 布线实测校准（10 组配对，资源残差 ≤±11%） |
 | [docs/FIRST_PRINCIPLES_AUDIT_20260703.md](docs/FIRST_PRINCIPLES_AUDIT_20260703.md) | 数据协议、算子语义与证据强度重审 |
+| [docs/PROXY_RELIABILITY_AUDIT.md](docs/PROXY_RELIABILITY_AUDIT.md) | Gate 0：代理可靠性、多保真排序与架构信号审计 |
 | [docs/PHASE0_V3_BOARD_RESULTS.md](docs/PHASE0_V3_BOARD_RESULTS.md) | Phase0 v3 low-DSP full-route and COM5 board-claimable results |
 | [docs/PHASE0_V4_SONAR_RESULTS.md](docs/PHASE0_V4_SONAR_RESULTS.md) | Phase0 v4 search/retrain/route/COM5/image-quality handoff |
 | [docs/SEARCH_CONFIG_CANONICAL.md](docs/SEARCH_CONFIG_CANONICAL.md) | 当前规范搜索配置说明 |
@@ -118,6 +119,13 @@ train-time PyTorch blocks. New canonical searches load the semantic-safe
 operator policy and exclude both operators until numeric parity and matching
 weight export exist. See
 [docs/FIRST_PRINCIPLES_AUDIT_20260703.md](docs/FIRST_PRINCIPLES_AUDIT_20260703.md).
+
+Proxy Reliability Gate 0 is implemented, but its formal
+48-architecture × 5-seed × 5-outer-fold × 6-budget grid has not been run.
+Its current status is `not_ready`: the existing strict40 proximity is
+insufficient for either an RL-superiority claim or a formal RL/Random
+equivalence claim. See
+[docs/PROXY_RELIABILITY_AUDIT.md](docs/PROXY_RELIABILITY_AUDIT.md).
 
 The 2026-06-22 Phase0 v4 sonar snapshot contains 7 Pareto route-screen rows:
 6 are route-clean with stable five-run COM5 evidence and 1 (`rl_arch_116`) is

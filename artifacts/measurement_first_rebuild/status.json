@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-04T16:57:24",
+  "overall_status": "IN_PROGRESS",
+  "gates": {
+    "G0_protocol": {
+      "status": "PASS",
+      "pass": true,
+      "protocol_config": "E:\\1\\hwnas\\hwnas\\configs\\evaluation\\nksid_frozen_protocol_v1.yaml",
+      "protocol_config_sha256": "f69b760f4886560abbef71773e9a4b2a2703ce0082fa2e227481c91c46649fb6",
+      "entrypoint": "E:\\1\\hwnas\\hwnas\\run_eval_protocol.py",
+      "entrypoint_sha256": "d442d2d60b4f7031e97a72856169012bb22d457644d4e891e52b5fc4757eb34e",
+      "claim_rule": "Only exact folds 0-4, seeds 42/43/44, no outer selection, and complete checkpoint/split/code provenance are claimable."
+    },
+    "G1_accuracy_baselines": {
+      "status": "PENDING",
+      "pass": false,
+      "completed_tasks": 0,
+      "required_tasks": 45,
+      "gates": {
+        "scratch_claimable": false,
+        "pretrained_claimable": false,
+        "rl_arch_135_claimable": false,
+        "pretrained_loaded": false,
+        "completed_45_of_45": false
+      },
+      "evidence": {
+        "scratch": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_mobilenet_v2_scratch\\protocol_summary.json",
+        "pretrained": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_mobilenet_v2_grayscale_imagenet\\protocol_summary.json",
+        "rl_arch_135": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_rl_arch_135_legacy_selected\\protocol_summary.json"
+      }
+    },
+    "G2_hardware_measurement": {
+      "status": "PENDING",
+      "pass": false,
+      "evidence": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\calibration_v2.json",
+      "blockers": [
+        "four frozen independent full-network probes are incomplete",
+        "fewer than eight unique semantic-safe full-network samples",
+        "independent interval-screening quality gates are not all PASS",
+        "candidate HLS shortlist coverage is not 100%"
+      ]
+    },
+    "G3_search": {
+      "schema_version": 1,
+      "stage": 3,
+      "status": "FROZEN",
+      "may_start_new_claimable_search": false,
+      "semantic_safe_search_space_cardinality": 15728640,
+      "gates": {
+        "g2_pass": false,
+        "g4_claimable": false,
+        "g4_zero_numeric_mismatch": false,
+        "stage3_replan_approved": false,
+        "stage3_method_selected": false
+      },
+      "evidence": {
+        "calibration_v2": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\calibration_v2.json",
+        "board_validation": "E:\\1\\hwnas\\hwnas\\results\\g4_rl_arch_193_fold1_seed42\\board_validation_summary.json",
+        "replan_approval": "E:\\1\\hwnas\\hwnas\\artifacts\\stage3_replan_approval.json"
+      },
+      "boundary": "RL/Random/Proxyless remain legacy exploratory evidence. A new claimable NKSID search requires G2, G4, and an explicit post-G4 stage-3 method decision."
+    },
+    "G4_int8_board": {
+      "status": "PENDING",
+      "pass": false,
+      "target": "rl_arch_193/fold1/seed42",
+      "gates": {
+        "ptq_or_qat_accuracy": false,
+        "hls_bit_exact_parity": false,
+        "full_outer_validation_board": false,
+        "zero_board_numeric_mismatch": false,
+        "no_missing_board_samples": false
+      },
+      "evidence": {
+        "int8": "E:\\1\\hwnas\\hwnas\\results\\g4_rl_arch_193_fold1_seed42\\int8_ptq_summary.json",
+        "parity": "E:\\1\\hwnas\\hwnas\\results\\g4_rl_arch_193_fold1_seed42\\int8_hls_parity_summary.json",
+        "board": "E:\\1\\hwnas\\hwnas\\results\\g4_rl_arch_193_fold1_seed42\\board_validation_summary.json"
+      }
+    },
+    "power": {
+      "status": "NOT_MEASURED",
+      "pass": false,
+      "pareto_eligible": false,
+      "evidence": "E:\\1\\hwnas\\hwnas\\results\\power_measurement\\power_measurement_summary.json",
+      "reentry_rule": "At least three candidates must pass with the same instrument and protocol."
+    },
+    "G5_sonar_ablation": {
+      "status": "PAUSED",
+      "pass": false,
+      "evidence": "E:\\1\\hwnas\\hwnas\\artifacts\\sonar_operator_gate\\sonar_operator_gate.json",
+      "operators": {
+        "denoise": {
+          "status": "PAUSED",
+          "may_reenter_search_space": false,
+          "gates": {
+            "single_quantization_spec": false,
+            "weight_export_complete": false,
+            "real_sample_parity": false,
+            "boundary_tensor_parity": false,
+            "random_tensor_parity": false,
+            "bit_exact_zero_mismatch": false,
+            "output_shape_matched": false,
+            "parameter_count_within_5pct": false,
+            "macs_within_5pct": false,
+            "four_way_ablation_complete": false,
+            "paired_stratified_bootstrap": false,
+            "holm_significant": false,
+            "macro_f1_actual_gain": false,
+            "hls_evidence_complete": false,
+            "hls_feasible": false
+          },
+          "holm_adjusted_p_value": 1.0
+        },
+        "edge": {
+          "status": "PAUSED",
+          "may_reenter_search_space": false,
+          "gates": {
+            "single_quantization_spec": false,
+            "weight_export_complete": false,
+            "real_sample_parity": false,
+            "boundary_tensor_parity": false,
+            "random_tensor_parity": false,
+            "bit_exact_zero_mismatch": false,
+            "output_shape_matched": false,
+            "parameter_count_within_5pct": false,
+            "macs_within_5pct": false,
+            "four_way_ablation_complete": false,
+            "paired_stratified_bootstrap": false,
+            "holm_significant": false,
+            "macro_f1_actual_gain": false,
+            "hls_evidence_complete": false,
+            "hls_feasible": false
+          },
+          "holm_adjusted_p_value": 1.0
+        }
+      }
+    }
+  },
+  "claim_boundary": "Implemented software gates are not experimental results. Missing training, csynth, route, COM5, or meter evidence remains PENDING."
+}

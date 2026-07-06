@@ -23,5 +23,7 @@
 
 ## G2 blockers
 
-- four frozen independent full-network probes are not route/COM5 complete
-- candidate-level HLS evidence completeness has not passed for a shortlist
+- four frozen independent full-network probes are incomplete
+- fewer than eight unique semantic-safe full-network samples
+- independent interval-screening quality gates are not all PASS
+- candidate HLS shortlist coverage is not 100%
