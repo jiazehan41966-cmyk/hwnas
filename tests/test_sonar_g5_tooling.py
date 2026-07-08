@@ -101,3 +101,107 @@ def test_make_synthetic_speckle_pairs_smoke(tmp_path: Path) -> None:
     assert (output_dir / "L1" / "ref").exists()
     assert (output_dir / "L1" / "noisy").exists()
     assert (output_dir / "L1" / "denoised").exists()
+
+
+def test_build_sonar_operator_gate_manifest_merges_fragments(tmp_path: Path) -> None:
+    script = _load_script("build_sonar_operator_gate_manifest")
+    base = {
+        "operators": {
+            "denoise": {
+                "quantization_contract": "per_tensor_symmetric_int8_v1",
+                "software_spec_sha256": "TODO",
+                "hls_spec_sha256": "TODO",
+                "weight_export_complete": False,
+                "weight_export_sha256": "TODO",
+                "parity": {
+                    "real_sample_count": 0,
+                    "boundary_tensor_count": 0,
+                    "random_tensor_count": 0,
+                    "compared_element_count": 0,
+                    "mismatch_count": 0,
+                },
+                "hls": {"evidence_complete": False, "route_feasible": False},
+            },
+            "edge": {
+                "quantization_contract": "per_tensor_symmetric_int8_v1",
+                "software_spec_sha256": "TODO",
+                "hls_spec_sha256": "TODO",
+                "weight_export_complete": False,
+                "weight_export_sha256": "TODO",
+                "parity": {
+                    "real_sample_count": 0,
+                    "boundary_tensor_count": 0,
+                    "random_tensor_count": 0,
+                    "compared_element_count": 0,
+                    "mismatch_count": 0,
+                },
+                "hls": {"evidence_complete": False, "route_feasible": False},
+            },
+        },
+        "ablation_variants": {},
+        "comparisons_vs_control": {},
+    }
+    bootstrap = {
+        "ablation_variants": {
+            "mbconv_control": {
+                "folds": [0, 1, 2, 3, 4],
+                "seeds": [42, 43, 44],
+                "completed_runs": 15,
+                "claimable": True,
+                "outer_leakage": False,
+            }
+        },
+        "comparisons_vs_control": {
+            "denoise": {
+                "method": "paired_stratified_bootstrap",
+                "iterations": 10000,
+                "macro_f1_mean_delta": 0.01,
+                "p_value": 0.01,
+            }
+        },
+    }
+    export = {
+        "quantization_contract": "per_tensor_symmetric_int8_v1",
+        "software_spec_sha256": "a" * 64,
+        "hls_spec_sha256": "a" * 64,
+        "weight_export_complete": True,
+        "weight_export_sha256": "b" * 64,
+        "manifest_path": str(tmp_path / "folded_export_manifest.json"),
+    }
+    base_path = tmp_path / "base.json"
+    bootstrap_path = tmp_path / "bootstrap.json"
+    export_path = tmp_path / "export.json"
+    parity_path = tmp_path / "parity.jsonl"
+    base_path.write_text(json.dumps(base), encoding="utf-8")
+    bootstrap_path.write_text(json.dumps(bootstrap), encoding="utf-8")
+    export_path.write_text(json.dumps(export), encoding="utf-8")
+    parity_path.write_text(
+        "\n".join(
+            json.dumps(row)
+            for row in (
+                {"input_kind": "real_sample", "element_count": 4, "mismatch_count": 0},
+                {"input_kind": "boundary_tensor", "element_count": 4, "mismatch_count": 0},
+                {"input_kind": "random_tensor", "element_count": 4, "mismatch_count": 0},
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = script.assemble_manifest(
+        Namespace(
+            base=str(base_path),
+            bootstrap=str(bootstrap_path),
+            denoise_export=str(export_path),
+            edge_export=None,
+            denoise_parity_records=str(parity_path),
+            edge_parity_records=None,
+            denoise_hls_evidence=None,
+            edge_hls_evidence=None,
+            output=str(tmp_path / "manifest.json"),
+        )
+    )
+    assert manifest["ablation_variants"]["mbconv_control"]["completed_runs"] == 15
+    assert manifest["operators"]["denoise"]["weight_export_complete"] is True
+    assert manifest["operators"]["denoise"]["parity"]["real_sample_count"] == 1
+    assert manifest["operators"]["denoise"]["parity"]["mismatch_count"] == 0
+    assert "edge_export" not in manifest["source_fragments"]
