@@ -210,6 +210,133 @@ def load_checkpoint_state(path: Path) -> dict[str, torch.Tensor]:
     raise ValueError(f"Unsupported checkpoint payload: {path}")
 
 
+def _topk_hits(outputs: torch.Tensor, targets: torch.Tensor, k: int) -> int:
+    if outputs.ndim != 2:
+        raise ValueError("Expected classifier logits with shape [batch, num_classes]")
+    resolved_k = max(1, min(int(k), int(outputs.shape[1])))
+    topk = outputs.topk(resolved_k, dim=1).indices
+    return int(topk.eq(targets.unsqueeze(1)).any(dim=1).sum().item())
+
+
+def _summarize_confusion(confusion: torch.Tensor) -> dict[str, float]:
+    supports = confusion.sum(dim=1)
+    total = int(supports.sum().item())
+    macro_f1 = 0.0
+    weighted_f1 = 0.0
+    num_classes = int(confusion.shape[0])
+
+    for class_index in range(num_classes):
+        tp = float(confusion[class_index, class_index].item())
+        fp = float(confusion[:, class_index].sum().item() - tp)
+        fn = float(confusion[class_index, :].sum().item() - tp)
+        support = int(supports[class_index].item())
+        precision = tp / (tp + fp) if tp + fp > 0 else 0.0
+        recall = tp / (tp + fn) if tp + fn > 0 else 0.0
+        f1 = (
+            2.0 * precision * recall / (precision + recall)
+            if precision + recall > 0
+            else 0.0
+        )
+        macro_f1 += f1
+        weighted_f1 += f1 * support
+
+    return {
+        "macro_f1": macro_f1 / max(1, num_classes),
+        "weighted_f1": weighted_f1 / max(1, total),
+        "top1": float(confusion.diag().sum().item()) / max(1, total),
+    }
+
+
+@torch.no_grad()
+def evaluate_outer_classifier_with_predictions(
+    model: nn.Module,
+    data_loader,
+    *,
+    criterion: nn.Module,
+    device: str,
+    num_classes: int,
+    topk: int,
+    eval_samples: list[tuple[str, int]],
+    outer_indices: list[int],
+    fold: int,
+    seed: int,
+    class_names: list[str],
+) -> tuple[dict, list[dict]]:
+    """Evaluate the outer fold once and retain per-sample prediction evidence."""
+
+    model.eval()
+    total_loss = 0.0
+    total_samples = 0
+    total_topk = 0
+    cursor = 0
+    confusion = torch.zeros(int(num_classes), int(num_classes), dtype=torch.long)
+    rows: list[dict] = []
+
+    for inputs, targets in data_loader:
+        inputs = inputs.to(device)
+        targets = targets.to(device)
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        predictions = outputs.argmax(dim=1)
+
+        batch_size = int(targets.size(0))
+        total_loss += loss.item() * batch_size
+        total_samples += batch_size
+        total_topk += _topk_hits(outputs, targets, topk)
+
+        target_values = [int(value) for value in targets.view(-1).tolist()]
+        prediction_values = [int(value) for value in predictions.view(-1).tolist()]
+        for offset, (target, prediction) in enumerate(zip(target_values, prediction_values)):
+            dataset_index = int(outer_indices[cursor + offset])
+            sample_path, dataset_label = eval_samples[dataset_index]
+            confusion[target, prediction] += 1
+            rows.append(
+                {
+                    "fold": int(fold),
+                    "seed": int(seed),
+                    "split": "outer_val",
+                    "sample_index": dataset_index,
+                    "outer_position": cursor + offset,
+                    "image_path": str(Path(sample_path).resolve()),
+                    "target": target,
+                    "prediction": prediction,
+                    "correct": target == prediction,
+                    "dataset_label": int(dataset_label),
+                    "class_name": (
+                        class_names[target] if 0 <= target < len(class_names) else str(target)
+                    ),
+                    "predicted_class_name": (
+                        class_names[prediction]
+                        if 0 <= prediction < len(class_names)
+                        else str(prediction)
+                    ),
+                }
+            )
+        cursor += batch_size
+
+    if cursor != len(outer_indices):
+        raise RuntimeError(
+            f"outer prediction cursor mismatch: saw {cursor}, expected {len(outer_indices)}"
+        )
+    summary = _summarize_confusion(confusion)
+    summary.update(
+        {
+            "loss": total_loss / max(1, total_samples),
+            "top5": total_topk / max(1, total_samples),
+            "num_samples": float(total_samples),
+            "confusion_matrix": confusion.tolist(),
+        }
+    )
+    return summary, rows
+
+
+def write_jsonl(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", default="data/NKSID")
@@ -392,14 +519,21 @@ def main() -> int:
 
             model.load_state_dict(result.best_state)
             model = model.to(device)
-            outer_summary = evaluate_classifier(
+            outer_summary, outer_prediction_rows = evaluate_outer_classifier_with_predictions(
                 model,
                 bundle["outer_val_loader"],
                 criterion=nn.CrossEntropyLoss().to(device),
                 device=device,
                 num_classes=num_classes,
                 topk=recipe.topk,
+                eval_samples=bundle["eval_dataset"].samples,
+                outer_indices=list(bundle["split"].outer_val_indices),
+                fold=fold,
+                seed=seed,
+                class_names=class_names,
             )
+            prediction_path = run_dir / f"outer_predictions_{run_tag}.jsonl"
+            write_jsonl(prediction_path, outer_prediction_rows)
 
             record = {
                 "fold": fold,
@@ -415,6 +549,12 @@ def main() -> int:
                 },
                 "outer_confusion_matrix": outer_summary["confusion_matrix"],
                 "outer_per_class_f1": per_class_f1(outer_summary["confusion_matrix"]),
+                "outer_predictions": {
+                    "path": str(prediction_path.resolve()),
+                    "sha256": sha256_file(prediction_path),
+                    "num_samples": len(outer_prediction_rows),
+                    "schema_version": 1,
+                },
                 "split": bundle["split"].to_dict(),
                 "model": model_meta,
                 "selection_provenance": selection_provenance,

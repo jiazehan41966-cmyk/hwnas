@@ -17,11 +17,23 @@ from .quantization import (
     export_checkpoint_quantized_weights,
     quantize_tensor_symmetric,
 )
+from .reparam import (
+    FoldedDenoiseBlock,
+    FoldedEdgeBlock,
+    fold_denoise_block,
+    fold_edge_block,
+    fold_sonar_blocks,
+)
 from .report_parser import parse_backend_report, parse_backend_report_text
 
 __all__ = [
+    "FoldedDenoiseBlock",
+    "FoldedEdgeBlock",
     "HLSProjectConfig",
     "QuantizationConfig",
+    "fold_denoise_block",
+    "fold_edge_block",
+    "fold_sonar_blocks",
     "attach_hls_report",
     "build_quantized_weight_package",
     "create_hls_project_stub",

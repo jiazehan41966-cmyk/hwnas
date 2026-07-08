@@ -6,6 +6,7 @@ outputs/
 # Third-party datasets fetched by scripts/fetch_external_sonar_datasets.py.
 # Keep source metadata/configuration in Git, but never commit downloaded archives.
 /data/external/
+/data/synthetic_speckle/
 hls_lut_builder/results/
 hls_lut_builder/board_harness/_vivado_builds/
 hls_lut_builder/board_harness/projects/

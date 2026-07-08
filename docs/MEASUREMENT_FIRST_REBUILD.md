@@ -119,6 +119,9 @@ UART v1 支持 `LOAD_RUN`、`RUN_REPEAT`、`PING`、CRC32、重试和断点续�
 
 ## G5：声呐算子
 
+详细执行方案（四路消融配置、折叠部署证据链、指标协议）见
+[SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md](SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md)。
+
 `scripts/audit_sonar_operator_gate.py` 同时检查：
 
 - 软件/HLS 使用同一 INT8 规范并完成权重导出；

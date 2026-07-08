@@ -1,0 +1,82 @@
+{
+  "candidate": {
+    "arch_id": "sonar_g5_v1_edge",
+    "encoding": {
+      "input_channels": 1,
+      "stem_channels": 32,
+      "stem_stride": 2,
+      "post_stem_downsample_stride": 1,
+      "head_conv_channels": null,
+      "head_channels": null,
+      "num_classes": 8,
+      "stages": [
+        {
+          "channels": 16,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "conv",
+              "kernel_size": 1,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 24,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 6,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 32,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 3,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 32,
+          "depth": 2,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            },
+            {
+              "op": "edge",
+              "kernel_size": 3,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        }
+      ]
+    },
+    "metrics": {}
+  },
+  "g5_ablation": {
+    "variant": "edge",
+    "backbone": "sonar_ablation_backbone_v1",
+    "slot_a": "mbconv k3 e1 s1",
+    "slot_b": "edge k3 e1 s1",
+    "source_plan": "docs/SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md"
+  }
+}
