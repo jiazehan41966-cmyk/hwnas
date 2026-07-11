@@ -55,8 +55,14 @@ while ($true) {
     $blocking = @(
         Get-CimInstance Win32_Process |
             Where-Object {
-                $_.Name -like "python*" -and
-                $_.CommandLine -like "*run_eval_protocol.py*"
+                (
+                    $_.Name -like "python*" -and
+                    $_.CommandLine -like "*run_eval_protocol.py*"
+                ) -or (
+                    $_.Name -like "powershell*" -and
+                    $_.ProcessId -ne $PID -and
+                    $_.CommandLine -like "*run_g1_baseline_trio.ps1*"
+                )
             }
     )
     $os = Get-CimInstance Win32_OperatingSystem

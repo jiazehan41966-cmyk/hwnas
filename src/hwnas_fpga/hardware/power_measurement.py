@@ -190,6 +190,13 @@ def audit_power_manifest(
     pass_status = all(gates.values())
     return {
         "schema_version": 1,
+        "candidate_id": manifest.get("candidate_id"),
+        "measurement_protocol_fingerprint": manifest.get(
+            "measurement_protocol_fingerprint"
+        ),
+        "raw_csv_hashes_complete": bool(
+            idle and active and all(capture.get("sha256") for capture in idle + active)
+        ),
         "power_measurement_status": "PASS" if pass_status else "FAIL",
         "overall_pass": pass_status,
         "gates": gates,
@@ -216,6 +223,66 @@ def audit_power_manifest(
             "Measured board-input total power for this bitstream/protocol only; "
             "power is not a search objective until at least three candidates "
             "pass under the same instrument contract."
+        ),
+    }
+
+
+def audit_power_campaign(manifest_paths: list[str | Path]) -> dict[str, Any]:
+    """Audit the multi-candidate power evidence required for Pareto claims."""
+    if not manifest_paths:
+        return {
+            "schema_version": 2,
+            "overall_pass": False,
+            "candidate_count": 0,
+            "same_instrument_protocol": False,
+            "raw_csv_hashes_complete": False,
+            "boundary": "At least three independent candidate manifests are required.",
+        }
+    audits = []
+    manifests = []
+    for path in manifest_paths:
+        source = Path(path).resolve()
+        payload = json.loads(source.read_text(encoding="utf-8-sig"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"{source} must contain a JSON object")
+        manifests.append(payload)
+        audits.append(audit_power_manifest(payload, manifest_path=source))
+    candidate_ids = [
+        str(payload.get("candidate_id") or Path(path).stem)
+        for payload, path in zip(manifests, manifest_paths)
+    ]
+    instrument_keys = {
+        json.dumps(payload.get("instrument") or {}, sort_keys=True)
+        for payload in manifests
+    }
+    protocol_keys = {
+        str(payload.get("measurement_protocol_fingerprint", ""))
+        for payload in manifests
+    }
+    gates = {
+        "three_candidates": len(set(candidate_ids)) == 3,
+        "same_instrument_protocol": len(instrument_keys) == 1
+        and len(protocol_keys) == 1
+        and "" not in protocol_keys,
+        "all_candidate_manifests_pass": all(audit["overall_pass"] for audit in audits),
+        "raw_csv_hashes_complete": all(
+            audit.get("raw_csv_hashes_complete") is True for audit in audits
+        ),
+    }
+    return {
+        "schema_version": 2,
+        "overall_pass": all(gates.values()),
+        "candidate_count": len(set(candidate_ids)),
+        "candidate_ids": candidate_ids,
+        "same_instrument_protocol": gates["same_instrument_protocol"],
+        "raw_csv_hashes_complete": gates["raw_csv_hashes_complete"],
+        "gates": gates,
+        "manifests": [str(Path(path).resolve()) for path in manifest_paths],
+        "audits": audits,
+        "pareto_eligible": all(gates.values()),
+        "boundary": (
+            "Power/energy may enter a Pareto claim only after three candidates "
+            "pass under one instrument and one measurement protocol."
         ),
     }
 

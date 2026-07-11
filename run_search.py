@@ -86,6 +86,7 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
     search_state_path = tracker.checkpoints_dir / "search_state.json"
     controller_latest_path = tracker.checkpoints_dir / "controller_latest.pt"
     controller_best_path = tracker.checkpoints_dir / "controller_best.pt"
+    controller_reward_best_path = tracker.checkpoints_dir / "controller_reward_best.pt"
 
     if not candidates_path.exists():
         raise FileNotFoundError(f"Missing resume candidates log: {candidates_path}")
@@ -106,6 +107,11 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
         if controller_best_path.exists()
         else {}
     )
+    reward_best_ckpt = (
+        torch.load(controller_reward_best_path, map_location=device)
+        if controller_reward_best_path.exists()
+        else {}
+    )
 
     searcher.evaluated_candidates.clear()
     searcher.feasible_candidates.clear()
@@ -121,7 +127,23 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
             searcher.infeasible_candidates.append(candidate)
 
     searcher.best_candidate = _candidate_from_dict(search_state.get("best_candidate"))
-    searcher.best_reward = float(best_ckpt.get("best_reward", float("-inf")))
+    searcher.best_reward = float(
+        reward_best_ckpt.get(
+            "best_reward",
+            best_ckpt.get("best_reward", float("-inf")),
+        )
+    )
+    reward_best_arch_id = (
+        reward_best_ckpt.get("best_reward_candidate") or {}
+    ).get("arch_id")
+    searcher.best_reward_candidate = next(
+        (
+            candidate
+            for candidate in searcher.evaluated_candidates
+            if candidate.arch_id == reward_best_arch_id
+        ),
+        None,
+    )
     searcher.best_selection_score = float(
         best_ckpt.get(
             "best_selection_score",
@@ -142,37 +164,6 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
     searcher.baseline = float(latest_ckpt.get("baseline", searcher.baseline))
     searcher.controller.load_state_dict(latest_ckpt["controller_state_dict"])
     searcher.controller_optimizer.load_state_dict(latest_ckpt["optimizer_state_dict"])
-
-    stats = {
-        "max_accuracy": 0.0,
-        "max_latency": 1.0,
-        "max_energy": 1.0,
-        "max_dsp": 1.0,
-        "max_bram": 1.0,
-        "max_lut": 1.0,
-    }
-    for record in records:
-        candidate = record.get("candidate", {})
-        metrics = candidate.get("metrics", {})
-        accuracy = metrics.get("accuracy")
-        latency = metrics.get("latency_ms")
-        energy = metrics.get("energy_mj")
-        dsp = metrics.get("dsp")
-        bram = metrics.get("bram")
-        lut = metrics.get("lut")
-        if accuracy is not None:
-            stats["max_accuracy"] = max(stats["max_accuracy"], float(accuracy))
-        if latency is not None:
-            stats["max_latency"] = max(stats["max_latency"], float(latency))
-        if energy is not None:
-            stats["max_energy"] = max(stats["max_energy"], float(energy))
-        if dsp is not None:
-            stats["max_dsp"] = max(stats["max_dsp"], float(dsp))
-        if bram is not None:
-            stats["max_bram"] = max(stats["max_bram"], float(bram))
-        if lut is not None:
-            stats["max_lut"] = max(stats["max_lut"], float(lut))
-    searcher.reward_function._stats.update(stats)
 
     resumed_episode = int(latest_ckpt.get("episode", len(records) - 1)) + 1
     return resumed_episode

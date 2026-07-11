@@ -29,7 +29,7 @@ from hwnas_fpga.deploy.reparam import (
 )
 
 
-QUANTIZATION_CONTRACT = "per_tensor_symmetric_int8_v1"
+QUANTIZATION_CONTRACT = "per_tensor_symmetric_int8_v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -151,18 +151,31 @@ def export_folded_sonar_weights(
         architecture=architecture.to_dict(),
         candidate=payload.get("candidate") or payload.get("source_candidate"),
         class_names=class_names,
-        config=QuantizationConfig(bit_width=8, scheme="symmetric", quantize_bias=False),
+        config=QuantizationConfig(
+            bit_width=8,
+            scheme="symmetric",
+            quantize_bias=True,
+            input_scale=1.0 / 127.0,
+            output_scale=1.0 / 127.0,
+        ),
     )
     quantized_path = output_dir / "folded_int8_weight_package.pt"
     torch.save(q_package, quantized_path)
 
     quantization_spec = {
-        "schema_version": 1,
+        "schema_version": 2,
         "quantization_contract": QUANTIZATION_CONTRACT,
-        "scope": "folded_weights_only",
-        "weight_scheme": "per_tensor_symmetric",
+        "scope": "folded_integer_reference_required",
+        "weight_scheme": "symmetric_int8_range_neg127_pos127",
+        "activation_scheme": "symmetric_int8_range_neg127_pos127",
         "bit_width": 8,
-        "quantize_bias": False,
+        "quantize_bias": True,
+        "bias_dtype": "int32",
+        "accumulator_dtype": "int32",
+        "zero_point": 0,
+        "rounding": "nearest_even",
+        "saturation": "signed_clamp",
+        "requantization": "per_output_tensor_scale",
         "folded_sonar_block_count": replaced,
         "quantization_summary": q_summary,
         "folded_blocks": folded_block_specs(model),
@@ -191,13 +204,13 @@ def export_folded_sonar_weights(
         "folded_sonar_block_count": replaced,
         "quantization_contract": QUANTIZATION_CONTRACT,
         "software_spec_sha256": spec_sha256,
-        "hls_spec_sha256": spec_sha256,
         "weight_export_complete": True,
         "weight_export_sha256": export_sha256,
         "files": file_records,
         "boundary": (
-            "This export proves folded PyTorch packaging and shared INT8 spec "
-            "identity only. HLS parity and route feasibility require separate records."
+        "This export records the complete software fixed-point contract and "
+        "folded package. Software integer layer parity must pass before HLS; "
+        "HLS must emit an independent consumed-spec record and hash."
         ),
     }
     manifest_path = output_dir / "folded_export_manifest.json"

@@ -1,0 +1,39 @@
+{
+  "status": "PASS",
+  "tolerance": 0.05,
+  "note": "deploy_params/stage3_macs computed on the folded (deployment) form",
+  "variants": {
+    "mbconv_control": {
+      "train_params": 22688,
+      "deploy_params": 21104,
+      "stage3_macs": 8354304,
+      "path": "configs\\ablation\\sonar_g5_v1\\mbconv_control.candidate.json",
+      "deploy_param_error_vs_control": 0.0,
+      "stage3_macs_error_vs_control": 0.0
+    },
+    "denoise": {
+      "train_params": 22976,
+      "deploy_params": 21168,
+      "stage3_macs": 8354304,
+      "path": "configs\\ablation\\sonar_g5_v1\\denoise.candidate.json",
+      "deploy_param_error_vs_control": 0.003,
+      "stage3_macs_error_vs_control": 0.0
+    },
+    "edge": {
+      "train_params": 18336,
+      "deploy_params": 21008,
+      "stage3_macs": 8253952,
+      "path": "configs\\ablation\\sonar_g5_v1\\edge.candidate.json",
+      "deploy_param_error_vs_control": 0.0045,
+      "stage3_macs_error_vs_control": 0.012
+    },
+    "denoise_edge": {
+      "train_params": 18624,
+      "deploy_params": 21072,
+      "stage3_macs": 8253952,
+      "path": "configs\\ablation\\sonar_g5_v1\\denoise_edge.candidate.json",
+      "deploy_param_error_vs_control": 0.0015,
+      "stage3_macs_error_vs_control": 0.012
+    }
+  }
+}

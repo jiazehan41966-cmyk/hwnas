@@ -36,16 +36,27 @@ def audit_parity_records(
         or int(row.get("mismatch_count", -1)) < 0
         or len(str(row.get("simulator_sha256", ""))) != 64
         or len(str(row.get("hls_testbench_sha256", ""))) != 64
+        or (
+            quantization_contract == "per_tensor_symmetric_int8_v2"
+            and len(str(row.get("quantization_spec_sha256", ""))) != 64
+        )
     ]
     gates = {
         "quantization_contract": (
-            quantization_contract == "per_tensor_symmetric_int8_v1"
+            quantization_contract in {
+                "per_tensor_symmetric_int8_v1",  # legacy audit compatibility
+                "per_tensor_symmetric_int8_v2",
+            }
         ),
         "records_present": bool(rows),
         "real_samples_present": "real_sample" in kinds,
         "boundary_tensors_present": "boundary_tensor" in kinds,
         "random_tensors_present": "random_tensor" in kinds,
         "layer_coverage_present": bool(layers),
+        "quantization_spec_trace_present": (
+            quantization_contract != "per_tensor_symmetric_int8_v2"
+            or all(len(str(row.get("quantization_spec_sha256", ""))) == 64 for row in rows)
+        ),
         "record_schema_valid": not invalid_rows,
         "compared_elements_positive": total_elements > 0,
         "zero_integer_mismatch": total_mismatches == 0,

@@ -102,6 +102,7 @@ class ApplyPtqTests(unittest.TestCase):
         self.assertEqual(meta["bn_folding"]["folded_pair_count"], 1)
         self.assertIsInstance(model[1], nn.Identity)
         self.assertTrue(meta["fixed_point_contract"]["bn_folding"])
+        self.assertFalse(meta["parity_ready"])
 
     def test_fused_qat_weights_can_return_to_original_topology(self) -> None:
         template = nn.Sequential(

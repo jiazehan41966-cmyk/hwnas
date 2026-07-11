@@ -51,15 +51,19 @@ def candidate_selection_score(candidate: SearchCandidate, selection_metric: str)
     metrics = candidate.metrics
     normalized = str(selection_metric or "macro_f1").strip().lower()
     if normalized in {"macro_f1", "f1"}:
-        value = metrics.macro_f1 if metrics.macro_f1 is not None else metrics.accuracy
+        value = metrics.macro_f1
     elif normalized in {"accuracy", "top1"}:
-        value = metrics.top1 if metrics.top1 is not None else metrics.accuracy
+        value = metrics.top1
     elif normalized == "weighted_f1":
-        value = metrics.weighted_f1 if metrics.weighted_f1 is not None else metrics.accuracy
+        value = metrics.weighted_f1
     else:
         value = getattr(metrics, normalized, None)
-        if value is None:
-            value = metrics.accuracy
+    if value is None:
+        value = metrics.selection_score
+    if value is None:
+        # Compatibility with pre-schema-change artifacts where ``accuracy``
+        # stored the configured selection score.
+        value = metrics.accuracy
     return float(value if value is not None else 0.0)
 
 
@@ -248,8 +252,9 @@ class RandomSearcher(BaseSearcher):
                     ),
                     selection_metric=self.selection_metric,
                 )
-                candidate.metrics.accuracy = accuracy
                 best_eval = dict(history.get("best_eval") or {})
+                candidate.metrics.selection_score = accuracy
+                candidate.metrics.accuracy = best_eval.get("top1")
                 candidate.metrics.macro_f1 = best_eval.get("macro_f1")
                 candidate.metrics.weighted_f1 = best_eval.get("weighted_f1")
                 candidate.metrics.top1 = best_eval.get("top1")

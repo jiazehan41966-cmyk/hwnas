@@ -153,7 +153,7 @@ def test_build_sonar_operator_gate_manifest_merges_fragments(tmp_path: Path) -> 
         },
         "comparisons_vs_control": {
             "denoise": {
-                "method": "paired_stratified_bootstrap",
+                "method": "paired_hierarchical_bootstrap_fold_sign_flip",
                 "iterations": 10000,
                 "macro_f1_mean_delta": 0.01,
                 "p_value": 0.01,

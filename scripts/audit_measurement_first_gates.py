@@ -37,10 +37,11 @@ def read_json(path: Path) -> dict[str, Any] | None:
 
 
 def g1_status(root: Path) -> dict[str, Any]:
+    clean_root = root / "results/protocol/g1_clean_20260711"
     paths = {
-        "scratch": root / "results/protocol/g1_mobilenet_v2_scratch/protocol_summary.json",
-        "pretrained": root / "results/protocol/g1_mobilenet_v2_grayscale_imagenet/protocol_summary.json",
-        "rl_arch_135": root / "results/protocol/g1_rl_arch_135_legacy_selected/protocol_summary.json",
+        "scratch": clean_root / "g1_mobilenet_v2_scratch/protocol_summary.json",
+        "pretrained": clean_root / "g1_mobilenet_v2_grayscale_imagenet/protocol_summary.json",
+        "rl_arch_135": clean_root / "g1_rl_arch_135_legacy_selected/protocol_summary.json",
     }
     summaries = {name: read_json(path) for name, path in paths.items()}
     gates = {
@@ -55,6 +56,21 @@ def g1_status(root: Path) -> dict[str, Any]:
     )
     completed = sum(len((payload or {}).get("runs", [])) for payload in summaries.values())
     gates["completed_45_of_45"] = completed == 45
+    for name, payload in summaries.items():
+        prefix = f"{name}_"
+        gates[prefix + "uniform_run_fingerprint"] = bool(
+            payload
+            and len(payload.get("run_fingerprints", [])) == 1
+            and len(str(payload.get("run_fingerprints", [""])[0])) == 64
+        )
+        gates[prefix + "uniform_protocol_context"] = bool(
+            payload and len(str(payload.get("protocol_context_sha256", ""))) == 64
+        )
+        gates[prefix + "grayscale_normalization"] = bool(
+            payload
+            and (payload.get("normalization") or {}).get("mean") == [0.5]
+            and (payload.get("normalization") or {}).get("std") == [0.5]
+        )
     passed = all(gates.values())
     return {
         "status": "PASS" if passed else "PENDING",
@@ -82,7 +98,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--power",
-        default="results/power_measurement/power_measurement_summary.json",
+        default="results/power_measurement/power_campaign_summary.json",
     )
     parser.add_argument(
         "--output-dir",
@@ -111,10 +127,42 @@ def main() -> int:
         REPO_ROOT / "artifacts/hw_surrogate_calibration_v2/calibration_v2.json"
     )
     calibration = read_json(calibration_path)
-    g2_pass = bool(calibration and calibration.get("g2_pass") is True)
+    g2_gates = {
+        "declared_pass": bool(calibration and calibration.get("g2_pass") is True),
+        "independent_full_network_probes": bool(
+            calibration
+            and int(
+                calibration.get(
+                    "independent_full_network_probe_count",
+                    calibration.get("probe_count", 0),
+                )
+            ) >= 4
+        ),
+        "semantic_safe_full_network_samples": bool(
+            calibration
+            and int(
+                calibration.get(
+                    "semantic_safe_full_network_sample_count",
+                    calibration.get("semantic_safe_sample_count", 0),
+                )
+            ) >= 8
+        ),
+        "leave_one_architecture_out": bool(
+            calibration and calibration.get("leave_one_architecture_out") is True
+        ),
+        "shortlist_coverage_100pct": bool(
+            calibration
+            and float(calibration.get("shortlist_coverage", 0.0)) >= 1.0
+        ),
+        "p90_p95_quality": bool(
+            calibration and calibration.get("p90_p95_quality_gate") is True
+        ),
+    }
+    g2_pass = all(g2_gates.values())
     g2 = {
         "status": "PASS" if g2_pass else "PENDING",
         "pass": g2_pass,
+        "gates": g2_gates,
         "evidence": str(calibration_path),
         "blockers": (calibration or {}).get(
             "g2_blockers", ["calibration_v2.json is missing"]
@@ -160,10 +208,22 @@ def main() -> int:
 
     power_path = REPO_ROOT / args.power
     power = read_json(power_path)
-    power_pass = bool(power and power.get("overall_pass") is True)
+    power_gates = {
+        "declared_pass": bool(power and power.get("overall_pass") is True),
+        "three_candidates": bool(
+            power
+            and int(power.get("candidate_count", len(power.get("candidates", [])))) >= 3
+        ),
+        "same_instrument_protocol": bool(
+            power and power.get("same_instrument_protocol") is True
+        ),
+        "raw_csv_hashes": bool(power and power.get("raw_csv_hashes_complete") is True),
+    }
+    power_pass = all(power_gates.values())
     power_status = {
         "status": "MEASURED" if power_pass else "NOT_MEASURED",
         "pass": power_pass,
+        "gates": power_gates,
         "pareto_eligible": False,
         "evidence": str(power_path),
         "reentry_rule": (

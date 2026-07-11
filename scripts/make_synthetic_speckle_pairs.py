@@ -26,6 +26,7 @@ from measure_sonar_image_quality import apply_transform
 TRANSFORM_DIR_NAMES = {
     "identity": "identity",
     "denoise": "denoised",
+    "lee": "lee",
     "edge": "edge",
     "edge_enhanced": "edge_enhanced",
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated": "2026-07-04T16:57:24",
+  "generated": "2026-07-11T09:12:40",
   "overall_status": "IN_PROGRESS",
   "gates": {
     "G0_protocol": {
@@ -9,7 +9,7 @@
       "protocol_config": "E:\\1\\hwnas\\hwnas\\configs\\evaluation\\nksid_frozen_protocol_v1.yaml",
       "protocol_config_sha256": "f69b760f4886560abbef71773e9a4b2a2703ce0082fa2e227481c91c46649fb6",
       "entrypoint": "E:\\1\\hwnas\\hwnas\\run_eval_protocol.py",
-      "entrypoint_sha256": "d442d2d60b4f7031e97a72856169012bb22d457644d4e891e52b5fc4757eb34e",
+      "entrypoint_sha256": "4eb4089eee5c15941b68f41273c2935ec965a99365dd9e305101943d9cea4d76",
       "claim_rule": "Only exact folds 0-4, seeds 42/43/44, no outer selection, and complete checkpoint/split/code provenance are claimable."
     },
     "G1_accuracy_baselines": {
@@ -22,17 +22,34 @@
         "pretrained_claimable": false,
         "rl_arch_135_claimable": false,
         "pretrained_loaded": false,
-        "completed_45_of_45": false
+        "completed_45_of_45": false,
+        "scratch_uniform_run_fingerprint": false,
+        "scratch_uniform_protocol_context": false,
+        "scratch_grayscale_normalization": false,
+        "pretrained_uniform_run_fingerprint": false,
+        "pretrained_uniform_protocol_context": false,
+        "pretrained_grayscale_normalization": false,
+        "rl_arch_135_uniform_run_fingerprint": false,
+        "rl_arch_135_uniform_protocol_context": false,
+        "rl_arch_135_grayscale_normalization": false
       },
       "evidence": {
-        "scratch": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_mobilenet_v2_scratch\\protocol_summary.json",
-        "pretrained": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_mobilenet_v2_grayscale_imagenet\\protocol_summary.json",
-        "rl_arch_135": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_rl_arch_135_legacy_selected\\protocol_summary.json"
+        "scratch": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\protocol_summary.json",
+        "pretrained": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\protocol_summary.json",
+        "rl_arch_135": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\protocol_summary.json"
       }
     },
     "G2_hardware_measurement": {
       "status": "PENDING",
       "pass": false,
+      "gates": {
+        "declared_pass": false,
+        "independent_full_network_probes": false,
+        "semantic_safe_full_network_samples": false,
+        "leave_one_architecture_out": false,
+        "shortlist_coverage_100pct": false,
+        "p90_p95_quality": false
+      },
       "evidence": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\calibration_v2.json",
       "blockers": [
         "four frozen independent full-network probes are incomplete",
@@ -81,8 +98,14 @@
     "power": {
       "status": "NOT_MEASURED",
       "pass": false,
+      "gates": {
+        "declared_pass": false,
+        "three_candidates": false,
+        "same_instrument_protocol": false,
+        "raw_csv_hashes": false
+      },
       "pareto_eligible": false,
-      "evidence": "E:\\1\\hwnas\\hwnas\\results\\power_measurement\\power_measurement_summary.json",
+      "evidence": "E:\\1\\hwnas\\hwnas\\results\\power_measurement\\power_campaign_summary.json",
       "reentry_rule": "At least three candidates must pass with the same instrument and protocol."
     },
     "G5_sonar_ablation": {

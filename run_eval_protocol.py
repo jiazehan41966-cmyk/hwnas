@@ -30,6 +30,7 @@ import statistics
 import subprocess
 import sys
 from datetime import datetime
+from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
 
 import numpy as np
@@ -38,7 +39,11 @@ import torch.nn as nn
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from hwnas_fpga.data.dataset import NKSID_CLASSES, create_protocol_dataloaders
+from hwnas_fpga.data.dataset import (
+    NKSID_CLASSES,
+    create_protocol_dataloaders,
+    protocol_normalization,
+)
 from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
 from hwnas_fpga.training import load_architecture_from_artifact
@@ -59,8 +64,25 @@ def set_global_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def runtime_provenance() -> dict[str, str]:
+    def installed_version(name: str) -> str:
+        try:
+            return package_version(name)
+        except PackageNotFoundError:
+            return "not-installed"
+
+    return {
+        "python": sys.version.split()[0],
+        "torch": str(torch.__version__),
+        "numpy": str(np.__version__),
+        "torchvision": installed_version("torchvision"),
+    }
 
 
 def build_run_model(args: argparse.Namespace, num_classes: int) -> tuple[nn.Module, dict]:
@@ -435,15 +457,22 @@ def main() -> int:
         "recipe": recipe.to_dict(),
         "batch_size": args.batch_size,
         "image_size": args.image_size,
+        "normalization": protocol_normalization(output_channels=1),
+        "group_split_available": False,
+        "group_generalization_claimable": False,
         "inner_val_fraction": args.inner_val_fraction,
         "arch": args.arch,
         "pretrained": args.pretrained,
         "candidate": candidate_provenance,
         "selection_provenance": selection_provenance,
         "dataset": data_provenance,
+        "runtime": runtime_provenance(),
         "code_state_sha256": code_provenance["code_state_sha256"],
     }
     run_fingerprint = canonical_sha256(immutable_config)
+    protocol_context_sha256 = canonical_sha256(
+        {key: value for key, value in immutable_config.items() if key != "candidate"}
+    )
     manifest_path = run_dir / "run_manifest.json"
     if manifest_path.exists() and not args.force:
         existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -464,10 +493,17 @@ def main() -> int:
         "protocol": "nksid_outer5fold_inner_contiguous_v1",
         "run_name": run_name,
         "run_fingerprint": run_fingerprint,
+        "protocol_context_sha256": protocol_context_sha256,
         "created_or_checked": datetime.now().isoformat(timespec="seconds"),
         "git_commit": code_provenance["commit"],
         "code_provenance": code_provenance,
         "immutable_config": immutable_config,
+        "data_protocol": {
+            "group_split_available": False,
+            "group_generalization_claimable": False,
+            "group_metadata_source": None,
+            "normalization": immutable_config["normalization"],
+        },
         "planned_pairs": [
             {"fold": fold, "seed": seed} for fold in folds for seed in seeds
         ],
@@ -558,7 +594,11 @@ def main() -> int:
                 "split": bundle["split"].to_dict(),
                 "model": model_meta,
                 "selection_provenance": selection_provenance,
+                "normalization": immutable_config["normalization"],
+                "group_split_available": False,
+                "group_generalization_claimable": False,
                 "run_fingerprint": run_fingerprint,
+                "protocol_context_sha256": protocol_context_sha256,
                 "split_sha256": canonical_sha256(bundle["split"].to_dict()),
                 "provenance": {
                     "git_commit": manifest["git_commit"],
@@ -581,7 +621,11 @@ def main() -> int:
                     "best_epoch": result.best_epoch,
                     "selection_provenance": selection_provenance,
                     "run_fingerprint": run_fingerprint,
+                    "protocol_context_sha256": protocol_context_sha256,
                     "split_sha256": record["split_sha256"],
+                    "normalization": immutable_config["normalization"],
+                    "group_split_available": False,
+                    "group_generalization_claimable": False,
                 }
                 torch.save(checkpoint_payload, checkpoint_path)
                 record["checkpoint"] = {
@@ -613,6 +657,10 @@ def main() -> int:
                 for r in runs
             )
         ),
+        provenance_fingerprints=[str(r.get("run_fingerprint", "")) for r in runs],
+        group_split_available=False,
+        protocol_context_sha256=protocol_context_sha256,
+        provenance_contexts=[str(r.get("protocol_context_sha256", "")) for r in runs],
     )
     manifest["completed_pairs"] = [
         {"fold": r["fold"], "seed": r["seed"]} for r in runs
@@ -627,6 +675,11 @@ def main() -> int:
         "run_name": run_name,
         "device": device,
         "run_fingerprint": run_fingerprint,
+        "protocol_context_sha256": protocol_context_sha256,
+        "normalization": immutable_config["normalization"],
+        "group_split_available": False,
+        "group_generalization_claimable": False,
+        "run_fingerprints": sorted({str(r.get("run_fingerprint", "")) for r in runs}),
         "claimability": claimability,
         "provenance": {
             "git_commit": manifest["git_commit"],
@@ -663,6 +716,9 @@ def main() -> int:
         f"- claimable: `{claimability['claimable']}`",
         f"- claim_scope: `{claimability['claim_scope']}`",
         f"- nas_generalization_claimable: `{claimability['nas_generalization_claimable']}`",
+        f"- group_split_available: `False`",
+        f"- group_generalization_claimable: `False`",
+        f"- normalization: `grayscale mean=0.5 std=0.5`",
         f"- model: {aggregate['model']}",
         "",
         "| metric | mean | std | n |",

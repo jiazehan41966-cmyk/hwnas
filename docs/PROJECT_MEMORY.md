@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-07-06
+Last updated: 2026-07-12
 
 Purpose: this file is the persistent local memory index for the HW-NAS FPGA Sonar repository. New tasks in this workspace should read this file first when they need repository context, audit history, archive paths, or workflow boundaries.
 
@@ -98,6 +98,10 @@ Covered:
   metrics.
 - Proxy Reliability Gate 0 v1/v2 manifests, execution invariants, and staged
   evidence rules.
+- G5 sonar-operator admission tooling, including matched folded candidates,
+  fold-cluster paired comparison, strict INT8 v2 evidence fields, and the
+  resumable G1/G5 queue scripts. These are implementation artifacts only;
+  formal E1/E2 execution evidence is still absent.
 
 Known gap:
 
@@ -114,6 +118,10 @@ Known gap:
   crossed grid is collected, the status is `not_ready`; existing strict40
   proximity does not establish either RL superiority or formal RL/Random
   equivalence.
+- G5 v2 tooling is implemented, but no formal 60-run four-way ablation, zero-
+  mismatch INT8/HLS parity bundle, or route-feasible E2 evidence is currently
+  present. Keep `denoise` and `edge` `PAUSED`/`not_ready` until the frozen
+  protocol, HLS-consumed spec hashes, and all comparison gates pass.
 
 Current board-claimable Phase0 v3 result:
 

@@ -1,4 +1,4 @@
-"""Post-training INT8 quantization simulation for accuracy evaluation.
+"""Post-training INT8 calibration and software reference preparation.
 
 Closes audit gate #5 ("calibrated INT8 validation accuracy before full
 validation-set board inference") on the software side:
@@ -9,22 +9,29 @@ validation-set board inference") on the software side:
   batches supplied by the caller (use training-side data, never the outer
   validation fold).
 
-Claim boundary: this simulates PTQ arithmetic in floating point. It matches
-the exported weight quantization exactly, but it is not bit-exact against the
-HLS fixed-point pipeline; the board chain must still verify numeric parity.
+``apply_ptq`` remains a legacy float fake-quant compatibility helper. Formal
+deployment work must use ``prepare_integer_ptq`` and
+``hwnas_fpga.deploy.int8_reference``; that path is integer-only and fails
+closed for unsupported operators. Software parity is still separate evidence
+from HLS and board parity.
 """
 
 from __future__ import annotations
 
 import random
+from copy import deepcopy
 from collections import defaultdict
 from typing import Any, Mapping, Optional, Sequence
 
 import torch
 import torch.nn as nn
 
-from hwnas_fpga.deploy.quantization import quantize_tensor_symmetric
-from hwnas_fpga.deploy.fixed_point import FixedPointContract
+from hwnas_fpga.deploy.quantization import (
+    QuantizationConfig,
+    build_quantized_weight_package,
+    quantize_tensor_symmetric,
+)
+from hwnas_fpga.deploy.fixed_point import FixedPointContract, quantize_bias_int32
 
 
 def fold_batch_norms_inplace(model: nn.Module) -> list[dict[str, str]]:
@@ -231,6 +238,7 @@ def apply_ptq(
         op.freeze_calibration()
 
     return {
+        "quantization_schema_version": 2,
         "bit_width": bit_width,
         "scheme": "symmetric_per_tensor",
         "fixed_point_contract": FixedPointContract().to_dict(),
@@ -244,8 +252,118 @@ def apply_ptq(
         "calibration_source": "training_side_only",
         "activation_scales": [float(op.act_scale.item()) for op in wrapped],
         "weight_scales": [op.weight_scale for op in wrapped],
+        "parity_ready": False,
+        "integer_reference_available": True,
+        "unsupported_operators_fail_closed": True,
+        "simulation_scope": "float_fake_quant_input_and_weight",
         "claim_boundary": (
             "PTQ float simulation; matches exported weight quantization, "
             "not bit-exact vs the HLS fixed-point pipeline"
         ),
     }
+
+
+@torch.no_grad()
+def prepare_integer_ptq(
+    model: nn.Module,
+    calibration_loader,
+    *,
+    num_calibration_batches: int = 16,
+    device: Optional[str] = None,
+) -> tuple[nn.Module, dict[str, Any], dict[str, Any]]:
+    """Prepare a complete software INT8 package from training-side calibration.
+
+    The returned folded model and package are consumed by
+    :func:`hwnas_fpga.deploy.int8_reference.run_integer_reference`.  This
+    function does not replace unsupported operators with FP32 execution.
+    """
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    folded = deepcopy(model).to(device).eval()
+    folded_pairs = fold_batch_norms_inplace(folded)
+    input_max: dict[str, float] = {}
+    output_max: dict[str, float] = {}
+    hooks = []
+
+    def make_pre_hook(name: str):
+        def capture(_module, inputs):
+            if inputs and isinstance(inputs[0], torch.Tensor):
+                value = float(inputs[0].detach().abs().max().item())
+                input_max[name] = max(input_max.get(name, 0.0), value)
+        return capture
+
+    def make_post_hook(name: str):
+        def capture(_module, _inputs, output):
+            if isinstance(output, torch.Tensor):
+                value = float(output.detach().abs().max().item())
+                output_max[name] = max(output_max.get(name, 0.0), value)
+        return capture
+
+    quantized_modules = []
+    for name, module in folded.named_modules():
+        if isinstance(module, (nn.Conv2d, nn.Linear)):
+            quantized_modules.append(name)
+            hooks.append(module.register_forward_pre_hook(make_pre_hook(name)))
+            hooks.append(module.register_forward_hook(make_post_hook(name)))
+    batches_used = 0
+    for inputs, _targets in calibration_loader:
+        if batches_used >= num_calibration_batches:
+            break
+        folded(inputs.to(device))
+        batches_used += 1
+    for hook in hooks:
+        hook.remove()
+    if batches_used == 0:
+        raise ValueError("calibration loader yielded no batches")
+    if not quantized_modules:
+        raise ValueError("model contains no quantizable Conv2d/Linear modules")
+
+    default_scale = 1.0 / 127.0
+    first_scale = max(input_max.get(quantized_modules[0], 0.0) / 127.0, default_scale)
+    package, summary = build_quantized_weight_package(
+        folded,
+        config=QuantizationConfig(
+            bit_width=8,
+            scheme="symmetric",
+            quantize_bias=True,
+            input_scale=first_scale,
+            output_scale=default_scale,
+        ),
+    )
+    module_lookup = dict(folded.named_modules())
+    current_scale = first_scale
+    for layer in package["layers"]:
+        name = str(layer["name"])
+        layer["input_scale"] = float(current_scale)
+        observed = output_max.get(name, 0.0)
+        next_scale = max(observed / 127.0, default_scale)
+        layer["output_scale"] = float(next_scale)
+        bias_key = layer.get("bias_key")
+        if bias_key:
+            module = module_lookup[name]
+            package["biases"][bias_key] = quantize_bias_int32(
+                module.bias.detach(),
+                input_scale=float(current_scale),
+                weight_scale=float(layer["weight_scale"]),
+            ).cpu()
+        current_scale = next_scale
+    package["quantization"]["input_scale"] = float(first_scale)
+    package["quantization"]["output_scale"] = float(current_scale)
+    package["quantization"]["calibration_batches"] = batches_used
+    package["quantization"]["calibration_source"] = "training_side_only"
+    package["quantization"]["parity_ready"] = False
+    package["quantization"]["claim_boundary"] = (
+        "Complete software INT8 contract prepared; parity_ready remains false "
+        "until independent per-layer simulator/HLS traces have zero mismatch."
+    )
+    metadata = {
+        "fixed_point_contract": FixedPointContract().to_dict(),
+        "bn_folding": {"enabled": True, "folded_pair_count": len(folded_pairs)},
+        "num_calibration_batches": batches_used,
+        "calibration_source": "training_side_only",
+        "quantized_layer_count": len(package["layers"]),
+        "integer_reference": True,
+        "parity_ready": False,
+        "unsupported_operators_fail_closed": True,
+    }
+    return folded, package, metadata

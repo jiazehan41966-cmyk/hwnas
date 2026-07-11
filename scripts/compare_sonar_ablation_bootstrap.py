@@ -44,6 +44,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--iterations", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=20260707)
     parser.add_argument(
+        "--min-meaningful-delta",
+        type=float,
+        default=0.01,
+        help="Minimum paired-run macro-F1 gain counted as an actual gain.",
+    )
+    parser.add_argument(
         "--output",
         default="artifacts/sonar_operator_gate/g5_ablation_bootstrap_comparisons.json",
     )
@@ -181,6 +187,7 @@ def stratified_bootstrap(
     num_classes: int,
     iterations: int,
     seed: int,
+    min_meaningful_delta: float = 0.01,
 ) -> dict[str, Any]:
     by_class: dict[int, list[Mapping[str, int]]] = {}
     for row in pairs:
@@ -188,30 +195,63 @@ def stratified_bootstrap(
     if not by_class:
         raise ValueError("No target classes found in paired rows")
 
-    point_control = macro_f1(pairs, "control_prediction", num_classes=num_classes)
-    point_variant = macro_f1(pairs, "variant_prediction", num_classes=num_classes)
+    grouped: dict[tuple[int, int], list[Mapping[str, int]]] = {}
+    for row in pairs:
+        grouped.setdefault((int(row["fold"]), int(row["seed"])), []).append(row)
+    run_metrics = [
+        {
+            "fold": fold,
+            "seed": run_seed,
+            "control": macro_f1(rows, "control_prediction", num_classes=num_classes),
+            "variant": macro_f1(rows, "variant_prediction", num_classes=num_classes),
+        }
+        for (fold, run_seed), rows in sorted(grouped.items())
+    ]
+    point_control = statistics.fmean(row["control"] for row in run_metrics)
+    point_variant = statistics.fmean(row["variant"] for row in run_metrics)
     point_delta = point_variant - point_control
 
     rng = random.Random(seed)
     deltas: list[float] = []
+    by_fold: dict[int, list[Mapping[str, float]]] = {}
+    for row in run_metrics:
+        by_fold.setdefault(int(row["fold"]), []).append(row)
+    folds = sorted(by_fold)
     for _ in range(max(1, int(iterations))):
-        sample: list[Mapping[str, int]] = []
-        for rows in by_class.values():
-            sample.extend(rng.choice(rows) for _ in range(len(rows)))
+        sampled_runs: list[Mapping[str, float]] = []
+        for _fold_draw in range(len(folds)):
+            fold = rng.choice(folds)
+            rows = by_fold[fold]
+            sampled_runs.extend(rng.choice(rows) for _ in range(len(rows)))
         deltas.append(
-            macro_f1(sample, "variant_prediction", num_classes=num_classes)
-            - macro_f1(sample, "control_prediction", num_classes=num_classes)
+            statistics.fmean(row["variant"] - row["control"] for row in sampled_runs)
         )
 
-    le_zero = (sum(1 for delta in deltas if delta <= 0.0) + 1) / (len(deltas) + 1)
-    ge_zero = (sum(1 for delta in deltas if delta >= 0.0) + 1) / (len(deltas) + 1)
-    p_value = min(1.0, 2.0 * min(le_zero, ge_zero))
+    # Paired sign-flip null at the fold cluster level. Seeds within one outer
+    # fold remain clustered instead of being treated as independent images.
+    null_rng = random.Random(int(seed) + 1)
+    fold_deltas = {
+        fold: [float(row["variant"] - row["control"]) for row in rows]
+        for fold, rows in by_fold.items()
+    }
+    null_means: list[float] = []
+    for _ in range(max(1, int(iterations))):
+        signed = []
+        for fold in folds:
+            sign = -1.0 if null_rng.random() < 0.5 else 1.0
+            signed.extend(sign * value for value in fold_deltas[fold])
+        null_means.append(statistics.fmean(signed))
+    p_value = (
+        sum(abs(value) >= abs(point_delta) for value in null_means) + 1
+    ) / (len(null_means) + 1)
     return {
-        "method": "paired_stratified_bootstrap",
+        "method": "paired_hierarchical_bootstrap_fold_sign_flip",
         "metric": "macro_f1",
         "iterations": max(1, int(iterations)),
         "bootstrap_seed": int(seed),
         "paired_prediction_count": len(pairs),
+        "paired_run_count": len(run_metrics),
+        "fold_count": len(folds),
         "folds": sorted({int(row["fold"]) for row in pairs}),
         "seeds": sorted({int(row["seed"]) for row in pairs}),
         "class_counts": {
@@ -224,6 +264,9 @@ def stratified_bootstrap(
         "ci95_low": quantile(deltas, 0.025),
         "ci95_high": quantile(deltas, 0.975),
         "p_value": p_value,
+        "p_value_method": "fold_cluster_paired_sign_flip",
+        "min_meaningful_delta": float(min_meaningful_delta),
+        "actual_gain": point_delta >= float(min_meaningful_delta),
     }
 
 
@@ -236,6 +279,12 @@ def variant_gate_row(summary: Mapping[str, Any], run_dir: Path) -> dict[str, Any
         "completed_runs": len(runs),
         "claimable": bool(claimability.get("claimable")),
         "outer_leakage": bool(claimability.get("outer_validation_used_for_selection")),
+        "protocol_context_sha256": summary.get("protocol_context_sha256"),
+        "group_split_available": bool(summary.get("group_split_available", False)),
+        "group_generalization_claimable": bool(
+            summary.get("group_generalization_claimable", False)
+        ),
+        "run_fingerprints": list(summary.get("run_fingerprints") or []),
         "protocol_summary": str((run_dir / "protocol_summary.json").resolve()),
     }
 
@@ -257,6 +306,27 @@ def compare_all(args: argparse.Namespace) -> dict[str, Any]:
         "denoise_edge": Path(args.denoise_edge_run).resolve(),
     }
     summaries = {name: load_summary(path) for name, path in run_dirs.items()}
+    contexts = {
+        str(summary.get("protocol_context_sha256", ""))
+        for summary in summaries.values()
+    }
+    if len(contexts) != 1 or not next(iter(contexts)):
+        raise ValueError(
+            "G5 variants must share one protocol_context_sha256; "
+            f"observed={sorted(contexts)}"
+        )
+    for name, summary in summaries.items():
+        claimability = summary.get("claimability") or {}
+        if claimability.get("claimable") is not True:
+            raise ValueError(f"G5 variant {name} is not claimable under the frozen protocol")
+        run_keys = {
+            (int(row["fold"]), int(row["seed"]))
+            for row in summary.get("runs", [])
+        }
+        if run_keys != {
+            (fold, seed) for fold in range(5) for seed in (42, 43, 44)
+        }:
+            raise ValueError(f"G5 variant {name} does not contain the exact 15 fold/seed pairs")
     predictions = {name: load_prediction_rows(path) for name, path in run_dirs.items()}
     num_classes = infer_num_classes(
         *summaries.values(),
@@ -271,20 +341,28 @@ def compare_all(args: argparse.Namespace) -> dict[str, Any]:
             num_classes=num_classes,
             iterations=args.iterations,
             seed=int(args.seed) + offset,
+            min_meaningful_delta=float(getattr(args, "min_meaningful_delta", 0.01)),
         )
 
     adjusted = holm_adjust([comparisons[name]["p_value"] for name in VARIANTS])
     for name, adjusted_p in zip(VARIANTS, adjusted):
         comparisons[name]["holm_adjusted_p_value"] = adjusted_p
         comparisons[name]["holm_significant"] = adjusted_p < 0.05
-        comparisons[name]["actual_gain"] = comparisons[name]["macro_f1_mean_delta"] > 0.0
+        comparisons[name]["actual_gain"] = (
+            comparisons[name]["macro_f1_mean_delta"]
+            >= comparisons[name]["min_meaningful_delta"]
+        )
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_by": "scripts/compare_sonar_ablation_bootstrap.py",
         "num_classes": num_classes,
         "control_run": str(run_dirs["mbconv_control"]),
         "variant_runs": {name: str(run_dirs[name]) for name in VARIANTS},
+        "required_folds": [0, 1, 2, 3, 4],
+        "required_seeds": [42, 43, 44],
+        "paired_run_count": 15,
+        "min_meaningful_delta": float(getattr(args, "min_meaningful_delta", 0.01)),
         "ablation_variants": {
             name: variant_gate_row(summaries[name], run_dirs[name])
             for name in run_dirs

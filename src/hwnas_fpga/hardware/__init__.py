@@ -36,6 +36,11 @@ from .acceptance_audit import (
     GapAcceptanceAuditInputs,
     build_gap_acceptance_audit,
 )
+from .power_measurement import (
+    audit_power_campaign,
+    audit_power_manifest,
+    load_and_audit_power_manifest,
+)
 
 __all__ = [
     "BOARD_PROFILES",
@@ -54,12 +59,15 @@ __all__ = [
     "build_lut_from_manifest",
     "build_gap_acceptance_audit",
     "build_final_hardware_validation_report",
+    "audit_power_campaign",
+    "audit_power_manifest",
     "classify_route_gate_result",
     "create_dummy_fpga_lut",
     "dedupe_candidates_by_signature",
     "encoding_signature",
     "get_board_profile",
     "load_lut_manifest",
+    "load_and_audit_power_manifest",
     "list_board_profiles",
     "lut_entry_from_report",
     "normalize_candidate_payload",

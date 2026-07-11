@@ -1,6 +1,8 @@
 {
   "candidate": {
-    "arch_id": "sonar_g5_v1_denoise_edge",
+    "arch_id": "sonar_g5_denoise_edge",
+    "backbone": "sonar_ablation_backbone_v1",
+    "ablation_variant": "denoise_edge",
     "encoding": {
       "input_channels": 1,
       "stem_channels": 32,
@@ -69,14 +71,24 @@
           ]
         }
       ]
-    },
-    "metrics": {}
+    }
   },
-  "g5_ablation": {
-    "variant": "denoise_edge",
-    "backbone": "sonar_ablation_backbone_v1",
-    "slot_a": "denoise k3 e1 s1",
-    "slot_b": "edge k3 e1 s1",
-    "source_plan": "docs/SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md"
+  "provenance": {
+    "plan": "docs/SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md",
+    "base_arch": "rl_arch_135",
+    "stage3_slots": [
+      {
+        "op": "denoise",
+        "kernel_size": 3,
+        "expand_ratio": 1,
+        "stride": 1
+      },
+      {
+        "op": "edge",
+        "kernel_size": 3,
+        "expand_ratio": 1,
+        "stride": 1
+      }
+    ]
   }
 }

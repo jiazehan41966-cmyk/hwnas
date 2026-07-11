@@ -145,3 +145,9 @@ def test_folded_edge_is_single_dense_conv():
     assert convs[0].groups == 1
     assert convs[0].weight.shape == (12, 8, 3, 3)
     assert not any(isinstance(m, torch.nn.BatchNorm2d) for m in folded.modules())
+
+
+def test_folding_rejects_training_mode():
+    block = DenoiseBlock(8, 8, kernel_size=3, stride=1).train()
+    with pytest.raises(RuntimeError, match="requires eval mode"):
+        fold_denoise_block(block)

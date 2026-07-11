@@ -8,6 +8,7 @@ blocked until real evidence exists.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import Counter
 from datetime import datetime
@@ -17,6 +18,24 @@ from typing import Any, Mapping
 
 OPERATORS = ("denoise", "edge")
 INPUT_KINDS = ("real_sample", "boundary_tensor", "random_tensor")
+
+
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def existing_path(raw: Any, *, base_dir: Path | None = None) -> Path | None:
+    if not raw:
+        return None
+    path = Path(str(raw)).expanduser()
+    if not path.is_absolute():
+        path = (base_dir or Path.cwd()) / path
+    path = path.resolve()
+    return path if path.is_file() else None
 
 
 def parse_args() -> argparse.Namespace:
@@ -83,10 +102,11 @@ def merge_export(
     export: Mapping[str, Any],
 ) -> None:
     row = manifest.setdefault("operators", {}).setdefault(operator, {})
+    # The software export must never manufacture an HLS-consumption hash.
+    row.pop("hls_spec_sha256", None)
     for key in (
         "quantization_contract",
         "software_spec_sha256",
-        "hls_spec_sha256",
         "weight_export_complete",
         "weight_export_sha256",
     ):
@@ -124,6 +144,13 @@ def merge_parity_records(
     kinds = Counter(str(row.get("input_kind", "")) for row in rows)
     compared = sum(int(row.get("element_count", 0)) for row in rows)
     mismatches = sum(int(row.get("mismatch_count", -1)) for row in rows)
+    spec_hashes = sorted(
+        {
+            str(row.get("quantization_spec_sha256", ""))
+            for row in rows
+            if row.get("quantization_spec_sha256")
+        }
+    )
     manifest["operators"][operator]["parity"] = {
         "real_sample_count": kinds["real_sample"],
         "boundary_tensor_count": kinds["boundary_tensor"],
@@ -133,6 +160,14 @@ def merge_parity_records(
         "records_path": str(Path(records_path).resolve()),
         "record_count": len(rows),
         "input_kinds": [kind for kind in INPUT_KINDS if kinds[kind] > 0],
+        "quantization_spec_sha256s": spec_hashes,
+        "per_layer_trace_complete": all(
+            row.get("layer")
+            and int(row.get("element_count", 0)) > 0
+            and len(str(row.get("simulator_sha256", ""))) == 64
+            and len(str(row.get("quantization_spec_sha256", ""))) == 64
+            for row in rows
+        ),
     }
 
 
@@ -153,7 +188,25 @@ def merge_hls_evidence(
     )
     hls["evidence_path"] = evidence.get("evidence_path")
     hls["tool"] = evidence.get("tool")
+    hls["tool_version"] = evidence.get("tool_version")
+    hls["consumed_spec_path"] = evidence.get("consumed_spec_path")
+    hls["consumed_spec_sha256"] = evidence.get("consumed_spec_sha256")
+    hls["declared_evidence_sha256"] = evidence.get("evidence_sha256")
+    hls["spec_consumed"] = evidence.get("spec_consumed") is True
     hls["boundary"] = evidence.get("boundary")
+
+    source_path = Path(str(evidence.get("_source_path", ""))).resolve()
+    base_dir = source_path.parent if source_path.name else None
+    consumed_spec = existing_path(hls["consumed_spec_path"], base_dir=base_dir)
+    evidence_file = existing_path(hls["evidence_path"], base_dir=base_dir)
+    hls["consumed_spec_actual_sha256"] = (
+        sha256_file(consumed_spec) if consumed_spec is not None else None
+    )
+    hls["evidence_sha256"] = (
+        sha256_file(evidence_file) if evidence_file is not None else None
+    )
+    hls["evidence_file_exists"] = evidence_file is not None
+    hls["consumed_spec_file_exists"] = consumed_spec is not None
 
 
 def assemble_manifest(args: argparse.Namespace) -> dict[str, Any]:
@@ -184,10 +237,12 @@ def assemble_manifest(args: argparse.Namespace) -> dict[str, Any]:
         hls_path = getattr(args, f"{operator}_hls_evidence")
         hls = optional_json(hls_path, missing)
         if hls is not None:
+            hls["_source_path"] = str(Path(hls_path).resolve())
             merge_hls_evidence(manifest, operator, hls)
             fragments[f"{operator}_hls_evidence"] = str(Path(hls_path).resolve())
 
     manifest["generated_by"] = "scripts/build_sonar_operator_gate_manifest.py"
+    manifest["schema_version"] = 2
     manifest["generated"] = datetime.now().isoformat(timespec="seconds")
     manifest["source_fragments"] = fragments
     manifest["missing_fragments"] = missing

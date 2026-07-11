@@ -33,9 +33,11 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from hwnas_fpga.data.dataset import create_protocol_dataloaders
 from hwnas_fpga.deploy.ptq_eval import (
     apply_ptq,
+    prepare_integer_ptq,
     restore_identity_bn_export_model,
     stratified_calibration_indices,
 )
+from hwnas_fpga.deploy.int8_reference import IntegerReferenceClassifier, quantization_spec_sha256
 from hwnas_fpga.deploy.qat import finalize_qat, prepare_qat
 from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
@@ -90,6 +92,12 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--deployment-target", default="rl_arch_193")
     parser.add_argument("--max-allowed-drop", type=float, default=0.02)
+    parser.add_argument(
+        "--integer-reference",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="evaluate the complete software INT8 integer graph (default: true)",
+    )
     parser.add_argument(
         "--qat-on-fail",
         action=argparse.BooleanOptionalAction,
@@ -214,20 +222,53 @@ def main() -> int:
             pin_memory=str(device).startswith("cuda"),
         )
 
-        # Calibrate on a fixed, stratified training-side subset only.
-        ptq_meta = apply_ptq(
-            model,
-            calibration_loader,
-            num_calibration_batches=len(calibration_loader),
-            device=device,
-        )
-        int8_summary = evaluate_classifier(
-            model,
-            bundle["outer_val_loader"],
-            criterion=criterion,
-            device=device,
-            num_classes=num_classes,
-        )
+        # Calibrate on a fixed, stratified training-side subset only. The
+        # formal path is integer-only and fails closed for unsupported ops.
+        if args.integer_reference:
+            integer_model, integer_package, ptq_meta = prepare_integer_ptq(
+                model,
+                calibration_loader,
+                num_calibration_batches=len(calibration_loader),
+                device=device,
+            )
+            integer_package_path = run_dir / f"integer_package_fold{fold}_seed{seed}.pt"
+            torch.save(integer_package, integer_package_path)
+            ptq_meta.update(
+                {
+                    "package_path": str(integer_package_path.resolve()),
+                    "package_sha256": sha256_file(integer_package_path),
+                    "quantization_spec_sha256": quantization_spec_sha256(
+                        integer_package["quantization"]
+                    ),
+                    "parity_ready": False,
+                    "claim_boundary": (
+                        "Software INT8 integer reference evaluated. HLS/board parity "
+                        "is still required before G4 can pass."
+                    ),
+                }
+            )
+            int8_model = IntegerReferenceClassifier(integer_model, integer_package)
+            int8_summary = evaluate_classifier(
+                int8_model,
+                bundle["outer_val_loader"],
+                criterion=criterion,
+                device=device,
+                num_classes=num_classes,
+            )
+        else:
+            ptq_meta = apply_ptq(
+                model,
+                calibration_loader,
+                num_calibration_batches=len(calibration_loader),
+                device=device,
+            )
+            int8_summary = evaluate_classifier(
+                model,
+                bundle["outer_val_loader"],
+                criterion=criterion,
+                device=device,
+                num_classes=num_classes,
+            )
 
         drop_macro_f1 = fp32_summary["macro_f1"] - int8_summary["macro_f1"]
         drop_top1 = fp32_summary["top1"] - int8_summary["top1"]

@@ -8,6 +8,8 @@ from hwnas_fpga.training.protocol_reporting import (
 
 
 class ClaimabilityTests(unittest.TestCase):
+    RUN_FINGERPRINTS = ["a" * 64] * 15
+
     def test_complete_protocol_is_claimable(self) -> None:
         pairs = [(fold, seed) for fold in range(5) for seed in (42, 43, 44)]
         result = protocol_claimability(
@@ -15,6 +17,7 @@ class ClaimabilityTests(unittest.TestCase):
             seeds=(42, 43, 44),
             completed_pairs=pairs,
             selection_provenance="baseline_predeclared",
+            provenance_fingerprints=self.RUN_FINGERPRINTS,
         )
         self.assertTrue(result["claimable"])
         self.assertTrue(result["nas_generalization_claimable"])
@@ -27,6 +30,7 @@ class ClaimabilityTests(unittest.TestCase):
             completed_pairs=pairs,
             selection_provenance="baseline_predeclared",
             outer_validation_used_for_selection=True,
+            provenance_fingerprints=self.RUN_FINGERPRINTS,
         )
         missing = protocol_claimability(
             folds=range(5),
@@ -34,6 +38,7 @@ class ClaimabilityTests(unittest.TestCase):
             completed_pairs=pairs,
             selection_provenance="baseline_predeclared",
             provenance_complete=False,
+            provenance_fingerprints=self.RUN_FINGERPRINTS,
         )
         self.assertFalse(leaked["claimable"])
         self.assertFalse(missing["claimable"])
@@ -44,6 +49,7 @@ class ClaimabilityTests(unittest.TestCase):
             seeds=(42,),
             completed_pairs=[(0, 42)],
             selection_provenance="baseline_predeclared",
+            provenance_fingerprints=["a" * 64],
         )
         self.assertFalse(result["claimable"])
         self.assertTrue(result["legacy"])
@@ -55,10 +61,36 @@ class ClaimabilityTests(unittest.TestCase):
             seeds=(42, 43, 44),
             completed_pairs=pairs,
             selection_provenance="legacy_fold0_selected",
+            provenance_fingerprints=self.RUN_FINGERPRINTS,
         )
         self.assertTrue(result["claimable"])
         self.assertFalse(result["nas_generalization_claimable"])
         self.assertTrue(result["warnings"])
+
+    def test_mixed_run_fingerprints_are_not_claimable(self) -> None:
+        pairs = [(fold, seed) for fold in range(5) for seed in (42, 43, 44)]
+        fingerprints = ["a" * 64] * 14 + ["b" * 64]
+        result = protocol_claimability(
+            folds=range(5),
+            seeds=(42, 43, 44),
+            completed_pairs=pairs,
+            selection_provenance="baseline_predeclared",
+            provenance_fingerprints=fingerprints,
+        )
+        self.assertFalse(result["claimable"])
+        self.assertFalse(result["fingerprint_complete"])
+
+    def test_duplicate_fold_seed_records_are_not_claimable(self) -> None:
+        pairs = [(fold, seed) for fold in range(5) for seed in (42, 43, 44)]
+        result = protocol_claimability(
+            folds=range(5),
+            seeds=(42, 43, 44),
+            completed_pairs=pairs + [(0, 42)],
+            selection_provenance="baseline_predeclared",
+            provenance_fingerprints=["a" * 64] * 16,
+        )
+        self.assertFalse(result["claimable"])
+        self.assertTrue(result["duplicate_pairs"])
 
 
 class ProvenanceTests(unittest.TestCase):

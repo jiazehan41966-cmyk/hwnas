@@ -99,6 +99,8 @@ class FoldedEdgeBlock(nn.Module):
 @torch.no_grad()
 def fold_denoise_block(block: DenoiseBlock) -> FoldedDenoiseBlock:
     """把 DenoiseBlock 折叠为单 DW + PW（eval 语义等价）。"""
+    if block.training:
+        raise RuntimeError("fold_denoise_block requires eval mode with frozen BN statistics")
     dw = block.dw_conv
     in_channels = dw.in_channels
     kernel_size = dw.kernel_size[0]
@@ -137,6 +139,8 @@ def fold_denoise_block(block: DenoiseBlock) -> FoldedDenoiseBlock:
 @torch.no_grad()
 def fold_edge_block(block: EdgeAwareBlock) -> FoldedEdgeBlock:
     """把 EdgeAwareBlock 折叠为单个稠密 KxK 卷积（eval 语义等价）。"""
+    if block.training:
+        raise RuntimeError("fold_edge_block requires eval mode with frozen BN statistics")
     first_conv = block.edge_convs[0]
     in_channels = first_conv.in_channels
     kernel_size = first_conv.kernel_size[0]
@@ -183,6 +187,8 @@ def fold_sonar_blocks(module: nn.Module) -> int:
 
     返回替换的块数。要求模型已处于 eval 模式（BN 使用 running stats）。
     """
+    if module.training:
+        raise RuntimeError("fold_sonar_blocks requires the complete module to be in eval mode")
     replaced = 0
     for name, child in module.named_children():
         if isinstance(child, DenoiseBlock):

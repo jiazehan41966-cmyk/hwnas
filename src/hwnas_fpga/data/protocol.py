@@ -299,6 +299,9 @@ def build_protocol_split(
         inner_val_fraction=inner_val_fraction,
         metadata={
             "protocol": "nksid_outer5fold_inner_contiguous_v1",
+            "group_split_available": False,
+            "group_generalization_claimable": False,
+            "group_metadata_source": None,
             "train_class_counts": class_counts(samples, inner_train, num_classes=num_classes),
             "inner_val_class_counts": class_counts(samples, inner_val, num_classes=num_classes),
             "outer_val_class_counts": class_counts(

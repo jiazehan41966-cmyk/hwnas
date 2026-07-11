@@ -85,7 +85,11 @@ def command_specs(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", default="data/NKSID")
-    parser.add_argument("--output-dir", default="results/protocol")
+    parser.add_argument(
+        "--output-dir",
+        default="results/protocol/g1_clean_20260711",
+        help="Independent clean root; legacy/mixed result directories are never reused.",
+    )
     parser.add_argument("--epochs", type=int, default=150)
     parser.add_argument("--rl135-candidate", default=str(DEFAULT_RL135))
     parser.add_argument("--dry-run", action="store_true")
@@ -100,6 +104,11 @@ def main() -> int:
         "planned_training_tasks": 45,
         "models": [],
         "dry_run": args.dry_run,
+        "clean_protocol_root": str(Path(args.output_dir).resolve()),
+        "normalization": {"channels": 1, "mean": [0.5], "std": [0.5]},
+        "group_split_available": False,
+        "group_generalization_claimable": False,
+        "legacy_results_merged": False,
     }
     overall = 0
     for name, command in specs:

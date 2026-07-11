@@ -14,6 +14,7 @@ from hwnas_fpga.search import (
     ActionSpace,
     Controller,
     RLSearcher,
+    RewardFunction,
     RandomSearcher,
     build_pareto_objectives,
     build_pareto_selection_summary,
@@ -100,6 +101,39 @@ class SearchFactoryTests(unittest.TestCase):
         self.assertEqual(searcher.reward_function.infeasible_penalty_mode, "violation_ratio")
         self.assertAlmostEqual(searcher.reward_function.infeasible_base_penalty, 0.8)
         self.assertAlmostEqual(searcher.reward_function.infeasible_penalty_scale, 2.2)
+
+    def test_reward_is_invariant_to_candidate_evaluation_order(self) -> None:
+        reward_kwargs = {
+            "normalization_scales": {
+                "accuracy": 1.0,
+                "latency": 50.0,
+                "energy": 100.0,
+                "dsp": 512.0,
+                "bram": 2000.0,
+                "lut": 120000.0,
+            }
+        }
+        first = RewardFunction(**reward_kwargs)
+        reward_a_first = first.compute_reward(
+            accuracy=0.7, latency_ms=10.0, energy_mj=20.0,
+            dsp=100, bram=200, lut=10000,
+        )
+        first.compute_reward(
+            accuracy=0.9, latency_ms=40.0, energy_mj=80.0,
+            dsp=400, bram=1000, lut=90000,
+        )
+
+        second = RewardFunction(**reward_kwargs)
+        second.compute_reward(
+            accuracy=0.9, latency_ms=40.0, energy_mj=80.0,
+            dsp=400, bram=1000, lut=90000,
+        )
+        reward_a_second = second.compute_reward(
+            accuracy=0.7, latency_ms=10.0, energy_mj=20.0,
+            dsp=100, bram=200, lut=10000,
+        )
+
+        self.assertAlmostEqual(reward_a_first, reward_a_second)
 
     def test_create_searcher_with_family_profiled_space(self) -> None:
         profiled_space = SearchSpace(SearchSpaceConfig.from_dict({"family_profile": "mobile_anchor", "num_classes": 8}))

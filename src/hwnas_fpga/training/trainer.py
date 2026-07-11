@@ -271,9 +271,11 @@ def train_model(
         "selection_metric": selection_metric,
         "best_epoch": None,
         "best_eval": None,
+        "best_state_restored": False,
     }
 
     best_score = float("-inf")
+    best_state_dict: Optional[Dict[str, torch.Tensor]] = None
     patience_counter = 0
 
     for epoch in range(int(epochs)):
@@ -302,6 +304,10 @@ def train_model(
                 best_score = current_score
                 history["best_epoch"] = epoch + 1
                 history["best_eval"] = dict(val_summary)
+                best_state_dict = {
+                    name: value.detach().cpu().clone()
+                    for name, value in trainer.model.state_dict().items()
+                }
                 patience_counter = 0
             elif early_stopping_patience:
                 patience_counter += 1
@@ -320,7 +326,14 @@ def train_model(
                     "weighted_f1": float(train_acc),
                     "num_samples": float(len(train_loader.dataset)),
                 }
+                best_state_dict = {
+                    name: value.detach().cpu().clone()
+                    for name, value in trainer.model.state_dict().items()
+                }
 
     if best_score == float("-inf"):
         best_score = 0.0
+    if best_state_dict is not None:
+        trainer.model.load_state_dict(best_state_dict)
+        history["best_state_restored"] = True
     return float(best_score), history

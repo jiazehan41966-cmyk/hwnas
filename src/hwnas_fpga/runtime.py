@@ -228,7 +228,7 @@ def load_operator_policies(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
             Path(__file__).resolve().parents[2]
             / "hls_lut_builder"
             / "configs"
-            / "operator_manifest.yaml"
+            / "operator_manifest_semantic_safe.yaml"
         )
 
     if not manifest_file.exists():

@@ -90,12 +90,44 @@ def sobel_magnitude(image: np.ndarray) -> np.ndarray:
     return np.clip(magnitude, 0.0, 1.0)
 
 
+def _box_mean(image: np.ndarray, window: int) -> np.ndarray:
+    pad = window // 2
+    padded = np.pad(image, ((pad, pad), (pad, pad)), mode="reflect")
+    integral = np.pad(padded, ((1, 0), (1, 0)), mode="constant").cumsum(axis=0).cumsum(axis=1)
+    window_sum = (
+        integral[window:, window:]
+        - integral[:-window, window:]
+        - integral[window:, :-window]
+        + integral[:-window, :-window]
+    )
+    return window_sum / float(window * window)
+
+
+def lee_filter(image: np.ndarray, window: int = 5) -> np.ndarray:
+    """经典 Lee 斑点滤波：均匀区取局部均值，边缘/目标区保留原值。
+
+    乘性噪声系数 Cu^2 用 var/mean^2 的中值估计（均匀区主导中值），
+    无需外部视数参数。out = mean + k*(x-mean)，k = var_signal/var。
+    """
+    eps = np.finfo(np.float64).eps
+    mean = _box_mean(image, window)
+    mean_sq = _box_mean(image * image, window)
+    var = np.maximum(mean_sq - mean * mean, 0.0)
+    cu2 = float(np.median(var / np.maximum(mean * mean, eps)))
+    noise_var = cu2 * mean * mean
+    signal_var = np.maximum(var - noise_var, 0.0)
+    k = signal_var / np.maximum(var, eps)
+    return np.clip(mean + k * (image - mean), 0.0, 1.0)
+
+
 def apply_transform(image: np.ndarray, transform_name: str) -> np.ndarray:
     name = transform_name.strip().lower()
     if name == "identity":
         return image.copy()
     if name == "denoise":
         return gaussian_denoise(image)
+    if name == "lee":
+        return lee_filter(image)
     if name == "edge":
         return sobel_magnitude(image)
     if name == "edge_enhanced":

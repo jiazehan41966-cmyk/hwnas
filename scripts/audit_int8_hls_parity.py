@@ -21,7 +21,7 @@ def main() -> int:
     parser.add_argument("--records", required=True)
     parser.add_argument(
         "--quantization-contract",
-        default="per_tensor_symmetric_int8_v1",
+        default="per_tensor_symmetric_int8_v2",
     )
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
