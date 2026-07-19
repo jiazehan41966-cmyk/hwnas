@@ -47,6 +47,7 @@ def protocol_claimability(
     group_split_available: bool = False,
     protocol_context_sha256: str | None = None,
     provenance_contexts: Sequence[str] | None = None,
+    source_freeze_verified: bool = True,
 ) -> dict[str, Any]:
     normalized_folds = tuple(sorted(set(int(value) for value in folds)))
     normalized_seeds = tuple(sorted(set(int(value) for value in seeds)))
@@ -86,6 +87,7 @@ def protocol_claimability(
         and provenance_complete
         and fingerprint_complete
         and context_complete
+        and source_freeze_verified
     )
     legacy_fold0_only = normalized_folds == (0,)
     legacy_selected = selection_provenance == "legacy_fold0_selected"
@@ -120,6 +122,11 @@ def protocol_claimability(
             "Formal reporting requires one identical 64-character protocol context "
             "hash in every completed fold/seed record."
         )
+    if not source_freeze_verified:
+        warnings.append(
+            "Formal reporting requires a verified source-freeze manifest and its "
+            "retained snapshot archive."
+        )
     return {
         "claimable": protocol_complete,
         "protocol_complete": protocol_complete,
@@ -132,6 +139,7 @@ def protocol_claimability(
         "provenance_complete": bool(provenance_complete),
         "fingerprint_complete": fingerprint_complete,
         "protocol_context_complete": context_complete,
+        "source_freeze_verified": bool(source_freeze_verified),
         "run_fingerprint": fingerprints[0] if fingerprint_complete else None,
         "duplicate_pairs": duplicate_pairs,
         "nas_generalization_claimable": protocol_complete and not legacy_selected,

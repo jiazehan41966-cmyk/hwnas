@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T11:22:42",
+  "status": "PASS",
+  "table_id": "T1",
+  "title_zh": "开源基线资格、许可证与可复现性审计",
+  "title_en": "Open-source baseline eligibility, license and reproducibility audit",
+  "row_count": 6,
+  "column_count": 26,
+  "main_paper_count": 5,
+  "supplementary_paper_count": 1,
+  "formal_numeric_eligible_count": 0,
+  "all_rows_have_explicit_blockers": true,
+  "cross_format_source_identity": true,
+  "generator": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_t1_reproducibility_v2.txt",
+    "sha256": "d66ea11314e09c2bc3d0ac46d1130d3ff781381faf7c1915d642c81c1f1d46d4"
+  },
+  "inputs": [
+    {
+      "label": "source_audit",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\source_audit.json",
+      "sha256": "6323798f03c96ac3d122e6560441e6ef9743e50e7f54feed623ce41594eca6c8"
+    },
+    {
+      "label": "source_smoke",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\source_smoke.json",
+      "sha256": "f40786481ab3fc304ee4dc2576ef025bb8ec1b5998299c702b181ba9687ded55"
+    },
+    {
+      "label": "integration_smoke",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\integration_smoke.json",
+      "sha256": "c3cfff64968748dcf4029cbacacde99ccbf47621674e11846182e2c3ac68f151"
+    },
+    {
+      "label": "environment_index",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\index.json",
+      "sha256": "60ddc85fdb12915fe8e2925a9e866b8cba1795368c3bc38540171eae21b8b6f1"
+    }
+  ],
+  "environment_sources": [
+    {
+      "paper_id": "hw_pr_nas_2023",
+      "card_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\hw_pr_nas_2023.json",
+      "card_sha256": "9568b2c15ee39ece055b184b7879e6892aba092663e3d42693c5deda58045d1b",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\hw_pr_nas_2023.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a"
+    },
+    {
+      "paper_id": "sure_2024",
+      "card_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\sure_2024.json",
+      "card_sha256": "5b7c9c25bb05ea827c3d46e3b9401c9e160d963192d4911019877b88dfa27785",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\sure_2024.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a"
+    },
+    {
+      "paper_id": "harp_2023",
+      "card_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\harp_2023.json",
+      "card_sha256": "d2331fbb558f717690685628820787fc282692cc8e6f759a8ad55d13b790ca68",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\harp_2023.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a"
+    },
+    {
+      "paper_id": "esda_2024",
+      "card_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\esda_2024.json",
+      "card_sha256": "34ef11dbed0aeb951526facea13ec06d2571427a35c7d3410012612c5c2986e7",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\esda_2024.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a"
+    },
+    {
+      "paper_id": "dmcl_sonar_oltr_2025",
+      "card_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\dmcl_sonar_oltr_2025.json",
+      "card_sha256": "5b177ddf6c11c83da48a9419782f4b1a012b60539f19819266c9a6f4a49abc70",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\dmcl_sonar_oltr_2025.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a"
+    },
+    {
+      "paper_id": "plud_sonar_oltr_2024",
+      "card_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\plud_sonar_oltr_2024.json",
+      "card_sha256": "077a2f889899fabc81d60c5e3a54ab011e47f8fba8cb557b8054cb69e1d6a3b6",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\plud_sonar_oltr_2024.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a"
+    }
+  ],
+  "outputs": {
+    "csv": {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1_v2.csv",
+      "sha256": "5c9c3e7935e137410113b1fabd40148e37cb9b9a6827941bca2cc5aec78d10d4"
+    },
+    "markdown": {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1_v2.md",
+      "sha256": "26a49ebf7393a31884dc182abbf19a27cec72a314ae55046bcc971c4bdf4979c"
+    },
+    "latex": {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1_v2.tex",
+      "sha256": "e0f9c4b2f26ff3135944d98c8297a9cd569698b7bba5afec10b7988e995132be"
+    }
+  },
+  "boundary": "Source, license, smoke, environment and author-artifact readiness do not establish a local numerical result. Only completed unified-protocol evidence can change formal_numeric_eligible."
+}

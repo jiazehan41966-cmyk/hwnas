@@ -1,0 +1,627 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "generated": "2026-07-19T20:11:55",
+  "status": "NOT_READY",
+  "formal_execution_ready": false,
+  "passed_count": 2,
+  "requirement_count": 9,
+  "requirements": [
+    {
+      "requirement_id": "R1_sources",
+      "description": "Five main paper source, version and license/correspondence audit cards",
+      "status": "PASS",
+      "passed": true,
+      "observed": {
+        "main_cards": 5,
+        "passing": 5
+      },
+      "required": {
+        "main_cards": 5,
+        "pinned_commit_match": true
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\source_audit.json",
+          "exists": true,
+          "sha256": "6323798f03c96ac3d122e6560441e6ef9743e50e7f54feed623ce41594eca6c8"
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "requirement_id": "R2_environments",
+      "description": "One locked dedicated runtime per registered main/supplementary paper",
+      "status": "PASS",
+      "passed": true,
+      "observed": {
+        "cards": 6,
+        "ready": 6
+      },
+      "required": {
+        "cards": 6,
+        "status": "READY_DEDICATED_ENVIRONMENT"
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\index.json",
+          "exists": true,
+          "sha256": "60ddc85fdb12915fe8e2925a9e866b8cba1795368c3bc38540171eae21b8b6f1"
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "requirement_id": "R3_closed_set",
+      "description": "Four closed-set methods with complete claimable 5-fold x 3-seed predictions",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "scratch_mobilenet_v2": {
+          "method_id": "scratch_mobilenet_v2",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260718\\g1_mobilenet_v2_scratch_v2",
+          "claimable": true,
+          "source_freeze_verified": true,
+          "source_freeze_integrity": true,
+          "tracked_patch_integrity": true,
+          "observed_pairs": [
+            {
+              "fold": 0,
+              "seed": 42
+            },
+            {
+              "fold": 0,
+              "seed": 43
+            },
+            {
+              "fold": 0,
+              "seed": 44
+            },
+            {
+              "fold": 1,
+              "seed": 42
+            },
+            {
+              "fold": 1,
+              "seed": 43
+            },
+            {
+              "fold": 1,
+              "seed": 44
+            },
+            {
+              "fold": 2,
+              "seed": 42
+            },
+            {
+              "fold": 2,
+              "seed": 43
+            },
+            {
+              "fold": 2,
+              "seed": 44
+            },
+            {
+              "fold": 3,
+              "seed": 42
+            },
+            {
+              "fold": 3,
+              "seed": 43
+            },
+            {
+              "fold": 3,
+              "seed": 44
+            },
+            {
+              "fold": 4,
+              "seed": 42
+            },
+            {
+              "fold": 4,
+              "seed": 43
+            },
+            {
+              "fold": 4,
+              "seed": 44
+            }
+          ],
+          "prediction_files": 15,
+          "run_paths": [
+            "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260718\\g1_mobilenet_v2_scratch_v2"
+          ],
+          "source_freeze_evidence": {
+            "manifest_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260718_v3\\source_freeze_manifest.json",
+            "manifest_expected_sha256": "cfbc7ec9373e762c39385d733e07682a39ef843f87c2a25100c3fb7bfb824f32",
+            "manifest_observed_sha256": "cfbc7ec9373e762c39385d733e07682a39ef843f87c2a25100c3fb7bfb824f32",
+            "archive_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260718_v3\\source_snapshot.zip",
+            "archive_expected_sha256": "990d1dd08b1e966c4e85ff76661b4ceffb0986200a25859c8540cafe359a6ed3",
+            "archive_observed_sha256": "990d1dd08b1e966c4e85ff76661b4ceffb0986200a25859c8540cafe359a6ed3",
+            "valid": true
+          },
+          "tracked_patch_evidence": {
+            "dirty": true,
+            "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260718\\g1_mobilenet_v2_scratch_v2\\provenance\\code_patch_ccb0feef0dafc34a2b4fb0e2f751b698ad4a1acd9c3696fbafb6b88df5dc7280.diff",
+            "expected_sha256": "ccb0feef0dafc34a2b4fb0e2f751b698ad4a1acd9c3696fbafb6b88df5dc7280",
+            "observed_sha256": "ccb0feef0dafc34a2b4fb0e2f751b698ad4a1acd9c3696fbafb6b88df5dc7280",
+            "valid": true
+          }
+        },
+        "imagenet_pretrained_mobilenet_v2": {
+          "method_id": "imagenet_pretrained_mobilenet_v2",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet",
+          "claimable": true,
+          "source_freeze_verified": true,
+          "source_freeze_integrity": true,
+          "tracked_patch_integrity": true,
+          "observed_pairs": [
+            {
+              "fold": 0,
+              "seed": 42
+            },
+            {
+              "fold": 0,
+              "seed": 43
+            },
+            {
+              "fold": 0,
+              "seed": 44
+            },
+            {
+              "fold": 1,
+              "seed": 42
+            },
+            {
+              "fold": 1,
+              "seed": 43
+            },
+            {
+              "fold": 1,
+              "seed": 44
+            },
+            {
+              "fold": 2,
+              "seed": 42
+            },
+            {
+              "fold": 2,
+              "seed": 43
+            },
+            {
+              "fold": 2,
+              "seed": 44
+            },
+            {
+              "fold": 3,
+              "seed": 42
+            },
+            {
+              "fold": 3,
+              "seed": 43
+            },
+            {
+              "fold": 3,
+              "seed": 44
+            },
+            {
+              "fold": 4,
+              "seed": 42
+            },
+            {
+              "fold": 4,
+              "seed": 43
+            },
+            {
+              "fold": 4,
+              "seed": 44
+            }
+          ],
+          "prediction_files": 15,
+          "run_paths": [
+            "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet"
+          ],
+          "source_freeze_evidence": {
+            "manifest_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_freeze_manifest.json",
+            "manifest_expected_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+            "manifest_observed_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+            "archive_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_snapshot.zip",
+            "archive_expected_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d",
+            "archive_observed_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d",
+            "valid": true
+          },
+          "tracked_patch_evidence": {
+            "dirty": true,
+            "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\code_patch.diff",
+            "expected_sha256": "0e92055318fd5b96436b7852ca4be030c61f3bd1024a2913da6b0d42c86ef3d1",
+            "observed_sha256": "0e92055318fd5b96436b7852ca4be030c61f3bd1024a2913da6b0d42c86ef3d1",
+            "valid": true
+          }
+        },
+        "frozen_nas_champion": {
+          "method_id": "frozen_nas_champion",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected",
+          "claimable": true,
+          "source_freeze_verified": true,
+          "source_freeze_integrity": true,
+          "tracked_patch_integrity": true,
+          "observed_pairs": [
+            {
+              "fold": 0,
+              "seed": 42
+            },
+            {
+              "fold": 0,
+              "seed": 43
+            },
+            {
+              "fold": 0,
+              "seed": 44
+            },
+            {
+              "fold": 1,
+              "seed": 42
+            },
+            {
+              "fold": 1,
+              "seed": 43
+            },
+            {
+              "fold": 1,
+              "seed": 44
+            },
+            {
+              "fold": 2,
+              "seed": 42
+            },
+            {
+              "fold": 2,
+              "seed": 43
+            },
+            {
+              "fold": 2,
+              "seed": 44
+            },
+            {
+              "fold": 3,
+              "seed": 42
+            },
+            {
+              "fold": 3,
+              "seed": 43
+            },
+            {
+              "fold": 3,
+              "seed": 44
+            },
+            {
+              "fold": 4,
+              "seed": 42
+            },
+            {
+              "fold": 4,
+              "seed": 43
+            },
+            {
+              "fold": 4,
+              "seed": 44
+            }
+          ],
+          "prediction_files": 15,
+          "run_paths": [
+            "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected"
+          ],
+          "source_freeze_evidence": {
+            "manifest_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_freeze_manifest.json",
+            "manifest_expected_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+            "manifest_observed_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+            "archive_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_snapshot.zip",
+            "archive_expected_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d",
+            "archive_observed_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d",
+            "valid": true
+          },
+          "tracked_patch_evidence": {
+            "dirty": true,
+            "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\code_patch.diff",
+            "expected_sha256": "0e92055318fd5b96436b7852ca4be030c61f3bd1024a2913da6b0d42c86ef3d1",
+            "observed_sha256": "0e92055318fd5b96436b7852ca4be030c61f3bd1024a2913da6b0d42c86ef3d1",
+            "valid": true
+          }
+        },
+        "sure_same_backbone": {
+          "method_id": "sure_same_backbone",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\closed\\sure_same_backbone",
+          "claimable": false,
+          "source_freeze_verified": true,
+          "source_freeze_integrity": true,
+          "tracked_patch_integrity": true,
+          "observed_pairs": [
+            {
+              "fold": 0,
+              "seed": 42
+            }
+          ],
+          "prediction_files": 1,
+          "run_paths": [
+            "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\closed\\sure_same_backbone"
+          ],
+          "source_freeze_evidence": {
+            "manifest_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\sure_s_a_stage1_20260719\\source_freeze_manifest.json",
+            "manifest_expected_sha256": "58bfe4ddcde7749cc40e40c5083fff129700664b053fa33dc911d42bb4f56409",
+            "manifest_observed_sha256": "58bfe4ddcde7749cc40e40c5083fff129700664b053fa33dc911d42bb4f56409",
+            "archive_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\sure_s_a_stage1_20260719\\source_snapshot.zip",
+            "archive_expected_sha256": "1a5dd5193b5d2b4b49f1492de32bf7420de025baecb32ba980ac3223f1cf4dd9",
+            "archive_observed_sha256": "1a5dd5193b5d2b4b49f1492de32bf7420de025baecb32ba980ac3223f1cf4dd9",
+            "valid": true
+          },
+          "tracked_patch_evidence": {
+            "dirty": true,
+            "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\closed\\sure_same_backbone\\provenance\\code_patch_faa68ab2674e266c4c3855a0836e73939e42752ced26f21fb8f957c3d18833fd.diff",
+            "expected_sha256": "faa68ab2674e266c4c3855a0836e73939e42752ced26f21fb8f957c3d18833fd",
+            "observed_sha256": "faa68ab2674e266c4c3855a0836e73939e42752ced26f21fb8f957c3d18833fd",
+            "valid": true
+          }
+        }
+      },
+      "required": {
+        "methods": [
+          "scratch_mobilenet_v2",
+          "imagenet_pretrained_mobilenet_v2",
+          "frozen_nas_champion",
+          "sure_same_backbone"
+        ],
+        "pairs_per_method": 15
+      },
+      "evidence": [],
+      "blockers": [
+        "closed-set 15-unit formal runs are incomplete"
+      ]
+    },
+    {
+      "requirement_id": "R4_open_long_tail",
+      "description": "CE+MSP, DMCL and PLUD with complete claimable 5-fold x 3-seed predictions",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "ce_msp": {
+          "method_id": "ce_msp",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\open\\ce_msp",
+          "claimable": false,
+          "source_freeze_verified": false,
+          "source_freeze_integrity": false,
+          "tracked_patch_integrity": false,
+          "observed_pairs": [],
+          "prediction_files": 0,
+          "run_paths": []
+        },
+        "dmcl_author_loss": {
+          "method_id": "dmcl_author_loss",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\open\\dmcl_author_loss",
+          "claimable": false,
+          "source_freeze_verified": false,
+          "source_freeze_integrity": false,
+          "tracked_patch_integrity": false,
+          "observed_pairs": [],
+          "prediction_files": 0,
+          "run_paths": []
+        },
+        "plud_author_loss": {
+          "method_id": "plud_author_loss",
+          "result_dir": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\open\\plud_author_loss",
+          "claimable": false,
+          "source_freeze_verified": false,
+          "source_freeze_integrity": false,
+          "tracked_patch_integrity": false,
+          "observed_pairs": [],
+          "prediction_files": 0,
+          "run_paths": []
+        }
+      },
+      "required": {
+        "methods": [
+          "ce_msp",
+          "dmcl_author_loss",
+          "plud_author_loss"
+        ],
+        "pairs_per_method": 15
+      },
+      "evidence": [],
+      "blockers": [
+        "open-set 15-unit formal runs are incomplete"
+      ]
+    },
+    {
+      "requirement_id": "R5_nas_formal",
+      "description": "Four NAS methods at equal 300-evaluator budgets over ten paired seeds with exact HV",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "comparison_exists": false,
+        "methods": [],
+        "formal_exact_hv_ready": false
+      },
+      "required": {
+        "methods": [
+          "aging_evolution",
+          "hw_pr_nas",
+          "random",
+          "rl"
+        ],
+        "seeds": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51
+        ],
+        "evaluator_calls": 300
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\formal\\search_comparison\\comparison.json",
+          "exists": false,
+          "sha256": null
+        }
+      ],
+      "blockers": [
+        "formal matched NAS comparison is absent or incomplete"
+      ]
+    },
+    {
+      "requirement_id": "R6_hls_proxy",
+      "description": "At least 100 semantic-safe full-network HLS/route samples for grouped 5-fold comparison",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "mainline_network_unique_rows": 4,
+        "g2_pass": false
+      },
+      "required": {
+        "minimum_samples": 100,
+        "validation": "grouped_5fold_by_architecture_family",
+        "g2_pass": true
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\artifacts\\hw_surrogate_calibration_v2\\calibration_v2.json",
+          "exists": true,
+          "sha256": "6dbfe14edb3b3ddd5479dbb8728ce4d1affec07723455c72d5a82594f91fa466"
+        }
+      ],
+      "blockers": [
+        "formal HLS/route sample threshold and G2 are not satisfied"
+      ]
+    },
+    {
+      "requirement_id": "R7_board_power",
+      "description": "Three fixed AV7K325 candidates measured with one route and external power protocol",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "g4": "PENDING",
+        "power": "NOT_MEASURED"
+      },
+      "required": {
+        "candidate_roles": [
+          "accuracy_first",
+          "knee_point",
+          "resource_min"
+        ],
+        "g4_pass": true,
+        "power_pass": true
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\artifacts\\measurement_first_rebuild\\status.json",
+          "exists": true,
+          "sha256": "c889d9c2f0e61cbea3a438c3e75e5454c6e208c7875265ce4c631835f7e63f7e"
+        }
+      ],
+      "blockers": [
+        "AV7K325 three-candidate board/power evidence is incomplete"
+      ]
+    },
+    {
+      "requirement_id": "R8_gates",
+      "description": "Measurement-first gates and claimable-search re-entry",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "G0_protocol": "PASS",
+        "G1_accuracy_baselines": "PASS",
+        "G2_hardware_measurement": "PENDING",
+        "G4_int8_board": "PENDING",
+        "G3_search": "FROZEN",
+        "G5_sonar_ablation": "PAUSED",
+        "power": "NOT_MEASURED"
+      },
+      "required": {
+        "pass": [
+          "G0_protocol",
+          "G1_accuracy_baselines",
+          "G2_hardware_measurement",
+          "G4_int8_board"
+        ],
+        "G3_may_start_new_claimable_search": true
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\artifacts\\measurement_first_rebuild\\status.json",
+          "exists": true,
+          "sha256": "c889d9c2f0e61cbea3a438c3e75e5454c6e208c7875265ce4c631835f7e63f7e"
+        }
+      ],
+      "blockers": [
+        "measurement-first gates do not permit the full formal campaign"
+      ]
+    },
+    {
+      "requirement_id": "R9_archive",
+      "description": "T1-T9 and F1-F12 available in every required archival format",
+      "status": "PENDING",
+      "passed": false,
+      "observed": {
+        "tables": {
+          "T1": "AVAILABLE",
+          "T2": "PENDING",
+          "T3": "PENDING",
+          "T4": "PENDING",
+          "T5": "PENDING",
+          "T6": "PENDING",
+          "T7": "PENDING",
+          "T8": "PENDING",
+          "T9": "PENDING"
+        },
+        "figures": {
+          "F1": "AVAILABLE",
+          "F2": "PENDING",
+          "F3": "PENDING",
+          "F4": "PENDING",
+          "F5": "PENDING",
+          "F6": "PENDING",
+          "F7": "PENDING",
+          "F8": "PENDING",
+          "F9": "PENDING",
+          "F10": "PENDING",
+          "F11": "PENDING",
+          "F12": "PENDING"
+        }
+      },
+      "required": {
+        "tables_available": 9,
+        "figures_available": 12
+      },
+      "evidence": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\artifact_status.json",
+          "exists": true,
+          "sha256": "01c4525a7bf8fa42eb987eaec902abd0e7299ce1aebad20c99d5f67466569836"
+        }
+      ],
+      "blockers": [
+        "formal tables/figures are still pending"
+      ]
+    }
+  ],
+  "blocking_requirement_ids": [
+    "R3_closed_set",
+    "R4_open_long_tail",
+    "R5_nas_formal",
+    "R6_hls_proxy",
+    "R7_board_power",
+    "R8_gates",
+    "R9_archive"
+  ],
+  "boundary": "READY requires every named evidence layer. Smoke, source presence, author-reported numbers, or cross-platform artifacts never satisfy a formal result.",
+  "language": "zh-CN",
+  "boundary_zh": "只有九项要求全部由对应证据层证明后，campaign 才能标记 READY。",
+  "campaign_config": {
+    "path": "E:\\1\\hwnas\\hwnas\\configs\\benchmarks\\ccf_ab_campaign_v1.yaml",
+    "exists": true,
+    "sha256": "f73991799d7487215d72daa1deac36a9323c2785cc92f4eb98cf02423b5ef192"
+  }
+}

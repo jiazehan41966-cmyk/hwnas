@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "status": "PAUSED_AFTER_FIRST_FORMAL_UNIT_USER_DECISION_REQUIRED",
+  "authorization_sha256": "a3e14699d3375ebea4c380c26b364c2488507be2e414537bc23f1db41061600e",
+  "source_freeze_manifest_sha256": "58bfe4ddcde7749cc40e40c5083fff129700664b053fa33dc911d42bb4f56409",
+  "technical_smoke": {
+    "summary_sha256": "7758161d26705aba914753995a2ea8650719cac67716f4bdb2320960f5055724",
+    "run_fingerprint": "eea1b22c8b6d9a3250c50127e5d4d234667ed7dcd7b6777ff155d1ab0b380530",
+    "macro_f1": 0.22495345392682303,
+    "top1": 0.6807692307692308,
+    "weighted_f1": 0.5685315112377861,
+    "per_class_f1": [
+      0.0,
+      0.06060606060606061,
+      0.0,
+      0.7626774847870182,
+      0.0,
+      0.09999999999999999,
+      0.0,
+      0.8763440860215053
+    ],
+    "calibration": {
+      "nll": 0.9425667132175439,
+      "brier": 0.43713888672925616,
+      "ece": 0.0933974519658547,
+      "aurc": 0.13388092979013072,
+      "failure_auroc": 0.811891634333946,
+      "failure_fpr95": 0.5310734463276836
+    },
+    "runtime_measurement": {
+      "wall_clock_seconds": 152.4143057000183,
+      "peak_gpu_memory_mb": 1269.50634765625
+    },
+    "execution_control": {
+      "max_new_units": null,
+      "resume": true,
+      "new_units_completed": 1,
+      "stage_limit_hit": false
+    },
+    "checkpoint_sha256": "4adcf270a798ceba623b6027c5c43e9692d582963c8b4f6d4574b61b6dc403ef",
+    "prediction_sha256": "92e86386cfb0800cf0630423ee4529902fc49550e17685b8d7158e92f5d2b3c2",
+    "prediction_rows": 520
+  },
+  "first_formal_unit": {
+    "summary_sha256": "cd7b30934f37d1a87f54cdf341aa550ecda8d920765908d47ecb13fd014840d7",
+    "run_fingerprint": "8c22dfbbad9e3964c265f490f993456312c525d31a1f85870c52800a54db6301",
+    "macro_f1": 0.8803389148175441,
+    "top1": 0.9596153846153846,
+    "weighted_f1": 0.9550227689284432,
+    "per_class_f1": [
+      0.8333333333333334,
+      0.9491525423728813,
+      1.0,
+      1.0,
+      0.9565217391304348,
+      0.3703703703703704,
+      0.9333333333333332,
+      1.0
+    ],
+    "calibration": {
+      "nll": 0.1376542891393439,
+      "brier": 0.061663145163546124,
+      "ece": 0.04777519571093419,
+      "aurc": 0.002663030719390132,
+      "failure_auroc": 0.9577249737570379,
+      "failure_fpr95": 0.1843687374749499
+    },
+    "runtime_measurement": {
+      "wall_clock_seconds": 18682.679322600015,
+      "peak_gpu_memory_mb": 1269.50634765625
+    },
+    "execution_control": {
+      "max_new_units": 1,
+      "resume": true,
+      "new_units_completed": 1,
+      "stage_limit_hit": true
+    },
+    "checkpoint_sha256": "e8281800fd50d944ed53587657f780e11bc29998addfd3543d0c43da38fded79",
+    "prediction_sha256": "7f2815860be52b45e0f62fb82d0706e3b431023408e44cf6fd68d98a08e00948",
+    "prediction_rows": 520
+  },
+  "remaining_units_authorized": false,
+  "boundary_zh": "首个正式单元后强制暂停。不得自动运行剩余 14 单元或任何硬件实验。"
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "detected_at": "2026-07-16T04:07:09+08:00",
+  "classification": "external_system_shutdown",
+  "launcher_returncode_decimal": 1073807364,
+  "launcher_returncode_hex": "0x40010004",
+  "last_complete_method": {
+    "method_id": "scratch_mobilenet_v2",
+    "completed_pairs": 15,
+    "claimable": true,
+    "protocol_summary": "results/protocol/g1_clean_20260711/g1_mobilenet_v2_scratch/protocol_summary.json"
+  },
+  "interrupted_method": {
+    "method_id": "imagenet_pretrained_mobilenet_v2",
+    "completed_pairs": 4,
+    "last_complete_pair": {
+      "fold": 1,
+      "seed": 42,
+      "recorded_at": "2026-07-16T04:06:19+08:00"
+    },
+    "incomplete_pair_at_shutdown": {
+      "fold": 1,
+      "seed": 43,
+      "last_flushed_epoch": 108
+    }
+  },
+  "system_evidence": {
+    "log": "System",
+    "provider": "winsrvext",
+    "event_ids": [100, 101],
+    "window": "2026-07-16T04:07:07+08:00/2026-07-16T04:07:31+08:00",
+    "interpretation": "Windows recorded multiple processes delaying system shutdown; no Python traceback, CUDA OOM, or protocol exception appears in the launcher log."
+  },
+  "failed_resume_attempt": {
+    "attempted_at": "2026-07-16T07:28:00+08:00",
+    "result": "rejected_before_training",
+    "reason": "run_fingerprint_mismatch",
+    "existing_scratch_run_fingerprint": "f5a594f8b214f295fa81e958091b526e7ce6e23d1ee7c6efe773eff8cc2a87f7",
+    "observed_scratch_run_fingerprint": "8374f03897d0d19c9a1afe85cdc6bd7f3807066bd996207f764ec4aaf299dc67",
+    "diagnosis": "git_code_provenance includes mutable tracked and untracked artifact JSON files even though the verified source-freeze snapshot is unchanged",
+    "force_used": false,
+    "training_started": false,
+    "side_effect": "the scratch code_patch.diff file was rewritten before the compatibility check; its original SHA256 remains recorded in the scratch run manifest and the immutable source snapshot remains verified"
+  },
+  "recovery_policy": {
+    "source_freeze_required": true,
+    "source_freeze_manifest": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_freeze_manifest.json",
+    "source_freeze_verification": "PASS_556_OF_556",
+    "force_used": false,
+    "mix_run_fingerprints": false,
+    "archive_existing_atomic_records": true,
+    "archive_destination": "results/protocol/g1_clean_20260711/interrupted_20260716_0407/g1_mobilenet_v2_grayscale_imagenet",
+    "restart_method_from_fold_zero": true,
+    "required_new_pairs": 15,
+    "discard_partial_epoch_state": true,
+    "overwrite_completed_records": false
+  },
+  "claim_boundary": "The interruption is an execution event, not model evidence. Only atomically completed fold-seed records are retained."
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "generated_at": "2026-07-18T08:15:39+08:00",
+  "status": "PASS",
+  "effective_campaign_status": "IN_PROGRESS_WITH_G1_CONFLICT_HOLD",
+  "checks": [
+    "总状态为 G1 冲突冻结，正式证据增量为 0",
+    "生成器及全部输入输出 SHA/大小一致",
+    "完成度报告与用户决策表均为中文且无替换字符",
+    "R1–R9 完整，只有 R1/R2 判定完成",
+    "五篇主论文均已审计，但本地统一协议正式结果仍为 0",
+    "总账 PASS 与 scratch provenance FAIL 的冲突被准确冻结",
+    "T6 真值 0/100，权重未绑定、板级准确率未运行、功耗未测量",
+    "正式归档为 1/9 表、1/12 图，中文源 CSV 含 9 项"
+  ],
+  "formal_evidence_increment": 0,
+  "manifest": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\campaign_completion_evidence_audit_20260718.json.txt",
+    "sha256": "81a039a670e804a786e0dca338de97ab24cd22d23300e32d29d7541076bb4acd"
+  },
+  "auditor": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\audit_campaign_completion_evidence_v1.txt",
+    "sha256": "9683b4ba20346d30078423bd39f4346c4580f7326614a29987dfeb1f87415e4d"
+  },
+  "boundary_zh": "本独立审计只确认完成度和证据边界，不批准或启动任何后续实验。"
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "classification": "external_system_reboot",
+  "run_name": "g1_mobilenet_v2_grayscale_imagenet",
+  "run_fingerprint": "ff1d84701305b45488e321213320adef3f54cfd2483f38b1d8fa1719befd42b0",
+  "started_at": "2026-07-16T07:38:12+08:00",
+  "shutdown_transition": "2026-07-16T07:45:36+08:00",
+  "operating_system_restart": "2026-07-16T07:45:49+08:00",
+  "system_evidence": {
+    "provider": "Microsoft-Windows-Kernel-Power",
+    "event_id": 109,
+    "action": "Power Action Reboot",
+    "reason": "Kernel API"
+  },
+  "completed_atomic_pairs": 0,
+  "prediction_files": 0,
+  "checkpoint_files": 0,
+  "python_traceback_observed": false,
+  "cuda_oom_observed": false,
+  "archive_destination": "results/protocol/g1_clean_20260711/interrupted_20260716_0745_reboot/g1_mobilenet_v2_grayscale_imagenet",
+  "recovery": {
+    "force_used": false,
+    "restart_from_empty_formal_directory": true,
+    "persistent_scheduled_task": "Codex_HWNAS_G1_20260716",
+    "prevent_automatic_sleep": true,
+    "resume_after_logon": true
+  },
+  "claim_boundary": "No atomic training record was produced; this file is execution provenance only."
+}

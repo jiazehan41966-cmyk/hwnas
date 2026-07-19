@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T06:21:02.961846+00:00",
+  "status": "PASS_EXPECTED_GAP_CONFIRMED",
+  "pilot_manifest": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_five_family_pilot_manifest_v1.json.txt",
+    "sha256": "ae9aad20b0c10f5958a530f2860272d5455543970de19ba91e261b08efa7c17c"
+  },
+  "probe_root": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1",
+  "probe_count": 5,
+  "rows": [
+    {
+      "pilot_id": "t6_family_pilot_00_dw_pw_dominant",
+      "architecture_family": "dw_pw_dominant",
+      "source_candidate_id": "probe_0000",
+      "run_name": "t6_pilot_dw_pw",
+      "planning_status": "not_generated_mapping_incomplete",
+      "identity_mismatch_count": 7,
+      "trace_row_count": 7,
+      "missing_component_rows": 7,
+      "mapping_status_counts": {
+        "missing_current84_fullcombo_case": 7
+      },
+      "may_reuse_reference_arch84_bitstream": false,
+      "candidate_hls_mapping": null,
+      "bindings": {
+        "rl_best_e2e_preflight.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_dw_pw\\rl_best_e2e_preflight.json",
+          "sha256": "4c17283a9bfb6cbbad1ba95d1eb5de12d9408f407dd18157c75c22ed4491aaad",
+          "bytes": 6888
+        },
+        "rl_best_e2e_harness_spec.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_dw_pw\\rl_best_e2e_harness_spec.json",
+          "sha256": "a1984feb3c851cc9ee25ca3202af525144266ccb152cc8feea30a380c3178c25",
+          "bytes": 4600
+        },
+        "rl_best_e2e_identity_gate.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_dw_pw\\rl_best_e2e_identity_gate.json",
+          "sha256": "a00bf67cb283f6e0478208ebe9c1f9f87c56b9f4cc11b9b78227e7c91902514e",
+          "bytes": 4902
+        },
+        "rl_best_e2e_architecture_trace.csv": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_dw_pw\\rl_best_e2e_architecture_trace.csv",
+          "sha256": "fda576ea586ac7c7ebc6c3e14443b7f94f097c3252da37b8625982f8c6e3655e",
+          "bytes": 1389
+        },
+        "README.md": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_dw_pw\\README.md",
+          "sha256": "552f14356bad36a8f5cd94cce9b8014ee9a7fbc808421d9dbd3f5f6041391e4e",
+          "bytes": 460
+        }
+      },
+      "formal_hls_route_truth_increment": 0
+    },
+    {
+      "pilot_id": "t6_family_pilot_01_mbconv_dominant",
+      "architecture_family": "mbconv_dominant",
+      "source_candidate_id": "probe_0060",
+      "run_name": "t6_pilot_mbconv",
+      "planning_status": "not_generated_mapping_incomplete",
+      "identity_mismatch_count": 6,
+      "trace_row_count": 7,
+      "missing_component_rows": 6,
+      "mapping_status_counts": {
+        "mapped_to_arch84_extension": 1,
+        "missing_current84_fullcombo_case": 6
+      },
+      "may_reuse_reference_arch84_bitstream": false,
+      "candidate_hls_mapping": null,
+      "bindings": {
+        "rl_best_e2e_preflight.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mbconv\\rl_best_e2e_preflight.json",
+          "sha256": "0a5eee19b4447ce6bd6587f41ff03b0aa104b813bde3063d3e141b33a6a0c62b",
+          "bytes": 6208
+        },
+        "rl_best_e2e_harness_spec.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mbconv\\rl_best_e2e_harness_spec.json",
+          "sha256": "f12b1ff815c74656c979dbd791871c0ce4824ef64c3a8dffea54205ddd0ac81a",
+          "bytes": 4673
+        },
+        "rl_best_e2e_identity_gate.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mbconv\\rl_best_e2e_identity_gate.json",
+          "sha256": "abe52b7801b8adc0245b7c8aa70e9542f59340158bc9807e91eb9599b20c7f15",
+          "bytes": 4265
+        },
+        "rl_best_e2e_architecture_trace.csv": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mbconv\\rl_best_e2e_architecture_trace.csv",
+          "sha256": "20cfd605559f3b2e6cd2a908dc536e81ac168e11ec49a26b588dc6d545a78551",
+          "bytes": 1448
+        },
+        "README.md": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mbconv\\README.md",
+          "sha256": "064a3dfc47506ab0772bb28f9f51b544a205c849cb4dd74057ea3ab4da4e0d1e",
+          "bytes": 462
+        }
+      },
+      "formal_hls_route_truth_increment": 0
+    },
+    {
+      "pilot_id": "t6_family_pilot_02_fused_mbconv_dominant",
+      "architecture_family": "fused_mbconv_dominant",
+      "source_candidate_id": "probe_0048",
+      "run_name": "t6_pilot_fused",
+      "planning_status": "not_generated_mapping_incomplete",
+      "identity_mismatch_count": 7,
+      "trace_row_count": 7,
+      "missing_component_rows": 7,
+      "mapping_status_counts": {
+        "missing_current84_fullcombo_case": 7
+      },
+      "may_reuse_reference_arch84_bitstream": false,
+      "candidate_hls_mapping": null,
+      "bindings": {
+        "rl_best_e2e_preflight.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_fused\\rl_best_e2e_preflight.json",
+          "sha256": "dc4e7b1be861e26ece06fd1a8f0d9632654265500babc95dab7da0af02de7a66",
+          "bytes": 6892
+        },
+        "rl_best_e2e_harness_spec.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_fused\\rl_best_e2e_harness_spec.json",
+          "sha256": "72056222ffb1c752656cefb36414f30322003dfd00d6d3bb8b54ceb9ff3a67ad",
+          "bytes": 4607
+        },
+        "rl_best_e2e_identity_gate.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_fused\\rl_best_e2e_identity_gate.json",
+          "sha256": "01187aa727812f95aef407cd94b616ff0321f208185fd14997c1f5be7612991f",
+          "bytes": 4906
+        },
+        "rl_best_e2e_architecture_trace.csv": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_fused\\rl_best_e2e_architecture_trace.csv",
+          "sha256": "35098288762b10508b344f05c7aa2354d9b67dfba8bce92644e21de00055f2bd",
+          "bytes": 1397
+        },
+        "README.md": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_fused\\README.md",
+          "sha256": "355fd0a780e65050a28f86d52bfaac836a3a29f81792749b58cabfe1e1c54e93",
+          "bytes": 460
+        }
+      },
+      "formal_hls_route_truth_increment": 0
+    },
+    {
+      "pilot_id": "t6_family_pilot_03_skip_heavy",
+      "architecture_family": "skip_heavy",
+      "source_candidate_id": "probe_0136",
+      "run_name": "t6_pilot_skip",
+      "planning_status": "not_generated_mapping_incomplete",
+      "identity_mismatch_count": 8,
+      "trace_row_count": 8,
+      "missing_component_rows": 7,
+      "mapping_status_counts": {
+        "mapped_to_arch84_extension": 1,
+        "missing_current84_fullcombo_case": 7
+      },
+      "may_reuse_reference_arch84_bitstream": false,
+      "candidate_hls_mapping": null,
+      "bindings": {
+        "rl_best_e2e_preflight.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_skip\\rl_best_e2e_preflight.json",
+          "sha256": "d46688971a28f7804f543ee0b5572f2584c7e0ca6823b7cd12f2d5913690fd72",
+          "bytes": 7251
+        },
+        "rl_best_e2e_harness_spec.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_skip\\rl_best_e2e_harness_spec.json",
+          "sha256": "3bfb6c3a4c5fff9b5793d8086953615caeefae3c7d831f6d3a779d247b26f6a7",
+          "bytes": 5048
+        },
+        "rl_best_e2e_identity_gate.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_skip\\rl_best_e2e_identity_gate.json",
+          "sha256": "83219fc255472ab9334b85938f7c0431a7e663f8da6c1dc5841f6f937c7fd851",
+          "bytes": 5242
+        },
+        "rl_best_e2e_architecture_trace.csv": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_skip\\rl_best_e2e_architecture_trace.csv",
+          "sha256": "73141e0f5665dd31fed91990a926e68c9f19417642308edec5212353a0b71066",
+          "bytes": 1572
+        },
+        "README.md": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_skip\\README.md",
+          "sha256": "1fb86a8d7badacb55984571778735703149eb6c4410ee645f05750ea8d84ccc5",
+          "bytes": 458
+        }
+      },
+      "formal_hls_route_truth_increment": 0
+    },
+    {
+      "pilot_id": "t6_family_pilot_04_mixed_balanced",
+      "architecture_family": "mixed_balanced",
+      "source_candidate_id": "probe_0188",
+      "run_name": "t6_pilot_mixed",
+      "planning_status": "not_generated_mapping_incomplete",
+      "identity_mismatch_count": 7,
+      "trace_row_count": 7,
+      "missing_component_rows": 7,
+      "mapping_status_counts": {
+        "missing_current84_fullcombo_case": 7
+      },
+      "may_reuse_reference_arch84_bitstream": false,
+      "candidate_hls_mapping": null,
+      "bindings": {
+        "rl_best_e2e_preflight.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mixed\\rl_best_e2e_preflight.json",
+          "sha256": "6bddc128301320a6801aa7ac77cf9ea6aa91a0ac739e0e4fa27c1fe7be933e17",
+          "bytes": 6884
+        },
+        "rl_best_e2e_harness_spec.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mixed\\rl_best_e2e_harness_spec.json",
+          "sha256": "f0d84fdd216d705bbc6fd70946c85f8171e9b025023c41b4745891add36b9db0",
+          "bytes": 4605
+        },
+        "rl_best_e2e_identity_gate.json": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mixed\\rl_best_e2e_identity_gate.json",
+          "sha256": "d292832b894d3952d0799a3cf610006c07c3aeb19c501c3de11a3453ebc7a851",
+          "bytes": 4898
+        },
+        "rl_best_e2e_architecture_trace.csv": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mixed\\rl_best_e2e_architecture_trace.csv",
+          "sha256": "ae451701bebd4d7ed589509e6be3b904b9fab568b291162442bbec52ee308c81",
+          "bytes": 1376
+        },
+        "README.md": {
+          "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\t6_five_family_mapping_probe_v1\\t6_pilot_mixed\\README.md",
+          "sha256": "1dec463fe86a54c70179d376b4f42587079a111bfdd38fc314453e02d8277418",
+          "bytes": 460
+        }
+      },
+      "formal_hls_route_truth_increment": 0
+    }
+  ],
+  "current_generator_ready_for_five_family_truth": false,
+  "formal_hls_route_truth_increment": 0,
+  "errors": [],
+  "blocker": "All five candidates need source-linked candidate-specific operator HLS mapping and a semantic-equivalence path before the existing stitched full-network harness can be generated. The current planner is not a complete-network HLS C source generator for HARP/T6 truth.",
+  "boundary": "This is a planning-only gap audit. It does not synthesize, route, program the board, measure latency, or produce power evidence."
+}

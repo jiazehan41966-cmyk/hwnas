@@ -1,0 +1,25 @@
+schema_version: 1
+runtime_role: unified_protocol_adapter_not_author_original_environment
+expected_torch: 2.7.0+cu126
+expected_cuda: "12.6"
+papers:
+  hw_pr_nas_2023:
+    environment_path: .venv_benchmarks/hw_pr_nas_2023_cuda
+    probe: hwpr
+  sure_2024:
+    environment_path: .venv_benchmarks/sure_2024_cuda
+    probe: sure
+  harp_2023:
+    environment_path: .venv_benchmarks/harp_2023_cuda
+    probe: harp
+  esda_2024:
+    environment_path: .venv_benchmarks/esda_2024_cuda
+    probe: esda
+  dmcl_sonar_oltr_2025:
+    environment_path: .venv_benchmarks/dmcl_sonar_oltr_2025_cuda
+    probe: dmcl
+    archive_sha256: 4bd5158c491821bb1de3138856344949ca3ce1747f033601809d30774e7d5a61
+  plud_sonar_oltr_2024:
+    environment_path: .venv_benchmarks/plud_sonar_oltr_2024_cuda
+    probe: plud
+    archive_sha256: 4bd5158c491821bb1de3138856344949ca3ce1747f033601809d30774e7d5a61

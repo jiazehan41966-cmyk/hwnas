@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""在隔离临时 Git 仓库复现固定 code_patch.diff 被覆盖，并验证内容寻址模型。"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import subprocess
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+
+REPO = Path(__file__).resolve().parents[4]
+CAMPAIGN = REPO / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+MANIFESTS = CAMPAIGN / "manifests"
+PRODUCTION = REPO / "run_eval_protocol.py"
+CONTRACT = MANIFESTS / "provenance_immutable_repair_contract_20260718.md"
+PATCH_PROPOSAL = CAMPAIGN / "runtime/provenance_immutable_repair_20260718.patch.txt"
+
+
+def sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
+
+
+def run(command: list[str], cwd: Path) -> bytes:
+    completed = subprocess.run(command, cwd=cwd, capture_output=True, check=True)
+    return completed.stdout
+
+
+def vulnerable_capture(repo: Path, run_dir: Path) -> dict:
+    payload = run(["git", "diff", "--binary", "HEAD", "--", "."], repo)
+    path = run_dir / "code_patch.diff"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(payload)
+    return {"path": str(path), "sha256": sha256_file(path), "bytes": len(payload)}
+
+
+def fixed_model_capture(repo: Path, run_dir: Path) -> dict:
+    payload = run(["git", "diff", "--binary", "HEAD", "--", "."], repo)
+    digest = sha256_bytes(payload)
+    path = run_dir / "provenance" / f"code_patch_{digest}.diff"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if sha256_file(path) != digest:
+            raise RuntimeError("内容寻址 patch 已损坏，拒绝覆盖")
+    else:
+        with path.open("xb") as handle:
+            handle.write(payload)
+    return {"path": str(path), "sha256": digest, "bytes": len(payload)}
+
+
+def main() -> int:
+    production_text = PRODUCTION.read_text(encoding="utf-8")
+    anchors = {
+        "fixed_path_present": 'patch_path = run_dir / "code_patch.diff"' in production_text,
+        "unconditional_write_present": "patch_path.write_bytes(diff_result.stdout)" in production_text,
+        "capture_before_manifest_check": production_text.index("code_provenance = git_code_provenance(run_dir)")
+        < production_text.index("if manifest_path.exists() and not args.force:"),
+    }
+    if not all(anchors.values()):
+        raise AssertionError(f"生产代码锚点变化：{anchors}")
+
+    with tempfile.TemporaryDirectory(prefix="hwnas_provenance_reproducer_") as temp:
+        root = Path(temp)
+        repo = root / "repo"
+        repo.mkdir()
+        run(["git", "init", "--quiet"], repo)
+        run(["git", "config", "user.email", "codex-reproducer@example.invalid"], repo)
+        run(["git", "config", "user.name", "Codex Reproducer"], repo)
+        tracked = repo / "tracked.py"
+        tracked.write_text("VALUE = 0\n", encoding="utf-8")
+        run(["git", "add", "tracked.py"], repo)
+        run(["git", "commit", "--quiet", "-m", "base"], repo)
+
+        vulnerable_dir = root / "vulnerable_run"
+        tracked.write_text("VALUE = 1\n", encoding="utf-8")
+        first = vulnerable_capture(repo, vulnerable_dir)
+        first_bytes = Path(first["path"]).read_bytes()
+        tracked.write_text("VALUE = 2\n", encoding="utf-8")
+        second = vulnerable_capture(repo, vulnerable_dir)
+        path_after = Path(first["path"])
+        vulnerable_overwrite_observed = (
+            first["path"] == second["path"]
+            and first["sha256"] != second["sha256"]
+            and path_after.read_bytes() != first_bytes
+            and sha256_file(path_after) == second["sha256"]
+        )
+
+        fixed_dir = root / "fixed_model_run"
+        tracked.write_text("VALUE = 1\n", encoding="utf-8")
+        fixed_first = fixed_model_capture(repo, fixed_dir)
+        fixed_first_bytes = Path(fixed_first["path"]).read_bytes()
+        tracked.write_text("VALUE = 2\n", encoding="utf-8")
+        fixed_second = fixed_model_capture(repo, fixed_dir)
+        content_addressed_preserves_first = (
+            fixed_first["path"] != fixed_second["path"]
+            and Path(fixed_first["path"]).read_bytes() == fixed_first_bytes
+            and sha256_file(Path(fixed_first["path"])) == fixed_first["sha256"]
+        )
+
+    if not vulnerable_overwrite_observed or not content_addressed_preserves_first:
+        raise AssertionError("最小复现或修复模型未满足预期")
+
+    result = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "status": "PASS_BUG_REPRODUCED_PATCH_NOT_APPLIED",
+        "production_anchors": anchors,
+        "vulnerable_model": {
+            "same_path": first["path"].endswith("code_patch.diff") and second["path"].endswith("code_patch.diff"),
+            "first_sha256": first["sha256"],
+            "second_sha256": second["sha256"],
+            "first_evidence_survived": False,
+            "overwrite_observed": vulnerable_overwrite_observed,
+        },
+        "content_addressed_model": {
+            "different_paths": fixed_first["path"] != fixed_second["path"],
+            "first_sha256": fixed_first["sha256"],
+            "second_sha256": fixed_second["sha256"],
+            "first_evidence_survived": content_addressed_preserves_first,
+        },
+        "formal_entrypoint_modified": False,
+        "formal_evidence_increment": 0,
+        "inputs": [
+            {"path": str(path.resolve()), "sha256": sha256_file(path), "bytes": path.stat().st_size}
+            for path in (PRODUCTION, CONTRACT, PATCH_PROPOSAL)
+        ],
+        "boundary_zh": "复现发生在自动清理的隔离临时 Git 仓库；未触碰旧实验目录，未应用修复补丁。",
+    }
+    json_path = MANIFESTS / "provenance_overwrite_reproducer_20260718.json.txt"
+    json_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report_path = MANIFESTS / "provenance_overwrite_reproducer_20260718.md"
+    report_path.write_text("\n".join([
+        "# provenance patch 覆盖缺陷最小复现",
+        "",
+        "- 状态：`PASS_BUG_REPRODUCED_PATCH_NOT_APPLIED`。",
+        "- 复现位置：自动清理的隔离临时 Git 仓库。",
+        "- 正式入口修改：否。正式证据增量：0。",
+        "",
+        "## 观察",
+        "",
+        f"- 固定路径模型连续捕获两个 diff 时使用同一路径：`{result['vulnerable_model']['same_path']}`。",
+        f"- 第一次 SHA：`{first['sha256']}`；第二次 SHA：`{second['sha256']}`。",
+        "- 第二次捕获后，第一次文件字节不再存在，证明固定 `code_patch.diff` 会破坏旧 manifest 的文件绑定。",
+        f"- 内容寻址模型使用不同路径：`{result['content_addressed_model']['different_paths']}`，第一次证据保持：`{content_addressed_preserves_first}`。",
+        "",
+        "## 结论",
+        "",
+        "缺陷可由代码结构和隔离行为复现共同支持。修复设计可阻止覆盖，但当前只作为提案，必须取得用户批准后才能修改正式入口、重新冻结和决定 scratch-v2。",
+        "",
+    ]), encoding="utf-8")
+    print(json.dumps({"status": result["status"], "report": str(report_path)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

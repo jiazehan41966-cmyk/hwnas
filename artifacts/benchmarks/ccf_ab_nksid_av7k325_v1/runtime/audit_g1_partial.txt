@@ -1,0 +1,303 @@
+#!/usr/bin/env python3
+"""Read-only audit for every atomically completed unit in an in-flight G1 run.
+
+This does not grant aggregate claimability. The canonical full-run auditor is
+still required after all 15 fold-seed units and protocol_summary.json exist.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import re
+import sys
+from datetime import datetime
+from itertools import combinations
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from hwnas_fpga.benchmarks.metrics import calibration_summary
+from hwnas_fpga.training.protocol_reporting import canonical_sha256
+
+
+EXPECTED_PAIRS = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+EXPECTED_FOLD_SIZES = {0: 520, 1: 520, 2: 520, 3: 520, 4: 537}
+RECORD_PATTERN = re.compile(r"^run_fold(\d+)_seed(\d+)\.json$")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def close(left: Any, right: Any, tolerance: float = 1e-12) -> bool:
+    try:
+        return math.isclose(float(left), float(right), rel_tol=0.0, abs_tol=tolerance)
+    except (TypeError, ValueError):
+        return False
+
+
+def deep_close(left: Any, right: Any, tolerance: float = 1e-12) -> bool:
+    if left is None or right is None:
+        return left is right
+    if isinstance(left, dict) and isinstance(right, dict):
+        return set(left) == set(right) and all(
+            deep_close(left[key], right[key], tolerance) for key in left
+        )
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(
+            deep_close(lvalue, rvalue, tolerance)
+            for lvalue, rvalue in zip(left, right, strict=True)
+        )
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        if math.isnan(float(left)) and math.isnan(float(right)):
+            return True
+        return close(left, right, tolerance)
+    return left == right
+
+
+def classification_metrics(targets: list[int], predictions: list[int], classes: int = 8) -> dict[str, Any]:
+    confusion = [[0] * classes for _ in range(classes)]
+    for target, prediction in zip(targets, predictions, strict=True):
+        confusion[target][prediction] += 1
+    per_class_f1 = []
+    supports = []
+    for class_id in range(classes):
+        tp = confusion[class_id][class_id]
+        support = sum(confusion[class_id])
+        predicted = sum(confusion[row][class_id] for row in range(classes))
+        denominator = support + predicted
+        per_class_f1.append(0.0 if denominator == 0 else 2.0 * tp / denominator)
+        supports.append(support)
+    total = len(targets)
+    return {
+        "macro_f1": sum(per_class_f1) / classes,
+        "top1": sum(target == prediction for target, prediction in zip(targets, predictions, strict=True)) / total,
+        "weighted_f1": sum(score * support for score, support in zip(per_class_f1, supports, strict=True)) / total,
+        "per_class_f1": per_class_f1,
+        "confusion_matrix": confusion,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run-dir", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--expect-pretrained", choices=("true", "false"), required=True)
+    parser.add_argument("--expected-method", required=True)
+    args = parser.parse_args()
+    run_dir = Path(args.run_dir).resolve()
+    output = Path(args.output).resolve()
+    expect_pretrained = args.expect_pretrained == "true"
+    errors: list[str] = []
+    records: list[dict[str, Any]] = []
+
+    manifest_path = run_dir / "run_manifest.json"
+    if not manifest_path.is_file():
+        errors.append("run_manifest.json is missing")
+        manifest: dict[str, Any] = {}
+    else:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    fingerprint = str(manifest.get("run_fingerprint") or "")
+    immutable = dict(manifest.get("immutable_config") or {})
+    protocol_context = str(immutable.get("protocol_context_sha256") or manifest.get("protocol_context_sha256") or "")
+    code_provenance = dict(manifest.get("code_provenance") or {})
+    code_state = str(code_provenance.get("code_state_sha256") or "")
+    source_freeze = dict(immutable.get("source_freeze") or {})
+    expected_data_sha = canonical_sha256(immutable.get("dataset") or {})
+    if len(fingerprint) != 64 or len(code_state) != 64:
+        errors.append("manifest fingerprint/code-state binding is invalid")
+    if not (
+        source_freeze.get("verification_status") == "PASS"
+        and int(source_freeze.get("verified_file_count") or 0) == 556
+    ):
+        errors.append("manifest source-freeze status is invalid")
+    for label, path_field, sha_field in (
+        ("source-freeze manifest", "path", "manifest_sha256"),
+        ("source snapshot", "archive_path", "archive_sha256"),
+    ):
+        path = Path(str(source_freeze.get(path_field) or ""))
+        expected_sha = str(source_freeze.get(sha_field) or "")
+        if not path.is_file() or sha256_file(path) != expected_sha:
+            errors.append(f"{label} hash binding is invalid")
+    tracked_patch = dict(code_provenance.get("tracked_patch") or {})
+    patch_path = Path(str(tracked_patch.get("path") or ""))
+    if not patch_path.is_file() or sha256_file(patch_path) != tracked_patch.get("sha256"):
+        errors.append("tracked code patch hash binding is invalid")
+
+    record_files = []
+    for path in run_dir.glob("run_fold*_seed*.json"):
+        match = RECORD_PATTERN.match(path.name)
+        if match:
+            record_files.append((int(match.group(1)), int(match.group(2)), path))
+    observed_pairs = {(fold, seed) for fold, seed, _ in record_files}
+    if not observed_pairs:
+        errors.append("no atomic fold-seed records exist")
+    if not observed_pairs <= EXPECTED_PAIRS:
+        errors.append(f"unexpected fold-seed pairs: {sorted(observed_pairs - EXPECTED_PAIRS)}")
+    if len(record_files) != len(observed_pairs):
+        errors.append("duplicate atomic record filenames")
+
+    fold_sequences: dict[tuple[int, int], list[tuple[str, int]]] = {}
+    for fold, seed, record_path in sorted(record_files):
+        unit_errors: list[str] = []
+        record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+        if int(record.get("fold", -1)) != fold or int(record.get("seed", -1)) != seed:
+            unit_errors.append("record fold/seed does not match filename")
+        prediction_info = dict(record.get("outer_predictions") or {})
+        checkpoint_info = dict(record.get("checkpoint") or {})
+        prediction_path = Path(str(prediction_info.get("path") or ""))
+        checkpoint_path = Path(str(checkpoint_info.get("path") or ""))
+        if not prediction_path.is_file() or sha256_file(prediction_path) != prediction_info.get("sha256"):
+            unit_errors.append("prediction hash binding is invalid")
+        if not checkpoint_path.is_file() or sha256_file(checkpoint_path) != checkpoint_info.get("sha256"):
+            unit_errors.append("checkpoint hash binding is invalid")
+        if unit_errors:
+            errors.extend(f"fold={fold}, seed={seed}: {error}" for error in unit_errors)
+            continue
+        rows = [json.loads(line) for line in prediction_path.read_text(encoding="utf-8").splitlines() if line]
+        expected_size = EXPECTED_FOLD_SIZES[fold]
+        if len(rows) != expected_size or int(prediction_info.get("num_samples") or 0) != expected_size:
+            unit_errors.append(f"outer row count is not {expected_size}")
+        sample_ids = [str(row.get("sample_id")) for row in rows]
+        if len(sample_ids) != len(set(sample_ids)):
+            unit_errors.append("outer sample IDs are not unique")
+        if {int(row.get("outer_position", -1)) for row in rows} != set(range(expected_size)):
+            unit_errors.append("outer positions are not a complete zero-based range")
+        checkpoint_sha = str(checkpoint_info.get("sha256") or "")
+        split_sha = str(record.get("split_sha256") or "")
+        targets: list[int] = []
+        predictions: list[int] = []
+        probabilities: list[list[float]] = []
+        sample_sequence: list[tuple[str, int]] = []
+        for row_index, row in enumerate(rows):
+            target = int(row.get("target", -1))
+            prediction = int(row.get("prediction", -1))
+            # Training exports float32 logits and float32 softmax confidence.
+            # Recompute in the same dtype before calibration is promoted to
+            # float64 by calibration_summary.
+            logits = np.asarray(row.get("logits"), dtype=np.float32)
+            if logits.shape != (8,) or not np.all(np.isfinite(logits)):
+                unit_errors.append(f"row {row_index}: logits are invalid")
+                break
+            shifted = logits - np.max(logits)
+            probability = np.exp(shifted) / np.exp(shifted).sum()
+            # Torch and NumPy may differ by a few float32 ULPs although the
+            # stored argmax is identical; 5e-7 is below reporting precision.
+            if int(probability.argmax()) != prediction or not close(probability.max(), row.get("confidence"), 5e-7):
+                unit_errors.append(f"row {row_index}: prediction/confidence does not match logits")
+                break
+            if not (
+                int(row.get("fold", -1)) == fold
+                and int(row.get("seed", -1)) == seed
+                and row.get("split") == "outer_val"
+                and row.get("method") == args.expected_method
+                and row.get("config_sha") == fingerprint
+                and row.get("code_state_sha") == code_state
+                and row.get("checkpoint_sha") == checkpoint_sha
+                and row.get("split_sha") == split_sha
+                and row.get("data_sha") == expected_data_sha
+                and bool(row.get("correct")) == (target == prediction)
+            ):
+                unit_errors.append(f"row {row_index}: provenance/correctness mismatch")
+                break
+            targets.append(target)
+            predictions.append(prediction)
+            probabilities.append(probability.tolist())
+            sample_sequence.append((str(row.get("sample_id")), target))
+        model = dict(record.get("model") or {})
+        if bool(model.get("pretrained_requested")) != expect_pretrained or bool(model.get("pretrained_loaded")) != expect_pretrained:
+            unit_errors.append("pretrained state mismatch")
+        provenance = dict(record.get("provenance") or {})
+        if not (
+            record.get("run_fingerprint") == fingerprint
+            and record.get("protocol_context_sha256") == protocol_context
+            and provenance.get("code_state_sha256") == code_state
+            and dict(provenance.get("source_freeze") or {}) == source_freeze
+        ):
+            unit_errors.append("record provenance/fingerprint mismatch")
+        metrics = classification_metrics(targets, predictions) if len(targets) == expected_size else {}
+        reported = dict(record.get("outer_val") or {})
+        for key in ("macro_f1", "top1", "weighted_f1"):
+            if key not in metrics or not close(metrics[key], reported.get(key)):
+                unit_errors.append(f"reported {key} does not match recomputation")
+        if metrics and not deep_close(metrics["per_class_f1"], record.get("outer_per_class_f1")):
+            unit_errors.append("per-class F1 does not match recomputation")
+        if metrics and metrics["confusion_matrix"] != record.get("outer_confusion_matrix"):
+            unit_errors.append("confusion matrix does not match recomputation")
+        calibration = calibration_summary(probabilities, targets, bins=15) if len(targets) == expected_size else {}
+        if calibration and not deep_close(calibration, record.get("outer_calibration"), 1e-6):
+            unit_errors.append("calibration/risk metrics do not match recomputation")
+        fold_sequences[(fold, seed)] = sample_sequence
+        unit_result = {
+            "fold": fold,
+            "seed": seed,
+            "row_count": len(rows),
+            "best_epoch": record.get("best_epoch"),
+            "prediction_sha256": prediction_info.get("sha256"),
+            "checkpoint_sha256": checkpoint_info.get("sha256"),
+            "split_sha256": split_sha,
+            "macro_f1": metrics.get("macro_f1"),
+            "top1": metrics.get("top1"),
+            "weighted_f1": metrics.get("weighted_f1"),
+            "ece": calibration.get("ece"),
+            "aurc": calibration.get("aurc"),
+            "failure_auroc": calibration.get("failure_auroc"),
+            "failure_fpr95": calibration.get("failure_fpr95"),
+            "status": "PASS" if not unit_errors else "FAIL",
+            "errors": unit_errors,
+        }
+        records.append(unit_result)
+        errors.extend(f"fold={fold}, seed={seed}: {error}" for error in unit_errors)
+
+    for fold in range(5):
+        available = [fold_sequences[(fold, seed)] for seed in (42, 43, 44) if (fold, seed) in fold_sequences]
+        if available and any(sequence != available[0] for sequence in available[1:]):
+            errors.append(f"fold {fold} outer sample/target order differs across completed seeds")
+    for seed in (42, 43, 44):
+        available = [set(sample for sample, _ in fold_sequences[(fold, seed)]) for fold in range(5) if (fold, seed) in fold_sequences]
+        if any(left & right for left, right in combinations(available, 2)):
+            errors.append(f"completed outer folds overlap for seed {seed}")
+
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS" if not errors else "FAIL",
+        "scope": "PARTIAL_ATOMIC_UNITS_ONLY",
+        "aggregate_claimable": False,
+        "run_dir": str(run_dir),
+        "run_fingerprint": fingerprint,
+        "expected_method": args.expected_method,
+        "expect_pretrained": expect_pretrained,
+        "accepted_atomic_units": sum(record["status"] == "PASS" for record in records),
+        "observed_atomic_units": len(record_files),
+        "required_atomic_units": 15,
+        "remaining_atomic_units": 15 - len(record_files),
+        "records": records,
+        "errors": errors,
+        "boundary": "Partial PASS never replaces the independent 15-unit full-run audit or aggregate protocol_summary claimability.",
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    print(json.dumps({
+        "status": result["status"],
+        "accepted_atomic_units": result["accepted_atomic_units"],
+        "observed_atomic_units": result["observed_atomic_units"],
+        "output": str(output),
+        "errors": errors,
+    }))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

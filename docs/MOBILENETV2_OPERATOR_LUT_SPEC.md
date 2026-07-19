@@ -2,6 +2,13 @@
 
 ## Scope
 
+> Status note (2026-07-19): this is the historical operator-screening and LUT
+> planning specification. The current semantic-safe runtime policy supersedes
+> its `keep` labels for deployment-claimable search: `denoise`, `edge`, and
+> `mixconv` remain paused until the required PyTorch/fixed-point/HLS parity and
+> G5 evidence pass. Current searches admit only the operators allowed by
+> `hls_lut_builder/configs/operator_manifest_semantic_safe.yaml`.
+
 This document fixes the operator-selection and LUT-profiling protocol after the
 fair macro-backbone comparison selected `MobileNetV2` as the unified
 `accuracy_anchor` and `search_anchor`.

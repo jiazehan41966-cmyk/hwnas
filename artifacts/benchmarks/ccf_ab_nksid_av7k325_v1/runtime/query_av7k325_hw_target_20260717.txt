@@ -1,0 +1,24 @@
+set status "PASS"
+set message ""
+open_hw_manager
+if {[catch {connect_hw_server -url localhost:3121 -allow_non_jtag} message]} {
+    set status "CONNECT_FAILED"
+} else {
+    set targets [get_hw_targets -quiet]
+    puts "HW_TARGET_COUNT=[llength $targets]"
+    foreach target $targets {
+        puts "HW_TARGET=$target"
+        current_hw_target $target
+        if {[catch {open_hw_target} open_message]} {
+            puts "HW_TARGET_OPEN_FAILED target=$target message=$open_message"
+            continue
+        }
+        set devices [get_hw_devices -quiet]
+        puts "HW_DEVICE_COUNT target=$target count=[llength $devices] devices=$devices"
+        close_hw_target
+    }
+    disconnect_hw_server
+}
+close_hw_manager
+puts "HW_QUERY_STATUS=$status message=$message"
+exit

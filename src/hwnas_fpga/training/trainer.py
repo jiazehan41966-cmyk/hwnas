@@ -186,6 +186,7 @@ def evaluate_classifier(
     device: str,
     num_classes: int,
     topk: int = 5,
+    input_transform: Optional[Callable[[torch.Tensor, int], torch.Tensor]] = None,
 ) -> dict[str, Any]:
     model.eval()
     total_loss = 0.0
@@ -193,7 +194,9 @@ def evaluate_classifier(
     total_topk = 0
     confusion = torch.zeros(int(num_classes), int(num_classes), dtype=torch.long)
 
-    for inputs, targets in data_loader:
+    for batch_index, (inputs, targets) in enumerate(data_loader):
+        if input_transform is not None:
+            inputs = input_transform(inputs, batch_index)
         inputs = inputs.to(device)
         targets = targets.to(device)
 
@@ -228,6 +231,10 @@ def _resolve_selection_score(summary: dict[str, float], selection_metric: str) -
         "macro_f1": "macro_f1",
         "f1": "macro_f1",
         "weighted_f1": "weighted_f1",
+        # F_clean is the clean inner-validation macro-F1.  Epoch selection is
+        # therefore still performed on the clean macro-F1 before robustness is
+        # evaluated on the restored best checkpoint.
+        "f_clean": "macro_f1",
     }
     key = aliases.get(normalized, normalized)
     if key not in summary:

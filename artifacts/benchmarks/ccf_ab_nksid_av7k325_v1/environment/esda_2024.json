@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "paper_id": "esda_2024",
+  "pinned_commit": "b75c8c93ca258158c06a6434f5f0f084add02ee5",
+  "observed_commit": "b75c8c93ca258158c06a6434f5f0f084add02ee5",
+  "checkout": "E:\\1\\hwnas\\hwnas\\reference\\ESDA",
+  "license_state": "verified",
+  "dependency_manifests": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\reference\\ESDA\\requirements.txt",
+      "sha256": "ec72b9ba7f5747f0dc8c579c05b0c14840fafadf9289f47263d5f6af30e998e0",
+      "size_bytes": 118
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\reference\\ESDA\\software\\requirements.txt",
+      "sha256": "906d7c36f9d89c1871979268a41af547bb8ce043511f517afdda0ff996222194",
+      "size_bytes": 926
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\reference\\ESDA\\software\\setup.py",
+      "sha256": "d6cd18c56d0d037adfac7303319c7fc64afd3dd50833dc20768f7f8a76b137bb",
+      "size_bytes": 12353
+    }
+  ],
+  "environment": {
+    "generated": "2026-07-15T17:28:58",
+    "host": {
+      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+      "interpreter": "D:\\software\\python\\python.exe"
+    },
+    "cuda": {
+      "available": true,
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=name,driver_version,memory.total",
+        "--format=csv,noheader"
+      ],
+      "returncode": 0,
+      "stdout": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, 546.30, 4096 MiB",
+      "stderr": ""
+    },
+    "vivado": {
+      "available": false,
+      "command": [
+        "vivado",
+        "-version"
+      ],
+      "returncode": null
+    },
+    "vitis_hls": {
+      "available": false,
+      "command": [
+        "vitis_hls",
+        "-version"
+      ],
+      "returncode": null
+    }
+  },
+  "pip_freeze": {
+    "available": true,
+    "command": [
+      "D:\\software\\python\\python.exe",
+      "-m",
+      "pip",
+      "freeze"
+    ],
+    "returncode": 0,
+    "stdout": "aiofile==3.9.0\naiohappyeyeballs==2.6.1\naiohttp==3.13.5\naiosignal==1.4.0\nannotated-doc==0.0.4\nannotated-types==0.7.0\nanyio==4.13.0\nappdirs==1.4.4\nattrs==26.1.0\nAuthlib==1.7.0\nbackoff==2.2.1\nbcrypt==5.0.0\nbeartype==0.22.9\ncachetools==7.0.6\ncaio==0.9.25\ncertifi==2026.4.22\ncffi==2.0.0\ncharset-normalizer==3.4.7\nclick==8.3.3\ncolorama==0.4.6\ncontourpy==1.3.2\ncryptography==46.0.6\ncycler==0.12.1\ncyclopts==4.11.0\ndataclasses-json==0.6.7\ndatasets==4.8.4\ndeepeval==3.9.8\ndefusedxml==0.7.1\ndill==0.4.1\ndiskcache==5.6.3\ndistro==1.9.0\ndnspython==2.8.0\ndocstring_parser==0.18.0\ndocutils==0.22.4\neinops==0.8.1\nemail-validator==2.3.0\nexceptiongroup==1.3.1\nexecnet==2.1.2\nfastapi==0.136.1\nfastembed==0.8.0\nfastmcp==3.2.4\nfilelock==3.18.0\nflatbuffers==25.12.19\nfonttools==4.58.0\nfrozenlist==1.8.0\nfsspec==2025.5.1\ngoogleapis-common-protos==1.74.0\ngreenlet==3.4.0\ngriffelib==2.0.2\ngrpcio==1.80.0\nh11==0.16.0\nh2==4.3.0\nhf-xet==1.4.3\nhpack==4.1.0\nhttpcore==1.0.9\nhttptools==0.7.1\nhttpx==0.28.1\nhttpx-sse==0.4.3\nhuggingface_hub==1.12.0\nhyperframe==6.1.0\nidna==3.13\nimportlib_metadata==8.7.1\niniconfig==2.3.0\ninstructor==1.15.1\ninvoke==2.2.1\njaraco.classes==3.4.0\njaraco.context==6.1.2\njaraco.functools==4.4.0\nJinja2==3.1.6\njiter==0.13.0\njoserfc==1.6.4\njsonpatch==1.33\njsonpointer==3.1.1\njsonref==1.1.0\njsonschema==4.26.0\njsonschema-path==0.4.5\njsonschema-specifications==2025.9.1\nkeyring==25.7.0\nkiwisolver==1.4.8\nlangchain==1.2.15\nlangchain-classic==1.0.4\nlangchain-community==0.4.1\nlangchain-core==1.3.2\nlangchain-openai==1.2.1\nlangchain-protocol==0.0.12\nlangchain-text-splitters==1.1.2\nlangfuse==4.5.1\nlanggraph==1.1.9\nlanggraph-checkpoint==4.0.2\nlanggraph-prebuilt==1.0.11\nlanggraph-sdk==0.3.13\nlangsmith==0.7.36\nloguru==0.7.3\nlxml==6.1.1\nmarkdown-it-py==4.0.0\nMarkupSafe==3.0.2\nmarshmallow==3.26.2\nmatplotlib==3.10.3\nmcp==1.27.0\nmdurl==0.1.2\nml_dtypes==0.5.4\nmmh3==5.2.1\nmore-itertools==11.0.2\nmpmath==1.3.0\nmultidict==6.7.1\nmultiprocess==0.70.19\nmypy_extensions==1.1.0\nnest-asyncio==1.6.0\nnetworkx==3.4.2\nnumpy==2.2.6\nonnx==1.21.0\nonnxruntime==1.25.0\nopenai==2.32.0\nopenapi-pydantic==0.5.1\nopentelemetry-api==1.41.1\nopentelemetry-exporter-otlp-proto-common==1.41.1\nopentelemetry-exporter-otlp-proto-http==1.41.1\nopentelemetry-proto==1.41.1\nopentelemetry-sdk==1.41.1\nopentelemetry-semantic-conventions==0.62b1\norjson==3.11.8\normsgpack==1.12.2\npackaging==25.0\npandas==3.0.2\nparamiko==4.0.0\npathable==0.5.0\npillow==11.2.1\nplatformdirs==4.9.6\nplaywright==1.60.0\npluggy==1.6.0\nportalocker==3.2.0\nposthog==7.13.1\npropcache==0.4.1\nprotobuf==6.33.6\npy-key-value-aio==0.4.4\npy_rust_stemmers==0.1.5\npyarrow==24.0.0\npycparser==3.0\npydantic==2.13.3\npydantic-settings==2.14.0\npydantic_core==2.46.3\npyee==13.0.1\npyfiglet==1.0.4\nPygments==2.20.0\nPyJWT==2.12.1\nPyMuPDF==1.27.2.3\nPyMySQL==1.2.0\nPyNaCl==1.6.2\npyparsing==3.2.3\npyperclip==1.11.0\npyserial==3.5\npytest==9.0.3\npytest-asyncio==1.3.0\npytest-repeat==0.9.4\npytest-rerunfailures==16.1\npytest-xdist==3.8.0\npython-dateutil==2.9.0.post0\npython-dotenv==1.2.2\npython-multipart==0.0.26\nPyVISA==1.15.0\nPyVISA-py==0.8.1\npywin32==311\npywin32-ctypes==0.2.3\nPyYAML==6.0.3\nqdrant-client==1.17.1\nragas==0.4.3\nreferencing==0.37.0\nregex==2026.4.4\nrequests==2.33.1\nrequests-toolbelt==1.0.0\nrich==14.3.4\nrich-rst==1.3.2\nrpds-py==0.30.0\nruff==0.15.12\nscikit-network==0.33.5\nscipy==1.17.1\nsentry-sdk==2.58.0\nsetuptools==80.8.0\nshellingham==1.5.4\nsix==1.17.0\nsniffio==1.3.1\nSQLAlchemy==2.0.49\nsse-starlette==3.4.1\nstarlette==1.0.0\nsympy==1.14.0\ntabulate==0.9.0\ntenacity==9.1.4\ntiktoken==0.12.0\ntokenizers==0.22.2\ntorch==2.7.0\ntorchvision==0.22.0\ntqdm==4.67.3\ntyper==0.25.0\ntyping-inspect==0.9.0\ntyping-inspection==0.4.2\ntyping_extensions==4.15.0\ntzdata==2026.2\nuncalled-for==0.3.1\nurllib3==2.6.3\nuuid_utils==0.14.1\nuvicorn==0.46.0\nvit-pytorch==1.16.5\nwatchfiles==1.1.1\nwebsockets==16.0\nwheel==0.47.0\nwin32_setctime==1.2.0\nwrapt==1.17.3\nxxhash==3.7.0\nyarl==1.23.0\nzipp==3.23.1\nzstandard==0.25.0",
+    "stderr": ""
+  },
+  "isolation_status": "READY_DEDICATED_ENVIRONMENT",
+  "formal_eligible": false,
+  "boundary": "This is a paper-specific unified-protocol adapter runtime, not a byte-for-byte reconstruction of the author's legacy environment. Environment readiness does not make smoke or formal results claimable.",
+  "dedicated_environment_generated": "2026-07-15T17:26:47",
+  "runtime_role": "unified_protocol_adapter_not_author_original_environment",
+  "dedicated_environment": {
+    "path": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\esda_2024_cuda",
+    "interpreter": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\esda_2024_cuda\\Scripts\\python.exe",
+    "probe": {
+      "paper_id": "esda_2024",
+      "probe": "esda",
+      "interpreter": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\esda_2024_cuda\\Scripts\\python.exe",
+      "sys_prefix": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\esda_2024_cuda",
+      "python": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+      "torch": "2.7.0+cu126",
+      "torchvision": "0.22.0+cu126",
+      "numpy": "2.4.4",
+      "cuda_build": "12.6",
+      "cuda_available": true,
+      "cuda_device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "cuda_tensor_sum": 4.0,
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\ESDA",
+      "observed_commit": "b75c8c93ca258158c06a6434f5f0f084add02ee5",
+      "details": {
+        "component": "ESDA author artifact evidence-chain contract",
+        "evidence_layer_count": 7,
+        "cross_platform_numeric_ranking_allowed": false
+      },
+      "status": "PASS"
+    },
+    "probe_process": {
+      "command": [
+        "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\esda_2024_cuda\\Scripts\\python.exe",
+        "E:\\1\\hwnas\\hwnas\\scripts\\probe_benchmark_environment.py",
+        "--paper-id",
+        "esda_2024",
+        "--probe",
+        "esda",
+        "--checkout",
+        "reference/ESDA",
+        "--pinned-commit",
+        "b75c8c93ca258158c06a6434f5f0f084add02ee5"
+      ],
+      "returncode": 0,
+      "stdout": "{\"paper_id\": \"esda_2024\", \"probe\": \"esda\", \"interpreter\": \"E:\\\\1\\\\hwnas\\\\hwnas\\\\.venv_benchmarks\\\\esda_2024_cuda\\\\Scripts\\\\python.exe\", \"sys_prefix\": \"E:\\\\1\\\\hwnas\\\\hwnas\\\\.venv_benchmarks\\\\esda_2024_cuda\", \"python\": \"3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]\", \"torch\": \"2.7.0+cu126\", \"torchvision\": \"0.22.0+cu126\", \"numpy\": \"2.4.4\", \"cuda_build\": \"12.6\", \"cuda_available\": true, \"cuda_device\": \"NVIDIA GeForce RTX 3050 Ti Laptop GPU\", \"cuda_tensor_sum\": 4.0, \"checkout\": \"E:\\\\1\\\\hwnas\\\\hwnas\\\\reference\\\\ESDA\", \"observed_commit\": \"b75c8c93ca258158c06a6434f5f0f084add02ee5\", \"details\": {\"component\": \"ESDA author artifact evidence-chain contract\", \"evidence_layer_count\": 7, \"cross_platform_numeric_ranking_allowed\": false}, \"status\": \"PASS\"}",
+      "stderr": ""
+    },
+    "freeze": {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\esda_2024.lock.txt",
+      "sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a",
+      "package_count": 16
+    },
+    "verification_fingerprint": "84e116545379c9827f7f27a781457dd515212d728371ffae84217885b5779813"
+  },
+  "host_capture_boundary": "Host capture is not the paper runtime. Any preserved dedicated environment must remain independently probe- and freeze-verified."
+}

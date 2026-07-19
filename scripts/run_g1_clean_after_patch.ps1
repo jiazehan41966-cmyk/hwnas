@@ -1,7 +1,8 @@
 param(
     [string]$DataDir = "data/NKSID",
     [string]$OutputDir = "results/protocol/g1_clean_20260711",
-    [int]$Epochs = 150
+    [int]$Epochs = 150,
+    [string]$SourceFreezeManifest
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +11,10 @@ $python = Join-Path $repo ".venv_cuda\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python)) {
     $python = "python"
 }
+if (-not $SourceFreezeManifest) {
+    throw "Formal G1 requires -SourceFreezeManifest from freeze_experiment_source.py."
+}
+$SourceFreezeManifest = (Resolve-Path -LiteralPath $SourceFreezeManifest).Path
 
 # The pre-freeze patch run is intentionally not interrupted.  Its output is
 # outside the clean root and is never copied or resumed into formal G1.
@@ -32,7 +37,8 @@ $arguments = @(
     "scripts/run_g1_baselines.py",
     "--data-dir", $DataDir,
     "--output-dir", $OutputDir,
-    "--epochs", $Epochs
+    "--epochs", $Epochs,
+    "--source-freeze-manifest", $SourceFreezeManifest
 )
 & $python @arguments *>&1 |
     Tee-Object -FilePath (Join-Path $logDir "launcher.log")

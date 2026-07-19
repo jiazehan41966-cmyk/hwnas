@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""Freeze one deterministic complete-network export pilot per T6 architecture family."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+FAMILY_ORDER = (
+    "dw_pw_dominant",
+    "mbconv_dominant",
+    "fused_mbconv_dominant",
+    "skip_heavy",
+    "mixed_balanced",
+)
+PURPOSE = "T6_FIVE_FAMILY_COMPLETE_NETWORK_EXPORT_PILOT"
+STATUS = "PILOT_INPUT_FROZEN_TRUTH_NOT_COLLECTED"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def atomic_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8", newline="")
+    os.replace(temporary, path)
+
+
+def choose_pilots(candidates: list[dict[str, object]]) -> list[dict[str, object]]:
+    selected = []
+    for order, family in enumerate(FAMILY_ORDER):
+        family_rows = [row for row in candidates if row.get("architecture_family") == family]
+        feasible_rows = [row for row in family_rows if row.get("source_analytic_feasible") is True]
+        if not feasible_rows:
+            raise ValueError(f"no source-analytic-feasible structural pilot for {family}")
+        # Pilot selection validates generator coverage, not predictor quality. Prefer the
+        # smallest block count, then use the already frozen salted order as the tie-break.
+        source = min(
+            feasible_rows,
+            key=lambda row: (int(row.get("block_count") or 10**9), str(row.get("selection_key") or "")),
+        )
+        selected.append({
+            "pilot_order": order,
+            "pilot_id": f"t6_family_pilot_{order:02d}_{family}",
+            "pool_sample_id": source["sample_id"],
+            "architecture_family": family,
+            "grouped_cv_fold": source["grouped_cv_fold"],
+            "source_candidate_id": source["source_candidate_id"],
+            "source_candidate_path": source["source_candidate_path"],
+            "source_candidate_sha256": source["source_candidate_sha256"],
+            "source_row_index": source["source_row_index"],
+            "source_row_sha256": source["source_row_sha256"],
+            "encoding": source["encoding"],
+            "encoding_sha256": source["encoding_sha256"],
+            "operator_counts": source["operator_counts"],
+            "block_count": source["block_count"],
+            "source_analytic_feasible": source["source_analytic_feasible"],
+            "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+            "selection_key": source["selection_key"],
+            "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+            "export_status": "NOT_STARTED",
+            "semantic_equivalence_status": "PENDING",
+            "csynth_status": "NOT_STARTED",
+            "route_status": "NOT_STARTED",
+            "formal_truth_increment": 0,
+        })
+    return selected
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--pool-manifest", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    pool_path = Path(args.pool_manifest).resolve()
+    output = Path(args.output).resolve()
+    pool = json.loads(pool_path.read_text(encoding="utf-8-sig"))
+    if not (
+        pool.get("campaign_id") == "ccf_ab_nksid_av7k325_v1"
+        and pool.get("purpose") == "T6_COMPLETE_NETWORK_HLS_ROUTE_TRUTH_COLLECTION_DESIGN"
+        and pool.get("claimability_status") == "STRUCTURAL_POOL_FROZEN_TRUTH_NOT_COLLECTED"
+        and int(pool.get("selected_candidate_count") or 0) == 100
+        and int(pool.get("formal_hls_route_truth_increment", -1)) == 0
+    ):
+        raise ValueError("input is not the frozen 100-candidate T6 structural pool")
+    candidates = list(pool.get("candidates") or [])
+    if len(candidates) != 100 or len({str(row.get("encoding_sha256")) for row in candidates}) != 100:
+        raise ValueError("input pool is not 100 unique candidates")
+    pilots = choose_pilots(candidates)
+    if len(pilots) != 5 or len({row["encoding_sha256"] for row in pilots}) != 5:
+        raise ValueError("pilot selection is not five unique candidates")
+    for row in pilots:
+        candidate_path = Path(str(row["source_candidate_path"]))
+        if not candidate_path.is_file() or sha256_file(candidate_path) != row["source_candidate_sha256"]:
+            raise ValueError(f"source candidate binding mismatch: {row['pilot_id']}")
+        if canonical_sha256(row["encoding"]) != row["encoding_sha256"]:
+            raise ValueError(f"encoding binding mismatch: {row['pilot_id']}")
+
+    source_freeze = dict(pool.get("source_freeze") or {})
+    source_freeze_path = Path(str(source_freeze.get("path") or ""))
+    archive_path = Path(str(source_freeze.get("archive_path") or ""))
+    if not source_freeze_path.is_file() or sha256_file(source_freeze_path) != source_freeze.get("manifest_sha256"):
+        raise ValueError("source-freeze manifest binding mismatch")
+    if not archive_path.is_file() or sha256_file(archive_path) != source_freeze.get("archive_sha256"):
+        raise ValueError("source-freeze archive binding mismatch")
+
+    manifest = {
+        "schema_version": 1,
+        "generated": datetime.now(timezone.utc).isoformat(),
+        "campaign_id": "ccf_ab_nksid_av7k325_v1",
+        "purpose": PURPOSE,
+        "claimability_status": STATUS,
+        "generator": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__).resolve())},
+        "structural_pool": {"path": str(pool_path), "sha256": sha256_file(pool_path)},
+        "selection_policy": {
+            "family_order": list(FAMILY_ORDER),
+            "per_family": 1,
+            "eligibility": "source_analytic_feasible == true within the frozen structural pool",
+            "ordering": "minimum (block_count, frozen selection_key)",
+            "purpose_boundary": "generator and semantic-equivalence coverage pilot only; not HLS/route performance sampling",
+        },
+        "required_stage_contract": [
+            "source-linked complete-network export",
+            "framework-versus-export semantic equivalence",
+            "Vitis HLS csynth with bound project/solution/report hashes",
+            "Vivado route with bound reports and explicit failure retention",
+        ],
+        "source_freeze": source_freeze,
+        "pilot_count": 5,
+        "pilots": pilots,
+        "remaining_candidates_after_pilot": 95,
+        "queue_release_condition": "all five pilots pass export and semantic equivalence; csynth/route failures are retained rather than replaced",
+        "formal_hls_route_truth_increment": 0,
+        "board_required_for_current_stage": False,
+        "board_entry_stage": "bitstream programming and COM5 dynamic validation after route-feasible candidate selection",
+        "boundary": "This manifest freezes inputs only. It contains no HLS, route, board-latency or power measurement.",
+    }
+    atomic_write(output, json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    print(json.dumps({
+        "status": "PASS",
+        "output": str(output),
+        "sha256": sha256_file(output),
+        "pilots": [row["pilot_id"] for row in pilots],
+        "formal_hls_route_truth_increment": 0,
+    }))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

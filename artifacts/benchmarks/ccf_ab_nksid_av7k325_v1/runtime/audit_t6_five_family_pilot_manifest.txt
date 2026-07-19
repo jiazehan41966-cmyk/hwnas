@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""Independently audit the frozen five-family T6 export-pilot manifest."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+FAMILY_ORDER = (
+    "dw_pw_dominant",
+    "mbconv_dominant",
+    "fused_mbconv_dominant",
+    "skip_heavy",
+    "mixed_balanced",
+)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def expected_pilots(candidates: list[dict[str, object]]) -> list[dict[str, object]]:
+    selected = []
+    for order, family in enumerate(FAMILY_ORDER):
+        eligible = [
+            row for row in candidates
+            if row.get("architecture_family") == family and row.get("source_analytic_feasible") is True
+        ]
+        if not eligible:
+            raise ValueError(f"no eligible row for {family}")
+        source = min(
+            eligible,
+            key=lambda row: (int(row.get("block_count") or 10**9), str(row.get("selection_key") or "")),
+        )
+        selected.append({
+            "pilot_order": order,
+            "pilot_id": f"t6_family_pilot_{order:02d}_{family}",
+            "pool_sample_id": source["sample_id"],
+            "architecture_family": family,
+            "grouped_cv_fold": source["grouped_cv_fold"],
+            "source_candidate_id": source["source_candidate_id"],
+            "source_candidate_path": source["source_candidate_path"],
+            "source_candidate_sha256": source["source_candidate_sha256"],
+            "source_row_index": source["source_row_index"],
+            "source_row_sha256": source["source_row_sha256"],
+            "encoding": source["encoding"],
+            "encoding_sha256": source["encoding_sha256"],
+            "operator_counts": source["operator_counts"],
+            "block_count": source["block_count"],
+            "source_analytic_feasible": source["source_analytic_feasible"],
+            "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+            "selection_key": source["selection_key"],
+            "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+            "export_status": "NOT_STARTED",
+            "semantic_equivalence_status": "PENDING",
+            "csynth_status": "NOT_STARTED",
+            "route_status": "NOT_STARTED",
+            "formal_truth_increment": 0,
+        })
+    return selected
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    manifest_path = Path(args.manifest).resolve()
+    output = Path(args.output).resolve()
+    payload = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    errors: list[str] = []
+    if not (
+        payload.get("schema_version") == 1
+        and payload.get("campaign_id") == "ccf_ab_nksid_av7k325_v1"
+        and payload.get("purpose") == "T6_FIVE_FAMILY_COMPLETE_NETWORK_EXPORT_PILOT"
+        and payload.get("claimability_status") == "PILOT_INPUT_FROZEN_TRUTH_NOT_COLLECTED"
+        and int(payload.get("pilot_count") or 0) == 5
+        and int(payload.get("remaining_candidates_after_pilot") or -1) == 95
+        and int(payload.get("formal_hls_route_truth_increment", -1)) == 0
+        and payload.get("board_required_for_current_stage") is False
+    ):
+        errors.append("manifest identity/status/count boundary mismatch")
+    generator = dict(payload.get("generator") or {})
+    generator_path = Path(str(generator.get("path") or ""))
+    if not generator_path.is_file() or sha256_file(generator_path) != generator.get("sha256"):
+        errors.append("generator binding mismatch")
+    pool_binding = dict(payload.get("structural_pool") or {})
+    pool_path = Path(str(pool_binding.get("path") or ""))
+    pool: dict[str, object] = {}
+    if not pool_path.is_file() or sha256_file(pool_path) != pool_binding.get("sha256"):
+        errors.append("structural-pool binding mismatch")
+    else:
+        pool = json.loads(pool_path.read_text(encoding="utf-8-sig"))
+    if not (
+        pool.get("claimability_status") == "STRUCTURAL_POOL_FROZEN_TRUTH_NOT_COLLECTED"
+        and int(pool.get("selected_candidate_count") or 0) == 100
+        and int(pool.get("formal_hls_route_truth_increment", -1)) == 0
+    ):
+        errors.append("structural-pool identity/status mismatch")
+    candidates = list(pool.get("candidates") or [])
+    try:
+        expected = expected_pilots(candidates)
+    except Exception as exc:
+        errors.append(f"cannot reconstruct pilot selection: {exc}")
+        expected = []
+    observed = list(payload.get("pilots") or [])
+    if observed != expected:
+        errors.append("pilot set/order differs from independent reconstruction")
+    family_counts = Counter(str(row.get("architecture_family")) for row in observed)
+    if family_counts != Counter({family: 1 for family in FAMILY_ORDER}):
+        errors.append("pilot family coverage mismatch")
+    if len(observed) != 5 or len({str(row.get("encoding_sha256")) for row in observed}) != 5:
+        errors.append("pilots are not five unique encodings")
+    for row in observed:
+        candidate_path = Path(str(row.get("source_candidate_path") or ""))
+        if not candidate_path.is_file() or sha256_file(candidate_path) != row.get("source_candidate_sha256"):
+            errors.append(f"source candidate binding mismatch: {row.get('pilot_id')}")
+        if canonical_sha256(row.get("encoding")) != row.get("encoding_sha256"):
+            errors.append(f"encoding binding mismatch: {row.get('pilot_id')}")
+        if not (
+            row.get("network_scope") == "COMPLETE_NETWORK_PENDING_EXPORT"
+            and row.get("export_status") == "NOT_STARTED"
+            and row.get("semantic_equivalence_status") == "PENDING"
+            and row.get("csynth_status") == "NOT_STARTED"
+            and row.get("route_status") == "NOT_STARTED"
+            and int(row.get("formal_truth_increment", -1)) == 0
+        ):
+            errors.append(f"pre-truth stage boundary mismatch: {row.get('pilot_id')}")
+    freeze = dict(payload.get("source_freeze") or {})
+    pool_freeze = dict(pool.get("source_freeze") or {})
+    if freeze != pool_freeze:
+        errors.append("source-freeze binding differs from structural pool")
+    freeze_path = Path(str(freeze.get("path") or ""))
+    archive_path = Path(str(freeze.get("archive_path") or ""))
+    if not freeze_path.is_file() or sha256_file(freeze_path) != freeze.get("manifest_sha256"):
+        errors.append("source-freeze manifest binding mismatch")
+    if not archive_path.is_file() or sha256_file(archive_path) != freeze.get("archive_sha256"):
+        errors.append("source-freeze archive binding mismatch")
+
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now(timezone.utc).isoformat(),
+        "status": "PASS" if not errors else "FAIL",
+        "manifest": str(manifest_path),
+        "manifest_sha256": sha256_file(manifest_path),
+        "structural_pool_sha256": pool_binding.get("sha256"),
+        "pilot_count": len(observed),
+        "family_counts": dict(sorted(family_counts.items())),
+        "formal_hls_route_truth_increment": 0,
+        "board_required_for_current_stage": False,
+        "errors": errors,
+        "boundary": "PASS freezes five export-pilot inputs only; T6 truth remains 0/100 and board/power evidence remains absent.",
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps({"status": result["status"], "pilot_count": len(observed), "errors": errors[:10]}))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

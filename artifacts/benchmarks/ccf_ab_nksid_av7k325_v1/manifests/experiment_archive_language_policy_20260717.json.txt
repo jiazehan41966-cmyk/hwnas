@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "ACTIVE",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "effective_date": "2026-07-17",
+  "language": "zh-CN",
+  "human_readable_archive_rule": "全部人类可读实验档案使用简体中文。",
+  "allowed_standard_identifiers": [
+    "机器可读字段名",
+    "状态枚举",
+    "方法名与指标名",
+    "命令、路径和文件名",
+    "SHA256",
+    "软件包名与硬件标准术语"
+  ],
+  "fail_closed_conditions": [
+    "人类可读档案使用英文正文",
+    "中文出现乱码",
+    "图表 meta 缺少 language=zh-CN",
+    "中文标题、caption、支持结论或限制缺失",
+    "中英文内容发生语义冲突"
+  ],
+  "scientific_boundary": "语言变更不改变数据、划分、随机种子、指标、统计方法、source freeze、Gate 状态或可声明范围。",
+  "current_diagnostic_bundle": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1",
+    "manifest_sha256": "20a7ab2150135785c1a4d9fcb9e1e0f027de70735c2d45e14148d5e3a58a8ca3",
+    "audit_sha256": "8c9d7e4be463079f92846c8a825fa4e8a3f7f223be4ede5ce42b2e49f125aa01",
+    "formal_t2_f6_increment": 0,
+    "decision_state": "PAUSED_PENDING_USER_DECISION"
+  }
+}

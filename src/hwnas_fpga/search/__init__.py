@@ -12,13 +12,16 @@ from .pareto import (
     ParetoFrontSelector,
     build_pareto_objectives,
     build_pareto_ranked_rows,
+    build_pareto_representative_roles,
     build_pareto_selection_summary,
+    compute_crowding_distances,
     compute_hypervolume,
     compute_pareto_front,
     compute_pareto_front_numpy,
     compute_pareto_ranks,
     pareto_encoding_signature,
     plot_pareto_front,
+    resolve_pareto_objectives,
     write_pareto_selection_artifacts,
 )
 from .rl_searcher import (
@@ -29,6 +32,12 @@ from .rl_searcher import (
     RewardFunction,
 )
 from .proxyless_searcher import ProxylessSearcher
+from .aging_evolution_searcher import (
+    AgingEvolutionSearcher,
+    architecture_signature,
+    crowding_distances,
+)
+from .efficiency import SearchEfficiencyMonitor, merge_search_efficiency
 from .supernet import (
     MobileAnchorSupernet,
     evaluate_candidate as evaluate_supernet_candidate,
@@ -48,13 +57,16 @@ __all__ = [
     "ParetoFrontSelector",
     "build_pareto_objectives",
     "build_pareto_ranked_rows",
+    "build_pareto_representative_roles",
     "build_pareto_selection_summary",
+    "compute_crowding_distances",
     "compute_hypervolume",
     "compute_pareto_front",
     "compute_pareto_front_numpy",
     "compute_pareto_ranks",
     "pareto_encoding_signature",
     "plot_pareto_front",
+    "resolve_pareto_objectives",
     "write_pareto_selection_artifacts",
     "ActionSpace",
     "ArchitectureAction",
@@ -62,6 +74,11 @@ __all__ = [
     "RLSearcher",
     "RewardFunction",
     "ProxylessSearcher",
+    "AgingEvolutionSearcher",
+    "architecture_signature",
+    "crowding_distances",
+    "SearchEfficiencyMonitor",
+    "merge_search_efficiency",
     "MobileAnchorSupernet",
     "evaluate_supernet_candidate",
     "train_supernet",

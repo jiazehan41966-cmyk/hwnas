@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T04:16:40.976696+00:00",
+  "status": "PASS",
+  "manifest": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_five_family_pilot_manifest_v1.json.txt",
+  "manifest_sha256": "ae9aad20b0c10f5958a530f2860272d5455543970de19ba91e261b08efa7c17c",
+  "structural_pool_sha256": "046e1ecba4e73306beb46e381070b5c251ef9d59b08b8045c635b1a905d48f65",
+  "pilot_count": 5,
+  "family_counts": {
+    "dw_pw_dominant": 1,
+    "fused_mbconv_dominant": 1,
+    "mbconv_dominant": 1,
+    "mixed_balanced": 1,
+    "skip_heavy": 1
+  },
+  "formal_hls_route_truth_increment": 0,
+  "board_required_for_current_stage": false,
+  "errors": [],
+  "boundary": "PASS freezes five export-pilot inputs only; T6 truth remains 0/100 and board/power evidence remains absent."
+}

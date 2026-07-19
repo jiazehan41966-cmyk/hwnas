@@ -311,7 +311,7 @@ DECLARE_CONTROL_INTERFACE()
 #pragma HLS ARRAY_PARTITION variable=project_bias dim=1 cyclic factor=OUT_TILE
 #pragma HLS STREAM variable=expanded_stream depth=4
 #pragma HLS STREAM variable=depthwise_stream depth=4
-#pragma HLS STREAM variable=residual_stream depth=4
+#pragma HLS STREAM variable=residual_stream depth=__RESIDUAL_STREAM_DEPTH__
 
     const int expand_weight_base = 0;
     const int depthwise_weight_base = EXPAND_WEIGHT_SIZE;

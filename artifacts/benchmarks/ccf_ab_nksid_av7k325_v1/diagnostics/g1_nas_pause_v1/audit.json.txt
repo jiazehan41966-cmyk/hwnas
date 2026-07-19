@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "PASS_INDEPENDENT_AUDIT_INTERIM_DIAGNOSTIC_ONLY",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "bundle_manifest": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\manifest.json.txt",
+    "sha256": "20a7ab2150135785c1a4d9fcb9e1e0f027de70735c2d45e14148d5e3a58a8ca3"
+  },
+  "auditor": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\audit_g1_nas_pause_diagnostic_bundle.txt",
+    "sha256": "ebd116b53442790f21a1486849e2df7419f888f51ab938174eba9113261d3713"
+  },
+  "checks": [
+    "manifest_identity_and_nonformal_boundary",
+    "generator_pause_and_historical_sources_bound",
+    "all_payload_file_hashes_and_bytes",
+    "paired_fold_seed_metrics_recomputed_14_units",
+    "per_class_metrics_and_support_recomputed",
+    "checkpoint_hashes_and_parameter_counts_recomputed",
+    "paired_bootstrap_10000_seed_20260717_recomputed",
+    "search_space_candidate_and_route_provenance_recomputed",
+    "png_300dpi_vector_exports_meta_and_utf8_titles",
+    "report_decision_boundary_and_utf8"
+  ],
+  "paired_units": 14,
+  "missing_unit": {
+    "fold": 4,
+    "seed": 44
+  },
+  "formal_t2_f6_increment": 0,
+  "decision_state": "PAUSED_PENDING_USER_DECISION",
+  "language": "zh-CN",
+  "boundary": "本审计仅验证中期决策支持档案，不授权训练、不提升正式 T2/F6 证据，也不授权继续下游实验。"
+}

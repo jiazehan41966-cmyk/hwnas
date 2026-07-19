@@ -1,0 +1,432 @@
+#!/usr/bin/env python3
+"""为暂停在 14/15 的 NAS 运行构建非正式中期诊断档案。"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import random
+import statistics
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import yaml
+
+
+CLASSES = [
+    "big_propeller", "cylinder", "fishing_net", "floats",
+    "iron_pipeline", "small_propeller", "soft_pipeline", "tire",
+]
+METHODS = (
+    ("nas", "暂停的 NAS 候选", "#D55E00"),
+    ("scratch", "从零训练 MobileNetV2", "#009E73"),
+    ("pretrained", "ImageNet 预训练 MobileNetV2", "#0072B2"),
+)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def encoding_signature(encoding: dict[str, object]) -> str:
+    payload = json.dumps(dict(encoding), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="")
+
+
+def write_csv(path: Path, rows: list[dict[str, object]], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def load_records(run_dir: Path) -> dict[tuple[int, int], dict[str, object]]:
+    result = {}
+    for path in sorted(run_dir.glob("run_fold*_seed*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        key = (int(payload["fold"]), int(payload["seed"]))
+        payload["_record_path"] = str(path.resolve())
+        payload["_record_sha256"] = sha256_file(path)
+        result[key] = payload
+    return result
+
+
+def checkpoint_parameters(path: Path) -> tuple[int, int]:
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    state = payload["model_state_dict"]
+    total = sum(int(value.numel()) for value in state.values())
+    non_trainable = ("running_mean", "running_var", "num_batches_tracked")
+    trainable_approx = sum(
+        int(value.numel()) for name, value in state.items()
+        if not any(token in name for token in non_trainable)
+    )
+    return total, trainable_approx
+
+
+def bootstrap_mean_ci(values: list[float], seed: int = 20260717) -> tuple[float, float]:
+    generator = random.Random(seed)
+    means = [
+        statistics.mean(values[generator.randrange(len(values))] for _ in values)
+        for _ in range(10_000)
+    ]
+    means.sort()
+    return means[250], means[9749]
+
+
+def figure_meta(
+    *, title_zh: str, caption: str, conclusion: str,
+    limitation: str, script: Path, inputs: list[Path], source_csv: Path,
+) -> dict[str, object]:
+    return {
+        "language": "zh-CN",
+        "title_zh": title_zh,
+        "caption": caption,
+        "supports": conclusion,
+        "limitations": limitation,
+        "claimability_status": "INTERIM_DIAGNOSTIC_ONLY_NOT_FORMAL_T2_F6",
+        "generation_script": {"path": str(script.resolve()), "sha256": sha256_file(script)},
+        "source_csv": {"path": str(source_csv.resolve()), "sha256": sha256_file(source_csv)},
+        "inputs": [{"path": str(path.resolve()), "sha256": sha256_file(path)} for path in inputs],
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--nas-run", required=True)
+    parser.add_argument("--scratch-run", required=True)
+    parser.add_argument("--pretrained-run", required=True)
+    parser.add_argument("--pause-manifest", required=True)
+    parser.add_argument("--search-config", required=True)
+    parser.add_argument("--search-summary", required=True)
+    parser.add_argument("--route-manifest", required=True)
+    parser.add_argument("--output-dir", required=True)
+    args = parser.parse_args()
+    run_dirs = {
+        "nas": Path(args.nas_run).resolve(),
+        "scratch": Path(args.scratch_run).resolve(),
+        "pretrained": Path(args.pretrained_run).resolve(),
+    }
+    pause_manifest = Path(args.pause_manifest).resolve()
+    search_config = Path(args.search_config).resolve()
+    search_summary = Path(args.search_summary).resolve()
+    route_manifest = Path(args.route_manifest).resolve()
+    output = Path(args.output_dir).resolve()
+    figures = output / "figures"
+    tables = output / "tables"
+    data_dir = output / "data"
+    for path in (figures, tables, data_dir):
+        path.mkdir(parents=True, exist_ok=True)
+
+    search_cfg = yaml.safe_load(search_config.read_text(encoding="utf-8"))
+    search_result = json.loads(search_summary.read_text(encoding="utf-8"))
+    route_result = json.loads(route_manifest.read_text(encoding="utf-8"))
+    search_best = search_result["best_candidate"]
+    route_candidate = route_result["candidate"]
+    if search_cfg["dataset"]["fold"] != 0 or search_cfg["search"]["eval_epochs"] != 10:
+        raise ValueError("diagnostic expects the frozen fold-0, 10-epoch search source")
+    if search_cfg["search"]["method"] != "rl" or search_cfg["search"]["num_candidates"] != 300:
+        raise ValueError("diagnostic expects the frozen 300-candidate RL search source")
+    if search_best["arch_id"] != "rl_arch_135" or route_candidate["arch_id"] != "rl_arch_135":
+        raise ValueError("search and route sources do not bind to rl_arch_135")
+    search_encoding_signature = encoding_signature(search_best["encoding"])
+    if search_encoding_signature != route_candidate["encoding_signature"]:
+        raise ValueError("search and route encoding signatures differ")
+    if route_result["selection_stage"] != "claimable_board_best":
+        raise ValueError("route manifest is not the claimable_board_best selection")
+    if route_result["route_gate"]["gate_status"] != "PASS":
+        raise ValueError("route manifest is not route-clean")
+
+    records = {name: load_records(path) for name, path in run_dirs.items()}
+    if len(records["nas"]) != 14 or len(records["scratch"]) != 15 or len(records["pretrained"]) != 15:
+        raise ValueError("diagnostic expects NAS 14/15 and both reference directories 15/15")
+    paired_keys = sorted(records["nas"])
+    if any(key not in records["scratch"] or key not in records["pretrained"] for key in paired_keys):
+        raise ValueError("paired fold-seed coverage mismatch")
+
+    paired_rows = []
+    for fold, seed in paired_keys:
+        row = {"fold": fold, "seed": seed, "unit": f"f{fold}s{seed}"}
+        for method, _, _ in METHODS:
+            record = records[method][(fold, seed)]
+            row[f"{method}_macro_f1"] = float(record["outer_val"]["macro_f1"])
+            row[f"{method}_top1"] = float(record["outer_val"]["top1"])
+            row[f"{method}_weighted_f1"] = float(record["outer_val"]["weighted_f1"])
+            row[f"{method}_record_sha256"] = record["_record_sha256"]
+        row["nas_minus_scratch_macro_f1"] = row["nas_macro_f1"] - row["scratch_macro_f1"]
+        row["nas_minus_pretrained_macro_f1"] = row["nas_macro_f1"] - row["pretrained_macro_f1"]
+        paired_rows.append(row)
+    paired_csv = data_dir / "paired_fold_seed_metrics.csv"
+    write_csv(paired_csv, paired_rows, list(paired_rows[0]))
+    paired_figure_csv = figures / "diagnostic_paired_macro_f1_source.csv"
+    write_csv(paired_figure_csv, paired_rows, list(paired_rows[0]))
+
+    class_rows = []
+    for class_index, class_name in enumerate(CLASSES):
+        row: dict[str, object] = {"class_index": class_index, "class_name": class_name}
+        for method, _, _ in METHODS:
+            values = [float(records[method][key]["outer_per_class_f1"][class_index]) for key in paired_keys]
+            row[f"{method}_mean_f1"] = statistics.mean(values)
+            row[f"{method}_std_f1"] = statistics.stdev(values)
+        row["nas_minus_scratch_mean_f1"] = float(row["nas_mean_f1"]) - float(row["scratch_mean_f1"])
+        row["nas_minus_pretrained_mean_f1"] = float(row["nas_mean_f1"]) - float(row["pretrained_mean_f1"])
+        row["outer_support_total_14_units"] = sum(
+            sum(records["nas"][key]["outer_confusion_matrix"][class_index]) for key in paired_keys
+        )
+        class_rows.append(row)
+    class_csv = data_dir / "per_class_f1.csv"
+    write_csv(class_csv, class_rows, list(class_rows[0]))
+    class_figure_csv = figures / "diagnostic_per_class_f1_source.csv"
+    write_csv(class_figure_csv, class_rows, list(class_rows[0]))
+
+    parameter_rows = []
+    for method, label, _ in METHODS:
+        checkpoint = run_dirs[method] / "best_fold0_seed42.pt"
+        total, trainable = checkpoint_parameters(checkpoint)
+        parameter_rows.append({
+            "method": method, "label": label, "checkpoint": str(checkpoint),
+            "checkpoint_sha256": sha256_file(checkpoint), "state_tensor_elements": total,
+            "trainable_parameter_approx": trainable,
+        })
+    parameter_csv = data_dir / "model_parameter_counts.csv"
+    write_csv(parameter_csv, parameter_rows, list(parameter_rows[0]))
+
+    provenance = {
+        "search": {
+            "config": {"path": str(search_config), "sha256": sha256_file(search_config)},
+            "summary": {"path": str(search_summary), "sha256": sha256_file(search_summary)},
+            "method": search_cfg["search"]["method"],
+            "num_candidates": search_cfg["search"]["num_candidates"],
+            "fold": search_cfg["dataset"]["fold"],
+            "eval_epochs": search_cfg["search"]["eval_epochs"],
+            "stage_depth_choices": search_cfg["search_space"]["stage_depth_choices"],
+            "best_arch_id": search_best["arch_id"],
+            "encoding_signature": search_encoding_signature,
+            "best_macro_f1": search_best["metrics"]["macro_f1"],
+        },
+        "route": {
+            "manifest": {"path": str(route_manifest), "sha256": sha256_file(route_manifest)},
+            "selection_stage": route_result["selection_stage"],
+            "arch_id": route_candidate["arch_id"],
+            "encoding_signature": route_candidate["encoding_signature"],
+            "gate_status": route_result["route_gate"]["gate_status"],
+            "wns_ns": route_result["route_gate"]["wns_ns"],
+            "actual_resources": route_result["route_gate"]["utilization"],
+            "board_e2e_latency_ms": route_result["final_validation"]["real_board_e2e"]["e2e_latency_ms"],
+            "board_latency_claimable": route_result["final_validation"]["claimable_real_e2e_latency"],
+        },
+        "boundary": "历史搜索与 route 证据仅用于解释候选选择，不能将暂停的分类运行提升为正式 T2/F6 证据。",
+    }
+    provenance_path = data_dir / "diagnostic_provenance.json.txt"
+    write_text(provenance_path, json.dumps(provenance, indent=2, ensure_ascii=False) + "\n")
+
+    diffs_pre = [float(row["nas_minus_pretrained_macro_f1"]) for row in paired_rows]
+    diffs_scratch = [float(row["nas_minus_scratch_macro_f1"]) for row in paired_rows]
+    ci_pre = bootstrap_mean_ci(diffs_pre)
+    ci_scratch = bootstrap_mean_ci(diffs_scratch)
+    summary_rows = []
+    for method, label, _ in METHODS:
+        values = [float(row[f"{method}_macro_f1"]) for row in paired_rows]
+        summary_rows.append({
+            "comparison": label, "paired_units": len(values), "mean_macro_f1": statistics.mean(values),
+            "std_macro_f1": statistics.stdev(values), "mean_difference_nas_minus_reference": "",
+            "paired_bootstrap_95ci_low": "", "paired_bootstrap_95ci_high": "", "nas_wins": "",
+        })
+    summary_rows.extend([
+        {
+            "comparison": "NAS 减去从零训练 MobileNetV2", "paired_units": 14, "mean_macro_f1": "",
+            "std_macro_f1": "", "mean_difference_nas_minus_reference": statistics.mean(diffs_scratch),
+            "paired_bootstrap_95ci_low": ci_scratch[0], "paired_bootstrap_95ci_high": ci_scratch[1],
+            "nas_wins": sum(value > 0 for value in diffs_scratch),
+        },
+        {
+            "comparison": "NAS 减去 ImageNet 预训练 MobileNetV2", "paired_units": 14, "mean_macro_f1": "",
+            "std_macro_f1": "", "mean_difference_nas_minus_reference": statistics.mean(diffs_pre),
+            "paired_bootstrap_95ci_low": ci_pre[0], "paired_bootstrap_95ci_high": ci_pre[1],
+            "nas_wins": sum(value > 0 for value in diffs_pre),
+        },
+    ])
+    summary_csv = tables / "interim_summary.csv"
+    write_csv(summary_csv, summary_rows, list(summary_rows[0]))
+    md_lines = [
+        "| 对比项 | 配对单元数 | macro-F1 均值 | 标准差 | NAS 减去参照方法 | 配对 bootstrap 95% CI | NAS 胜出次数 |",
+        "|---|---:|---:|---:|---:|---|---:|",
+    ]
+    for row in summary_rows:
+        def fmt(value: object) -> str:
+            return "" if value == "" else (f"{value:.6f}" if isinstance(value, float) else str(value))
+        ci = "" if row["paired_bootstrap_95ci_low"] == "" else f"[{fmt(row['paired_bootstrap_95ci_low'])}, {fmt(row['paired_bootstrap_95ci_high'])}]"
+        md_lines.append(
+            f"| {row['comparison']} | {row['paired_units']} | {fmt(row['mean_macro_f1'])} | "
+            f"{fmt(row['std_macro_f1'])} | {fmt(row['mean_difference_nas_minus_reference'])} | {ci} | {fmt(row['nas_wins'])} |"
+        )
+    write_text(tables / "interim_summary.md", "\n".join(md_lines) + "\n")
+
+    plt.rcParams.update({
+        "font.size": 9,
+        "axes.titlesize": 11,
+        "axes.labelsize": 10,
+        "font.sans-serif": ["Microsoft YaHei", "SimHei", "DejaVu Sans"],
+        "axes.unicode_minus": False,
+    })
+    x = np.arange(len(paired_rows))
+    fig, ax = plt.subplots(figsize=(9.0, 4.8), constrained_layout=True)
+    for method, label, color in METHODS:
+        ax.plot(x, [row[f"{method}_macro_f1"] for row in paired_rows], marker="o", ms=4, lw=1.6, label=label, color=color)
+    ax.set_xticks(x, [row["unit"] for row in paired_rows], rotation=45, ha="right")
+    ax.set_ylim(0.60, 1.01)
+    ax.set_ylabel("macro-F1")
+    ax.set_xlabel("配对的 fold-seed 单元")
+    ax.set_title("中期配对 macro-F1（NAS 14/15，仅诊断）")
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend(frameon=False, ncol=3, loc="lower center")
+    fig1_base = figures / "diagnostic_paired_macro_f1"
+    fig.savefig(fig1_base.with_suffix(".png"), dpi=300)
+    fig.savefig(fig1_base.with_suffix(".pdf"))
+    fig.savefig(fig1_base.with_suffix(".svg"))
+    plt.close(fig)
+    write_text(fig1_base.with_name(fig1_base.name + "_meta.json.txt"), json.dumps(figure_meta(
+        title_zh="中期配对 macro-F1（NAS 14/15，仅诊断）",
+        caption="在相同冻结 NKSID 划分与归一化协议下的 14 个共同 fold-seed 单元；折线表示各单元观测值，不表示置信区间。",
+        conclusion="暂停的 NAS 候选在全部已观测配对单元上均低于两种 MobileNetV2 参照方法。",
+        limitation="NAS 尚未完成（14/15）；从零训练基线的来源仅可用于诊断；本图不是正式 T2/F6 证据，也不进行 FPGA 资源比较。",
+        script=Path(__file__), inputs=[pause_manifest, *[Path(records[m][k]["_record_path"]) for m in records for k in paired_keys]], source_csv=paired_figure_csv,
+    ), indent=2, ensure_ascii=False) + "\n")
+
+    positions = np.arange(len(CLASSES)); width = 0.25
+    fig, ax = plt.subplots(figsize=(10.0, 5.1), constrained_layout=True)
+    for offset, (method, label, color) in zip((-width, 0.0, width), METHODS):
+        ax.bar(positions + offset, [row[f"{method}_mean_f1"] for row in class_rows], width, label=label, color=color)
+    labels = [f"{row['class_name']}\n(n={row['outer_support_total_14_units']})" for row in class_rows]
+    ax.set_xticks(positions, labels, rotation=30, ha="right")
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel("14 个单元的类别 F1 均值")
+    ax.set_title("长尾类别贡献了最大的 NAS 容量损失")
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend(frameon=False, ncol=3, loc="upper center")
+    fig2_base = figures / "diagnostic_per_class_f1"
+    fig.savefig(fig2_base.with_suffix(".png"), dpi=300)
+    fig.savefig(fig2_base.with_suffix(".pdf"))
+    fig.savefig(fig2_base.with_suffix(".svg"))
+    plt.close(fig)
+    write_text(fig2_base.with_name(fig2_base.name + "_meta.json.txt"), json.dumps(figure_meta(
+        title_zh="长尾类别贡献了最大的 NAS 容量损失",
+        caption="柱高为 14 个共同单元上的类别 F1 均值；括号中的 n 为这些单元在 outer-test 中的累计 support。",
+        conclusion="最大差距出现在 fishing_net 和 small_propeller，与有限容量优先损害少数类、进而降低 macro-F1 的解释一致。",
+        limitation="每个 fold 的同一样本会在三个 seed 中重复；n 仅为描述性 support，不能作为独立推断样本量。",
+        script=Path(__file__), inputs=[pause_manifest, *[Path(records[m][k]["_record_path"]) for m in records for k in paired_keys]], source_csv=class_figure_csv,
+    ), indent=2, ensure_ascii=False) + "\n")
+
+    nas_trainable = next(row["trainable_parameter_approx"] for row in parameter_rows if row["method"] == "nas")
+    scratch_trainable = next(row["trainable_parameter_approx"] for row in parameter_rows if row["method"] == "scratch")
+    ratio = float(scratch_trainable) / float(nas_trainable)
+    search_macro_f1 = float(search_best["metrics"]["macro_f1"])
+    search_fold = int(search_cfg["dataset"]["fold"])
+    search_epochs = int(search_cfg["search"]["eval_epochs"])
+    route_wns = float(route_result["route_gate"]["wns_ns"])
+    route_lut = route_result["route_gate"]["utilization"]["lut"]
+    route_dsp = route_result["route_gate"]["utilization"]["dsp"]
+    route_bram = route_result["route_gate"]["utilization"]["bram"]
+    route_latency = float(route_result["final_validation"]["real_board_e2e"]["e2e_latency_ms"])
+    report = f"""# G1 NAS 暂停诊断分析
+
+## 分析问题
+
+当前 NAS 的 macro-F1 下降，究竟来自训练或来源追踪故障，还是冻结候选与搜索设计所形成的可复现精度—容量权衡？
+
+## 证据最强的发现
+
+下降在 14 个共同 fold-seed 单元上均可复现。NAS 的 macro-F1 均值为 `{statistics.mean([row['nas_macro_f1'] for row in paired_rows]):.6f}`，从零训练 MobileNetV2 为 `{statistics.mean([row['scratch_macro_f1'] for row in paired_rows]):.6f}`，ImageNet 预训练 MobileNetV2 为 `{statistics.mean([row['pretrained_macro_f1'] for row in paired_rows]):.6f}`。NAS 相对两者分别低 `{abs(statistics.mean(diffs_scratch)):.6f}` 和 `{abs(statistics.mean(diffs_pre)):.6f}`，没有赢得任何一个配对单元。
+
+现有证据不像随机训练崩溃。所有已接纳运行均产生有限数值，预测与 checkpoint 已独立核验，并使用相同冻结归一化与数据划分协议。该候选的正式运行中期均值高于历史搜索阶段的 {search_epochs} epoch、fold-{search_fold} 代理值（`{search_macro_f1:.6f}`），因此不存在“搜索代理承诺 MobileNet 水平、正式重训后突然失效”的证据。
+
+## 机制诊断
+
+当前最强解释是模型容量与搜索空间受限。NAS checkpoint 约含 `{nas_trainable:,}` 个可训练参数，而 MobileNetV2 约含 `{scratch_trainable:,}` 个，约为前者的 `{ratio:.1f}` 倍。源搜索空间固定为四个浅层 stage block，主要变化来自算子选择；所选 route-clean 候选也只有四个可学习 stage block。按类别结果看，最大差距集中在预先声明的小样本或长尾类别 `fishing_net` 与 `small_propeller`，它们会显著拉低 macro-F1。
+
+候选选择与已绑定的历史证据一致：搜索 summary 将 `rl_arch_135` 记录为 `best_candidate`，route manifest 又将相同 encoding 记录为 `claimable_board_best`。其 route 记录为 PASS，WNS 为 `{route_wns:.3f}` ns，LUT 为 `{route_lut}`，DSP 为 `{route_dsp}`，BRAM 为 `{route_bram}`，COM5 端到端 latency 为 `{route_latency:.5f}` ms。因此，它应被描述为“冻结的、route-feasible 的 Pareto 代表候选”，不能描述成预期在纯分类精度上击败 MobileNetV2 的模型。
+
+## 有效性风险
+
+源搜索仅使用 fold-{search_fold}、{search_epochs} 个评估 epoch 和历史选择路径，不满足 group-safe 要求；同时，搜索空间上限与搜索策略彼此混杂。因此，本次运行可以度量该冻结候选的精度—资源权衡，但不能证明 RL、HW-PR-NAS、Random 或 Aging 哪一种策略本身更优。策略优劣仍必须通过已规划的等预算搜索实验判断。
+
+## 决策含义
+
+当前没有档案证据表明存在足以废弃 14 个已完成单元的代码或权重加载故障。完成唯一剩余单元可以闭合一个有效的负结果或精度—资源结果，但不等于接受该候选具备精度竞争力。扩大搜索空间、加入蒸馏或预训练、或者更换候选，都属于新实验，必须建立新的协议和 source freeze。下游 SURE 与 scratch-v2 仍分别受用户决策门禁约束。
+"""
+    write_text(output / "analysis-report.md", report)
+    stats = f"""# 统计附录
+
+- 分析单元：配对的 outer fold-seed 单元。
+- 可用单元：NAS 为 15 个中的 14 个；两个参照方法均有 15 个，但本诊断仅使用 14 个共同单元。
+- 主要诊断指标：macro-F1。
+- NAS 减去从零训练 MobileNetV2：均值 `{statistics.mean(diffs_scratch):.9f}`，10,000 次配对 bootstrap 的 95% CI 为 `[{ci_scratch[0]:.9f}, {ci_scratch[1]:.9f}]`，NAS 胜出 `0/14`。
+- NAS 减去 ImageNet 预训练 MobileNetV2：均值 `{statistics.mean(diffs_pre):.9f}`，10,000 次配对 bootstrap 的 95% CI 为 `[{ci_pre[0]:.9f}, {ci_pre[1]:.9f}]`，NAS 胜出 `0/14`。
+- Bootstrap seed：`20260717`；重采样对象为 14 个配对单元。
+- NAS 尚未完成，且本诊断由运行中途的暂停事件触发，因此不发布正式 p-value 或多重比较结论。
+- 历史 scratch 运行的自动来源补丁曾被覆盖，故只能用于机制诊断；正式 T2/F6 仍需要 scratch-v2。
+- 类别图中的 support 会在不同 seed 间重复同一图像，仅作描述，不能视为相互独立的样本量。
+"""
+    write_text(output / "stats-appendix.md", stats)
+    catalog = """# 图片目录
+
+## diagnostic_paired_macro_f1
+
+- 用途：判断性能下降是孤立现象，还是在配对单元间一致出现。
+- 来源：`data/paired_fold_seed_metrics.csv`。
+- 读图重点：每个 NAS 点都低于两种 MobileNetV2 参照方法。
+- 决策作用：支持“精度—容量权衡”的诊断与受控暂停，不支持静默重试。
+- 限制：NAS 仅完成 14/15，本图不是正式图。
+
+## diagnostic_per_class_f1
+
+- 用途：按类别定位 macro-F1 的差距来源。
+- 来源：`data/per_class_f1.csv`。
+- 读图重点：fishing_net 与 small_propeller 的差距最大。
+- 决策作用：更支持容量不足或长尾敏感性，而不是统一的标签或预处理故障。
+- 限制：support 会在不同 seed 间重复，仅作描述。
+"""
+    write_text(output / "figure-catalog.md", catalog)
+
+    self_managed_names = {"manifest.json.txt", "audit.json.txt"}
+    files = sorted(
+        path for path in output.rglob("*")
+        if path.is_file() and path.name not in self_managed_names
+    )
+    manifest = {
+        "schema_version": 1,
+        "status": "PASS_INTERIM_DIAGNOSTIC_ONLY",
+        "campaign_id": "ccf_ab_nksid_av7k325_v1",
+        "nas_units": 14,
+        "formal_t2_f6_increment": 0,
+        "generation_script": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__))},
+        "pause_manifest": {"path": str(pause_manifest), "sha256": sha256_file(pause_manifest)},
+        "evidence_sources": {
+            "search_config": {"path": str(search_config), "sha256": sha256_file(search_config)},
+            "search_summary": {"path": str(search_summary), "sha256": sha256_file(search_summary)},
+            "route_manifest": {"path": str(route_manifest), "sha256": sha256_file(route_manifest)},
+        },
+        "files": [{"path": str(path), "sha256": sha256_file(path), "bytes": path.stat().st_size} for path in files],
+        "language": "zh-CN",
+        "boundary": "本档案仅用于支持用户决策；NAS 仍未完成，不提升任何正式表格或图片。",
+    }
+    write_text(output / "manifest.json.txt", json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    print(json.dumps({"status": manifest["status"], "output": str(output), "files": len(files) + 1, "formal_t2_f6_increment": 0}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

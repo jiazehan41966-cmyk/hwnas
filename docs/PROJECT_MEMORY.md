@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-07-12
+Last updated: 2026-07-19
 
 Purpose: this file is the persistent local memory index for the HW-NAS FPGA Sonar repository. New tasks in this workspace should read this file first when they need repository context, audit history, archive paths, or workflow boundaries.
 
@@ -34,6 +34,7 @@ Supporting result/archive policy documents:
 - `E:\1\hwnas\hwnas\docs\MEASUREMENT_FIRST_REBUILD.md`
 - `E:\1\hwnas\hwnas\docs\PROXY_RELIABILITY_AUDIT.md`
 - `E:\1\hwnas\hwnas\docs\PROXY_RELIABILITY_AUDIT_V2.md`
+- `E:\1\hwnas\hwnas\docs\benchmark_campaigns\ccf_ab_nksid_av7k325_v1.md`
 
 Concrete local archive outputs:
 
@@ -57,6 +58,7 @@ Compact evidence archives:
 - `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\README.md`
 - `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary.json`
 - `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary_v2.json`
+- `E:\1\hwnas\hwnas\artifacts\benchmarks\ccf_ab_nksid_av7k325_v1\`
 
 Current Phase0 v3 board-validation outputs:
 
@@ -102,6 +104,37 @@ Covered:
   fold-cluster paired comparison, strict INT8 v2 evidence fields, and the
   resumable G1/G5 queue scripts. These are implementation artifacts only;
   formal E1/E2 execution evidence is still absent.
+- CCF A/B paper-benchmark campaign scaffolding for HW-PR-NAS, SURE, HARP,
+  ESDA, and DMCL/Sonar-OLTR, including pinned-source/license audit cards,
+  the closed/open-set unified prediction schema, exact three-objective HV,
+  paired inference helpers, and fail-closed T1--T9/F1--F12 archive status.
+  SURE, DMCL, and supplementary PLUD now have non-claimable 1-fold x 1-seed
+  x 1-epoch method smokes. PLUD dynamically loads the author push-logit loss
+  and remains separate from the partially corresponding 2025 DMCL paper.
+  HW-PR-NAS has a 10-evaluator-record paper-spec ListMLE data-flow
+  smoke, but the pinned author repository is runtime-incomplete and the local
+  tabular MLP is not author code. HARP has an author HLS C/LLVM hierarchical
+  GEXF contract smoke; project input must be generated from candidate HLS
+  C/C++, never directly from NAS architecture JSON. ESDA has a class-C
+  author-artifact contract covering training, quantization, HLS/Vivado,
+  archived ZCU102 bitstreams, PYNQ runtime, and archived power arrays. Those
+  artifacts are not AV7K325 measurements; cross-board numerical ranking is
+  rejected and T7/T8 remain `PENDING`. Six paper-specific CUDA adapter
+  environments are now probe- and freeze-verified as
+  `READY_DEDICATED_ENVIRONMENT`; they use Python 3.13.3 and PyTorch
+  2.7.0+cu126 for the unified project protocol and are not represented as
+  byte-identical reconstructions of the authors' legacy environments. SURE,
+  DMCL, and PLUD dedicated-environment smokes bind their run manifests to the
+  environment card and lock SHA. Formal readiness is still `2/9 PASS`; only
+  T1 and the conceptual F1 workflow are currently `AVAILABLE`, and formal
+  numerical comparisons remain `PENDING`. Formal classification now also
+  fails closed unless every run binds and reverifies a source-freeze manifest,
+  its manifest SHA256, and the retained source-snapshot archive SHA256. The G1
+  launcher requires this manifest for non-dry execution. The 2026-07-18 ledger
+  now records G1 `PASS` at `45/45`: scratch evidence is under
+  `results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/`, while the
+  pretrained and legacy-selected NAS baselines are under
+  `results/protocol/g1_clean_20260711/`. G2/G4 and later claim gates remain open.
 
 Known gap:
 
@@ -122,6 +155,19 @@ Known gap:
   mismatch INT8/HLS parity bundle, or route-feasible E2 evidence is currently
   present. Keep `denoise` and `edge` `PAUSED`/`not_ready` until the frozen
   protocol, HLS-consumed spec hashes, and all comparison gates pass.
+- HW-PR-NAS official commit `296c6576...` is not an executable paper release:
+  README-listed `base_surrogate.py` and accuracy/latency/energy predictor files
+  are absent, `valid_loss()` is undefined, and `test.py` calls the search
+  function with an incompatible signature. Keep the author method blocked;
+  treat `results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/hwpr_paper_spec_10/`
+  as non-claimable contract evidence only.
+- HARP is a pragma-aware LLVM program-graph surrogate, not a network-graph
+  surrogate. The author AES graph contract passes, but no project candidate
+  has a source-linked LLVM 13 GEXF or HARP prediction yet; T6 stays `PENDING`.
+- ESDA is a workflow/evidence-chain reference only. Its pinned checkout has
+  author ZCU102 bitstreams and power arrays, but these do not establish project
+  route, COM5, or external-instrument power evidence. Project power remains
+  `NOT_MEASURED` and no ESDA-vs-AV7K325 numeric ranking is allowed.
 
 Current board-claimable Phase0 v3 result:
 
@@ -179,6 +225,9 @@ For a new repository task:
     v1 workload estimate without deleting the v1 archive.
 14. For external-sonar source provenance and task-boundary questions, read
     `docs/EXTERNAL_SONAR_DATASETS.md`.
+15. For the CCF A/B multi-direction benchmark campaign, read
+    `docs/benchmark_campaigns/ccf_ab_nksid_av7k325_v1.md` and
+    `artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/artifact_status.json`.
 
 Do not use memories, assumptions, datasets, metrics, or conclusions from other projects unless the user explicitly asks to connect them.
 

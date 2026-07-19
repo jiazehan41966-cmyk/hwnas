@@ -13,6 +13,7 @@ from hwnas_fpga.data import (
     NKSIDDataset,
     create_dummy_dataloaders,
     create_nksid_dataloaders,
+    create_protocol_dataloaders,
     download_nksid_dataset,
 )
 from hwnas_fpga.hardware import (
@@ -389,6 +390,8 @@ def create_data_pipeline(
     valid_size: Optional[float | int] = None,
     split_seed: int = 42,
     image_error_policy: str = "raise",
+    split_mode: str = "legacy_kfold",
+    inner_val_fraction: float = 0.15,
 ) -> tuple[Any, Any, Optional[torch.Tensor], int]:
     pin_memory = device.startswith("cuda")
 
@@ -396,6 +399,39 @@ def create_data_pipeline(
         if not data_dir:
             download_nksid_dataset()
             raise ValueError("NKSID dataset requires --data-dir pointing to the extracted dataset root")
+        if split_mode == "frozen_inner":
+            if image_error_policy != "raise":
+                raise ValueError(
+                    "frozen_inner protocol requires image_error_policy='raise' to preserve provenance"
+                )
+            bundle = create_protocol_dataloaders(
+                data_dir=data_dir,
+                fold=fold,
+                seed=split_seed,
+                batch_size=batch_size,
+                image_size=image_size,
+                inner_val_fraction=inner_val_fraction,
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                output_channels=input_channels,
+            )
+            counts = bundle["train_class_counts"].detach().to(dtype=torch.float32).clamp_min(1.0)
+            class_weights = counts.sum() / (len(counts) * counts)
+            class_weights = class_weights / class_weights.sum() * len(counts)
+            resolved_num_classes = num_classes or int(bundle["num_classes"])
+            if int(resolved_num_classes) != int(bundle["num_classes"]):
+                raise ValueError(
+                    "configured num_classes disagrees with the frozen NKSID protocol"
+                )
+            # Deliberately do not expose outer_val_loader to the search path.
+            return (
+                bundle["train_loader"],
+                bundle["inner_val_loader"],
+                class_weights,
+                int(resolved_num_classes),
+            )
+        if split_mode not in {"legacy_kfold", "legacy_random_valid"}:
+            raise ValueError(f"Unsupported NKSID split_mode: {split_mode}")
         train_loader, val_loader, class_weights = create_nksid_dataloaders(
             data_dir=data_dir,
             batch_size=batch_size,

@@ -26,13 +26,16 @@ from hwnas_fpga.runtime import (
 from hwnas_fpga.research_gates import require_stage3_search_gate
 from hwnas_fpga.search import (
     ParetoFrontSelector,
-    build_pareto_objectives,
+    SearchEfficiencyMonitor,
+    merge_search_efficiency,
+    build_pareto_representative_roles,
     build_pareto_selection_summary,
     candidate_selection_score,
     compute_hypervolume,
     compute_pareto_front,
     compute_pareto_ranks,
     create_searcher,
+    resolve_pareto_objectives,
     write_pareto_selection_artifacts,
 )
 from hwnas_fpga.search_space import list_family_profiles
@@ -169,6 +172,22 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
     return resumed_episode
 
 
+def _restore_aging_resume_state(searcher, tracker: ExperimentTracker) -> int:
+    candidates_path = tracker.results_dir / "candidates.jsonl"
+    checkpoint_path = tracker.checkpoints_dir / "aging_latest.pt"
+    if not candidates_path.exists():
+        raise FileNotFoundError(f"Missing resume candidates log: {candidates_path}")
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"Missing aging evolution checkpoint: {checkpoint_path}")
+    records = [
+        json.loads(line)
+        for line in candidates_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    return searcher.restore_state(records, checkpoint)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="HW-NAS FPGA Sonar Search")
     parser.add_argument("--config", type=str, default=None, help="YAML config path")
@@ -212,7 +231,7 @@ def parse_args() -> argparse.Namespace:
         "--search-method",
         type=str,
         default=None,
-        choices=("random", "rl", "proxyless"),
+        choices=("random", "rl", "proxyless", "aging_evolution"),
     )
     parser.add_argument("--controller-hidden", type=int, default=None)
     parser.add_argument("--controller-lr", type=float, default=None)
@@ -242,15 +261,21 @@ def main() -> None:
     dataset_name = pick(args.dataset, dataset_cfg.get("name"), "dummy")
     if dataset_name not in {"dummy", "nksid"}:
         dataset_name = "dummy"
+    search_method = pick(args.search_method, search_cfg.get("method"), "random")
+    if search_method == "aging":
+        search_method = "aging_evolution"
+    if search_method not in {"random", "rl", "proxyless", "aging_evolution"}:
+        raise ValueError(f"Unsupported search method: {search_method}")
+    config.setdefault("search", {})["method"] = search_method
+    search_cfg = config["search"]
+    # Gate the final resolved request, including any CLI method override.  The
+    # approval cannot be checked against the source YAML and then silently
+    # replaced with a different method afterward.
     stage3_gate = require_stage3_search_gate(
         Path(__file__).resolve().parent,
         dataset_name=dataset_name,
         config=config,
     )
-
-    search_method = pick(args.search_method, search_cfg.get("method"), "random")
-    if search_method not in {"random", "rl", "proxyless"}:
-        raise ValueError(f"Unsupported search method: {search_method}")
 
     if search_method == "proxyless":
         _default_device = (
@@ -287,6 +312,8 @@ def main() -> None:
     valid_size = dataset_cfg.get("valid_size")
     split_seed = int(dataset_cfg.get("split_seed", seed))
     image_error_policy = str(dataset_cfg.get("image_error_policy", "raise"))
+    split_mode = str(dataset_cfg.get("split_mode", "legacy_kfold"))
+    inner_val_fraction = float(dataset_cfg.get("inner_val_fraction", 0.15))
     num_candidates = pick(args.num_candidates, search_cfg.get("num_candidates"), 20)
     num_episodes = pick(args.episodes, search_cfg.get("episodes"), 20)
     train_epochs = pick(args.train_epochs, search_cfg.get("eval_epochs"), 3)
@@ -309,6 +336,42 @@ def main() -> None:
     output_root = Path(output_dir).expanduser()
     if not output_root.is_absolute():
         output_root = (Path.cwd() / output_root).resolve()
+
+    # Persist the resolved protocol, not only the source YAML.  This is
+    # essential for matched-seed/matched-budget comparisons launched through
+    # CLI overrides.
+    resolved_project_cfg = config.setdefault("project", {})
+    resolved_project_cfg["seed"] = int(seed)
+    resolved_project_cfg["output_dir"] = str(output_root)
+    if run_name is not None:
+        resolved_project_cfg["run_name"] = str(run_name)
+    resolved_dataset_cfg = config.setdefault("dataset", {})
+    resolved_dataset_cfg.update(
+        {
+            "name": dataset_name,
+            "data_dir": data_dir,
+            "image_size": int(image_size),
+            "num_workers": int(num_workers),
+            "fold": int(fold),
+            "split_mode": split_mode,
+            "inner_val_fraction": inner_val_fraction,
+        }
+    )
+    if num_classes is not None:
+        resolved_dataset_cfg["num_classes"] = int(num_classes)
+    config.setdefault("training", {})["batch_size"] = int(batch_size)
+    resolved_search_cfg = config.setdefault("search", {})
+    resolved_search_cfg.update(
+        {
+            "method": search_method,
+            "num_candidates": int(num_candidates),
+            "episodes": int(num_episodes),
+            "eval_epochs": int(train_epochs),
+            "timeout_minutes": timeout_minutes,
+        }
+    )
+    if family_profile is not None:
+        config.setdefault("search_space", {})["family_profile"] = family_profile
 
     tracker = ExperimentTracker(
         output_root=output_root,
@@ -485,13 +548,19 @@ def main() -> None:
                 valid_size=valid_size,
                 split_seed=split_seed,
                 image_error_policy=image_error_policy,
+                split_mode=split_mode,
+                inner_val_fraction=inner_val_fraction,
             )
             print(f"Train samples: {len(train_loader.dataset)}, Val samples: {len(val_loader.dataset)}")
             print(f"Num classes: {resolved_num_classes}")
             if dataset_name == "nksid":
-                split_mode = "kfold" if use_kfold and valid_size is None else "random_valid_split"
+                displayed_split_mode = (
+                    split_mode
+                    if split_mode == "frozen_inner"
+                    else "kfold" if use_kfold and valid_size is None else "random_valid_split"
+                )
                 print(
-                    f"NKSID split mode: {split_mode}, "
+                    f"NKSID split mode: {displayed_split_mode}, "
                     f"fold={fold}, valid_size={valid_size}, split_seed={split_seed}"
                 )
             tracker.write_dataset_summary(
@@ -502,6 +571,9 @@ def main() -> None:
                     "use_kfold": use_kfold,
                     "valid_size": valid_size,
                     "split_seed": split_seed,
+                    "split_mode": split_mode,
+                    "inner_val_fraction": inner_val_fraction,
+                    "outer_validation_consumed": False,
                     "image_error_policy": image_error_policy,
                     "image_size": image_size,
                     "batch_size": batch_size,
@@ -517,6 +589,9 @@ def main() -> None:
             reward_cfg = dict(search_cfg.get("reward_cfg") or {})
             selection_metric = str(search_cfg.get("selection_metric", "macro_f1"))
             proxyless_cfg = search_cfg.get("proxyless", {})
+            aging_cfg = dict(search_cfg.get("aging") or {})
+            pareto_cfg = dict(search_cfg.get("pareto") or {})
+            robustness_cfg = dict(search_cfg.get("robustness") or {})
             searcher = create_searcher(
                 search_space=search_space,
                 cost_estimator=estimator,
@@ -531,6 +606,9 @@ def main() -> None:
                 reward_weights=objective_weights,
                 reward_cfg=reward_cfg,
                 proxyless_cfg=proxyless_cfg,
+                aging_cfg=aging_cfg,
+                pareto_cfg=pareto_cfg,
+                robustness_cfg=robustness_cfg,
                 selection_metric=selection_metric,
                 controller_temperature=controller_temperature,
                 entropy_coef=entropy_coef,
@@ -558,16 +636,39 @@ def main() -> None:
                     f"base={reward_cfg.get('infeasible_base_penalty', 1.0)}, "
                     f"scale={reward_cfg.get('infeasible_penalty_scale', 5.0)}"
                 )
-            resume_episode = 0
-            if args.resume:
-                if search_method != "rl":
-                    raise ValueError("Resume is currently only supported for RL search")
-                resume_episode = _restore_rl_resume_state(searcher, tracker, device)
+            if search_method == "aging_evolution":
                 print(
-                    "Resume state restored: "
-                    f"{len(searcher.evaluated_candidates)} evaluated, "
-                    f"next episode={resume_episode}"
+                    "Aging evolution config: "
+                    f"population_size={searcher.population_size}, "
+                    f"sample_size={searcher.sample_size}, "
+                    f"random_injection_probability={searcher.random_injection_probability}, "
+                    f"crossover_probability={searcher.crossover_probability}, "
+                    f"survivor_selection={searcher.survivor_selection}, "
+                    f"max_mutation_attempts={searcher.max_mutation_attempts}, "
+                    f"objectives={searcher.objectives}"
                 )
+            resume_episode = 0
+            resume_iteration = 0
+            if args.resume:
+                if search_method == "rl":
+                    resume_episode = _restore_rl_resume_state(searcher, tracker, device)
+                    print(
+                        "Resume state restored: "
+                        f"{len(searcher.evaluated_candidates)} evaluated, "
+                        f"next episode={resume_episode}"
+                    )
+                elif search_method == "aging_evolution":
+                    resume_iteration = _restore_aging_resume_state(searcher, tracker)
+                    print(
+                        "Aging evolution state restored: "
+                        f"{len(searcher.evaluated_candidates)} evaluated, "
+                        f"population={len(searcher.population)}, "
+                        f"next iteration={resume_iteration}"
+                    )
+                else:
+                    raise ValueError(
+                        "Resume is currently supported for RL and aging_evolution search"
+                    )
 
             print("\n=== Testing Baseline Architecture ===")
             baseline_arch = search_space.baseline_architecture()
@@ -603,61 +704,96 @@ def main() -> None:
             estimator.reset_lut_stats()
 
             print("\n=== Starting Search ===")
-            if search_method == "rl":
-                print(f"Episodes: {num_episodes}")
-                best_candidate = searcher.search(
-                    train_loader=train_loader,
-                    val_loader=val_loader,
-                    num_classes=resolved_num_classes,
-                    num_episodes=num_episodes,
-                    start_episode=resume_episode,
-                    timeout_minutes=timeout_minutes,
-                    device=device,
-                    verbose=True,
-                    class_weights=class_weights,
-                    artifact_tracker=tracker,
+            previous_efficiency = tracker.read_search_efficiency() if args.resume else None
+            evaluated_before_segment = len(searcher.evaluated_candidates)
+            feasible_before_segment = len(searcher.feasible_candidates)
+            search_monitor = SearchEfficiencyMonitor(device)
+            try:
+                with search_monitor:
+                    if search_method == "rl":
+                        print(f"Episodes: {num_episodes}")
+                        best_candidate = searcher.search(
+                            train_loader=train_loader,
+                            val_loader=val_loader,
+                            num_classes=resolved_num_classes,
+                            num_episodes=num_episodes,
+                            start_episode=resume_episode,
+                            timeout_minutes=timeout_minutes,
+                            device=device,
+                            verbose=True,
+                            class_weights=class_weights,
+                            artifact_tracker=tracker,
+                        )
+                    elif search_method == "aging_evolution":
+                        print(f"Number of candidates to evaluate: {num_candidates}")
+                        if timeout_minutes:
+                            print(f"Search timeout: {timeout_minutes} minutes")
+                        best_candidate = searcher.search(
+                            train_loader=train_loader,
+                            val_loader=val_loader,
+                            num_classes=resolved_num_classes,
+                            num_candidates=num_candidates,
+                            train_epochs=train_epochs,
+                            device=device,
+                            verbose=True,
+                            class_weights=class_weights,
+                            artifact_tracker=tracker,
+                            start_iteration=resume_iteration,
+                            timeout_minutes=timeout_minutes,
+                        )
+                    elif timeout_minutes:
+                        print(f"Search timeout: {timeout_minutes} minutes")
+                        best_candidate = searcher.search_with_timeout(
+                            train_loader=train_loader,
+                            val_loader=val_loader,
+                            num_classes=resolved_num_classes,
+                            timeout_minutes=timeout_minutes,
+                            train_epochs=train_epochs,
+                            device=device,
+                            verbose=True,
+                            class_weights=class_weights,
+                            artifact_tracker=tracker,
+                        )
+                    else:
+                        print(f"Number of candidates to evaluate: {num_candidates}")
+                        best_candidate = searcher.search(
+                            train_loader=train_loader,
+                            val_loader=val_loader,
+                            num_classes=resolved_num_classes,
+                            num_candidates=num_candidates,
+                            train_epochs=train_epochs,
+                            device=device,
+                            verbose=True,
+                            class_weights=class_weights,
+                            artifact_tracker=tracker,
+                        )
+            finally:
+                search_efficiency_segment = search_monitor.summary(
+                    candidate_count=(
+                        len(searcher.evaluated_candidates) - evaluated_before_segment
+                    ),
+                    feasible_count=(
+                        len(searcher.feasible_candidates) - feasible_before_segment
+                    ),
+                    search_method=search_method,
                 )
-            elif timeout_minutes:
-                print(f"Search timeout: {timeout_minutes} minutes")
-                best_candidate = searcher.search_with_timeout(
-                    train_loader=train_loader,
-                    val_loader=val_loader,
-                    num_classes=resolved_num_classes,
-                    timeout_minutes=timeout_minutes,
-                    train_epochs=train_epochs,
-                    device=device,
-                    verbose=True,
-                    class_weights=class_weights,
-                    artifact_tracker=tracker,
+                search_efficiency = merge_search_efficiency(
+                    previous_efficiency,
+                    search_efficiency_segment,
                 )
-            else:
-                if search_method == "proxyless":
-                    print(
-                        "Proxyless search: "
-                        f"warmup={proxyless_cfg.get('warmup_epochs', 10)}, "
-                        f"search_epochs={proxyless_cfg.get('search_epochs', train_epochs)}, "
-                        f"grad_reg={proxyless_cfg.get('grad_reg_loss_type')}, "
-                        f"target={proxyless_cfg.get('target_hardware', 'latency_ms')}, "
-                        f"ref={proxyless_cfg.get('ref_value')}"
-                    )
-                else:
-                    print(f"Number of candidates to evaluate: {num_candidates}")
-                best_candidate = searcher.search(
-                    train_loader=train_loader,
-                    val_loader=val_loader,
-                    num_classes=resolved_num_classes,
-                    num_candidates=num_candidates,
-                    train_epochs=train_epochs,
-                    device=device,
-                    verbose=True,
-                    class_weights=class_weights,
-                    artifact_tracker=tracker,
+                tracker.write_search_efficiency(search_efficiency)
+                print(
+                    "Search efficiency: "
+                    f"wall={search_efficiency['wall_clock_seconds']:.3f}s, "
+                    f"gpu_reserved_hours={search_efficiency['gpu_reserved_hours']:.6f}, "
+                    f"gpu_event_seconds={search_efficiency['gpu_event_seconds']}, "
+                    f"segments={search_efficiency['segment_count']}"
                 )
 
-            pareto_cfg = search_cfg.get("pareto", {})
             pareto_topk = int(pareto_cfg.get("topk", 5))
             pareto_method = pareto_cfg.get("selection_method", "rank")
-            pareto_objectives, pareto_directions = build_pareto_objectives(
+            pareto_objectives, pareto_directions = resolve_pareto_objectives(
+                pareto_cfg,
                 objective_weights,
                 constraints,
                 selection_metric=selection_metric,
@@ -699,6 +835,15 @@ def main() -> None:
                 hypervolume=hypervolume,
             )
             write_pareto_selection_artifacts(tracker.results_dir, pareto_summary)
+            representative_roles = build_pareto_representative_roles(
+                pareto_front,
+                objectives=pareto_objectives,
+                directions=pareto_directions,
+            )
+            (tracker.results_dir / "pareto_representatives.json").write_text(
+                json.dumps(representative_roles, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
             lut_stats = estimator.get_lut_stats()
             (tracker.results_dir / "lut_stats.json").write_text(
                 json.dumps(lut_stats, ensure_ascii=False, indent=2),
@@ -722,7 +867,13 @@ def main() -> None:
 
             print("\n=== Search Results ===")
             if best_candidate:
-                print(f"Best architecture: {best_candidate.arch_id}")
+                if search_method == "aging_evolution":
+                    print(
+                        "Compatibility accuracy-first representative "
+                        f"(not a single overall best): {best_candidate.arch_id}"
+                    )
+                else:
+                    print(f"Best architecture: {best_candidate.arch_id}")
                 best_score = candidate_selection_score(best_candidate, selection_metric)
                 print(f"  Score ({selection_metric}): {best_score:.4f}")
                 if best_candidate.metrics.macro_f1 is not None:
@@ -759,6 +910,16 @@ def main() -> None:
                             f"{selection_metric}={pareto_score:.4f}, "
                             f"Lat={candidate.metrics.latency_ms:.2f}ms"
                         )
+                if search_method == "aging_evolution":
+                    print("\n=== Pareto Representative Roles ===")
+                    for role_name, payload in representative_roles.get("roles", {}).items():
+                        if payload is None:
+                            print(f"{role_name}: unavailable")
+                        else:
+                            print(
+                                f"{role_name}: {payload['arch_id']} "
+                                f"objectives={payload['objective_values']}"
+                            )
             else:
                 print("No feasible architecture found!")
 
@@ -773,8 +934,8 @@ def main() -> None:
                 candidates=searcher.evaluated_candidates,
                 feasible_candidates=searcher.feasible_candidates,
                 infeasible_candidates=searcher.infeasible_candidates,
-                best_candidate=best_candidate,
-                pareto_candidates=pareto,
+                best_candidate=(None if search_method == "aging_evolution" else best_candidate),
+                pareto_candidates=pareto_front,
                 extra={
                     "device": device,
                     "search_method": search_method,
@@ -787,6 +948,16 @@ def main() -> None:
                     "selection_metric": selection_metric,
                     "objective_weights": objective_weights,
                     "reward_cfg": reward_cfg if search_method == "rl" else None,
+                    "aging": aging_cfg if search_method == "aging_evolution" else None,
+                    "robustness": robustness_cfg,
+                    "pareto_representative_roles": representative_roles,
+                    "accuracy_first_compatibility_representative": (
+                        _candidate_to_dict(best_candidate)
+                        if search_method == "aging_evolution" and best_candidate is not None
+                        else None
+                    ),
+                    "single_overall_best_declared": search_method != "aging_evolution",
+                    "search_efficiency": search_efficiency,
                     "rl_exploration": (
                         {
                             "controller_temperature": controller_temperature,

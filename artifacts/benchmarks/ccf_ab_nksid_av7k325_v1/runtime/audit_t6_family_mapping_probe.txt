@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""Audit planning-only mapping probes for the five frozen T6 family pilots."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+RUN_NAMES = {
+    "dw_pw_dominant": "t6_pilot_dw_pw",
+    "mbconv_dominant": "t6_pilot_mbconv",
+    "fused_mbconv_dominant": "t6_pilot_fused",
+    "skip_heavy": "t6_pilot_skip",
+    "mixed_balanced": "t6_pilot_mixed",
+}
+REQUIRED_FILES = (
+    "rl_best_e2e_preflight.json",
+    "rl_best_e2e_harness_spec.json",
+    "rl_best_e2e_identity_gate.json",
+    "rl_best_e2e_architecture_trace.csv",
+    "README.md",
+)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--pilot-manifest", required=True)
+    parser.add_argument("--probe-root", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    manifest_path = Path(args.pilot_manifest).resolve()
+    probe_root = Path(args.probe_root).resolve()
+    output = Path(args.output).resolve()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    errors: list[str] = []
+    if not (
+        manifest.get("purpose") == "T6_FIVE_FAMILY_COMPLETE_NETWORK_EXPORT_PILOT"
+        and manifest.get("claimability_status") == "PILOT_INPUT_FROZEN_TRUTH_NOT_COLLECTED"
+        and int(manifest.get("pilot_count") or 0) == 5
+        and int(manifest.get("formal_hls_route_truth_increment", -1)) == 0
+    ):
+        errors.append("pilot manifest identity/status mismatch")
+
+    rows: list[dict[str, object]] = []
+    for pilot in list(manifest.get("pilots") or []):
+        family = str(pilot.get("architecture_family") or "")
+        run_name = RUN_NAMES.get(family)
+        if not run_name:
+            errors.append(f"unexpected pilot family: {family}")
+            continue
+        run_dir = probe_root / run_name
+        bindings: dict[str, dict[str, object]] = {}
+        missing = False
+        for filename in REQUIRED_FILES:
+            path = run_dir / filename
+            if not path.is_file():
+                errors.append(f"missing mapping-probe file: {path}")
+                missing = True
+                continue
+            bindings[filename] = {
+                "path": str(path), "sha256": sha256_file(path), "bytes": path.stat().st_size
+            }
+        if missing:
+            continue
+        preflight = json.loads((run_dir / "rl_best_e2e_preflight.json").read_text(encoding="utf-8-sig"))
+        spec = json.loads((run_dir / "rl_best_e2e_harness_spec.json").read_text(encoding="utf-8-sig"))
+        gate = json.loads((run_dir / "rl_best_e2e_identity_gate.json").read_text(encoding="utf-8-sig"))
+        with (run_dir / "rl_best_e2e_architecture_trace.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+            trace = list(csv.DictReader(handle))
+        source_path = Path(str(pilot.get("source_candidate_path") or ""))
+        source_ok = (
+            source_path.is_file()
+            and sha256_file(source_path) == pilot.get("source_candidate_sha256")
+            and preflight.get("candidate_path") == str(source_path)
+            and preflight.get("candidate_arch_id") == pilot.get("source_candidate_id")
+        )
+        if not source_ok:
+            errors.append(f"candidate binding mismatch: {family}")
+        mapping_counts = Counter(str(row.get("current84_mapping_status") or "") for row in trace)
+        required_gates = dict(spec.get("required_gates") or {})
+        expected_gap = (
+            preflight.get("mode") == "planning_only"
+            and preflight.get("harness_spec_status") == "not_generated_mapping_incomplete"
+            and preflight.get("candidate_hls_mapping") is None
+            and preflight.get("may_reuse_reference_arch84_bitstream") is False
+            and spec.get("status") == "not_generated_mapping_incomplete"
+            and required_gates.get("architecture_mapping") == "incomplete"
+            and int(required_gates.get("missing_component_rows") or 0) > 0
+            and int(gate.get("mismatch_count") or 0) > 0
+            and mapping_counts.get("missing_current84_fullcombo_case", 0) > 0
+        )
+        if not expected_gap:
+            errors.append(f"mapping gap was not reproduced exactly: {family}")
+        rows.append({
+            "pilot_id": pilot.get("pilot_id"),
+            "architecture_family": family,
+            "source_candidate_id": pilot.get("source_candidate_id"),
+            "run_name": run_name,
+            "planning_status": preflight.get("harness_spec_status"),
+            "identity_mismatch_count": int(gate.get("mismatch_count") or 0),
+            "trace_row_count": len(trace),
+            "missing_component_rows": int(required_gates.get("missing_component_rows") or 0),
+            "mapping_status_counts": dict(sorted(mapping_counts.items())),
+            "may_reuse_reference_arch84_bitstream": preflight.get("may_reuse_reference_arch84_bitstream"),
+            "candidate_hls_mapping": preflight.get("candidate_hls_mapping"),
+            "bindings": bindings,
+            "formal_hls_route_truth_increment": 0,
+        })
+
+    family_counts = Counter(str(row["architecture_family"]) for row in rows)
+    if family_counts != Counter({family: 1 for family in RUN_NAMES}):
+        errors.append("mapping probes do not cover the five frozen families exactly once")
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now(timezone.utc).isoformat(),
+        "status": "PASS_EXPECTED_GAP_CONFIRMED" if not errors else "FAIL",
+        "pilot_manifest": {"path": str(manifest_path), "sha256": sha256_file(manifest_path)},
+        "probe_root": str(probe_root),
+        "probe_count": len(rows),
+        "rows": rows,
+        "current_generator_ready_for_five_family_truth": False,
+        "formal_hls_route_truth_increment": 0,
+        "errors": errors,
+        "blocker": "All five candidates need source-linked candidate-specific operator HLS mapping and a semantic-equivalence path before the existing stitched full-network harness can be generated. The current planner is not a complete-network HLS C source generator for HARP/T6 truth.",
+        "boundary": "This is a planning-only gap audit. It does not synthesize, route, program the board, measure latency, or produce power evidence.",
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps({
+        "status": result["status"],
+        "probe_count": len(rows),
+        "formal_hls_route_truth_increment": 0,
+        "errors": errors[:10],
+    }))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

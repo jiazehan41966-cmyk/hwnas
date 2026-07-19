@@ -11,8 +11,9 @@ BOARD_SCRIPT_ROOT = REPO_ROOT / "hls_lut_builder" / "board_harness" / "scripts"
 if str(BOARD_SCRIPT_ROOT) not in sys.path:
     sys.path.insert(0, str(BOARD_SCRIPT_ROOT))
 
-from common import build_cases, load_config, load_template, render_template  # noqa: E402
+from common import _build_parameters, build_cases, load_config, load_template, render_template  # noqa: E402
 from generate_harness import compute_case_meta, parse_constants  # noqa: E402
+from sonar_classifier_e2e_board_validation import axil_completion_latch_text  # noqa: E402
 
 
 CONFIG_PATH = REPO_ROOT / "hls_lut_builder" / "configs" / "candidate_kernels.yaml"
@@ -138,6 +139,43 @@ class HlsTemplateContractTests(unittest.TestCase):
         self.assertLessEqual(constants["EXP_PACK_CH"] * 8, constants["MAX_AXIS_BITS"])
         self.assertIn("pack_channel_segment<EXP_CH, EXP_PACK_CH>", source)
         self.assertIn("unpack_packed_channel_segment<EXP_CH, EXP_PACK_CH>", source)
+
+    def test_residual_fifo_covers_depthwise_line_buffer_prefill(self) -> None:
+        parameters = _build_parameters(
+            defaults={},
+            operator_name="mbconv_e1_k3",
+            operator_cfg={
+                "parameters": {
+                    "kernel_size": 3,
+                    "stride": 1,
+                    "padding": 1,
+                    "in_channels": 12,
+                    "out_channels": 12,
+                    "expand_ratio": 1,
+                }
+            },
+            shape_name="stage3_block1_14x14x12",
+            shape_cfg={"feature_h": 14, "feature_w": 14},
+            implementation_name="baseline",
+            implementation_cfg={},
+            clock_profile_name="main_5ns",
+            clock_cfg={"period_ns": 5.0, "target_clock_mhz": 200.0},
+        )
+
+        self.assertEqual(parameters["residual_stream_depth"], 16)
+        rendered = render_template(
+            "#pragma HLS STREAM variable=residual_stream depth=__RESIDUAL_STREAM_DEPTH__",
+            parameters,
+        )
+        self.assertEqual(rendered, "#pragma HLS STREAM variable=residual_stream depth=16")
+
+    def test_axil_completion_latches_independent_done_pulses(self) -> None:
+        text = axil_completion_latch_text([{"role": "first"}, {"role": "second"}])
+
+        self.assertIn("wire [1:0] axil_done_now = {second_axil_done, first_axil_done};", text)
+        self.assertIn("axil_done_seen <= axil_done_seen | axil_done_now;", text)
+        self.assertIn("else if (start_pulse)", text)
+        self.assertIn("wire all_axil_done = &axil_done_seen;", text)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,81 @@
+PROPOSED_NOT_APPLIED
+用途：仅供用户批准后实施；当前不得直接应用。本提案展示核心设计，正式应用时需按合同补齐测试并重新冻结源码。
+
+--- a/run_eval_protocol.py
++++ b/run_eval_protocol.py
+@@
+ def sha256_file(path: Path) -> str:
+     digest = hashlib.sha256()
+     with path.open("rb") as handle:
+         for block in iter(lambda: handle.read(1024 * 1024), b""):
+             digest.update(block)
+     return digest.hexdigest()
++
++
++def sha256_bytes(payload: bytes) -> str:
++    return hashlib.sha256(payload).hexdigest()
+@@
+ def git_code_provenance(run_dir: Path) -> dict:
+@@
+     diff_result = subprocess.run(
+         ["git", "diff", "--binary", "HEAD", "--", "."],
+         cwd=root,
+         capture_output=True,
+         check=False,
+     )
+-    patch_path = run_dir / "code_patch.diff"
+-    patch_path.write_bytes(diff_result.stdout)
++    patch_sha256 = sha256_bytes(diff_result.stdout)
++    provenance_dir = run_dir / "provenance"
++    provenance_dir.mkdir(parents=True, exist_ok=True)
++    patch_path = provenance_dir / f"code_patch_{patch_sha256}.diff"
++    if patch_path.exists():
++        if sha256_file(patch_path) != patch_sha256:
++            raise RuntimeError(f"Refusing to overwrite corrupted provenance patch: {patch_path}")
++    else:
++        with patch_path.open("xb") as handle:
++            handle.write(diff_result.stdout)
+@@
+         "tracked_patch": {
+             "path": str(patch_path.resolve()),
+-            "sha256": sha256_file(patch_path),
++            "sha256": patch_sha256,
+         },
+
+--- a/scripts/audit_measurement_first_gates.py
++++ b/scripts/audit_measurement_first_gates.py
+@@
++def run_patch_integrity(summary_path: Path) -> bool:
++    manifest_path = summary_path.parent / "run_manifest.json"
++    manifest = read_json(manifest_path) or {}
++    tracked = ((manifest.get("code_provenance") or {}).get("tracked_patch") or {})
++    path = Path(str(tracked.get("path") or ""))
++    expected = str(tracked.get("sha256") or "")
++    return path.is_file() and len(expected) == 64 and sha256_file(path) == expected
++
+ def g1_status(root: Path) -> dict[str, Any]:
+@@
+     for name, payload in summaries.items():
+         prefix = f"{name}_"
++        gates[prefix + "tracked_patch_integrity"] = run_patch_integrity(paths[name])
+@@
+-    passed = all(gates.values())
++    passed = all(gates.values())
+
+--- /dev/null
++++ b/tests/test_protocol_provenance.py
+@@
++def test_different_git_diffs_never_overwrite_prior_patch(tmp_path, monkeypatch):
++    # Mock git status/diff/ls-files, capture two different diff payloads,
++    # and assert two content-addressed paths plus immutable first bytes.
++    ...
++
++def test_same_git_diff_reuses_content_addressed_patch(tmp_path, monkeypatch):
++    ...
++
++def test_corrupted_content_addressed_patch_fails_closed(tmp_path, monkeypatch):
++    ...
++
++def test_g1_gate_rejects_manifest_patch_hash_mismatch(tmp_path):
++    ...
+

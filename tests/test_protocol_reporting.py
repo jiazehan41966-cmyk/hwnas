@@ -43,6 +43,20 @@ class ClaimabilityTests(unittest.TestCase):
         self.assertFalse(leaked["claimable"])
         self.assertFalse(missing["claimable"])
 
+    def test_missing_source_freeze_blocks_formal_claim(self) -> None:
+        pairs = [(fold, seed) for fold in range(5) for seed in (42, 43, 44)]
+        result = protocol_claimability(
+            folds=range(5),
+            seeds=(42, 43, 44),
+            completed_pairs=pairs,
+            selection_provenance="baseline_predeclared",
+            provenance_fingerprints=self.RUN_FINGERPRINTS,
+            source_freeze_verified=False,
+        )
+        self.assertFalse(result["claimable"])
+        self.assertFalse(result["source_freeze_verified"])
+        self.assertTrue(any("source-freeze" in value for value in result["warnings"]))
+
     def test_partial_protocol_is_not_claimable(self) -> None:
         result = protocol_claimability(
             folds=(0,),

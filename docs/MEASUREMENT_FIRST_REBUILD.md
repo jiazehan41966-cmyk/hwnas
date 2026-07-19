@@ -11,7 +11,7 @@
 | 门禁 | 当前状态 | 判定 |
 |---|---|---|
 | G0 冻结协议 | PASS | 唯一正式入口为 `run_eval_protocol.py` |
-| G1 精度基线 | PENDING | 必须完成 45/45 个 fold/seed 任务 |
+| G1 精度基线 | PASS | 45/45 个 fold/seed 任务通过完整性与来源检查 |
 | G2 硬件测量 | PENDING | 4 个独立探针和候选 HLS 100% 覆盖尚未完成 |
 | G3 搜索 | FROZEN | 语义安全空间精确规模为 15,728,640 |
 | G4 INT8 板级闭环 | PENDING | PTQ/QAT、HLS parity、全验证集板测均须通过 |
@@ -31,14 +31,20 @@
 - checkpoint、数据清单、split、配置和代码提交均可追溯；
 - `rl_arch_135` 明确标记为 `legacy_fold0_selected`，只解释为冻结历史架构基准。
 
-可恢复启动三个基线：
+三个基线已完成；以下入口保留用于同一冻结协议下的可恢复复现：
 
 ```powershell
 python scripts/run_g1_baselines.py
 ```
 
 该入口规划 3×15=45 个任务，默认 AMP、batch size 8、gradient accumulation
-4。预训练权重加载失败会直接报错，不会静默回退。全部完成后运行：
+4。预训练权重加载失败会直接报错，不会静默回退。当前权威摘要为：
+
+- scratch：`results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/protocol_summary.json`；
+- pretrained：`results/protocol/g1_clean_20260711/g1_mobilenet_v2_grayscale_imagenet/protocol_summary.json`；
+- legacy-selected NAS：`results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/protocol_summary.json`。
+
+重新完成同口径运行后可执行：
 
 ```powershell
 python scripts/analyze_protocol_baselines.py `

@@ -21,17 +21,26 @@ from .retrain import (
     retrain_architecture,
 )
 from .trainer import Trainer, create_optimizer, train_model
+from .robustness import (
+    DEFAULT_SONAR_ROBUSTNESS_CONDITIONS,
+    apply_sonar_corruption,
+    evaluate_sonar_robustness,
+    resolve_sonar_robustness_config,
+)
 
 __all__ = [
     "LogitAdjustedCrossEntropy",
     "RecipeConfig",
     "RecipeResult",
     "Trainer",
+    "DEFAULT_SONAR_ROBUSTNESS_CONDITIONS",
+    "apply_sonar_corruption",
     "build_train_criterion",
     "build_warmup_cosine_scheduler",
     "canonical_sha256",
     "create_optimizer",
     "evaluate_model",
+    "evaluate_sonar_robustness",
     "hierarchical_paired_bootstrap",
     "load_architecture_from_artifact",
     "load_best_candidate_artifact",
@@ -40,4 +49,5 @@ __all__ = [
     "sha256_file",
     "train_model",
     "train_with_recipe",
+    "resolve_sonar_robustness_config",
 ]

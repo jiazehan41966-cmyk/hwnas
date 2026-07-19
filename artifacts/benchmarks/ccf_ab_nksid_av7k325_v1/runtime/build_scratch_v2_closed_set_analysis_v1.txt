@@ -1,0 +1,414 @@
+#!/usr/bin/env python3
+"""生成 scratch-v2、预训练与 NAS 的中文严格配对分析 bundle。"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import itertools
+import json
+import math
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+
+
+ROOT = Path(__file__).resolve().parents[4]
+CAMPAIGN = ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+OUTPUT = CAMPAIGN / "diagnostics/scratch_v2_closed_set_3method_v1"
+RUNS = {
+    "scratch_v2": ROOT / "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2",
+    "legacy_scratch": ROOT / "results/protocol/g1_clean_20260711/g1_mobilenet_v2_scratch",
+    "pretrained": ROOT / "results/protocol/g1_clean_20260711/g1_mobilenet_v2_grayscale_imagenet",
+    "nas": ROOT / "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected",
+}
+LABELS = {
+    "scratch_v2": "从零训练 MobileNetV2",
+    "pretrained": "ImageNet 预训练 MobileNetV2",
+    "nas": "冻结 NAS 候选 rl_arch_135",
+}
+EXPECTED = [(fold, seed) for fold in range(5) for seed in (42, 43, 44)]
+BOOTSTRAP_SEED = 20260718
+BOOTSTRAP_REPS = 10_000
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def read_record(run: Path, fold: int, seed: int) -> dict:
+    path = run / f"run_fold{fold}_seed{seed}.json"
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if int(payload["fold"]) != fold or int(payload["seed"]) != seed:
+        raise AssertionError(f"fold/seed 不一致：{path}")
+    value = float(payload["outer_val"]["macro_f1"])
+    if not math.isfinite(value):
+        raise AssertionError(f"macro_f1 非有限：{path}")
+    return payload
+
+
+def stratified_bootstrap(values: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    matrix = values.reshape(5, 3)
+    samples = np.empty(BOOTSTRAP_REPS, dtype=float)
+    for index in range(BOOTSTRAP_REPS):
+        selected = []
+        for fold in range(5):
+            seed_indices = rng.integers(0, 3, size=3)
+            selected.extend(matrix[fold, seed_indices])
+        samples[index] = float(np.mean(selected))
+    return samples
+
+
+def exact_paired_permutation(diff: np.ndarray) -> float:
+    observed = abs(float(np.mean(diff)))
+    extreme = 0
+    total = 2 ** len(diff)
+    for signs in itertools.product((-1.0, 1.0), repeat=len(diff)):
+        permuted = abs(float(np.mean(diff * np.asarray(signs))))
+        if permuted >= observed - 1e-15:
+            extreme += 1
+    return extreme / total
+
+
+def holm_adjust(rows: list[dict]) -> None:
+    ordered = sorted(range(len(rows)), key=lambda index: rows[index]["p_raw"])
+    running = 0.0
+    count = len(rows)
+    for rank, index in enumerate(ordered):
+        adjusted = min(1.0, (count - rank) * rows[index]["p_raw"])
+        running = max(running, adjusted)
+        rows[index]["p_holm"] = running
+
+
+def save_figure(fig: plt.Figure, stem: Path) -> None:
+    fig.savefig(stem.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    fig.savefig(stem.with_suffix(".pdf"), bbox_inches="tight")
+    fig.savefig(stem.with_suffix(".svg"), bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
+    with path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def main() -> int:
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    # Tee-Object 在早期构建中生成过 UTF-16 临时日志；它不属于正式分析包。
+    (OUTPUT / "build.log").unlink(missing_ok=True)
+    figures = OUTPUT / "figures"
+    figures.mkdir(parents=True, exist_ok=True)
+
+    records: dict[str, list[dict]] = {name: [] for name in RUNS}
+    input_hashes: dict[str, str] = {}
+    unit_rows: list[dict] = []
+    for fold, seed in EXPECTED:
+        row: dict[str, object] = {"fold": fold, "seed": seed}
+        for name, run in RUNS.items():
+            payload = read_record(run, fold, seed)
+            records[name].append(payload)
+            record_path = run / f"run_fold{fold}_seed{seed}.json"
+            input_hashes[str(record_path.relative_to(ROOT)).replace("\\", "/")] = sha256(record_path)
+            row[name] = float(payload["outer_val"]["macro_f1"])
+        row["scratch_minus_legacy"] = float(row["scratch_v2"]) - float(row["legacy_scratch"])
+        unit_rows.append(row)
+
+    values = {
+        name: np.asarray([float(item["outer_val"]["macro_f1"]) for item in payloads])
+        for name, payloads in records.items()
+    }
+    if not np.array_equal(values["scratch_v2"], values["legacy_scratch"]):
+        raise AssertionError("scratch-v2 与旧 scratch 的 15 个 macro_f1 未逐项复现")
+
+    rng = np.random.default_rng(BOOTSTRAP_SEED)
+    descriptive: list[dict] = []
+    for name in ("scratch_v2", "pretrained", "nas"):
+        data = values[name]
+        boot = stratified_bootstrap(data, rng)
+        descriptive.append(
+            {
+                "method": name,
+                "label_zh": LABELS[name],
+                "n": len(data),
+                "mean": float(np.mean(data)),
+                "std": float(np.std(data, ddof=1)),
+                "median": float(np.median(data)),
+                "q1": float(np.quantile(data, 0.25)),
+                "q3": float(np.quantile(data, 0.75)),
+                "bootstrap_ci_low": float(np.quantile(boot, 0.025)),
+                "bootstrap_ci_high": float(np.quantile(boot, 0.975)),
+            }
+        )
+
+    contrast_specs = [
+        ("pretrained_minus_scratch", "pretrained", "scratch_v2", "预训练 − 从零训练"),
+        ("scratch_minus_nas", "scratch_v2", "nas", "从零训练 − NAS"),
+        ("pretrained_minus_nas", "pretrained", "nas", "预训练 − NAS"),
+    ]
+    contrasts: list[dict] = []
+    rng = np.random.default_rng(BOOTSTRAP_SEED + 1)
+    for contrast_id, left, right, label in contrast_specs:
+        diff = values[left] - values[right]
+        boot = stratified_bootstrap(diff, rng)
+        shapiro = stats.shapiro(diff)
+        sd = float(np.std(diff, ddof=1))
+        contrasts.append(
+            {
+                "contrast_id": contrast_id,
+                "label_zh": label,
+                "left": left,
+                "right": right,
+                "n": len(diff),
+                "mean_difference": float(np.mean(diff)),
+                "std_difference": sd,
+                "bootstrap_ci_low": float(np.quantile(boot, 0.025)),
+                "bootstrap_ci_high": float(np.quantile(boot, 0.975)),
+                "exact_paired_permutation_statistic": abs(float(np.mean(diff))),
+                "p_raw": exact_paired_permutation(diff),
+                "shapiro_w": float(shapiro.statistic),
+                "shapiro_p": float(shapiro.pvalue),
+                "paired_cohen_dz": float(np.mean(diff) / sd) if sd > 0 else None,
+                "wins": int(np.sum(diff > 0)),
+                "ties": int(np.sum(diff == 0)),
+                "losses": int(np.sum(diff < 0)),
+            }
+        )
+    holm_adjust(contrasts)
+
+    unit_csv = OUTPUT / "paired_units_source.csv"
+    write_csv(
+        unit_csv,
+        unit_rows,
+        ["fold", "seed", "scratch_v2", "legacy_scratch", "pretrained", "nas", "scratch_minus_legacy"],
+    )
+    desc_csv = OUTPUT / "descriptive_summary.csv"
+    write_csv(desc_csv, descriptive, list(descriptive[0]))
+    contrast_csv = OUTPUT / "paired_contrasts.csv"
+    write_csv(contrast_csv, contrasts, list(contrasts[0]))
+
+    plt.rcParams.update(
+        {
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Microsoft YaHei", "SimHei"],
+            "axes.unicode_minus": False,
+            "font.size": 9,
+            "axes.labelsize": 10,
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+        }
+    )
+    order = ["nas", "scratch_v2", "pretrained"]
+    x = np.arange(3)
+    colors = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#D55E00"]
+    fig, ax = plt.subplots(figsize=(7.0, 4.2))
+    matrix = np.column_stack([values[name] for name in order])
+    for index, row in enumerate(matrix):
+        fold = index // 3
+        ax.plot(x, row, color=colors[fold], alpha=0.30, linewidth=0.8, zorder=1)
+        ax.scatter(x, row, color=colors[fold], s=18, alpha=0.80, zorder=2)
+    means = np.mean(matrix, axis=0)
+    ax.scatter(x, means, marker="D", s=62, color="black", label="15 单元均值", zorder=4)
+    ax.set_xticks(x, ["冻结 NAS\nrl_arch_135", "从零训练\nMobileNetV2", "ImageNet 预训练\nMobileNetV2"])
+    ax.set_ylabel("macro-F1（纵轴放大至 0.55–1.00）")
+    ax.set_ylim(0.55, 1.0)
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend(frameon=False, loc="lower right")
+    fig.tight_layout()
+    figure1 = figures / "figure-01-three-method-paired-macro-f1"
+    save_figure(fig, figure1)
+    (figures / "figure-01-three-method-paired-macro-f1_source.csv").write_bytes(unit_csv.read_bytes())
+
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+    positions = np.arange(len(contrasts))[::-1]
+    means = np.asarray([row["mean_difference"] for row in contrasts])
+    lows = np.asarray([row["bootstrap_ci_low"] for row in contrasts])
+    highs = np.asarray([row["bootstrap_ci_high"] for row in contrasts])
+    ax.errorbar(means, positions, xerr=[means - lows, highs - means], fmt="o", color="#0072B2", capsize=4)
+    ax.axvline(0.0, color="black", linewidth=0.8, linestyle="--")
+    ax.set_yticks(positions, [row["label_zh"] for row in contrasts])
+    ax.set_xlabel("配对 macro-F1 均值差及 95% 分层 bootstrap CI")
+    ax.grid(axis="x", alpha=0.25)
+    fig.tight_layout()
+    figure2 = figures / "figure-02-paired-contrast-forest"
+    save_figure(fig, figure2)
+    (figures / "figure-02-paired-contrast-forest_source.csv").write_bytes(contrast_csv.read_bytes())
+
+    script_sha = sha256(Path(__file__))
+    meta_common = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "script_sha256": script_sha,
+        "input_hashes": input_hashes,
+        "bootstrap": {"repetitions": BOOTSTRAP_REPS, "seed": BOOTSTRAP_SEED, "strata": "outer_fold"},
+        "limitation": "SURE 15 单元尚未执行；本 bundle 只支持三方法阶段性诊断，不能替代完整 T2。",
+    }
+    figure_meta = [
+        (
+            figures / "figure-01-three-method-paired-macro-f1_meta.json",
+            {
+                **meta_common,
+                "title_zh": "三个闭集方法在 15 个配对单元上的 macro-F1",
+                "caption_zh": "同一 fold-seed 单元以连线连接；颜色表示 outer fold，黑色菱形为 15 单元均值。纵轴为放大视图 0.55–1.00，不应用于暗示绝对零点。",
+                "purpose_zh": "展示方法间差异是否在相同 fold-seed 单元上一致。",
+                "observation_zh": "NAS 在所有单元低于另外两种 MobileNetV2；预训练与从零训练的差异较小且随单元变化。",
+                "interpretation_zh": "当前冻结 NAS 候选具有稳定的精度劣势；预训练优势需要配对统计量而不能只看均值。",
+                "implication_zh": "NAS 结果应作为硬件可行但精度较弱的负结果；完整闭集结论仍等待 SURE。",
+            },
+        ),
+        (
+            figures / "figure-02-paired-contrast-forest_meta.json",
+            {
+                **meta_common,
+                "title_zh": "三个预声明配对对比的 macro-F1 均值差",
+                "caption_zh": "点为 15 个 fold-seed 配对差的均值；误差线为按 outer fold 分层、10,000 次 bootstrap 的 95% CI；正值表示标签左侧方法更高。",
+                "purpose_zh": "量化三种方法的效应方向、大小与不确定性。",
+                "observation_zh": "涉及 NAS 的两项 CI 明显远离 0；预训练相对从零训练的优势更小。",
+                "interpretation_zh": "NAS 精度差距具有较大效应；预训练收益属于同一 backbone 内的较小增益。",
+                "implication_zh": "后续应保留 NAS 的硬件价值与精度劣势双重叙述，并在 SURE 完成后统一重算 Holm 校正。",
+            },
+        ),
+    ]
+    for path, payload in figure_meta:
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    desc_by_name = {row["method"]: row for row in descriptive}
+    contrast_by_id = {row["contrast_id"]: row for row in contrasts}
+    analysis_report = f"""# scratch-v2 三方法严格配对分析
+
+## 分析问题
+
+在完全相同的 5 outer folds × seeds 42–44（15 个配对单元）上，比较从零训练 MobileNetV2、ImageNet 预训练 MobileNetV2 与冻结 NAS 候选 `rl_arch_135` 的 macro_f1（宏平均 F1，越高越好）。旧 scratch 仅用于检验 scratch-v2 的数值复现，不作为独立统计方法。
+
+## 关键发现
+
+- scratch-v2：`{desc_by_name['scratch_v2']['mean']:.6f} ± {desc_by_name['scratch_v2']['std']:.6f}`（SD，n=15）。
+- 预训练 MobileNetV2：`{desc_by_name['pretrained']['mean']:.6f} ± {desc_by_name['pretrained']['std']:.6f}`（SD，n=15）。
+- 冻结 NAS：`{desc_by_name['nas']['mean']:.6f} ± {desc_by_name['nas']['std']:.6f}`（SD，n=15）。
+- scratch-v2 与旧 scratch 的 15 个 macro_f1 逐项完全一致；这证明数值复现，但不修复旧 patch provenance。
+- 预训练相对 scratch-v2 的配对均值差为 `{contrast_by_id['pretrained_minus_scratch']['mean_difference']:.6f}`，95% CI `[{contrast_by_id['pretrained_minus_scratch']['bootstrap_ci_low']:.6f}, {contrast_by_id['pretrained_minus_scratch']['bootstrap_ci_high']:.6f}]`。
+- scratch-v2 相对 NAS 的配对均值差为 `{contrast_by_id['scratch_minus_nas']['mean_difference']:.6f}`，95% CI `[{contrast_by_id['scratch_minus_nas']['bootstrap_ci_low']:.6f}, {contrast_by_id['scratch_minus_nas']['bootstrap_ci_high']:.6f}]`。
+
+## 证据解释
+
+观察层面，预训练 MobileNetV2 的平均 macro_f1 高于 scratch-v2，而两者都显著高于当前冻结 NAS 候选。统计支持来自 15 个相同 fold-seed 单元的配对差、按 fold 分层的 10,000 次 bootstrap CI、精确符号置换和 Holm 校正。该结果改变的决策是：`rl_arch_135` 可以继续作为硬件可行性与精度—资源权衡的负结果，但不能描述为精度竞争方法。
+
+## 限制
+
+SURE 尚未完成 15 单元，因此本分析不是完整 T2，也不能发布四方法最终排序或完整实验族的最终 Holm 校正。NKSID 缺少采集任务分组元数据，当前结论不支持 group-safe 泛化。板级准确率和功耗没有由本分析测量。
+"""
+    (OUTPUT / "analysis-report.md").write_text(analysis_report, encoding="utf-8")
+
+    stats_lines = [
+        "# 统计附录",
+        "",
+        "## 协议",
+        "",
+        "- 主指标：macro_f1（越高越好）。",
+        "- 分析单位：fold-seed 配对单元，n=15。",
+        f"- 分层 bootstrap：{BOOTSTRAP_REPS:,} 次，seed={BOOTSTRAP_SEED}，在每个 outer fold 内对 3 个 seed 有放回抽样。",
+        "- 置换检验：15 个配对差的全部 2^15 种符号翻转，双侧精确 p-value。",
+        "- 多重比较：三个预声明对比使用 Holm 校正。",
+        "- 效应量：paired Cohen dz = 配对差均值 / 配对差 SD。",
+        "",
+        "## 描述统计",
+        "",
+        "| 方法 | mean | SD | median | 95% CI | n |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+    for row in descriptive:
+        stats_lines.append(
+            f"| {row['label_zh']} | {row['mean']:.6f} | {row['std']:.6f} | {row['median']:.6f} | "
+            f"[{row['bootstrap_ci_low']:.6f}, {row['bootstrap_ci_high']:.6f}] | {row['n']} |"
+        )
+    stats_lines += [
+        "",
+        "## 配对对比",
+        "",
+        "| 对比 | 均值差 | 95% CI | 精确 p | Holm p | Cohen dz | 胜/平/负 | Shapiro p |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in contrasts:
+        dz = "NA" if row["paired_cohen_dz"] is None else f"{row['paired_cohen_dz']:.4f}"
+        stats_lines.append(
+            f"| {row['label_zh']} | {row['mean_difference']:.6f} | "
+            f"[{row['bootstrap_ci_low']:.6f}, {row['bootstrap_ci_high']:.6f}] | "
+            f"{row['p_raw']:.8f} | {row['p_holm']:.8f} | {dz} | "
+            f"{row['wins']}/{row['ties']}/{row['losses']} | {row['shapiro_p']:.6f} |"
+        )
+    stats_lines += [
+        "",
+        "## 边界",
+        "",
+        "Shapiro-Wilk 只作为差值分布诊断；推断主结果使用分层 bootstrap 和精确置换，不依赖正态性。scratch-v2 与旧 scratch 的差全部为 0，因此不对该恒等差执行无意义的显著性检验。SURE 加入后必须把完整闭集实验族重新校正。",
+    ]
+    (OUTPUT / "stats-appendix.md").write_text("\n".join(stats_lines) + "\n", encoding="utf-8")
+
+    figure_catalog = """# 图片目录
+
+## figure-01-three-method-paired-macro-f1
+
+- 目的：展示三个方法在相同 15 个 fold-seed 单元上的配对结构。
+- 数据源：`paired_units_source.csv`。
+- 读者应注意：NAS 在所有单元低于两种 MobileNetV2；预训练与从零训练之间存在较小、非完全一致的差异。
+- 决策意义：冻结 NAS 候选应按硬件可行但精度较弱的结果解释。
+- 限制：纵轴放大至 0.55–1.00；SURE 尚未加入。
+
+## figure-02-paired-contrast-forest
+
+- 目的：展示三个预声明对比的均值差及 95% 分层 bootstrap CI。
+- 数据源：`paired_contrasts.csv`。
+- 读者应注意：涉及 NAS 的差异远大于预训练相对 scratch-v2 的差异。
+- 决策意义：后续候选改进应优先解决 NAS 精度缺口，同时保留硬件证据边界。
+- 限制：完整 T2 加入 SURE 后需重新计算实验族校正。
+"""
+    (OUTPUT / "figure-catalog.md").write_text(figure_catalog, encoding="utf-8")
+
+    stats_payload = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "status": "PASS_THREE_METHOD_INTERIM_SURE_PENDING",
+        "metric": "macro_f1",
+        "unit": "fold_seed",
+        "n": 15,
+        "descriptive": descriptive,
+        "contrasts": contrasts,
+        "scratch_legacy_exact_match": True,
+        "bootstrap_repetitions": BOOTSTRAP_REPS,
+        "bootstrap_seed": BOOTSTRAP_SEED,
+        "limitation_zh": "SURE 尚未执行，不能替代完整 T2。",
+    }
+    (OUTPUT / "stats.json").write_text(json.dumps(stats_payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    outputs = sorted(path for path in OUTPUT.rglob("*") if path.is_file() and path.name != "manifest.json")
+    manifest = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "status": "PASS_THREE_METHOD_INTERIM_SURE_PENDING",
+        "script": str(Path(__file__).relative_to(ROOT)).replace("\\", "/"),
+        "script_sha256": script_sha,
+        "input_hashes": input_hashes,
+        "outputs": [
+            {
+                "path": str(path.relative_to(OUTPUT)).replace("\\", "/"),
+                "bytes": path.stat().st_size,
+                "sha256": sha256(path),
+            }
+            for path in outputs
+        ],
+        "claim_boundary_zh": "三方法阶段性诊断；SURE、板级准确率与功耗仍缺失。",
+    }
+    (OUTPUT / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(json.dumps({"status": manifest["status"], "output": str(OUTPUT), "files": len(outputs)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,16 @@
+schema_version: 1
+paper_id: harp_2023
+adapter_class: ExternalCommandAdapter
+checkout_path: reference/HARP
+task: hls_program_graph_proxy
+status: AUTHOR_GRAPH_CONTRACT_SMOKE_PASS_PROJECT_GRAPH_PENDING
+formal_execution_enabled: false
+input_contract:
+  accepted: LLVM-13-derived GEXF program graph generated from candidate HLS C/C++
+  rejected: NAS architecture JSON used directly as a graph
+  required_targets: [perf, util-LUT, util-FF, util-DSP, util-BRAM]
+  project_chain: candidate_network -> exported_hls_cpp -> llvm13_program_graph -> harp_gnn
+formal_blockers:
+  - no frozen set of at least 100 project full-network HLS/route samples
+  - no project candidate LLVM-13 graph generation artifact
+  - dedicated legacy HARP dependency environment not captured

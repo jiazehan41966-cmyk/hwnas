@@ -1,0 +1,11 @@
+set requested_parts {
+    xc7k325t-ffg900-2
+    xc7k325t-ffg676-2
+}
+
+puts "TOOL_VERSION=[version -short]"
+foreach requested $requested_parts {
+    set matches [get_parts -quiet $requested]
+    puts "PART_QUERY requested=$requested count=[llength $matches] matches=$matches"
+}
+exit

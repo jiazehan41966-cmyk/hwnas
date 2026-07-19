@@ -97,6 +97,9 @@ results/<run_name>/
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速开始与使用指南 |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | 实现进展与功能总结 |
 | [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) | 审计、证据与交接索引 |
+| [docs/FULL_EXPERIMENT_CYCLE_V2.md](docs/FULL_EXPERIMENT_CYCLE_V2.md) | 当前完整实验周期与门禁顺序 |
+| [docs/MULTIOBJECTIVE_AGING_EVOLUTION.md](docs/MULTIOBJECTIVE_AGING_EVOLUTION.md) | RL 与多目标 aging evolution 的匹配比较协议 |
+| [docs/benchmark_campaigns/ccf_ab_nksid_av7k325_v1.md](docs/benchmark_campaigns/ccf_ab_nksid_av7k325_v1.md) | CCF A/B 对标 campaign、适配器与 readiness 边界 |
 | [docs/REVIEW.md](docs/REVIEW.md) | 当前仓库审查入口与旧快照说明 |
 | [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | 冻结评估协议（外层5折×多seed，唯一可声明入口） |
 | [artifacts/hw_surrogate_calibration/hw_surrogate_calibration.md](artifacts/hw_surrogate_calibration/hw_surrogate_calibration.md) | 解析模型 vs 布线实测校准（10 组配对，资源残差 ≤±11%） |
@@ -110,6 +113,13 @@ results/<run_name>/
 ---
 
 ## Current Evidence Status
+
+The measurement-first ledger refreshed on 2026-07-18 records G1 accuracy
+baselines as `PASS` (45/45 fold-seed tasks). This does not unfreeze search:
+Gate 0 remains `not_ready` at 0/1,200 formal work units, G2 and G4 remain
+`PENDING`, G3 remains `FROZEN`, power remains `NOT_MEASURED`, and G5 remains
+`PAUSED`. The authoritative machine-readable state is
+[`artifacts/measurement_first_rebuild/status.json`](artifacts/measurement_first_rebuild/status.json).
 
 The 2026-07-03 first-principles audit supersedes broader interpretations of the
 older evidence. Reported Phase0 classification scores are legacy fold-0
@@ -157,11 +167,14 @@ The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
 .
 |-- README.md                         # 项目说明
 |-- run_search.py                     # 搜索入口脚本
+|-- run_eval_protocol.py              # 唯一正式分类评估入口
 |-- run_retrain.py                    # 重训练入口脚本
 |-- run_infer.py                      # 推理入口脚本
 |-- run_export.py                     # ONNX / HLS 导出入口
 |-- run_build_lut.py                  # HLS report -> LUT 构建入口
 |-- configs/                          # 配置文件
+|   |-- benchmarks/                   # 论文适配器与 benchmark campaign
+|   |-- experiment/                   # 完整周期与人工批准模板
 |   |-- search/
 |   |   |-- nksid_fpga_search_mobile_anchor_av7k325.yaml
 |   |   `-- legacy/
@@ -173,11 +186,15 @@ The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
 |-- hls_lut_builder/                  # HLS profiling / LUT 构建辅助工具
 |-- reference/                        # 参考代码库分析
 |   |-- FBNet/
+|   |-- ESDA/
+|   |-- HARP/
+|   |-- HW-PR-NAS/
 |   |-- HW-NAS-Bench/
 |   |-- TinyTNAS/
 |   `-- ANALYSIS.md
 |-- tests/                            # 测试
 `-- src/hwnas_fpga/
+    |-- benchmarks/                   # 论文适配、统计、readiness 与归档
     |-- interfaces.py                 # 接口定义
     |-- runtime.py                    # 运行时辅助逻辑
     |-- search_space/                 # 搜索空间
@@ -196,6 +213,8 @@ The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
     |   |-- trainer.py
     |   `-- retrain.py
     |-- search/                       # 搜索算法
+    |   |-- aging_evolution_searcher.py
+    |   |-- efficiency.py
     |   |-- searcher.py
     |   |-- constrained.py
     |   `-- pareto.py
@@ -218,7 +237,8 @@ The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
 - **硬件估计**：分析模型 + LUT 查找表 + board profile。
 - **模型构建**：`ArchitectureSpec` 到 PyTorch Model。
 - **训练评估**：完整训练流程。
-- **搜索算法**：RL 搜索、约束剪枝与 Pareto 选择。
+- **搜索算法**：RL、multi-objective aging evolution、约束剪枝与 Pareto 选择。
+- **对标适配**：论文方法适配、闭集/开放集指标、统计、readiness 与证据归档。
 - **重训练**：对 best architecture 进行独立最终重训练。
 - **部署导出**：ONNX 导出、HLS 项目骨架、report parser。
 - **INT8 量化**：导出权重量化包，供 FPGA/HLS 后端使用。
@@ -228,9 +248,9 @@ The Phase0 v3 low-DSP baseline remains frozen as a comparison source in
 - **对比实验**：Fused MBConv vs 标准 MBConv、有/无早期剪枝。
 - **Pareto 优化**：多目标优化与前沿分析。
 
-### 待实现
+### 尚未形成正式证据闭环
 
-- 权重共享超网训练。
+- SPOS 权重共享超网虽有实现入口，但尚未形成当前冻结协议下的正式结果。
 - 四路声呐消融完整闭环。
 - NKSID 完整验证集的样本级板上准确率。
 - 外部功率计或可读监控路径的实测功耗/能耗闭环。

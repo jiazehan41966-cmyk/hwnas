@@ -1,0 +1,729 @@
+#!/usr/bin/env python3
+"""Fail-closed audit for grouped-family HLS/route surrogate predictions.
+
+The .txt suffix is deliberate: this runtime auditor must not perturb the
+source fingerprint of the in-flight frozen G1 classification campaign.
+It admits only complete-network truth rows already accepted by
+``audit_hardware_collection.txt`` and requires one out-of-family prediction
+for every admitted sample, method and target.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import runpy
+from collections import Counter, defaultdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+HEX64_LENGTH = 64
+HEX40_LENGTH = 40
+METHODS = (
+    "analytic_lut",
+    "linear_regression",
+    "gradient_boosting",
+    "harp_gnn",
+)
+PAPER_BY_METHOD = {
+    "analytic_lut": "project_internal",
+    "linear_regression": "project_internal",
+    "gradient_boosting": "project_internal",
+    "harp_gnn": "harp_2023",
+}
+TARGETS = (
+    "hls_cycles",
+    "hls_ii",
+    "hls_lut",
+    "hls_dsp",
+    "hls_bram",
+    "hls_ff",
+    "route_wns_ns",
+    "route_tns_ns",
+    "achieved_clock_mhz",
+    "route_lut",
+    "route_dsp",
+    "route_bram",
+    "route_ff",
+)
+LOWER_IS_BETTER = {
+    "hls_cycles", "hls_ii", "hls_lut", "hls_dsp", "hls_bram",
+    "hls_ff", "route_lut", "route_dsp", "route_bram", "route_ff",
+}
+FEASIBILITY_TARGETS = {
+    "route_wns_ns",
+    "achieved_clock_mhz",
+    "route_lut",
+    "route_dsp",
+    "route_bram",
+    "route_ff",
+}
+HLS_PASS = {"PASS", "SUCCESS", "CSYNTH_PASS"}
+ROUTE_PASS = {"PASS", "SUCCESS", "ROUTE_CLEAN"}
+SEMANTIC_PASS = {"PASS", "SEMANTIC_SAFE"}
+COMPLETE_NETWORK_SCOPE = {"COMPLETE_NETWORK", "FULL_NETWORK"}
+PREDICTION_REQUIRED = {
+    "campaign_run_id", "sample_id", "architecture_family", "candidate_id",
+    "grouped_fold", "paper_id", "method_id", "target_name",
+    "predicted_value", "measured_value", "predicted_feasible",
+    "measured_feasible", "predictor_seed", "predictor_artifact_path",
+    "predictor_artifact_sha256", "predictor_config_path",
+    "predictor_config_sha256", "fold_manifest_path",
+    "fold_manifest_sha256", "feasibility_config_path",
+    "feasibility_config_sha256", "input_truth_sha256",
+    "project_code_commit", "project_code_state_sha256",
+    "source_freeze_manifest_sha256", "claimability_status",
+}
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def is_hex(value: Any, length: int) -> bool:
+    text = str(value).strip().lower()
+    return len(text) == length and all(char in "0123456789abcdef" for char in text)
+
+
+def resolve_path(anchor: Path, value: Any) -> Path:
+    path = Path(str(value).strip()).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    project_relative = (Path.cwd() / path).resolve()
+    if project_relative.exists():
+        return project_relative
+    return (anchor.parent / path).resolve()
+
+
+def verify_bound_file(anchor: Path, path_value: Any, sha_value: Any) -> tuple[bool, str, Path | None]:
+    if not str(path_value).strip():
+        return False, "path is empty", None
+    if not is_hex(sha_value, HEX64_LENGTH):
+        return False, "SHA256 is invalid", None
+    path = resolve_path(anchor, path_value)
+    if not path.is_file():
+        return False, f"file does not exist: {path}", path
+    if sha256_file(path).lower() != str(sha_value).strip().lower():
+        return False, f"SHA256 mismatch: {path}", path
+    return True, "", path
+
+
+def read_csv(path: Path, required: set[str]) -> tuple[list[dict[str, str]], list[str]]:
+    if not path.is_file():
+        return [], [f"missing file: {path}"]
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        fields = set(reader.fieldnames or [])
+        missing = sorted(required - fields)
+        if missing:
+            return [], [f"missing columns: {missing}"]
+        return list(reader), []
+
+
+def load_json(path: Path) -> tuple[dict[str, Any], list[str]]:
+    if not path.is_file():
+        return {}, [f"missing file: {path}"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, [f"cannot parse JSON {path}: {exc}"]
+    if not isinstance(payload, dict):
+        return {}, [f"JSON root must be an object: {path}"]
+    return payload, []
+
+
+def finite(value: Any) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def strict_bool(value: Any) -> bool | None:
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes"}:
+        return True
+    if text in {"0", "false", "no"}:
+        return False
+    return None
+
+
+def average_ranks(values: list[float]) -> list[float]:
+    order = sorted(range(len(values)), key=lambda index: (values[index], index))
+    ranks = [0.0] * len(values)
+    cursor = 0
+    while cursor < len(order):
+        end = cursor + 1
+        while end < len(order) and values[order[end]] == values[order[cursor]]:
+            end += 1
+        rank = (cursor + 1 + end) / 2.0
+        for offset in range(cursor, end):
+            ranks[order[offset]] = rank
+        cursor = end
+    return ranks
+
+
+def pearson(left: list[float], right: list[float]) -> float | None:
+    if len(left) != len(right) or len(left) < 2:
+        return None
+    left_mean = sum(left) / len(left)
+    right_mean = sum(right) / len(right)
+    numerator = sum((x - left_mean) * (y - right_mean) for x, y in zip(left, right))
+    left_ss = sum((x - left_mean) ** 2 for x in left)
+    right_ss = sum((y - right_mean) ** 2 for y in right)
+    denominator = math.sqrt(left_ss * right_ss)
+    return numerator / denominator if denominator > 0 else None
+
+
+def spearman(left: list[float], right: list[float]) -> float | None:
+    return pearson(average_ranks(left), average_ranks(right))
+
+
+def kendall_tau_b(left: list[float], right: list[float]) -> float | None:
+    if len(left) != len(right) or len(left) < 2:
+        return None
+    concordant = discordant = tie_left = tie_right = 0
+    for first in range(len(left) - 1):
+        for second in range(first + 1, len(left)):
+            dx = left[first] - left[second]
+            dy = right[first] - right[second]
+            if dx == 0 and dy == 0:
+                continue
+            if dx == 0:
+                tie_left += 1
+            elif dy == 0:
+                tie_right += 1
+            elif dx * dy > 0:
+                concordant += 1
+            else:
+                discordant += 1
+    denominator = math.sqrt(
+        (concordant + discordant + tie_left)
+        * (concordant + discordant + tie_right)
+    )
+    return (concordant - discordant) / denominator if denominator > 0 else None
+
+
+def top_k_recall(
+    sample_ids: list[str], predicted: list[float], measured: list[float],
+    *, lower_is_better: bool, fraction: float = 0.10,
+) -> tuple[float, int]:
+    count = max(1, math.ceil(len(sample_ids) * fraction))
+    direction = 1.0 if lower_is_better else -1.0
+    predicted_order = sorted(
+        range(len(sample_ids)),
+        key=lambda index: (direction * predicted[index], sample_ids[index]),
+    )[:count]
+    measured_order = sorted(
+        range(len(sample_ids)),
+        key=lambda index: (direction * measured[index], sample_ids[index]),
+    )[:count]
+    predicted_set = {sample_ids[index] for index in predicted_order}
+    measured_set = {sample_ids[index] for index in measured_order}
+    return len(predicted_set & measured_set) / count, count
+
+
+def truth_complete_rows(path: Path) -> tuple[list[dict[str, str]], list[str], dict[str, Any]]:
+    base_path = path.parent / "audit_hardware_collection.txt"
+    if not base_path.is_file():
+        base_path = Path(__file__).resolve().parent / "audit_hardware_collection.txt"
+    namespace = runpy.run_path(str(base_path))
+    base_result = namespace["audit_hls"](path)
+    rows, read_errors = read_csv(path, set(namespace["HLS_REQUIRED"]))
+    complete = [
+        row for row in rows
+        if str(row.get("semantic_equivalence_status", "")).upper() in SEMANTIC_PASS
+        and str(row.get("network_scope", "")).upper() in COMPLETE_NETWORK_SCOPE
+        and str(row.get("claimability_status", "")).upper() == "CLAIMABLE"
+        and str(row.get("csynth_status", "")).upper() in HLS_PASS
+        and str(row.get("route_status", "")).upper() in ROUTE_PASS
+    ]
+    errors = list(read_errors)
+    if not base_result.get("grouped_5fold_ready"):
+        errors.append("truth HLS/route inventory is not grouped_5fold_ready")
+    for error in base_result.get("errors", []):
+        errors.append(f"truth inventory: {error}")
+    return complete, errors, base_result
+
+
+def audit_feasibility(
+    path: Path, payload: dict[str, Any], truth_rows: list[dict[str, str]],
+) -> tuple[list[str], dict[str, float]]:
+    errors: list[str] = []
+    if payload.get("schema_version") != 1:
+        errors.append("feasibility schema_version must be 1")
+    if payload.get("policy_id") != "av7k325_route_claimability_v1":
+        errors.append("unexpected feasibility policy_id")
+    if payload.get("board_target") != "alinx_av7k325":
+        errors.append("board_target must be alinx_av7k325")
+    if payload.get("target_part") != "xc7k325t-ffg900-2":
+        errors.append("target_part must be xc7k325t-ffg900-2")
+    if payload.get("require_route_pass_for_measured_feasible") is not True:
+        errors.append("measured feasibility must require route PASS")
+
+    physical = payload.get("physical_capacity", {})
+    limits = payload.get("formal_route_limits", {})
+    expected_physical = {
+        "route_lut": 203800.0,
+        "route_ff": 407600.0,
+        "route_bram": 445.0,
+        "route_dsp": 840.0,
+    }
+    for key, expected in expected_physical.items():
+        if not finite(physical.get(key)) or float(physical[key]) != expected:
+            errors.append(f"physical_capacity.{key} must equal {expected}")
+    required_limits = {
+        "max_route_lut", "max_route_ff", "max_route_bram", "max_route_dsp",
+        "min_route_wns_ns", "min_achieved_clock_mhz",
+    }
+    if not isinstance(limits, dict) or any(not finite(limits.get(key)) for key in required_limits):
+        errors.append("formal_route_limits are missing or non-finite")
+        numeric_limits: dict[str, float] = {}
+    else:
+        numeric_limits = {key: float(limits[key]) for key in required_limits}
+        if numeric_limits["max_route_dsp"] != 700.0:
+            errors.append("formal max_route_dsp must equal the frozen <=700 route gate")
+        if numeric_limits["min_route_wns_ns"] != 0.0:
+            errors.append("formal min_route_wns_ns must equal 0")
+        if numeric_limits["min_achieved_clock_mhz"] != 200.0:
+            errors.append("formal min_achieved_clock_mhz must equal 200")
+        for metric in ("route_lut", "route_ff", "route_bram", "route_dsp"):
+            if numeric_limits[f"max_{metric}"] > float(physical.get(metric, -math.inf)):
+                errors.append(f"formal max_{metric} exceeds physical capacity")
+
+    for label, path_field, sha_field in (
+        ("capacity source", "capacity_source_path", "capacity_source_sha256"),
+        ("route policy source", "route_policy_source_path", "route_policy_source_sha256"),
+    ):
+        ok, reason, _ = verify_bound_file(path, payload.get(path_field), payload.get(sha_field))
+        if not ok:
+            errors.append(f"{label}: {reason}")
+
+    if truth_rows:
+        for field in (
+            "source_freeze_manifest_sha256", "project_code_commit",
+            "project_code_state_sha256",
+        ):
+            truth_values = {str(row.get(field, "")).strip() for row in truth_rows}
+            if len(truth_values) != 1 or str(payload.get(field, "")).strip() not in truth_values:
+                errors.append(f"feasibility {field} does not match truth")
+    if not is_hex(payload.get("source_freeze_manifest_sha256"), HEX64_LENGTH):
+        errors.append("feasibility source_freeze_manifest_sha256 is invalid")
+    if not is_hex(payload.get("project_code_state_sha256"), HEX64_LENGTH):
+        errors.append("feasibility project_code_state_sha256 is invalid")
+    if not is_hex(payload.get("project_code_commit"), HEX40_LENGTH):
+        errors.append("feasibility project_code_commit is invalid")
+    return errors, numeric_limits
+
+
+def measured_feasible(row: dict[str, str], limits: dict[str, float]) -> bool:
+    return (
+        str(row.get("route_status", "")).upper() in ROUTE_PASS
+        and float(row["route_lut"]) <= limits["max_route_lut"]
+        and float(row["route_ff"]) <= limits["max_route_ff"]
+        and float(row["route_bram"]) <= limits["max_route_bram"]
+        and float(row["route_dsp"]) <= limits["max_route_dsp"]
+        and float(row["route_wns_ns"]) >= limits["min_route_wns_ns"]
+        and float(row["achieved_clock_mhz"]) >= limits["min_achieved_clock_mhz"]
+    )
+
+
+def predicted_feasible(values: dict[str, float], limits: dict[str, float]) -> bool:
+    return (
+        values["route_lut"] <= limits["max_route_lut"]
+        and values["route_ff"] <= limits["max_route_ff"]
+        and values["route_bram"] <= limits["max_route_bram"]
+        and values["route_dsp"] <= limits["max_route_dsp"]
+        and values["route_wns_ns"] >= limits["min_route_wns_ns"]
+        and values["achieved_clock_mhz"] >= limits["min_achieved_clock_mhz"]
+    )
+
+
+def audit_fold_manifest(
+    manifest_path: Path, manifest: dict[str, Any], truth_path: Path,
+    truth_rows: list[dict[str, str]],
+) -> tuple[list[str], dict[str, int]]:
+    errors: list[str] = []
+    if manifest.get("schema_version") != 1:
+        errors.append("fold manifest schema_version must be 1")
+    if manifest.get("fold_strategy") != "leave_one_architecture_family_out":
+        errors.append("fold strategy must be leave_one_architecture_family_out")
+    if manifest.get("fold_count") != 5:
+        errors.append("fold_count must be 5")
+    if tuple(manifest.get("methods", [])) != METHODS:
+        errors.append(f"fold manifest methods must be exactly {list(METHODS)}")
+    if tuple(manifest.get("targets", [])) != TARGETS:
+        errors.append(f"fold manifest targets must be exactly {list(TARGETS)}")
+    ok, reason, resolved_truth = verify_bound_file(
+        manifest_path, manifest.get("truth_csv_path"), manifest.get("truth_csv_sha256")
+    )
+    if not ok:
+        errors.append(f"truth CSV binding: {reason}")
+    elif resolved_truth != truth_path.resolve():
+        errors.append("fold manifest truth_csv_path does not resolve to audited truth CSV")
+
+    truth_by_sample = {str(row["sample_id"]).strip(): row for row in truth_rows}
+    if len(truth_by_sample) != len(truth_rows):
+        errors.append("complete truth sample_id values are not unique")
+    families = {str(row["architecture_family"]).strip() for row in truth_rows}
+    manifest_families = manifest.get("architecture_families", [])
+    if len(manifest_families) != len(set(manifest_families)):
+        errors.append("architecture_families contains duplicates")
+    if set(manifest_families) != families or len(families) != 5:
+        errors.append("architecture_families must equal the five complete-truth families")
+
+    folds = manifest.get("folds", [])
+    if not isinstance(folds, list) or len(folds) != 5:
+        errors.append("folds must contain exactly five entries")
+        folds = []
+    sample_to_fold: dict[str, int] = {}
+    held_out = []
+    all_samples = set(truth_by_sample)
+    for entry in folds:
+        try:
+            fold = int(entry.get("fold"))
+        except (TypeError, ValueError):
+            errors.append("fold id is invalid")
+            continue
+        family = str(entry.get("held_out_family", "")).strip()
+        held_out.append(family)
+        expected_test = {
+            sample for sample, row in truth_by_sample.items()
+            if str(row["architecture_family"]).strip() == family
+        }
+        expected_train = all_samples - expected_test
+        test_ids = [str(value).strip() for value in entry.get("test_sample_ids", [])]
+        train_ids = [str(value).strip() for value in entry.get("train_sample_ids", [])]
+        if len(test_ids) != len(set(test_ids)) or set(test_ids) != expected_test:
+            errors.append(f"fold {fold} test_sample_ids do not equal held-out family")
+        if len(train_ids) != len(set(train_ids)) or set(train_ids) != expected_train:
+            errors.append(f"fold {fold} train_sample_ids do not equal the complement")
+        if set(test_ids) & set(train_ids):
+            errors.append(f"fold {fold} has train/test leakage")
+        expected_train_families = families - {family}
+        if set(entry.get("train_families", [])) != expected_train_families:
+            errors.append(f"fold {fold} train_families are invalid")
+        for sample in test_ids:
+            if sample in sample_to_fold:
+                errors.append(f"sample {sample} appears in multiple held-out folds")
+            sample_to_fold[sample] = fold
+    if set(held_out) != families or len(held_out) != len(set(held_out)):
+        errors.append("each architecture family must be held out exactly once")
+    if set(sample_to_fold) != all_samples:
+        errors.append("held-out folds do not cover every complete truth sample exactly once")
+
+    if truth_rows:
+        for field in (
+            "campaign_run_id", "source_freeze_manifest_sha256",
+            "project_code_commit", "project_code_state_sha256",
+        ):
+            truth_values = {str(row.get(field, "")).strip() for row in truth_rows}
+            if len(truth_values) != 1 or str(manifest.get(field, "")).strip() not in truth_values:
+                errors.append(f"fold manifest {field} does not match truth")
+    try:
+        int(manifest.get("predictor_seed"))
+    except (TypeError, ValueError):
+        errors.append("fold manifest predictor_seed is invalid")
+    return errors, sample_to_fold
+
+
+def audit_predictions(
+    truth_path: Path, prediction_path: Path, manifest_path: Path,
+    feasibility_path: Path,
+) -> dict[str, Any]:
+    truth_rows, errors, truth_audit = truth_complete_rows(truth_path)
+    manifest, manifest_errors = load_json(manifest_path)
+    feasibility, feasibility_errors = load_json(feasibility_path)
+    errors.extend(manifest_errors)
+    errors.extend(feasibility_errors)
+    if manifest_errors or feasibility_errors:
+        return {
+            "truth_audit": truth_audit,
+            "complete_truth_rows": len(truth_rows),
+            "prediction_rows": 0,
+            "formal_metrics_ready": False,
+            "errors": errors,
+        }
+
+    fold_errors, sample_to_fold = audit_fold_manifest(
+        manifest_path, manifest, truth_path, truth_rows
+    )
+    feasibility_audit_errors, limits = audit_feasibility(
+        feasibility_path, feasibility, truth_rows
+    )
+    errors.extend(fold_errors)
+    errors.extend(feasibility_audit_errors)
+
+    rows, prediction_read_errors = read_csv(prediction_path, PREDICTION_REQUIRED)
+    errors.extend(prediction_read_errors)
+    truth_sha = sha256_file(truth_path) if truth_path.is_file() else ""
+    manifest_sha = sha256_file(manifest_path)
+    feasibility_sha = sha256_file(feasibility_path)
+    truth_by_sample = {str(row["sample_id"]).strip(): row for row in truth_rows}
+    expected_keys = {
+        (sample_id, method, target)
+        for sample_id in truth_by_sample
+        for method in METHODS
+        for target in TARGETS
+    }
+    observed_keys: list[tuple[str, str, str]] = []
+    predictor_bindings: dict[tuple[int, str, str], set[tuple[str, str, str, str]]] = defaultdict(set)
+    prediction_values: dict[tuple[str, str], dict[str, float]] = defaultdict(dict)
+    declared_predicted_feasible: dict[tuple[str, str], set[bool | None]] = defaultdict(set)
+    declared_measured_feasible: dict[tuple[str, str], set[bool | None]] = defaultdict(set)
+    metric_rows: dict[tuple[str, str], list[tuple[str, float, float]]] = defaultdict(list)
+    file_cache: dict[tuple[str, str], tuple[bool, str, Path | None]] = {}
+
+    def cached_verify(path_value: str, sha_value: str) -> tuple[bool, str, Path | None]:
+        key = (str(path_value).strip(), str(sha_value).strip().lower())
+        if key not in file_cache:
+            file_cache[key] = verify_bound_file(prediction_path, key[0], key[1])
+        return file_cache[key]
+
+    malformed: list[str] = []
+    for index, row in enumerate(rows, start=2):
+        row_errors: list[str] = []
+        sample = str(row.get("sample_id", "")).strip()
+        method = str(row.get("method_id", "")).strip()
+        target = str(row.get("target_name", "")).strip()
+        observed_keys.append((sample, method, target))
+        truth = truth_by_sample.get(sample)
+        if truth is None:
+            row_errors.append("sample_id is not an admitted complete-truth sample")
+        if method not in METHODS:
+            row_errors.append("method_id is not in the frozen method set")
+        elif str(row.get("paper_id", "")).strip() != PAPER_BY_METHOD[method]:
+            row_errors.append("paper_id does not match method ownership")
+        if target not in TARGETS:
+            row_errors.append("target_name is not in the frozen target set")
+        if not finite(row.get("predicted_value")) or not finite(row.get("measured_value")):
+            row_errors.append("predicted_value/measured_value must be finite")
+        if strict_bool(row.get("predicted_feasible")) is None:
+            row_errors.append("predicted_feasible is not a strict boolean")
+        if strict_bool(row.get("measured_feasible")) is None:
+            row_errors.append("measured_feasible is not a strict boolean")
+        try:
+            fold = int(row.get("grouped_fold", ""))
+        except (TypeError, ValueError):
+            fold = -1
+            row_errors.append("grouped_fold is invalid")
+        try:
+            predictor_seed = int(row.get("predictor_seed", ""))
+            if predictor_seed != int(manifest.get("predictor_seed")):
+                row_errors.append("predictor_seed does not match fold manifest")
+        except (TypeError, ValueError):
+            row_errors.append("predictor_seed is invalid")
+
+        if truth is not None:
+            if str(row.get("architecture_family", "")).strip() != str(truth["architecture_family"]).strip():
+                row_errors.append("architecture_family does not match truth")
+            if str(row.get("candidate_id", "")).strip() != str(truth["candidate_id"]).strip():
+                row_errors.append("candidate_id does not match truth")
+            if fold != sample_to_fold.get(sample):
+                row_errors.append("grouped_fold does not match held-out family")
+            for field in (
+                "campaign_run_id", "project_code_commit",
+                "project_code_state_sha256", "source_freeze_manifest_sha256",
+            ):
+                if str(row.get(field, "")).strip() != str(truth.get(field, "")).strip():
+                    row_errors.append(f"{field} does not match truth")
+            if target in TARGETS and finite(row.get("measured_value")):
+                expected = float(truth[target])
+                actual = float(row["measured_value"])
+                if not math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-9):
+                    row_errors.append("measured_value does not match truth")
+
+        if str(row.get("input_truth_sha256", "")).strip().lower() != truth_sha.lower():
+            row_errors.append("input_truth_sha256 does not match audited truth CSV")
+        for label, path_field, sha_field, expected_path, expected_sha in (
+            ("fold manifest", "fold_manifest_path", "fold_manifest_sha256", manifest_path, manifest_sha),
+            ("feasibility config", "feasibility_config_path", "feasibility_config_sha256", feasibility_path, feasibility_sha),
+        ):
+            ok, reason, resolved = cached_verify(row.get(path_field, ""), row.get(sha_field, ""))
+            if not ok:
+                row_errors.append(f"{label}: {reason}")
+            elif resolved != expected_path.resolve() or str(row.get(sha_field, "")).strip().lower() != expected_sha.lower():
+                row_errors.append(f"{label} binding does not match CLI input")
+        artifact_ok, artifact_reason, _ = cached_verify(
+            row.get("predictor_artifact_path", ""), row.get("predictor_artifact_sha256", "")
+        )
+        config_ok, config_reason, _ = cached_verify(
+            row.get("predictor_config_path", ""), row.get("predictor_config_sha256", "")
+        )
+        if not artifact_ok:
+            row_errors.append(f"predictor artifact: {artifact_reason}")
+        if not config_ok:
+            row_errors.append(f"predictor config: {config_reason}")
+        if str(row.get("claimability_status", "")).strip().upper() != "CLAIMABLE":
+            row_errors.append("claimability_status must be CLAIMABLE")
+
+        if method in METHODS and target in TARGETS and finite(row.get("predicted_value")):
+            prediction_values[(sample, method)][target] = float(row["predicted_value"])
+            declared_predicted_feasible[(sample, method)].add(strict_bool(row.get("predicted_feasible")))
+            declared_measured_feasible[(sample, method)].add(strict_bool(row.get("measured_feasible")))
+            metric_rows[(method, target)].append(
+                (sample, float(row["predicted_value"]), float(row["measured_value"]))
+            )
+            predictor_bindings[(fold, method, target)].add((
+                str(row.get("predictor_artifact_path", "")).strip(),
+                str(row.get("predictor_artifact_sha256", "")).strip().lower(),
+                str(row.get("predictor_config_path", "")).strip(),
+                str(row.get("predictor_config_sha256", "")).strip().lower(),
+            ))
+        if row_errors:
+            malformed.append(f"line {index}: " + "; ".join(row_errors))
+    errors.extend(malformed)
+
+    counts = Counter(observed_keys)
+    duplicates = sorted(key for key, count in counts.items() if count != 1)
+    missing = sorted(expected_keys - set(observed_keys))
+    unexpected = sorted(set(observed_keys) - expected_keys)
+    if duplicates:
+        errors.append(f"duplicate prediction keys: {len(duplicates)}")
+    if missing:
+        errors.append(f"missing prediction keys: {len(missing)}")
+    if unexpected:
+        errors.append(f"unexpected prediction keys: {len(unexpected)}")
+    if len(rows) != len(expected_keys):
+        errors.append(f"prediction row count {len(rows)} != expected {len(expected_keys)}")
+    for key, bindings in predictor_bindings.items():
+        if len(bindings) != 1:
+            errors.append(f"predictor binding is not constant for fold/method/target {key}")
+
+    feasibility_summary = []
+    if limits:
+        for method in METHODS:
+            tp = tn = fp = fn = 0
+            for sample, truth in truth_by_sample.items():
+                key = (sample, method)
+                values = prediction_values.get(key, {})
+                if set(values) & FEASIBILITY_TARGETS != FEASIBILITY_TARGETS:
+                    errors.append(f"sample/method lacks feasibility targets: {sample}/{method}")
+                    continue
+                predicted = predicted_feasible(values, limits)
+                measured = measured_feasible(truth, limits)
+                if declared_predicted_feasible.get(key) != {predicted}:
+                    errors.append(f"predicted_feasible mismatch or drift: {sample}/{method}")
+                if declared_measured_feasible.get(key) != {measured}:
+                    errors.append(f"measured_feasible mismatch or drift: {sample}/{method}")
+                if predicted and measured:
+                    tp += 1
+                elif predicted and not measured:
+                    fp += 1
+                elif not predicted and measured:
+                    fn += 1
+                else:
+                    tn += 1
+            feasibility_summary.append({
+                "method_id": method,
+                "true_feasible": tp,
+                "true_infeasible": tn,
+                "false_feasible": fp,
+                "false_infeasible": fn,
+                "false_feasible_rate": fp / (fp + tn) if fp + tn else None,
+                "false_infeasible_rate": fn / (fn + tp) if fn + tp else None,
+                "false_feasible_denominator": fp + tn,
+                "false_infeasible_denominator": fn + tp,
+            })
+
+    metrics = []
+    for method in METHODS:
+        for target in TARGETS:
+            values = metric_rows.get((method, target), [])
+            if len(values) != len(truth_rows):
+                continue
+            sample_ids = [item[0] for item in values]
+            predicted = [item[1] for item in values]
+            measured = [item[2] for item in values]
+            errors_raw = [prediction - observation for prediction, observation in zip(predicted, measured)]
+            mae = sum(abs(value) for value in errors_raw) / len(errors_raw)
+            rmse = math.sqrt(sum(value * value for value in errors_raw) / len(errors_raw))
+            smape_terms = []
+            for prediction, observation in zip(predicted, measured):
+                denominator = abs(prediction) + abs(observation)
+                smape_terms.append(0.0 if denominator == 0 else 200.0 * abs(prediction - observation) / denominator)
+            recall, top_k = top_k_recall(
+                sample_ids, predicted, measured,
+                lower_is_better=target in LOWER_IS_BETTER,
+            )
+            metrics.append({
+                "method_id": method,
+                "target_name": target,
+                "n": len(values),
+                "mae": mae,
+                "rmse": rmse,
+                "smape_percent": sum(smape_terms) / len(smape_terms),
+                "spearman_rho": spearman(predicted, measured),
+                "kendall_tau_b": kendall_tau_b(predicted, measured),
+                "top_k_fraction": 0.10,
+                "top_k_count": top_k,
+                "top_k_recall": recall,
+                "direction": "lower_is_better" if target in LOWER_IS_BETTER else "higher_is_better",
+            })
+
+    formal_ready = bool(truth_rows) and len(truth_rows) >= 100 and not errors
+    return {
+        "truth_audit": truth_audit,
+        "truth_csv": str(truth_path.resolve()),
+        "truth_csv_sha256": truth_sha or None,
+        "complete_truth_rows": len(truth_rows),
+        "architecture_family_count": len({row["architecture_family"] for row in truth_rows}),
+        "prediction_csv": str(prediction_path.resolve()),
+        "prediction_csv_sha256": sha256_file(prediction_path) if prediction_path.is_file() else None,
+        "prediction_rows": len(rows),
+        "expected_prediction_rows": len(expected_keys),
+        "method_count": len(METHODS),
+        "target_count": len(TARGETS),
+        "predictor_binding_count": len(predictor_bindings),
+        "bound_file_count": len(file_cache),
+        "formal_metrics_ready": formal_ready,
+        "metrics": metrics if formal_ready else [],
+        "feasibility_summary": feasibility_summary if formal_ready else [],
+        "errors": errors,
+        "boundary": (
+            "Metrics are admitted only for out-of-architecture-family project predictions. "
+            "HARP author-paper numbers and operator-only HLS rows are excluded. "
+            "Predicted feasibility is not measured board latency or power."
+        ),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--hls-route-csv", required=True)
+    parser.add_argument("--prediction-csv", required=True)
+    parser.add_argument("--fold-manifest", required=True)
+    parser.add_argument("--feasibility-config", required=True)
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "hls_proxy": audit_predictions(
+            Path(args.hls_route_csv).resolve(),
+            Path(args.prediction_csv).resolve(),
+            Path(args.fold_manifest).resolve(),
+            Path(args.feasibility_config).resolve(),
+        ),
+    }
+    result["overall_ready"] = result["hls_proxy"]["formal_metrics_ready"]
+    payload = json.dumps(result, indent=2, ensure_ascii=False)
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(payload + "\n", encoding="utf-8")
+    print(payload)
+    return 0 if result["overall_ready"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

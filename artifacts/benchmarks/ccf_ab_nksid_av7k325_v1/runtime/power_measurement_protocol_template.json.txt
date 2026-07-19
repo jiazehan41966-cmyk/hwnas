@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "protocol_id": "av7k325_external_board_input_power_v1",
+  "rail_scope": "board_input_total",
+  "measurement_source": "external_power_meter_csv",
+  "timestamp_basis": "unix_utc_epoch_seconds",
+  "instrument": {
+    "manufacturer": "REPLACE",
+    "model": "REPLACE",
+    "serial_number": "REPLACE",
+    "sample_rate_hz": 0,
+    "voltage_range": "REPLACE",
+    "current_range": "REPLACE",
+    "calibration_certificate_sha256": "REPLACE_WITH_64_HEX"
+  },
+  "wiring": {
+    "measurement_point": "board_input_total",
+    "supply_path": "REPLACE",
+    "ground_reference": "REPLACE",
+    "range_mode": "REPLACE"
+  },
+  "blocks": {
+    "idle_repetitions_min": 3,
+    "active_repetitions_min": 3,
+    "duration_s_min": 60,
+    "inferences_per_active_block_min": 1000
+  },
+  "exclusions": {
+    "programming_inside_active_window": false,
+    "uart_upload_inside_active_window": false
+  },
+  "active_csv_rule": "CSV timestamps must be UTC epoch seconds and match the RUN_REPEAT receipt interval within the v2 auditor tolerance."
+}

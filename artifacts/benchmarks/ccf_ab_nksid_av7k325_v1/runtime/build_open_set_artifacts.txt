@@ -1,0 +1,580 @@
+#!/usr/bin/env python3
+"""Build audited T3/F5 and append open-set comparisons to T9."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import itertools
+import json
+import math
+import os
+from pathlib import Path
+import sys
+from typing import Any
+
+import numpy as np
+
+SCRIPT_PATH = Path(__file__).resolve()
+REPO_ROOT = SCRIPT_PATH.parents[4]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from hwnas_fpga.benchmarks.statistics import (
+    holm_adjust,
+    paired_permutation_test,
+    paired_stratified_bootstrap,
+)
+from hwnas_fpga.data import NKSID_CLASSES
+
+
+CLOSED_METHODS = (
+    "scratch_mobilenet_v2",
+    "imagenet_pretrained_mobilenet_v2",
+    "frozen_nas_champion",
+    "sure_same_backbone",
+)
+OPEN_METHODS = ("ce_msp", "dmcl_author_loss", "plud_author_loss")
+LABELS = {
+    "scratch_mobilenet_v2": "Scratch MobileNetV2",
+    "imagenet_pretrained_mobilenet_v2": "ImageNet-pretrained MobileNetV2",
+    "frozen_nas_champion": "Frozen NAS champion",
+    "sure_same_backbone": "SURE recipe",
+    "ce_msp": "CE + MSP",
+    "dmcl_author_loss": "DMCL",
+    "plud_author_loss": "PLUD",
+}
+EXPECTED_PAIRS = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+CONTRACT = SCRIPT_PATH.parent / "open_set_figure_contract_20260716.md"
+OPEN_AUDITOR = SCRIPT_PATH.parent / "audit_open_run.txt"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def stable_seed(*values: object) -> int:
+    payload = "|".join(str(value) for value in values).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big", signed=False)
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+    os.replace(temporary, path)
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def verify_open_audit(path: Path, run_dir: Path, method: str) -> dict[str, Any]:
+    audit = json.loads(path.read_text(encoding="utf-8-sig"))
+    manifest_path = run_dir / "run_manifest.json"
+    if not manifest_path.is_file() or not OPEN_AUDITOR.is_file():
+        raise RuntimeError(f"run manifest or open auditor is missing for {method}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    audit_pairs = {
+        (int(row["fold"]), int(row["seed"]))
+        for row in audit.get("records") or []
+    }
+    if not (
+        audit.get("status") == "PASS"
+        and int(audit.get("record_count") or 0) == 15
+        and not audit.get("errors")
+        and Path(audit.get("run_dir", "")).resolve() == run_dir
+        and audit.get("expected_method") == method
+        and audit.get("run_fingerprint") == manifest.get("run_fingerprint")
+        and audit.get("auditor_sha256") == sha256_file(OPEN_AUDITOR)
+        and audit_pairs == EXPECTED_PAIRS
+    ):
+        raise RuntimeError(f"open-set independent audit is not a matching PASS for {method}")
+    return audit
+
+
+def load_open_method(run_dir: Path, audit_path: Path, method: str) -> tuple[list[dict[str, Any]], np.ndarray, dict[str, Any]]:
+    audit = verify_open_audit(audit_path, run_dir, method)
+    audit_records = {
+        (int(row["fold"]), int(row["seed"])): row
+        for row in audit["records"]
+    }
+    units: list[dict[str, Any]] = []
+    detection_confusion = np.zeros((2, 2), dtype=np.int64)
+    inventory: list[dict[str, Any]] = []
+    for fold, seed in sorted(EXPECTED_PAIRS):
+        record_path = run_dir / f"run_fold{fold}_seed{seed}.json"
+        record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+        audit_record = audit_records[(fold, seed)]
+        if (
+            record.get("run_fingerprint") != audit.get("run_fingerprint")
+            or sha256_file(record_path) != audit_record.get("record_sha256")
+            or record["outer_predictions"]["sha256"] != audit_record.get("prediction_sha256")
+            or record["checkpoint"]["sha256"] != audit_record.get("checkpoint_sha256")
+        ):
+            raise RuntimeError(f"record/audit binding mismatch {method}/{fold}/{seed}")
+        prediction_path = Path(record["outer_predictions"]["path"]).resolve()
+        checkpoint_path = Path(record["checkpoint"]["path"]).resolve()
+        if sha256_file(prediction_path) != record["outer_predictions"]["sha256"]:
+            raise RuntimeError(f"prediction hash mismatch {method}/{fold}/{seed}")
+        if sha256_file(checkpoint_path) != record["checkpoint"]["sha256"]:
+            raise RuntimeError(f"checkpoint hash mismatch {method}/{fold}/{seed}")
+        rows = [json.loads(line) for line in prediction_path.read_text(encoding="utf-8").splitlines() if line]
+        expected_size = 537 if fold == 4 else 520
+        if len(rows) != expected_size or len({row["sample_id"] for row in rows}) != expected_size:
+            raise RuntimeError(f"prediction row count/uniqueness mismatch {method}/{fold}/{seed}")
+        for row in rows:
+            true_index = 0 if bool(row["target_is_known"]) else 1
+            predicted_index = 1 if bool(row["rejected_as_unknown"]) else 0
+            detection_confusion[true_index, predicted_index] += 1
+        metrics = dict(record["outer_val"])
+        units.append(
+            {
+                "method": method,
+                "fold": fold,
+                "seed": seed,
+                "known_macro_f1": float(metrics["known_macro_f1"]),
+                "nma": float(metrics["nma"]),
+                "osfm": float(metrics["osfm"]),
+                "oscr_mac": float(metrics["oscr_mac"]),
+                "unknown_auroc": float(metrics["unknown_auroc"]),
+                "unknown_fpr95": float(metrics["unknown_fpr95"]),
+                "known_class_ids": json.dumps(record["open_set_spec"]["known_class_ids"]),
+                "unknown_class_ids": json.dumps(record["open_set_spec"]["unknown_class_ids"]),
+                "threshold": float(record["open_set_threshold"]["threshold"]),
+                "threshold_source": record["open_set_threshold"]["source"],
+            }
+        )
+        inventory.append(
+            {
+                "fold": fold,
+                "seed": seed,
+                "record_path": str(record_path),
+                "record_sha256": sha256_file(record_path),
+                "prediction_path": str(prediction_path),
+                "prediction_sha256": record["outer_predictions"]["sha256"],
+                "checkpoint_path": str(checkpoint_path),
+                "checkpoint_sha256": record["checkpoint"]["sha256"],
+            }
+        )
+    return units, detection_confusion, {
+        "audit_path": str(audit_path),
+        "audit_sha256": sha256_file(audit_path),
+        "run_dir": str(run_dir),
+        "run_fingerprint": audit["run_fingerprint"],
+        "files": inventory,
+    }
+
+
+def verify_closed_manifest(path: Path) -> dict[str, Any]:
+    manifest = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not (
+        manifest.get("status") == "COMPLETE_INPUT_AUDITS_PASS_PENDING_G1_LEDGER"
+        and manifest.get("f5_status") == "WITHHELD_PENDING_OPEN_SET_CONFUSION_EVIDENCE"
+        and set(manifest.get("inputs") or {}) == set(CLOSED_METHODS)
+    ):
+        raise RuntimeError("closed classification artifact manifest is not eligible for F5")
+    for method, item in manifest["inputs"].items():
+        audit_path = Path(item["audit_path"])
+        if not audit_path.is_file() or sha256_file(audit_path) != item["audit_sha256"]:
+            raise RuntimeError(f"closed audit drift for {method}")
+    return manifest
+
+
+def closed_confusions(manifest: dict[str, Any]) -> dict[str, np.ndarray]:
+    output: dict[str, np.ndarray] = {}
+    for method in CLOSED_METHODS:
+        confusion = np.zeros((8, 8), dtype=np.int64)
+        files = list(manifest["inputs"][method]["files"])
+        if len(files) != 15:
+            raise RuntimeError(f"closed input inventory count mismatch for {method}")
+        for item in files:
+            path = Path(item["prediction_path"])
+            if sha256_file(path) != item["prediction_sha256"]:
+                raise RuntimeError(f"closed prediction hash drift for {method}: {path}")
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line:
+                    row = json.loads(line)
+                    confusion[int(row["target"]), int(row["prediction"])] += 1
+        output[method] = confusion
+    return output
+
+
+def stratified_mean_ci(values: list[float], folds: list[int], *, seed: int, iterations: int = 10_000) -> dict[str, float]:
+    array = np.asarray(values, dtype=np.float64)
+    labels = np.asarray(folds, dtype=np.int64)
+    if array.shape != (15,) or labels.shape != (15,) or not np.all(np.isfinite(array)):
+        raise ValueError("formal CI requires 15 finite fold-seed values")
+    groups = [np.flatnonzero(labels == fold) for fold in range(5)]
+    if [len(group) for group in groups] != [3, 3, 3, 3, 3]:
+        raise ValueError("expected three seeds per fold")
+    rng = np.random.default_rng(seed)
+    draws = np.empty(iterations, dtype=np.float64)
+    for iteration in range(iterations):
+        sampled = np.concatenate([rng.choice(group, size=3, replace=True) for group in groups])
+        draws[iteration] = float(np.mean(array[sampled]))
+    return {
+        "mean": float(np.mean(array)),
+        "ci95_low": float(np.quantile(draws, 0.025)),
+        "ci95_high": float(np.quantile(draws, 0.975)),
+    }
+
+
+def build_t3(units_by_method: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for method in OPEN_METHODS:
+        units = units_by_method[method]
+        summaries = {}
+        for metric in ("known_macro_f1", "nma", "osfm", "oscr_mac", "unknown_auroc", "unknown_fpr95"):
+            summaries[metric] = stratified_mean_ci(
+                [float(unit[metric]) for unit in units],
+                [int(unit["fold"]) for unit in units],
+                seed=stable_seed("T3", method, metric),
+            )
+
+        def cell(metric: str) -> str:
+            value = summaries[metric]
+            return f"{value['mean']:.6f} [{value['ci95_low']:.6f}, {value['ci95_high']:.6f}]"
+
+        rows.append(
+            {
+                "method": LABELS[method],
+                "known_macro_f1_mean_ci95": cell("known_macro_f1"),
+                "nma_mean_ci95": cell("nma"),
+                "osfm_mean_ci95": cell("osfm"),
+                "oscr_mac_mean_ci95": cell("oscr_mac"),
+                "unknown_auroc_mean_ci95": cell("unknown_auroc"),
+                "unknown_fpr95_mean_ci95": cell("unknown_fpr95"),
+                "threshold_source": "inner_validation_known_samples_only",
+                "n_fold_seed": 15,
+                "claimability": "PENDING_G1_LEDGER",
+            }
+        )
+    return rows
+
+
+def keyed(units: list[dict[str, Any]], metric: str) -> dict[tuple[int, int], float]:
+    result = {(int(row["fold"]), int(row["seed"])): float(row[metric]) for row in units}
+    if set(result) != EXPECTED_PAIRS:
+        raise RuntimeError("open paired unit key mismatch")
+    return result
+
+
+def open_t9_rows(units_by_method: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    for metric in ("known_macro_f1", "oscr_mac"):
+        raw_p: dict[str, float] = {}
+        pending: list[dict[str, Any]] = []
+        for left, right in itertools.combinations(OPEN_METHODS, 2):
+            left_map = keyed(units_by_method[left], metric)
+            right_map = keyed(units_by_method[right], metric)
+            keys = sorted(left_map)
+            left_values = [left_map[key] for key in keys]
+            right_values = [right_map[key] for key in keys]
+            comparison_id = f"open_{metric}:{left}_minus_{right}"
+            bootstrap = paired_stratified_bootstrap(
+                left_values,
+                right_values,
+                [fold for fold, _ in keys],
+                iterations=10_000,
+                seed=stable_seed("T3_BOOT", comparison_id),
+            )
+            permutation = paired_permutation_test(left_values, right_values)
+            raw_p[comparison_id] = float(permutation["p_value"])
+            pending.append(
+                {
+                    "experiment_family": f"T3_open_{metric}",
+                    "comparison_id": comparison_id,
+                    "left_method": LABELS[left],
+                    "right_method": LABELS[right],
+                    "effect_left_minus_right": bootstrap["mean_difference"],
+                    "ci95_low": bootstrap["ci95_low"],
+                    "ci95_high": bootstrap["ci95_high"],
+                    "cohens_dz": bootstrap["cohens_dz"],
+                    "p_raw": permutation["p_value"],
+                    "permutation_exact": permutation["exact"],
+                    "n_paired": 15,
+                    "bootstrap_iterations": 10_000,
+                }
+            )
+        adjusted = holm_adjust(raw_p)
+        for row in pending:
+            row["p_holm"] = adjusted[row["comparison_id"]]
+            row["claimability"] = "PENDING_G1_LEDGER"
+            output.append(row)
+    return output
+
+
+def write_table_bundle(base: Path, title: str, rows: list[dict[str, Any]]) -> dict[str, str]:
+    fields = list(rows[0])
+    write_csv(base.with_suffix(".csv"), rows, fields)
+    markdown = [f"# {title}", "", "| " + " | ".join(fields) + " |", "|" + "|".join("---" for _ in fields) + "|"]
+    markdown.extend("| " + " | ".join(str(row.get(field, "")).replace("|", "\\|") for field in fields) + " |" for row in rows)
+    base.with_suffix(".md").write_text("\n".join(markdown) + "\n", encoding="utf-8")
+
+    def latex(value: Any) -> str:
+        text = "" if value is None else str(value)
+        for old, new in (("\\", "\\textbackslash{}"), ("_", "\\_"), ("%", "\\%"), ("&", "\\&")):
+            text = text.replace(old, new)
+        return text
+
+    latex_rows = [" & ".join(latex(field) for field in fields) + " \\\\", r"\hline"]
+    latex_rows.extend(" & ".join(latex(row.get(field)) for field in fields) + " \\\\" for row in rows)
+    base.with_suffix(".tex").write_text("\n".join(latex_rows) + "\n", encoding="utf-8")
+    return {suffix: str(base.with_suffix(f".{suffix}")) for suffix in ("csv", "md", "tex")}
+
+
+def normalize_rows(matrix: np.ndarray) -> np.ndarray:
+    totals = matrix.sum(axis=1, keepdims=True)
+    return np.divide(matrix, totals, out=np.zeros_like(matrix, dtype=np.float64), where=totals > 0)
+
+
+def configure_matplotlib() -> None:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans", "Liberation Sans"]
+    plt.rcParams["svg.fonttype"] = "none"
+    mpl.rcParams.update({
+        "pdf.fonttype": 42,
+        "font.size": 6.5,
+        "axes.linewidth": 0.8,
+        "legend.frameon": False,
+    })
+
+
+def export_figure(figure, base: Path) -> dict[str, str]:
+    base.parent.mkdir(parents=True, exist_ok=True)
+    outputs = {suffix: str(base.with_suffix(f".{suffix}")) for suffix in ("svg", "pdf", "png")}
+    figure.savefig(outputs["svg"], bbox_inches="tight")
+    figure.savefig(outputs["pdf"], bbox_inches="tight")
+    figure.savefig(outputs["png"], dpi=300, bbox_inches="tight")
+    return outputs
+
+
+def annotate_matrix(axis, matrix: np.ndarray, *, fontsize: float) -> None:
+    for row in range(matrix.shape[0]):
+        for column in range(matrix.shape[1]):
+            value = float(matrix[row, column])
+            axis.text(
+                column,
+                row,
+                f"{value:.2f}",
+                ha="center",
+                va="center",
+                fontsize=fontsize,
+                color="white" if value >= 0.55 else "#272727",
+            )
+
+
+def build_f5(
+    artifact_root: Path,
+    closed: dict[str, np.ndarray],
+    open_detection: dict[str, np.ndarray],
+    input_files: list[Path],
+) -> dict[str, str]:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    configure_matplotlib()
+    figure, axes = plt.subplots(2, 4, figsize=(7.087, 4.0), constrained_layout=True)
+    source_rows: list[dict[str, Any]] = []
+    images = []
+    panel = iter("abcdefg")
+    for column, method in enumerate(CLOSED_METHODS):
+        axis = axes[0, column]
+        counts = closed[method]
+        normalized = normalize_rows(counts)
+        images.append(axis.imshow(normalized, vmin=0, vmax=1, cmap="Blues", aspect="equal"))
+        annotate_matrix(axis, normalized, fontsize=3.6)
+        axis.set_title(LABELS[method], fontsize=6.4, weight="bold")
+        axis.set_xticks(range(8), [str(index) for index in range(8)], fontsize=5)
+        axis.set_yticks(range(8), [str(index) for index in range(8)], fontsize=5)
+        axis.set_xlabel("Predicted class ID")
+        if column == 0:
+            axis.set_ylabel("True class ID")
+        axis.text(-0.20, 1.20, next(panel), transform=axis.transAxes, fontsize=8, fontweight="bold")
+        for true in range(8):
+            for predicted in range(8):
+                source_rows.append(
+                    {
+                        "task": "closed_set",
+                        "method": method,
+                        "true_label": NKSID_CLASSES[true],
+                        "predicted_label": NKSID_CLASSES[predicted],
+                        "count": int(counts[true, predicted]),
+                        "row_normalized": float(normalized[true, predicted]),
+                    }
+                )
+    for column, method in enumerate(OPEN_METHODS):
+        axis = axes[1, column]
+        counts = open_detection[method]
+        normalized = normalize_rows(counts)
+        images.append(axis.imshow(normalized, vmin=0, vmax=1, cmap="Blues", aspect="equal"))
+        annotate_matrix(axis, normalized, fontsize=7)
+        axis.set_title(LABELS[method], fontsize=6.4, weight="bold")
+        axis.set_xticks((0, 1), ("Known", "Unknown"), fontsize=5.5)
+        axis.set_yticks((0, 1), ("Known", "Unknown"), fontsize=5.5)
+        axis.set_xlabel("Predicted decision")
+        if column == 0:
+            axis.set_ylabel("True status")
+        axis.text(-0.20, 1.20, next(panel), transform=axis.transAxes, fontsize=8, fontweight="bold")
+        for true, true_label in enumerate(("known", "unknown")):
+            for predicted, predicted_label in enumerate(("known", "unknown")):
+                source_rows.append(
+                    {
+                        "task": "open_set_detection",
+                        "method": method,
+                        "true_label": true_label,
+                        "predicted_label": predicted_label,
+                        "count": int(counts[true, predicted]),
+                        "row_normalized": float(normalized[true, predicted]),
+                    }
+                )
+    note_axis = axes[1, 3]
+    note_axis.axis("off")
+    note_axis.text(
+        0.03,
+        0.95,
+        "Open-set class identities vary by fold.\nOnly the fold-invariant known/unknown\ndecision is pooled here.\n\nKnown-class macro-F1 and OSCRmac\nare reported in T3/T9.",
+        va="top",
+        ha="left",
+        fontsize=7,
+        color="#272727",
+        linespacing=1.5,
+    )
+    figure.colorbar(images[0], ax=list(axes.flat[:7]), fraction=0.022, pad=0.02, label="Row-normalized proportion")
+    figure_dir = artifact_root / "figures"
+    source_path = figure_dir / "f5_source.csv"
+    write_csv(source_path, source_rows, list(source_rows[0]))
+    outputs = export_figure(figure, figure_dir / "f5")
+    plt.close(figure)
+    meta = {
+        "figure_id": "F5",
+        "title_en": "Closed- and open-set confusion matrices",
+        "title_zh": "闭集及开放集混淆矩阵",
+        "caption_en": "Row-normalized closed-set class confusion (top) and fold-invariant known/unknown detection confusion (bottom).",
+        "caption_zh": "行归一化闭集类别混淆（上）及跨 fold 可比的 known/unknown 检测混淆（下）。",
+        "supported_claim": "Shows class confusion under the closed protocol and unknown-rejection decisions under the open protocol without pooling incompatible known-class identities.",
+        "limitations": [
+            "Open-set panels do not show known-to-known class identity errors; T3 known macro-F1 complements them.",
+            "All folds arise from one dataset population.",
+            "Campaign claimability remains PENDING until the G1 ledger closes.",
+        ],
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_sha256": sha256_file(CONTRACT),
+        "inputs": [{"path": str(path.resolve()), "sha256": sha256_file(path)} for path in input_files],
+        "source_data": {"path": str(source_path.resolve()), "sha256": sha256_file(source_path)},
+        "exports": {key: {"path": value, "sha256": sha256_file(Path(value))} for key, value in outputs.items()},
+    }
+    atomic_json(figure_dir / "f5_meta.json", meta)
+    outputs.update({"source_csv": str(source_path), "meta_json": str(figure_dir / "f5_meta.json")})
+    return outputs
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-id", default="ccf_ab_nksid_av7k325_v1")
+    parser.add_argument("--closed-manifest", required=True)
+    parser.add_argument("--ce-run", required=True)
+    parser.add_argument("--ce-audit", required=True)
+    parser.add_argument("--dmcl-run", required=True)
+    parser.add_argument("--dmcl-audit", required=True)
+    parser.add_argument("--plud-run", required=True)
+    parser.add_argument("--plud-audit", required=True)
+    args = parser.parse_args()
+
+    closed_manifest_path = Path(args.closed_manifest).resolve()
+    closed_manifest = verify_closed_manifest(closed_manifest_path)
+    closed = closed_confusions(closed_manifest)
+    bindings = {
+        "ce_msp": (Path(args.ce_run).resolve(), Path(args.ce_audit).resolve()),
+        "dmcl_author_loss": (Path(args.dmcl_run).resolve(), Path(args.dmcl_audit).resolve()),
+        "plud_author_loss": (Path(args.plud_run).resolve(), Path(args.plud_audit).resolve()),
+    }
+    units_by_method: dict[str, list[dict[str, Any]]] = {}
+    open_detection: dict[str, np.ndarray] = {}
+    inventory: dict[str, Any] = {}
+    for method in OPEN_METHODS:
+        units, confusion, item = load_open_method(*bindings[method], method)
+        units_by_method[method] = units
+        open_detection[method] = confusion
+        inventory[method] = item
+
+    artifact_root = REPO_ROOT / "artifacts" / "benchmarks" / args.campaign_id
+    t3_rows = build_t3(units_by_method)
+    t3_outputs = write_table_bundle(
+        artifact_root / "tables" / "t3",
+        "T3: Open-set Long-tailed Sonar Recognition / NKSID 开放集长尾识别",
+        t3_rows,
+    )
+    source_dir = artifact_root / "source_data"
+    unit_rows = [dict(row) for method in OPEN_METHODS for row in units_by_method[method]]
+    write_csv(source_dir / "t3_fold_seed_units.csv", unit_rows, list(unit_rows[0]))
+    t9_path = artifact_root / "tables" / "t9.csv"
+    if not t9_path.is_file():
+        raise RuntimeError("T9 closed/robustness table is missing")
+    existing_t9 = [
+        row for row in read_csv(t9_path)
+        if not str(row.get("experiment_family", "")).startswith("T3_open_")
+    ]
+    appended_t9 = existing_t9 + open_t9_rows(units_by_method)
+    t9_outputs = write_table_bundle(
+        artifact_root / "tables" / "t9",
+        "T9: Ablations, Effect Sizes and Significance / 消融实验、效应量与显著性",
+        appended_t9,
+    )
+    input_files = [closed_manifest_path, *[Path(inventory[method]["audit_path"]) for method in OPEN_METHODS]]
+    f5_outputs = build_f5(artifact_root, closed, open_detection, input_files)
+    manifest = {
+        "schema_version": 1,
+        "status": "COMPLETE_INPUT_AUDITS_PASS_PENDING_G1_LEDGER",
+        "campaign_id": args.campaign_id,
+        "generator_path": str(SCRIPT_PATH),
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_path": str(CONTRACT),
+        "figure_contract_sha256": sha256_file(CONTRACT),
+        "analysis_runtime": {
+            "interpreter": sys.executable,
+            "python": sys.version,
+            "numpy": np.__version__,
+            "matplotlib": __import__("matplotlib").__version__,
+        },
+        "closed_input": {"path": str(closed_manifest_path), "sha256": sha256_file(closed_manifest_path)},
+        "open_inputs": inventory,
+        "outputs": {
+            "T3": t3_outputs,
+            "T9_final": t9_outputs,
+            "F5": f5_outputs,
+            "T3_units_source": str(source_dir / "t3_fold_seed_units.csv"),
+        },
+        "claimability": "PENDING_G1_LEDGER",
+    }
+    output = artifact_root / "manifests" / "open_set_artifact_build.json"
+    atomic_json(output, manifest)
+    print(json.dumps({"status": manifest["status"], "manifest": str(output)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

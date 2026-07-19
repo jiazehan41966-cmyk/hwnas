@@ -1,0 +1,753 @@
+#!/usr/bin/env python3
+"""Fail-closed T4/F7 sonar-corruption evaluator for audited closed-set runs.
+
+The .txt suffix is intentional: formal training fingerprints include untracked
+Python/JSON/YAML files, while the current long-running G1 job must remain
+resumable. Execute this file with the dedicated Python interpreter of the run.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+from typing import Any, Iterable
+
+import numpy as np
+from PIL import Image, ImageEnhance, ImageFilter
+import torch
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms as T
+
+# The benchmark environments execute the repository in-place rather than as an
+# installed wheel. Bind imports to this evaluator's repository, not cwd.
+SCRIPT_PATH = Path(__file__).resolve()
+REPO_ROOT = SCRIPT_PATH.parents[4]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from hwnas_fpga.benchmarks.sonar import corrupt_at_snr, paired_clean_image_quality
+from hwnas_fpga.data import create_protocol_dataloaders
+from hwnas_fpga.models import build_backbone, build_model
+from hwnas_fpga.search_space import ArchitectureSpec
+
+
+SCHEMA_VERSION = 1
+EXPECTED_PAIRS = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+SNR_LEVELS = (20.0, 15.0, 10.0, 5.0, 0.0)
+SNR_KINDS = ("awgn", "speckle")
+# Predeclared before formal data generation. Gaussian radius is in resized
+# image pixels; contrast uses PIL's mean-preserving contrast factor.
+BLUR_RADIUS = {1: 0.5, 2: 1.0, 3: 1.5, 4: 2.0, 5: 2.5}
+CONTRAST_FACTOR = {1: 0.85, 2: 0.70, 3: 0.55, 4: 0.40, 5: 0.25}
+CORRUPTION_SEED_NAMESPACE = "ccf_ab_nksid_sonar_corruption_v1"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def finite_or_none(value: float | int | None) -> float | int | None:
+    if value is None:
+        return None
+    return value if math.isfinite(float(value)) else None
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False), encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def atomic_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    os.replace(temporary, path)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+    os.replace(temporary, path)
+
+
+def condition_plan() -> list[dict[str, Any]]:
+    conditions: list[dict[str, Any]] = [
+        {"condition_id": "clean", "family": "clean", "severity": None}
+    ]
+    for kind in SNR_KINDS:
+        for snr in SNR_LEVELS:
+            conditions.append(
+                {
+                    "condition_id": f"{kind}_snr_{int(snr)}db",
+                    "family": kind,
+                    "severity": None,
+                    "target_snr_db": snr,
+                }
+            )
+    for severity, radius in BLUR_RADIUS.items():
+        conditions.append(
+            {
+                "condition_id": f"blur_s{severity}",
+                "family": "blur",
+                "severity": severity,
+                "gaussian_radius_px": radius,
+            }
+        )
+    for severity, factor in CONTRAST_FACTOR.items():
+        conditions.append(
+            {
+                "condition_id": f"contrast_s{severity}",
+                "family": "contrast",
+                "severity": severity,
+                "contrast_factor": factor,
+            }
+        )
+    return conditions
+
+
+def deterministic_corruption_seed(sample_id: str, condition_id: str) -> int:
+    payload = f"{CORRUPTION_SEED_NAMESPACE}|{sample_id}|{condition_id}".encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big", signed=False)
+
+
+def _metric_values(targets: list[int], predictions: list[int], classes: int) -> dict[str, Any]:
+    confusion = [[0] * classes for _ in range(classes)]
+    for target, prediction in zip(targets, predictions, strict=True):
+        confusion[target][prediction] += 1
+    supports = [sum(row) for row in confusion]
+    predicted = [sum(confusion[row][column] for row in range(classes)) for column in range(classes)]
+    f1: list[float] = []
+    for index in range(classes):
+        denominator = supports[index] + predicted[index]
+        f1.append(0.0 if denominator == 0 else 2.0 * confusion[index][index] / denominator)
+    total = len(targets)
+    correct = sum(confusion[index][index] for index in range(classes))
+    return {
+        "macro_f1": sum(f1) / classes,
+        "top1": correct / total,
+        "weighted_f1": sum(score * support for score, support in zip(f1, supports, strict=True)) / total,
+        "per_class_f1": f1,
+        "support": supports,
+        "confusion_matrix": confusion,
+    }
+
+
+class CorruptedOuterDataset(Dataset):
+    def __init__(
+        self,
+        *,
+        eval_dataset: Dataset,
+        indices: list[int],
+        image_size: int,
+        condition: dict[str, Any],
+    ) -> None:
+        self.eval_dataset = eval_dataset
+        self.indices = indices
+        self.condition = condition
+        self.resize_to_tensor = T.Compose([T.Resize((image_size, image_size)), T.ToTensor()])
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, position: int) -> tuple[torch.Tensor, int, dict[str, Any]]:
+        dataset_index = int(self.indices[position])
+        sample_path, label = self.eval_dataset.samples[dataset_index]
+        sample_id = str(Path(sample_path).resolve())
+        with Image.open(sample_path) as opened:
+            clean = self.resize_to_tensor(opened.convert("L")).squeeze(0).numpy().astype(np.float64)
+
+        family = str(self.condition["family"])
+        seed = deterministic_corruption_seed(sample_id, str(self.condition["condition_id"]))
+        metadata: dict[str, Any] = {
+            "sample_id": sample_id,
+            "sample_index": dataset_index,
+            "outer_position": int(position),
+            "corruption_seed": seed,
+            "reference_policy": "paired_clean_target",
+        }
+        if family == "clean":
+            candidate = clean
+            quality = None
+        elif family in SNR_KINDS:
+            candidate, snr_metadata = corrupt_at_snr(
+                clean,
+                float(self.condition["target_snr_db"]),
+                kind=family,
+                seed=seed,
+                tolerance_db=0.2,
+            )
+            metadata.update(snr_metadata)
+            quality = paired_clean_image_quality(clean, candidate)
+        elif family == "blur":
+            clean_pil = Image.fromarray(np.rint(clean * 255.0).astype(np.uint8), mode="L")
+            candidate = np.asarray(
+                clean_pil.filter(ImageFilter.GaussianBlur(float(self.condition["gaussian_radius_px"]))),
+                dtype=np.float64,
+            ) / 255.0
+            quality = paired_clean_image_quality(clean, candidate)
+        elif family == "contrast":
+            clean_pil = Image.fromarray(np.rint(clean * 255.0).astype(np.uint8), mode="L")
+            candidate = np.asarray(
+                ImageEnhance.Contrast(clean_pil).enhance(float(self.condition["contrast_factor"])),
+                dtype=np.float64,
+            ) / 255.0
+            quality = paired_clean_image_quality(clean, candidate)
+        else:
+            raise ValueError(f"unsupported corruption family: {family}")
+
+        metadata["boundary_saturation_ratio"] = float(
+            np.mean((candidate <= np.finfo(np.float64).eps) | (candidate >= 1.0 - np.finfo(np.float64).eps))
+        )
+        if quality is not None:
+            metadata["image_quality"] = {
+                key: finite_or_none(value) if isinstance(value, (int, float)) else value
+                for key, value in quality.items()
+            }
+        normalized = torch.from_numpy(candidate.astype(np.float32)).unsqueeze(0)
+        normalized = (normalized - 0.5) / 0.5
+        return normalized, int(label), metadata
+
+
+def collate(batch: list[tuple[torch.Tensor, int, dict[str, Any]]]):
+    images, targets, metadata = zip(*batch, strict=True)
+    return torch.stack(list(images)), torch.tensor(targets, dtype=torch.long), list(metadata)
+
+
+def _load_sure_head(model: torch.nn.Module, model_meta: dict[str, Any]) -> None:
+    from hwnas_fpga.benchmarks.sure import apply_author_cosine_classifier, load_sure_author_components
+
+    paper_code = dict(model_meta.get("paper_code") or {})
+    head = dict(model_meta.get("sure_cosine_classifier") or {})
+    components = load_sure_author_components(
+        paper_code["checkout"], pinned_commit=paper_code["commit"]
+    )
+    observed = apply_author_cosine_classifier(
+        model,
+        components=components,
+        num_classes=int(head["num_classes"]),
+        temperature=float(head["temperature"]),
+    )
+    if observed["author_source_sha256"] != head["author_source_sha256"]:
+        raise RuntimeError("SURE cosine-classifier source hash drift")
+
+
+def load_model(record: dict[str, Any], checkpoint_path: Path, device: str) -> torch.nn.Module:
+    model_meta = dict(record["model"])
+    num_classes = int(model_meta.get("num_classes") or 8)
+    if model_meta.get("model_source") == "candidate":
+        architecture = ArchitectureSpec.from_dict(model_meta["architecture"])
+        model = build_model(architecture, num_classes=num_classes, head_channels=architecture.head_channels)
+    elif model_meta.get("model_source") == "backbone":
+        model, _ = build_backbone(
+            name=model_meta["name"],
+            num_classes=num_classes,
+            input_channels=int(model_meta.get("input_channels") or 1),
+            pretrained=False,
+            strict_pretrained=False,
+        )
+        if model_meta.get("sure_cosine_classifier"):
+            _load_sure_head(model, model_meta)
+    else:
+        raise RuntimeError(f"unsupported model source: {model_meta.get('model_source')}")
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    model.load_state_dict(payload["model_state_dict"])
+    model.to(device).eval()
+    return model
+
+
+def verify_audit(audit_path: Path, run_dir: Path, expected_method: str) -> dict[str, Any]:
+    audit = json.loads(audit_path.read_text(encoding="utf-8-sig"))
+    manifest_path = run_dir / "run_manifest.json"
+    if not manifest_path.is_file():
+        raise RuntimeError("closed-set run manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    audit_records = {
+        (int(row["fold"]), int(row["seed"])): row
+        for row in audit.get("records") or []
+    }
+    if not (
+        audit.get("status") == "PASS"
+        and int(audit.get("record_count") or 0) == 15
+        and not audit.get("errors")
+        and Path(audit.get("run_dir", "")).resolve() == run_dir
+        and audit.get("expected_method") == expected_method
+        and audit.get("run_fingerprint") == manifest.get("run_fingerprint")
+        and set(audit_records) == EXPECTED_PAIRS
+    ):
+        raise RuntimeError("closed-set independent audit is not a matching 15-unit PASS")
+    for fold, seed in sorted(EXPECTED_PAIRS):
+        record_path = run_dir / f"run_fold{fold}_seed{seed}.json"
+        if not record_path.is_file() or record_path.stat().st_mtime_ns > audit_path.stat().st_mtime_ns:
+            raise RuntimeError(f"record is missing or newer than its audit fold={fold}, seed={seed}")
+        record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+        audit_record = audit_records[(fold, seed)]
+        if (
+            record.get("run_fingerprint") != audit.get("run_fingerprint")
+            or record["outer_predictions"]["sha256"] != audit_record.get("prediction_sha256")
+            or record["checkpoint"]["sha256"] != audit_record.get("checkpoint_sha256")
+        ):
+            raise RuntimeError(f"record/audit binding mismatch fold={fold}, seed={seed}")
+    return audit
+
+
+def verify_source_freeze(repo: Path, manifest_path: Path) -> dict[str, Any]:
+    completed = subprocess.run(
+        [sys.executable, str(repo / "scripts" / "freeze_experiment_source.py"), "verify", "--manifest", str(manifest_path)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"source freeze verification failed: {completed.stdout or completed.stderr}")
+    result = json.loads(completed.stdout)
+    if result.get("status") != "PASS" or int(result.get("expected_file_count") or 0) != 556:
+        raise RuntimeError("source freeze verifier did not return PASS 556/556")
+    result["manifest_path"] = str(manifest_path)
+    result["manifest_sha256"] = sha256_file(manifest_path)
+    return result
+
+
+@torch.no_grad()
+def evaluate_condition(
+    *,
+    models: dict[int, torch.nn.Module],
+    loader: DataLoader,
+    condition: dict[str, Any],
+    fold: int,
+    method: str,
+    device: str,
+    record_by_seed: dict[int, dict[str, Any]],
+    original_predictions: dict[int, dict[str, dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    rows: list[dict[str, Any]] = []
+    targets_by_seed = {seed: [] for seed in models}
+    predictions_by_seed = {seed: [] for seed in models}
+    for inputs, targets, metadata in loader:
+        inputs = inputs.to(device, non_blocking=True)
+        target_values = [int(value) for value in targets.tolist()]
+        for seed, model in models.items():
+            logits = model(inputs)
+            probabilities = torch.softmax(logits, dim=1)
+            predictions = logits.argmax(dim=1).cpu().tolist()
+            confidences = probabilities.max(dim=1).values.cpu().tolist()
+            for offset, (target, prediction, confidence, meta) in enumerate(
+                zip(target_values, predictions, confidences, metadata, strict=True)
+            ):
+                if condition["family"] == "clean":
+                    prior = original_predictions[seed].get(str(meta["sample_id"]))
+                    if prior is None or int(prior["prediction"]) != int(prediction):
+                        raise RuntimeError(
+                            f"clean prediction mismatch fold={fold} seed={seed} sample={meta['sample_id']}"
+                        )
+                record = record_by_seed[seed]
+                row = {
+                    "schema_version": SCHEMA_VERSION,
+                    "method": method,
+                    "fold": int(fold),
+                    "seed": int(seed),
+                    "sample_id": meta["sample_id"],
+                    "sample_index": int(meta["sample_index"]),
+                    "outer_position": int(meta["outer_position"]),
+                    "target": int(target),
+                    "prediction": int(prediction),
+                    "confidence": float(confidence),
+                    "correct": int(target) == int(prediction),
+                    "condition_id": condition["condition_id"],
+                    "condition_family": condition["family"],
+                    "severity": condition.get("severity"),
+                    "target_snr_db": meta.get("target_snr_db"),
+                    "achieved_snr_db": meta.get("achieved_snr_db"),
+                    "snr_absolute_error_db": meta.get("absolute_error_db"),
+                    "corruption_seed": int(meta["corruption_seed"]),
+                    "boundary_saturation_ratio": float(meta["boundary_saturation_ratio"]),
+                    "reference_policy": meta["reference_policy"],
+                    "image_quality": meta.get("image_quality"),
+                    "checkpoint_sha": record["checkpoint"]["sha256"],
+                    "config_sha": record["run_fingerprint"],
+                    "split_sha": record["split_sha256"],
+                    "claimability_status": "PENDING_G1_LEDGER",
+                }
+                rows.append(row)
+                targets_by_seed[seed].append(int(target))
+                predictions_by_seed[seed].append(int(prediction))
+
+    metric_rows: list[dict[str, Any]] = []
+    for seed in sorted(models):
+        values = _metric_values(targets_by_seed[seed], predictions_by_seed[seed], classes=8)
+        metric_rows.append(
+            {
+                "method": method,
+                "fold": int(fold),
+                "seed": int(seed),
+                "condition_id": condition["condition_id"],
+                "condition_family": condition["family"],
+                "severity": condition.get("severity"),
+                "target_snr_db": condition.get("target_snr_db"),
+                "num_samples": len(targets_by_seed[seed]),
+                **values,
+            }
+        )
+    return rows, metric_rows
+
+
+def mean(values: Iterable[float]) -> float:
+    resolved = [float(value) for value in values]
+    return sum(resolved) / len(resolved)
+
+
+def aggregate_metrics(metric_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_condition: dict[str, list[dict[str, Any]]] = {}
+    clean_by_pair: dict[tuple[int, int], float] = {}
+    for row in metric_rows:
+        by_condition.setdefault(str(row["condition_id"]), []).append(row)
+        if row["condition_id"] == "clean":
+            clean_by_pair[(int(row["fold"]), int(row["seed"]))] = float(row["macro_f1"])
+    output: list[dict[str, Any]] = []
+    for condition in condition_plan():
+        rows = by_condition.get(str(condition["condition_id"]), [])
+        if len(rows) != 15:
+            raise RuntimeError(f"condition {condition['condition_id']} has {len(rows)} metric units, expected 15")
+        drops = [
+            clean_by_pair[(int(row["fold"]), int(row["seed"]))] - float(row["macro_f1"])
+            for row in rows
+        ]
+        output.append(
+            {
+                **condition,
+                "n_fold_seed": len(rows),
+                "macro_f1_mean": mean(row["macro_f1"] for row in rows),
+                "macro_f1_min": min(float(row["macro_f1"]) for row in rows),
+                "top1_mean": mean(row["top1"] for row in rows),
+                "drop_from_clean_mean": mean(drops),
+            }
+        )
+    return output
+
+
+def snr_auc_rows(metric_rows: list[dict[str, Any]], method: str) -> list[dict[str, Any]]:
+    by_key: dict[tuple[str, int, int], list[tuple[float, float]]] = {}
+    for row in metric_rows:
+        if row["condition_family"] in SNR_KINDS:
+            key = (str(row["condition_family"]), int(row["fold"]), int(row["seed"]))
+            by_key.setdefault(key, []).append((float(row["target_snr_db"]), float(row["macro_f1"])))
+    output: list[dict[str, Any]] = []
+    for (kind, fold, seed), points in sorted(by_key.items()):
+        points.sort()
+        if [value for value, _ in points] != [0.0, 5.0, 10.0, 15.0, 20.0]:
+            raise RuntimeError(f"incomplete SNR points for {kind}, fold={fold}, seed={seed}")
+        raw_auc = float(np.trapezoid([score for _, score in points], [snr for snr, _ in points]))
+        output.append(
+            {
+                "method": method,
+                "kind": kind,
+                "fold": fold,
+                "seed": seed,
+                "auc_f1_db": raw_auc,
+                "normalized_auc_0_20db": raw_auc / 20.0,
+                "worst_case_macro_f1": min(score for _, score in points),
+            }
+        )
+    if len(output) != 30:
+        raise RuntimeError(f"expected 30 SNR-AUC rows, observed {len(output)}")
+    return output
+
+
+def save_representatives(
+    *,
+    output_dir: Path,
+    eval_dataset: Dataset,
+    image_size: int,
+    conditions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    first_by_class: dict[int, tuple[int, str]] = {}
+    for index, (path, label) in enumerate(eval_dataset.samples):
+        first_by_class.setdefault(int(label), (index, str(path)))
+    rows: list[dict[str, Any]] = []
+    root = output_dir / "representatives"
+    for label, (index, source_path) in sorted(first_by_class.items()):
+        original_target = root / f"class_{label}" / "original" / Path(source_path).name
+        original_target.parent.mkdir(parents=True, exist_ok=True)
+        if not original_target.exists():
+            shutil.copy2(source_path, original_target)
+        for condition in conditions:
+            raw_path = output_dir / "raw" / f"fold{fold}_{condition['condition_id']}.jsonl"
+            unit_path = output_dir / "units" / f"fold{fold}_{condition['condition_id']}.json"
+            unit_binding = canonical_sha256(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "run_fingerprint": manifest["run_fingerprint"],
+                    "audit_sha256": sha256_file(audit_path),
+                    "evaluator_sha256": sha256_file(script_path),
+                    "fold": fold,
+                    "condition": condition,
+                    "checkpoint_sha256": {
+                        str(seed): record_by_seed[seed]["checkpoint"]["sha256"]
+                        for seed in sorted(record_by_seed)
+                    },
+                }
+            )
+            if raw_path.is_file() and unit_path.is_file():
+                existing_unit = json.loads(unit_path.read_text(encoding="utf-8-sig"))
+                existing_metrics = list(existing_unit.get("metrics") or [])
+                if (
+                    existing_unit.get("unit_binding_sha256") == unit_binding
+                    and existing_unit.get("raw_sha256") == sha256_file(raw_path)
+                    and int(existing_unit.get("row_count") or 0) == len(outer_indices) * 3
+                    and len(existing_metrics) == 3
+                ):
+                    metric_rows.extend(existing_metrics)
+                    print(f"[resume] fold={fold} condition={condition['condition_id']}")
+                    continue
+            dataset = CorruptedOuterDataset(
+                eval_dataset=eval_dataset,
+                indices=[index],
+                image_size=image_size,
+                condition=condition,
+            )
+            tensor, _, metadata = dataset[0]
+            image = ((tensor.squeeze(0).numpy() * 0.5 + 0.5) * 255.0).round().clip(0, 255).astype(np.uint8)
+            target = root / f"class_{label}" / f"{condition['condition_id']}.png"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            Image.fromarray(image, mode="L").save(target)
+            rows.append(
+                {
+                    "class_id": label,
+                    "sample_index": index,
+                    "sample_id": str(Path(source_path).resolve()),
+                    "original_copy": str(original_target.resolve()),
+                    "original_sha256": sha256_file(Path(source_path)),
+                    "condition_id": condition["condition_id"],
+                    "condition_parameters": json.dumps(condition, sort_keys=True),
+                    "image_path": str(target.resolve()),
+                    "image_sha256": sha256_file(target),
+                    "corruption_seed": metadata["corruption_seed"],
+                    "achieved_snr_db": metadata.get("achieved_snr_db"),
+                }
+            )
+    return rows
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run-dir", required=True)
+    parser.add_argument("--audit-json", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--data-dir", default="data/NKSID")
+    parser.add_argument("--method-id", required=True)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--device", default="cuda")
+    args = parser.parse_args()
+
+    repo = REPO_ROOT
+    run_dir = Path(args.run_dir).resolve()
+    audit_path = Path(args.audit_json).resolve()
+    output_dir = Path(args.output_dir).resolve()
+    script_path = SCRIPT_PATH
+    manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8-sig"))
+    immutable = dict(manifest["immutable_config"])
+    if immutable.get("task") != "closed_set" or immutable.get("method_id") != args.method_id:
+        raise RuntimeError("run task/method does not match the requested closed-set corruption evaluation")
+    if set((int(row["fold"]), int(row["seed"])) for row in manifest["planned_pairs"]) != EXPECTED_PAIRS:
+        raise RuntimeError("run manifest is not the frozen 5-fold x 3-seed matrix")
+    audit = verify_audit(audit_path, run_dir, args.method_id)
+    source_freeze_path = Path(immutable["source_freeze"]["path"]).resolve()
+    source_freeze = verify_source_freeze(repo, source_freeze_path)
+    if source_freeze["manifest_sha256"] != immutable["source_freeze"]["manifest_sha256"]:
+        raise RuntimeError("source freeze manifest SHA differs from the trained run")
+
+    if args.device.startswith("cuda") and not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested but is unavailable")
+    device = args.device
+    conditions = condition_plan()
+    metric_rows: list[dict[str, Any]] = []
+    checkpoint_inventory: list[dict[str, Any]] = []
+    representative_dataset = None
+    image_size = int(immutable["image_size"])
+
+    for fold in range(5):
+        record_by_seed: dict[int, dict[str, Any]] = {}
+        model_by_seed: dict[int, torch.nn.Module] = {}
+        original_predictions: dict[int, dict[str, dict[str, Any]]] = {}
+        bundle = create_protocol_dataloaders(
+            args.data_dir,
+            fold=fold,
+            seed=42,
+            batch_size=args.batch_size,
+            image_size=image_size,
+            inner_val_fraction=float(immutable["inner_val_fraction"]),
+            num_workers=0,
+        )
+        representative_dataset = representative_dataset or bundle["eval_dataset"]
+        outer_indices = list(bundle["split"].outer_val_indices)
+        for seed in (42, 43, 44):
+            record_path = run_dir / f"run_fold{fold}_seed{seed}.json"
+            record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+            if list(record["split"]["outer_val_indices"]) != outer_indices:
+                raise RuntimeError(f"outer indices differ across seeds for fold={fold}")
+            checkpoint_path = Path(record["checkpoint"]["path"]).resolve()
+            if sha256_file(checkpoint_path) != record["checkpoint"]["sha256"]:
+                raise RuntimeError(f"checkpoint hash mismatch fold={fold}, seed={seed}")
+            prediction_path = Path(record["outer_predictions"]["path"]).resolve()
+            prior_rows = [
+                json.loads(line)
+                for line in prediction_path.read_text(encoding="utf-8").splitlines()
+                if line
+            ]
+            original_predictions[seed] = {str(row["sample_id"]): row for row in prior_rows}
+            record_by_seed[seed] = record
+            model_by_seed[seed] = load_model(record, checkpoint_path, device)
+            checkpoint_inventory.append(
+                {
+                    "fold": fold,
+                    "seed": seed,
+                    "checkpoint_path": str(checkpoint_path),
+                    "checkpoint_sha256": record["checkpoint"]["sha256"],
+                    "record_sha256": sha256_file(record_path),
+                    "prediction_sha256": record["outer_predictions"]["sha256"],
+                }
+            )
+
+        for condition in conditions:
+            dataset = CorruptedOuterDataset(
+                eval_dataset=bundle["eval_dataset"],
+                indices=outer_indices,
+                image_size=image_size,
+                condition=condition,
+            )
+            loader = DataLoader(
+                dataset,
+                batch_size=args.batch_size,
+                shuffle=False,
+                num_workers=args.num_workers,
+                pin_memory=device.startswith("cuda"),
+                collate_fn=collate,
+            )
+            rows, metrics = evaluate_condition(
+                models=model_by_seed,
+                loader=loader,
+                condition=condition,
+                fold=fold,
+                method=args.method_id,
+                device=device,
+                record_by_seed=record_by_seed,
+                original_predictions=original_predictions,
+            )
+            atomic_jsonl(raw_path, rows)
+            atomic_json(
+                unit_path,
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "unit_binding_sha256": unit_binding,
+                    "raw_path": str(raw_path),
+                    "raw_sha256": sha256_file(raw_path),
+                    "row_count": len(rows),
+                    "metrics": metrics,
+                },
+            )
+            metric_rows.extend(metrics)
+        del model_by_seed
+        if device.startswith("cuda"):
+            torch.cuda.empty_cache()
+
+    aggregate = aggregate_metrics(metric_rows)
+    auc_rows = snr_auc_rows(metric_rows, args.method_id)
+    write_csv(
+        output_dir / "T4_source.csv",
+        aggregate,
+        [
+            "condition_id", "family", "severity", "target_snr_db", "gaussian_radius_px",
+            "contrast_factor", "n_fold_seed", "macro_f1_mean", "macro_f1_min", "top1_mean",
+            "drop_from_clean_mean",
+        ],
+    )
+    write_csv(
+        output_dir / "F7_source.csv",
+        [row for row in aggregate if row["family"] in SNR_KINDS],
+        [
+            "condition_id", "family", "target_snr_db", "n_fold_seed", "macro_f1_mean",
+            "macro_f1_min", "top1_mean", "drop_from_clean_mean",
+        ],
+    )
+    write_csv(
+        output_dir / "F7_auc_source.csv",
+        auc_rows,
+        ["method", "kind", "fold", "seed", "auc_f1_db", "normalized_auc_0_20db", "worst_case_macro_f1"],
+    )
+    representatives = save_representatives(
+        output_dir=output_dir,
+        eval_dataset=representative_dataset,
+        image_size=image_size,
+        conditions=conditions,
+    )
+    write_csv(
+        output_dir / "F8_representative_manifest.csv",
+        representatives,
+        [
+            "class_id", "sample_index", "sample_id", "original_copy", "original_sha256",
+            "condition_id", "condition_parameters", "image_path", "image_sha256",
+            "corruption_seed", "achieved_snr_db",
+        ],
+    )
+    meta = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "COMPLETE_INPUT_AUDIT_PASS_PENDING_G1_LEDGER",
+        "campaign_id": immutable["campaign_id"],
+        "method_id": args.method_id,
+        "run_dir": str(run_dir),
+        "run_fingerprint": manifest["run_fingerprint"],
+        "audit_path": str(audit_path),
+        "audit_sha256": sha256_file(audit_path),
+        "audit_status": audit["status"],
+        "source_freeze": source_freeze,
+        "evaluator_path": str(script_path),
+        "evaluator_sha256": sha256_file(script_path),
+        "conditions": conditions,
+        "snr_auc_definition": "trapezoidal macro-F1 integral over 0,5,10,15,20 dB; normalized value divides by 20 dB; clean excluded",
+        "boundary_saturation_ratio_definition": "fraction of post-corruption resized pixels at 0 or 1",
+        "corruption_seed_namespace": CORRUPTION_SEED_NAMESPACE,
+        "paired_reference_policy": "synthetic corruption of the frozen resized input permits PSNR/SSIM; no unpaired restoration claim",
+        "existing_f_robust_definition_changed": False,
+        "checkpoint_inventory": checkpoint_inventory,
+        "outputs": {},
+    }
+    for path in sorted(output_dir.rglob("*")):
+        if path.is_file() and not path.name.endswith(".partial") and path.name != "manifest.json":
+            meta["outputs"][str(path.relative_to(output_dir)).replace("\\", "/")] = {
+                "sha256": sha256_file(path), "bytes": path.stat().st_size
+            }
+    meta["output_inventory_sha256"] = canonical_sha256(meta["outputs"])
+    atomic_json(output_dir / "manifest.json", meta)
+    print(json.dumps({"status": meta["status"], "output": str(output_dir / "manifest.json")}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

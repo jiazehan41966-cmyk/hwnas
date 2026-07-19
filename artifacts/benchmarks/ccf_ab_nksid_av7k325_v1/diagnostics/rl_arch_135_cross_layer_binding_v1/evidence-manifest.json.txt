@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "generated_at": "2026-07-17T19:53:35",
+  "status": "PASS_WITH_WEIGHT_BINDING_BLOCKER",
+  "formal_evidence_increment": 0,
+  "generator": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_rl_arch_135_cross_layer_binding_v1.txt",
+  "generator_sha256": "e89888ce72272e15d72d35a5d1c14ba149ec020a660073078f0eb9fdd3edc9a4",
+  "input_files": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\protocol_summary.json",
+      "sha256": "59a1d4af1ed131a4a21f4b76b451b99d0d369817365eaf42d5c7d7e0e4b26aa5",
+      "bytes": 31449
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\protocol_summary.json",
+      "sha256": "a653cedbaabf2bea790532f66e628be2db3655b0a4e63b9719b0f6e5f8f45434",
+      "bytes": 29246
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_nas_independent_audit_20260716.json",
+      "sha256": "11c0d8d6ae4fb6189074df6efa001b4c1645624c82e6b94097f8c30868abdcfe",
+      "bytes": 6776
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\003_rl_arch_135.candidate.json",
+      "sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a",
+      "bytes": 2932
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\harness_project\\harness_manifest.json",
+      "sha256": "d0adab0a165b62eddfb9c284d48d09c5691df28c2a03d2bb345c1d3cca581f55",
+      "bytes": 14692
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\rl_best_e2e_harness_spec.json",
+      "sha256": "64b84f9bbfbdbad0b4ef20b507c35d111fc2c232e7811916312230f070bb6bd6",
+      "bytes": 6577
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\results\\v2_arch84_e2e_extension\\arch84_latency_only_parameter_manifest.json",
+      "sha256": "d54873d7c179f0156a0c15f51e4660ddb7a6c9a48b150dcbd6941531cdb396d3",
+      "bytes": 725
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\build_result.json",
+      "sha256": "01c4c94ba754b7509a41f74c9b1e2ab8189cf5491ca378dec486d158c4af0982",
+      "bytes": 4369
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\reports\\003_rl_arch_135.final_hardware_validation_report.json",
+      "sha256": "254c9dc2fd14d3137998c1deeb56d9aeaafabe41c52972b40aef5d4a0cb1aaa4",
+      "bytes": 3703
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\harness_project\\bitstream\\sonar_classifier_rl_best_e2e__full_rank003_rl_arch_135_b58ae648c3.bit",
+      "sha256": "6a30d44727b3c93a3315f50b35f62032b0ff96f04df13ebc3d2b96982e29b179",
+      "bytes": 11443720
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\measurements\\stability_runs.json",
+      "sha256": "6c834c81075db7be7cd5d9e66ae74420798e8c21552a50bbd81a943e32f59577",
+      "bytes": 27711
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\measurements\\measurements_raw_runs.csv",
+      "sha256": "2767b044fb5c6733d44c1f6b684330a4fb0d2d2fe95aaeb66170d95ae71cbdba",
+      "bytes": 1445
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\measurements\\sonar_classifier_rl_best_e2e__full_rank003_rl_arch_135_b58ae648c3.measurement.json",
+      "sha256": "2f283da5f5c78172405bd816bbe132c79e46c537c70d67fd3f13aa669ec41b53",
+      "bytes": 5346
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board\\full_rank003_rl_arch_135_b58ae648c3\\vivado_reports\\harness_top_utilization_placed.rpt",
+      "sha256": "8b203a7d31739f2e48e67daaedd9ed3690240ee7052125f8f22f0bfa72d979dc",
+      "bytes": 12146
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\phase0_v4_sonar_stage3_k3_board_experiment\\evidence_boundary_table.json",
+      "sha256": "6a6313d514439e0d560843aeea3bda49d16553044620202136d2851a39c89cef",
+      "bytes": 12661
+    }
+  ],
+  "output_files": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\analysis-report.md",
+      "sha256": "eead50c9fe09d70cb910f5419a12b7fe0579f8c59332e6d94798efdeb868d850",
+      "bytes": 3269
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figure-catalog.md",
+      "sha256": "6d96a1e063db9b7243a2cf770d9629c104f0018f78a571ea460af492fc1b4f1d",
+      "bytes": 1102
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-01-software-macro-f1.pdf",
+      "sha256": "305712279d15a066d6146f157bf2f219c606e6d6d105aedeec4dd1f66acc88dd",
+      "bytes": 22732
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-01-software-macro-f1.png",
+      "sha256": "85d5f708432e3fd21e8b6b4f4104607a284f7006c6a2262946b506c0ce4e3050",
+      "bytes": 201799
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-01-software-macro-f1.svg",
+      "sha256": "53f1668ea08f2647231f213fae86f73d838fc9658a32943eeaea1feab4f4f710",
+      "bytes": 58148
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-01-software-macro-f1_meta.json",
+      "sha256": "c0e8789ce433d4757aa3d904e1d76c3abe3906d401da0f76af6a634393639b51",
+      "bytes": 979
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-01-software-macro-f1_source.csv",
+      "sha256": "d13387b9528418c746642911cc5351db7a24e958b061ec0da2982dff99b51c1e",
+      "bytes": 1035
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-02-hardware-evidence.pdf",
+      "sha256": "69fdbe7585c4f8c587a3ed5f8a0e608b002bee502d734d79a47a7ab2069df909",
+      "bytes": 29143
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-02-hardware-evidence.png",
+      "sha256": "d20e729d5916ed8dae8d85e0e101df4489534d74d8416aad4f6dbe469cc53eb9",
+      "bytes": 285707
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-02-hardware-evidence.svg",
+      "sha256": "267ea88b33d25655c4b65a5b78593ebbb227c7952a118d867d2a8cf1df6c56f5",
+      "bytes": 62581
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-02-hardware-evidence_meta.json",
+      "sha256": "43917dac8da1fd2aaf45ca3a2d7c66ebaa09df8ad7180b9cc5fd0a9d34c23d7c",
+      "bytes": 1054
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-02-hardware-evidence_source.csv",
+      "sha256": "78a2acf7d1cd69072ca1cea4c756121370ef33e6c63d28940223e9f8051d94c0",
+      "bytes": 301
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\stats-appendix.md",
+      "sha256": "ea2daf84873e6a112e79f64ff89a49cd6424fd82ae6d76f9b1b7555eef2dcd20",
+      "bytes": 1533
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\tables\\evidence-layers.csv",
+      "sha256": "de5118c6f0110c527cb9d19bf20a164883707c6f34dbba749e7a983398d6d1de",
+      "bytes": 737
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\tables\\evidence-layers.md",
+      "sha256": "c1896453a1bc0070a0929e3ea09b9af72f7b880c8391e78291df9030ea681f17",
+      "bytes": 833
+    }
+  ],
+  "software_statistics": {
+    "paired_n": 15,
+    "fold_n": 5,
+    "nas_mean": 0.6936187231198493,
+    "nas_sd": 0.029236560551825542,
+    "pretrained_mean": 0.9316318800867744,
+    "pretrained_sd": 0.024188436767340244,
+    "mean_difference": -0.23801315696692507,
+    "ci95_low": -0.2639684924177376,
+    "ci95_high": -0.21266680487445774,
+    "bootstrap_iterations": 10000,
+    "bootstrap_seed": 20260717,
+    "wins": 0,
+    "exact_sign_flip_p": 6.103515625e-05,
+    "cohens_dz": -5.496306232434876
+  },
+  "hardware_summary": {
+    "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a",
+    "encoding_signature": "b58ae648c3d1bde1c9651dec6b45b447a56daadfd77ad951dc1752b71a7afb3b",
+    "architecture_identity": "PASS",
+    "weight_identity": "NOT_BOUND",
+    "parameter_mode": "latency_only_deterministic",
+    "accuracy_claim": "none",
+    "route_status": "PASS",
+    "wns_ns": 0.094,
+    "resources": [
+      {
+        "resource": "LUT",
+        "used": 18598.0,
+        "capacity": 203800.0,
+        "percent": 9.13
+      },
+      {
+        "resource": "FF",
+        "used": 21012.0,
+        "capacity": 407600.0,
+        "percent": 5.16
+      },
+      {
+        "resource": "BRAM",
+        "used": 127.5,
+        "capacity": 445.0,
+        "percent": 28.65
+      },
+      {
+        "resource": "DSP",
+        "used": 612.0,
+        "capacity": 840.0,
+        "percent": 72.86
+      }
+    ],
+    "bitstream_sha256": "6a30d44727b3c93a3315f50b35f62032b0ff96f04df13ebc3d2b96982e29b179",
+    "com5_runs": 5,
+    "com5_cycles": 9812402,
+    "com5_latency_ms": 49.06201,
+    "com5_latency_sd_ms": 0.0,
+    "com5_checksum": 33551839,
+    "board_accuracy": "NOT_RUN",
+    "power": "NOT_MEASURED",
+    "measurement_replacement_paths": [
+      "$.vivado_hardware.stdout"
+    ],
+    "proxy_to_measured_latency_ratio": 6.733021123885395
+  },
+  "claim_boundary_zh": "架构身份已绑定；formal checkpoint 权重未绑定。route/COM5 仅支持确定性 latency-only harness 的资源与延迟结论；板级准确率未运行，功耗未测量。"
+}

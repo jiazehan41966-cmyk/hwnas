@@ -24,6 +24,8 @@ Canonical config entry points:
 | Generic lightweight search space | [nksid_fpga_search_lightweight_sonar_av7k325.yaml](../configs/search/nksid_fpga_search_lightweight_sonar_av7k325.yaml) |
 | Random baseline on the new mobile anchor | [nksid_random_baseline_mobile_anchor_mobilenet_v2_av7k325_200.yaml](../configs/search/nksid_random_baseline_mobile_anchor_mobilenet_v2_av7k325_200.yaml) |
 | RL search on the new mobile anchor | [nksid_rl_mobile_anchor_mobilenet_v2_av7k325_200.yaml](../configs/search/nksid_rl_mobile_anchor_mobilenet_v2_av7k325_200.yaml) |
+| Three-objective RL comparison protocol | [nksid_rl_pareto3_mobile_anchor_mobilenet_v2_av7k325_200.yaml](../configs/search/nksid_rl_pareto3_mobile_anchor_mobilenet_v2_av7k325_200.yaml) |
+| Multi-objective aging-evolution comparison protocol | [nksid_aging_mobile_anchor_mobilenet_v2_av7k325_200.yaml](../configs/search/nksid_aging_mobile_anchor_mobilenet_v2_av7k325_200.yaml) |
 | ProxylessNAS on the new mobile anchor | [nksid_proxyless_mobile_anchor_mobilenet_v2_av7k325.yaml](../configs/search/nksid_proxyless_mobile_anchor_mobilenet_v2_av7k325.yaml) |
 
 Notes:
@@ -36,6 +38,9 @@ Notes:
 - New experiments should start from the semantic-safe default. The dated
   random/RL/Proxyless comparison configs are historical protocols until they
   are explicitly refreshed.
+- The RL/aging comparison configs are preregistered execution inputs, not
+  completed results. G3 remains `FROZEN`; both requested methods require Gate 0,
+  G2, G4, any applicable G5 admission, and explicit manual Stage-3 approval.
 - The default config declares `mbconv`, `denoise`, `edge`, and `skip`, then
   loads `hls_lut_builder/configs/operator_manifest_semantic_safe.yaml`.
   Runtime policy filtering keeps `mbconv` and `skip`; `denoise` and `edge`

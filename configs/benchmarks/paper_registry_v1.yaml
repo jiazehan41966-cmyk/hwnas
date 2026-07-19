@@ -1,0 +1,147 @@
+schema_version: 1
+papers:
+  - paper_id: hw_pr_nas_2023
+    title: Multi-objective Hardware-Aware Neural Architecture Search with Pareto Rank-preserving Surrogate Models
+    year: 2023
+    venue: ACM TACO (CCF A)
+    direction: nas_pareto_surrogate
+    comparability_class: B
+    paper_url: https://doi.org/10.1145/3579853
+    repo_url: https://github.com/IHIaadj/HW-PR-NAS
+    checkout_path: reference/HW-PR-NAS
+    pinned_commit: 296c6576fbae2b277e56c704ff3b6e648ec4c2be
+    license_spdx: MIT
+    license_state: verified
+    official_code: true
+    execution_role: local_search_space_adapter
+    numerical_comparison_rule: local_unified_protocol_only
+    paper_code_correspondence: partial
+    correspondence_note: >-
+      The pinned official repository compiles individual source files but is not
+      an executable release of the paper method. README-listed files
+      surrogate_models/base_surrogate.py, accuracy_predictor.py,
+      latency_predictor.py, and energy_predictor.py are absent; search_algo.py
+      calls an undefined valid_loss(), and test.py invokes evolution_search with
+      an incompatible argument. Any local implementation of the listwise Pareto
+      ranking loss must be labelled paper-spec reimplementation, not author code.
+    smoke:
+      mode: source_completeness_audit
+      files: [compute_metrics.py, search_algo.py, test.py]
+      expected_files:
+        - surrogate_models/base_surrogate.py
+        - surrogate_models/accuracy_predictor.py
+        - surrogate_models/latency_predictor.py
+        - surrogate_models/energy_predictor.py
+
+  - paper_id: sure_2024
+    title: "SURE: SUrvey REcipes for building reliable and robust deep networks"
+    year: 2024
+    venue: CVPR (CCF A)
+    direction: classification_robustness_calibration
+    comparability_class: B
+    paper_url: https://openaccess.thecvf.com/content/CVPR2024/html/Li_SURE_SUrvey_REcipes_for_building_reliable_and_robust_deep_networks_CVPR_2024_paper.html
+    repo_url: https://github.com/Intellindust-AI-Lab/SURE
+    checkout_path: reference/_local/SURE
+    pinned_commit: 5ce0193bc93e73b1c7f1f53aeda8854e997011e2
+    license_spdx:
+    license_state: missing
+    official_code: true
+    execution_role: isolated_local_adapter
+    numerical_comparison_rule: local_nksid_same_backbone_only
+    smoke:
+      mode: py_compile
+      files: [main.py, train.py, valid.py, test.py]
+
+  - paper_id: harp_2023
+    title: Robust GNN-based Representation Learning for HLS
+    year: 2023
+    venue: ICCAD (CCF B)
+    direction: hls_proxy_reliability
+    comparability_class: B
+    paper_url: https://doi.org/10.1109/ICCAD57390.2023.10323853
+    repo_url: https://github.com/UCLA-VAST/HARP
+    checkout_path: reference/HARP
+    pinned_commit: c8bffd9411917b125846429b4d6be4f21c7a7165
+    license_spdx: BSD-3-Clause
+    license_state: verified
+    official_code: true
+    execution_role: local_hls_program_graph_adapter
+    numerical_comparison_rule: local_hls_route_grouped_cv_only
+    smoke:
+      mode: py_compile
+      files: [src/main.py, src/model.py, src/data.py]
+      input_domain: llvm13_hls_program_graph_with_pragmas
+
+  - paper_id: esda_2024
+    title: A Composable Dynamic Sparse Dataflow Architecture for Efficient Event-based Vision Processing on FPGA
+    year: 2024
+    venue: FPGA (CCF B)
+    direction: fpga_artifact_power_chain
+    comparability_class: C
+    paper_url: https://doi.org/10.1145/3626202.3637558
+    repo_url: https://github.com/CASR-HKU/ESDA
+    checkout_path: reference/ESDA
+    pinned_commit: b75c8c93ca258158c06a6434f5f0f084add02ee5
+    license_spdx: MIT
+    license_state: verified
+    official_code: true
+    execution_role: artifact_and_evidence_chain_reference
+    numerical_comparison_rule: no_cross_platform_ranking
+    smoke:
+      mode: py_compile
+      files: [software/main.py, software/int_inference.py, software/search_sw.py]
+
+  - paper_id: dmcl_sonar_oltr_2025
+    title: Dynamic margin contrastive learning for open-set recognition in long-tailed sonar imagery
+    year: 2025
+    venue: Scientific Reports
+    direction: sonar_open_long_tail
+    comparability_class: A
+    paper_url: https://www.nature.com/articles/s41598-025-04877-6
+    repo_url: https://github.com/gmgslinyu/Sonar-OLTR
+    checkout_path: reference/_local/Sonar-OLTR
+    pinned_commit: eea8dc07ce007988150ac208cd09e00daedba2ca
+    license_spdx:
+    license_state: missing
+    official_code: true
+    execution_role: isolated_archive_audit_then_nksid_adapter
+    numerical_comparison_rule: local_frozen_nksid_protocol_only
+    paper_code_correspondence: partial
+    correspondence_note: >-
+      The pinned archive contains dmcl.py, but its top-level README documents the
+      2024 ESWA PLUD paper rather than the 2025 Scientific Reports DMCL paper.
+      Treat the loss source as present with partial paper-to-code correspondence.
+    smoke:
+      mode: archive_audit
+      files: [Sonar-OLTR-main.rar]
+      extracted_patterns:
+        - extracted/*/code/dmcl.py
+        - extracted/*/code/plud.py
+        - extracted/*/code/my_utils.py
+        - extracted/*/README_zh.md
+        - extracted/*/requirements.txt
+
+  - paper_id: plud_sonar_oltr_2024
+    title: Open-set recognition with long-tail sonar images
+    year: 2024
+    venue: Expert Systems with Applications
+    direction: sonar_open_long_tail_supplementary
+    comparability_class: A
+    paper_url: https://doi.org/10.1016/j.eswa.2024.123495
+    repo_url: https://github.com/gmgslinyu/Sonar-OLTR
+    checkout_path: reference/_local/Sonar-OLTR
+    pinned_commit: eea8dc07ce007988150ac208cd09e00daedba2ca
+    license_spdx:
+    license_state: missing
+    official_code: true
+    execution_role: isolated_supplementary_nksid_adapter
+    numerical_comparison_rule: local_frozen_nksid_protocol_only
+    registry_role: supplementary
+    smoke:
+      mode: archive_audit
+      files: [Sonar-OLTR-main.rar]
+      extracted_patterns:
+        - extracted/*/code/plud.py
+        - extracted/*/code/my_utils.py
+        - extracted/*/README_zh.md
+        - extracted/*/requirements.txt

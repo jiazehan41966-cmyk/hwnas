@@ -589,8 +589,14 @@ class RLSearcher(BaseSearcher):
         exploration_epsilon_end: Optional[float] = None,
         exploration_epsilon_decay_episodes: int = 0,
         exploration_bonus: float = 0.0,
+        robustness_config: Optional[Mapping[str, Any]] = None,
     ):
-        super().__init__(search_space, cost_estimator, constraints)
+        super().__init__(
+            search_space,
+            cost_estimator,
+            constraints,
+            robustness_config=robustness_config,
+        )
         self.train_epochs_per_arch = train_epochs_per_arch
         self.eval_early_stopping_patience = eval_early_stopping_patience
         self.selection_metric = selection_metric
@@ -1393,6 +1399,20 @@ class RLSearcher(BaseSearcher):
             encoding=architecture.to_dict(),
             metrics=candidate_metrics,
         )
+        if is_feasible and self.last_trained_model is not None and self.last_training_history is not None:
+            try:
+                self.attach_clean_and_robust_metrics(
+                    candidate,
+                    model=self.last_trained_model,
+                    history=self.last_training_history,
+                    val_loader=val_loader,
+                    num_classes=num_classes,
+                    class_weights=class_weights,
+                    device=self.device,
+                )
+            except Exception as exc:
+                print(f"Error evaluating robustness for {arch_id}: {exc}")
+                is_feasible = False
         self.evaluated_candidates.append(candidate)
         if is_feasible:
             self.feasible_candidates.append(candidate)

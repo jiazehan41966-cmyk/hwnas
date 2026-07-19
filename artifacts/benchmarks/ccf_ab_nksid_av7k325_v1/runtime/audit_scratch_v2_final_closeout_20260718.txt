@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[4]
+CAMPAIGN = ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+MANIFESTS = CAMPAIGN / "manifests"
+RUN = ROOT / "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2"
+OUT_JSON = MANIFESTS / "scratch_v2_final_closeout_audit_20260718.json"
+OUT_MD = MANIFESTS / "scratch_v2_final_closeout_audit_20260718.md"
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def main() -> int:
+    errors: list[str] = []
+    checks: dict[str, object] = {}
+
+    approval_active = MANIFESTS / "scratch_v2_execution_authorization_20260718.json.txt"
+    approval_consumed = MANIFESTS / "scratch_v2_execution_authorization_20260718.consumed.json.txt"
+    checks["active_authorization_absent"] = not approval_active.exists()
+    checks["consumed_authorization_sha256"] = sha256(approval_consumed) if approval_consumed.is_file() else None
+    if approval_active.exists() or not approval_consumed.is_file():
+        errors.append("scratch-v2 一次性授权未正确消费")
+    elif checks["consumed_authorization_sha256"] != "c63d31b4ac203ce07cef40c6c1d4297f30328e3d6191ae76ae171a3f3402e3ce":
+        errors.append("已消费授权 SHA256 不匹配")
+
+    summary_path = RUN / "protocol_summary.json"
+    summary = load(summary_path)
+    records = sorted(RUN.glob("run_fold*_seed*.json"))
+    predictions = sorted(RUN.glob("outer_predictions_fold*_seed*.jsonl"))
+    checkpoints = sorted(RUN.glob("best_fold*_seed*.pt"))
+    checks["protocol_summary_sha256"] = sha256(summary_path)
+    checks["record_count"] = len(records)
+    checks["prediction_count"] = len(predictions)
+    checks["checkpoint_count"] = len(checkpoints)
+    claimability = dict(summary.get("claimability") or {})
+    checks["claimable"] = claimability.get("claimable") is True
+    checks["protocol_complete"] = claimability.get("protocol_complete") is True
+    if not (
+        len(records) == len(predictions) == len(checkpoints) == 15
+        and claimability.get("claimable") is True
+        and claimability.get("protocol_complete") is True
+    ):
+        errors.append("scratch-v2 的 15 单元结果、预测、checkpoint 或声明状态不完整")
+
+    expected = {
+        "g1_scratch_v2_independent_audit_20260718.json": "PASS",
+        "scratch_v2_closed_set_analysis_independent_audit_20260718.json": "PASS",
+        "scratch_v2_exit_code_contract_test_20260718.json": "PASS",
+    }
+    audit_statuses: dict[str, str] = {}
+    audit_hashes: dict[str, str] = {}
+    for name, required_status in expected.items():
+        path = MANIFESTS / name
+        payload = load(path)
+        audit_statuses[name] = str(payload.get("status"))
+        audit_hashes[name] = sha256(path)
+        if payload.get("status") != required_status:
+            errors.append(f"审计未通过：{name}")
+    checks["audit_statuses"] = audit_statuses
+    checks["audit_sha256"] = audit_hashes
+
+    ledger_path = ROOT / "artifacts/measurement_first_rebuild/status.json"
+    ledger = load(ledger_path)
+    g1 = ledger["gates"]["G1_accuracy_baselines"]
+    checks["ledger_sha256"] = sha256(ledger_path)
+    checks["ledger_overall"] = ledger.get("overall_status")
+    checks["g1_status"] = g1.get("status")
+    checks["g1_completed_tasks"] = g1.get("completed_tasks")
+    checks["g1_required_tasks"] = g1.get("required_tasks")
+    if not (g1.get("pass") is True and g1.get("completed_tasks") == g1.get("required_tasks") == 45):
+        errors.append("测量优先总账 G1 不是 45/45 PASS")
+    if ledger.get("overall_status") != "IN_PROGRESS":
+        errors.append("总账总体状态不再是预期的 IN_PROGRESS")
+
+    completion_path = MANIFESTS / "scratch_v2_completion_20260718.md"
+    incident_resolution_path = MANIFESTS / "scratch_v2_false_interruption_resolution_20260718.md"
+    for path in (completion_path, incident_resolution_path):
+        text = path.read_text(encoding="utf-8")
+        if "�" in text or not re.search(r"[\u4e00-\u9fff]", text):
+            errors.append(f"最终中文档案编码或语言不合格：{path.name}")
+    completion_text = completion_path.read_text(encoding="utf-8")
+    required_bound_hashes = {
+        checks["protocol_summary_sha256"],
+        checks["ledger_sha256"],
+        checks["consumed_authorization_sha256"],
+        *audit_hashes.values(),
+    }
+    missing_bound_hashes = sorted(value for value in required_bound_hashes if value not in completion_text)
+    checks["completion_sha256"] = sha256(completion_path)
+    checks["incident_resolution_sha256"] = sha256(incident_resolution_path)
+    checks["missing_hashes_from_completion"] = missing_bound_hashes
+    if missing_bound_hashes:
+        errors.append("最终完成记录缺少关键 SHA256 绑定")
+
+    payload = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "status": "PASS" if not errors else "FAIL",
+        "checks": checks,
+        "errors": errors,
+        "auditor_script": str(Path(__file__).resolve().relative_to(ROOT)).replace("\\", "/"),
+        "auditor_script_sha256": sha256(Path(__file__).resolve()),
+        "boundary_zh": "本审计只关闭 scratch-v2；不授权或证明 SURE、HLS、route、COM5、板级和功耗实验。",
+    }
+    OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    status_zh = "通过" if not errors else "失败"
+    lines = [
+        "# scratch-v2 最终收口独立审计",
+        "",
+        f"- 状态：**{status_zh}**（`{payload['status']}`）。",
+        f"- 正式结果、逐样本预测与 checkpoint：{len(records)}/{len(predictions)}/{len(checkpoints)}。",
+        f"- scratch-v2 声明状态：`{claimability.get('claimable')}`；协议完整：`{claimability.get('protocol_complete')}`。",
+        f"- 测量优先总账 G1：`{g1.get('status')}`，{g1.get('completed_tasks')}/{g1.get('required_tasks')}。",
+        f"- 一次性授权已消费：`{not approval_active.exists() and approval_consumed.is_file()}`。",
+        "- 三项独立审计均要求并观测到 `PASS`：scratch-v2 结果、三方法统计包、守护退出码契约。",
+        "",
+        "## 边界",
+        "",
+        "本审计只关闭 scratch-v2；SURE 未执行，G2/G4 仍为 PENDING，G3 为 FROZEN，功耗为 NOT_MEASURED，G5 为 PAUSED。",
+    ]
+    if errors:
+        lines += ["", "## 错误", ""] + [f"- {error}" for error in errors]
+    OUT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json.dumps({"status": payload["status"], "errors": errors, "json": str(OUT_JSON)}, ensure_ascii=False))
+    return 0 if not errors else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

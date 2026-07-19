@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-17T19:13:49.5328645+08:00",
+  "cycle_id": "nksid_av7k325_full_cycle_v2_20260712",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "status": "FAIL",
+  "gate": "G1_accuracy_baselines_45_units",
+  "source_freeze": {
+    "status": "PASS",
+    "verified_file_count": 556,
+    "manifest": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_freeze_manifest.json",
+    "manifest_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+    "archive": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_snapshot.zip",
+    "archive_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d"
+  },
+  "unit_accounting": {
+    "expected_units": 45,
+    "artifact_complete_units": 45,
+    "independent_audit_pass_units": 30,
+    "independent_audit_fail_units": 15,
+    "missing_units": 0,
+    "unexpected_units": 0
+  },
+  "groups": [
+    {
+      "run_name": "g1_mobilenet_v2_scratch",
+      "method_id": "scratch_mobilenet_v2",
+      "expected_units": 15,
+      "artifact_complete_units": 15,
+      "independent_audit_status": "FAIL",
+      "independent_audit": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_45audit_scratch_20260717.json",
+      "independent_audit_sha256": "6c208cea79662c425851fcd850bb5cf96478407341d88a23b33bb65370840c84",
+      "failure": "tracked code patch hash mismatch",
+      "expected_tracked_patch_sha256": "793d20787f4f0df360a540a45acb15a8d7fa02a309180950789aa248e8bc51cb",
+      "observed_tracked_patch_sha256": "0e92055318fd5b96436b7852ca4be030c61f3bd1024a2913da6b0d42c86ef3d1",
+      "claimable": false
+    },
+    {
+      "run_name": "g1_mobilenet_v2_grayscale_imagenet",
+      "method_id": "imagenet_pretrained_mobilenet_v2",
+      "expected_units": 15,
+      "artifact_complete_units": 15,
+      "independent_audit_status": "PASS",
+      "independent_audit": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_45audit_pretrained_20260717.json",
+      "independent_audit_sha256": "2c9cc6d2af767ca8870e4e424fa5d9547664356b62ae6908f7f7c55ee958b714",
+      "claimable": true
+    },
+    {
+      "run_name": "g1_rl_arch_135_legacy_selected",
+      "method_id": "frozen_nas_champion",
+      "expected_units": 15,
+      "artifact_complete_units": 15,
+      "independent_audit_status": "PASS",
+      "independent_audit": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_45audit_nas_20260717.json",
+      "independent_audit_sha256": "78cc6c4575f1aca86e218580626161069289fbae1b7c27714b121863092ba4d6",
+      "claimable": true
+    }
+  ],
+  "decision_scope": {
+    "artifact": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_nas_underperformance_user_decision_20260717.json.txt",
+    "artifact_sha256": "45490b34b8efae0930daa92c2452dcf43aafd60d629bf3d160362692cb52b77f",
+    "resume_nas_to_15": true,
+    "continue_downstream_closed_set_chain": false,
+    "allow_protocol_or_candidate_change": false
+  },
+  "gate_decision": {
+    "g1_pass": false,
+    "move_to_g2": false,
+    "move_to_g4": false,
+    "move_to_gate0": false,
+    "move_to_formal_search": false,
+    "next_action": "PENDING_USER_DECISION_ON_FRESH_SCRATCH_RERUN",
+    "reason": "All 45 units exist, but the 15-unit scratch group fails independent provenance validation. A fresh scratch-v2 rerun is not authorized by the current decision artifact."
+  },
+  "downstream_status": {
+    "sure": "NOT_STARTED",
+    "scratch_v2": "NOT_STARTED",
+    "g2_hls_calibration": "PENDING",
+    "g4_anchor": "PENDING",
+    "proxy_reliability_gate0": "PENDING",
+    "formal_search": "FROZEN",
+    "route_com5": "PENDING",
+    "image_quality": "PENDING",
+    "calibration": "PENDING",
+    "external_power": "NOT_MEASURED"
+  }
+}

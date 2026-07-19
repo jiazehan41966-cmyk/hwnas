@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "status": "PASS",
+  "checks": {
+    "active_authorization_absent": true,
+    "consumed_authorization_sha256": "c63d31b4ac203ce07cef40c6c1d4297f30328e3d6191ae76ae171a3f3402e3ce",
+    "protocol_summary_sha256": "e70fcc028b5ad16897ec6ed0c034bfd8ec8672ed028d551373e850632e1ba636",
+    "record_count": 15,
+    "prediction_count": 15,
+    "checkpoint_count": 15,
+    "claimable": true,
+    "protocol_complete": true,
+    "audit_statuses": {
+      "g1_scratch_v2_independent_audit_20260718.json": "PASS",
+      "scratch_v2_closed_set_analysis_independent_audit_20260718.json": "PASS",
+      "scratch_v2_exit_code_contract_test_20260718.json": "PASS"
+    },
+    "audit_sha256": {
+      "g1_scratch_v2_independent_audit_20260718.json": "0ee6e3d982ad902762350c6d5913fe00aacecfbf00ed08e6a54b2c1cce869e3b",
+      "scratch_v2_closed_set_analysis_independent_audit_20260718.json": "295712b0e71c93c2a05b6ffb9526d3d22e74c4c613419ae8336f14a3075e90a0",
+      "scratch_v2_exit_code_contract_test_20260718.json": "3a713b9e05662f7ba31cc562faea4162fa0b9fd37a548bd3a605423d43db2b41"
+    },
+    "ledger_sha256": "c889d9c2f0e61cbea3a438c3e75e5454c6e208c7875265ce4c631835f7e63f7e",
+    "ledger_overall": "IN_PROGRESS",
+    "g1_status": "PASS",
+    "g1_completed_tasks": 45,
+    "g1_required_tasks": 45,
+    "completion_sha256": "439b48912c940c54031069097574eb40557bdc1157a85d6f041737a04a47977e",
+    "incident_resolution_sha256": "cbcd17e8ba750c5838001d33c5169848556bacc5f395769dd0511ac7238e2874",
+    "missing_hashes_from_completion": []
+  },
+  "errors": [],
+  "auditor_script": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/runtime/audit_scratch_v2_final_closeout_20260718.txt",
+  "auditor_script_sha256": "1589b7b7be782859dfed00938cdc4ab67958f1a41c17e24c71d8d02445125711",
+  "boundary_zh": "本审计只关闭 scratch-v2；不授权或证明 SURE、HLS、route、COM5、板级和功耗实验。"
+}

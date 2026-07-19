@@ -1,0 +1,27 @@
+set repo_root [file normalize [pwd]]
+set output_root [file join $repo_root results benchmarks ccf_ab_nksid_av7k325_v1 smoke hardware_toolchain_20260717 route]
+set rtl_path [file join $repo_root results benchmarks ccf_ab_nksid_av7k325_v1 smoke hardware_toolchain_20260717 inputs av7k325_route_toolchain_smoke.v]
+file mkdir $output_root
+
+read_verilog $rtl_path
+synth_design -top av7k325_route_toolchain_smoke -part xc7k325t-ffg900-2
+create_clock -name smoke_clock -period 5.0 [get_ports clk]
+opt_design
+place_design
+route_design
+
+report_utilization -file [file join $output_root utilization.rpt]
+report_timing_summary -file [file join $output_root timing_summary.rpt]
+report_route_status -file [file join $output_root route_status.rpt]
+write_checkpoint -force [file join $output_root routed.dcp]
+
+set worst_path [get_timing_paths -max_paths 1 -nworst 1]
+set wns "NA"
+if {[llength $worst_path] > 0} {
+    set wns [get_property SLACK $worst_path]
+}
+puts "ROUTE_TOOLCHAIN_SMOKE_STATUS=PASS"
+puts "ROUTE_TOOLCHAIN_SMOKE_BOUNDARY=TRIVIAL_RTL_NOT_A_COMPLETE_NETWORK_NOT_COUNTED_TOWARD_T6_T7"
+puts "ROUTE_TOOLCHAIN_SMOKE_PART=xc7k325t-ffg900-2"
+puts "ROUTE_TOOLCHAIN_SMOKE_WNS_NS=$wns"
+exit

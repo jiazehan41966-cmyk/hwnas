@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""审计图表 meta 的中文人类可读字段与历史 companion 绑定。"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def has_chinese(value: object) -> bool:
+    text = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def companion_path(path: Path) -> Path:
+    if path.name.endswith(".json.txt"):
+        return path.with_name(path.name[:-9] + ".zh-CN.json.txt")
+    if path.name.endswith(".json"):
+        return path.with_name(path.name[:-5] + ".zh-CN.json.txt")
+    raise ValueError(path)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-root", required=True)
+    args = parser.parse_args()
+    root = Path(args.campaign_root).resolve()
+    original_meta = sorted(
+        path for path in root.rglob("*")
+        if path.is_file() and "meta.json" in path.name.lower() and ".zh-cn." not in path.name.lower()
+    )
+    if not original_meta:
+        raise AssertionError("未找到任何图表 meta")
+
+    direct = 0
+    bound = 0
+    records = []
+    for path in original_meta:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        serialized = json.dumps(payload, ensure_ascii=False)
+        if "�" in serialized:
+            raise AssertionError(f"原始 meta 存在乱码：{path}")
+        human_fields = [
+            payload.get("title_zh") or payload.get("title"),
+            payload.get("caption"),
+            payload.get("supported_claim") or payload.get("supports"),
+            payload.get("limitations") or payload.get("boundary"),
+        ]
+        direct_chinese = payload.get("language") == "zh-CN" and all(
+            value is None or has_chinese(value) for value in human_fields
+        )
+        if direct_chinese:
+            direct += 1
+            records.append({
+                "original": str(path),
+                "original_sha256": sha256_file(path),
+                "status": "原始 meta 直接符合中文规则",
+                "companion": None,
+            })
+            continue
+
+        companion = companion_path(path)
+        if not companion.is_file():
+            raise AssertionError(f"历史 meta 缺少中文 companion：{path}")
+        translated = json.loads(companion.read_text(encoding="utf-8"))
+        translated_text = json.dumps(translated, ensure_ascii=False)
+        if translated.get("language") != "zh-CN" or not has_chinese(translated) or "�" in translated_text:
+            raise AssertionError(f"中文 meta companion 不符合规则：{companion}")
+        original_binding = translated.get("original_meta") or {}
+        if Path(original_binding.get("path", "")).resolve() != path.resolve():
+            raise AssertionError(f"中文 meta companion 未绑定原路径：{companion}")
+        if original_binding.get("sha256") != sha256_file(path):
+            raise AssertionError(f"中文 meta companion 未绑定原 SHA：{companion}")
+        for key in ("title_zh", "supported_claim", "limitations"):
+            if key not in translated or not has_chinese(translated[key]):
+                raise AssertionError(f"中文 meta companion 缺少中文字段 {key}：{companion}")
+        bound += 1
+        records.append({
+            "original": str(path),
+            "original_sha256": sha256_file(path),
+            "status": "只读历史 meta 已绑定中文 companion",
+            "companion": str(companion),
+            "companion_sha256": sha256_file(companion),
+        })
+
+    result = {
+        "schema_version": 1,
+        "status": "PASS_ALL_HUMAN_META_CHINESE_OR_BOUND_COMPANION",
+        "language": "zh-CN",
+        "campaign_id": "ccf_ab_nksid_av7k325_v1",
+        "meta_files_audited": len(original_meta),
+        "direct_chinese_meta": direct,
+        "historical_meta_with_chinese_companion": bound,
+        "pending": len(original_meta) - direct - bound,
+        "records": records,
+        "formal_evidence_increment": 0,
+        "boundary": "本审计只验证图表 meta 的中文表达和历史哈希绑定，不改变图表科学状态。",
+        "auditor": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__))},
+    }
+    if result["pending"] != 0:
+        raise AssertionError("仍有 meta 未中文化")
+    output = root / "manifests" / "archive_human_meta_language_audit_v1.json.txt"
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="")
+    print(json.dumps({
+        "status": result["status"],
+        "meta_files_audited": len(original_meta),
+        "direct_chinese": direct,
+        "bound_companion": bound,
+        "pending": 0,
+        "formal_evidence_increment": 0,
+    }, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

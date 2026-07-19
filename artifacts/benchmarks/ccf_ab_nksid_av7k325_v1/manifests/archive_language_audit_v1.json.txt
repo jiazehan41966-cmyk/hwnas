@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "PASS_ALL_HUMAN_ARCHIVES_CHINESE_OR_BOUND_COMPANION",
+  "language": "zh-CN",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "scope": "Markdown 人类可读档案",
+  "files_audited": 111,
+  "files_with_chinese": 79,
+  "legacy_english_files_total": 32,
+  "legacy_english_files_with_companion": 32,
+  "legacy_english_files_pending_companion": 0,
+  "files_with_replacement_character": 0,
+  "policy": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\experiment_archive_language_policy_20260717.json.txt",
+    "sha256": "7fe9b2d34052e2e451cd3db64db04be937369ac583bd0cf53c83333433c272ac"
+  },
+  "source_inventory": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\archive_language_audit_v1.csv",
+    "sha256": "cf879bb57476e029d4ebd3e5ec101270524ea2fafe7904e4f5136768644f0092"
+  },
+  "report": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\archive_language_audit_v1.md",
+    "sha256": "3104a4ed8edc79525b1dee243ca4f85144d5d6e8d8906387ec037fc6c1404178"
+  },
+  "builder": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_archive_language_audit_v1.txt",
+    "sha256": "0a9b97ea2ff09dda027b5a54f66d38704899bf602a9d217acd3ecbbb28b10c49"
+  },
+  "formal_evidence_increment": 0,
+  "boundary": "语言覆盖审计不改变实验结果；历史英文原件保持只读并等待中文伴随档案。"
+}

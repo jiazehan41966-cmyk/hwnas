@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "table_id": "T1",
+  "title_zh": "开源基线资格、许可证与可复现性审计",
+  "status": "PASS",
+  "row_count": 6,
+  "column_count": 26,
+  "main_paper_count": 5,
+  "supplementary_paper_count": 1,
+  "formal_numeric_eligible_count": 0,
+  "supported_claim": "T1 v2 能一致记录论文来源、固定版本、许可证、smoke、独立环境、本地统一协议状态与显式 blocker。",
+  "limitations": [
+    "来源、许可证、smoke、环境和作者 artifact readiness 不等于本地数值结果。",
+    "只有完成统一协议并通过独立审计的证据才能改变 formal_numeric_eligible。",
+    "T1 v2 仍是 staged replacement，新的 source freeze 与 canonical builder 接入前不能提升为最终 T1。"
+  ],
+  "original_meta": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1_v2_meta.json.txt",
+    "sha256": "8aadc5038540003968e6da4bdc369da6742e9479fedd0563a554c2ff8d31bdfd"
+  },
+  "generator": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_t1_reproducibility_v2.txt",
+    "sha256": "d66ea11314e09c2bc3d0ac46d1130d3ff781381faf7c1915d642c81c1f1d46d4"
+  },
+  "claimability_status": "仅来源与可复现性审计；正式数值 eligible 为 0。"
+}

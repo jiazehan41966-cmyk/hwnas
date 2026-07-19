@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "approved": false,
+  "methods": [
+    "rl",
+    "aging_evolution"
+  ],
+  "decision_owner": null,
+  "decision_timestamp": null,
+  "decision_record": null,
+  "comparison_protocol": {
+    "rl_config": "configs/search/nksid_rl_pareto3_mobile_anchor_mobilenet_v2_av7k325_200.yaml",
+    "aging_config": "configs/search/nksid_aging_mobile_anchor_mobilenet_v2_av7k325_200.yaml",
+    "paired_seeds": [
+      42,
+      43,
+      44
+    ],
+    "candidate_budget_per_method_seed": 200,
+    "eval_epochs_per_candidate": 3,
+    "pareto_objectives": [
+      "f_clean",
+      "f_robust",
+      "latency_ms",
+      "energy_mj"
+    ],
+    "primary_compute_metric": "job_gpu_reserved_hours",
+    "secondary_compute_metrics": [
+      "gpu_reserved_hours",
+      "gpu_event_seconds"
+    ],
+    "exclusive_gpu_required": true,
+    "counterbalanced_method_order": true
+  },
+  "prerequisite_assertions": {
+    "g2_pass": false,
+    "g4_claimable": false,
+    "g4_zero_numeric_mismatch": false,
+    "gate0_proxy_reliability_pass": false,
+    "g5_sonar_operator_pass_or_not_required": false
+  },
+  "instructions": "Copy to artifacts/stage3_replan_approval.json only after an authorized manual decision and after all prerequisite assertions are verified true. This template is not approval evidence."
+}

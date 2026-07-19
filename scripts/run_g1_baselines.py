@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -27,6 +28,10 @@ def command_specs(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
         str(Path(args.data_dir)),
         "--output-dir",
         str(Path(args.output_dir)),
+        "--campaign-id",
+        "ccf_ab_nksid_av7k325_v1",
+        "--paper-id",
+        "project_internal",
         "--folds",
         "0,1,2,3,4",
         "--seeds",
@@ -37,10 +42,17 @@ def command_specs(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
         "8",
         "--gradient-accumulation-steps",
         "4",
+        "--num-workers",
+        str(getattr(args, "num_workers", 0)),
         "--amp",
         "--save-checkpoints",
         "--resume",
     ]
+    source_freeze_manifest = getattr(args, "source_freeze_manifest", None)
+    if source_freeze_manifest:
+        common.extend(
+            ["--source-freeze-manifest", str(Path(source_freeze_manifest).resolve())]
+        )
     return [
         (
             "mobilenet_v2_scratch",
@@ -50,6 +62,8 @@ def command_specs(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
                 "mobilenet_v2",
                 "--selection-provenance",
                 "baseline_predeclared",
+                "--method-id",
+                "scratch_mobilenet_v2",
                 "--run-name",
                 "g1_mobilenet_v2_scratch",
             ],
@@ -63,6 +77,8 @@ def command_specs(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
                 "--pretrained",
                 "--selection-provenance",
                 "baseline_predeclared",
+                "--method-id",
+                "imagenet_pretrained_mobilenet_v2",
                 "--run-name",
                 "g1_mobilenet_v2_grayscale_imagenet",
             ],
@@ -75,6 +91,8 @@ def command_specs(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
                 str(Path(args.rl135_candidate).resolve()),
                 "--selection-provenance",
                 "legacy_fold0_selected",
+                "--method-id",
+                "frozen_nas_champion",
                 "--run-name",
                 "g1_rl_arch_135_legacy_selected",
             ],
@@ -91,15 +109,48 @@ def main() -> int:
         help="Independent clean root; legacy/mixed result directories are never reused.",
     )
     parser.add_argument("--epochs", type=int, default=150)
+    parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--rl135-candidate", default=str(DEFAULT_RL135))
+    parser.add_argument("--source-freeze-manifest", default=None)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if not Path(args.rl135_candidate).exists():
         raise FileNotFoundError(args.rl135_candidate)
+    if not args.dry_run and not args.source_freeze_manifest:
+        raise RuntimeError(
+            "formal G1 launch requires --source-freeze-manifest; create it only after "
+            "the source and regression suite are final"
+        )
+
+    freeze_manifest = None
+    freeze_manifest_sha256 = None
+    if args.source_freeze_manifest:
+        freeze_manifest = Path(args.source_freeze_manifest).resolve()
+        if not freeze_manifest.is_file():
+            raise FileNotFoundError(freeze_manifest)
+        freeze_manifest_sha256 = hashlib.sha256(freeze_manifest.read_bytes()).hexdigest()
+
+    def verify_source() -> int:
+        if freeze_manifest is None:
+            return 0
+        return subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts/freeze_experiment_source.py"),
+                "verify",
+                "--manifest",
+                str(freeze_manifest),
+            ],
+            cwd=REPO_ROOT,
+            check=False,
+        ).returncode
+
+    if verify_source() != 0:
+        raise RuntimeError("source freeze verification failed before G1 launch")
 
     specs = command_specs(args)
     ledger = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated": datetime.now().isoformat(timespec="seconds"),
         "planned_training_tasks": 45,
         "models": [],
@@ -109,9 +160,24 @@ def main() -> int:
         "group_split_available": False,
         "group_generalization_claimable": False,
         "legacy_results_merged": False,
+        "num_workers": args.num_workers,
+        "source_freeze_manifest": str(freeze_manifest) if freeze_manifest else None,
+        "source_freeze_manifest_sha256": freeze_manifest_sha256,
     }
     overall = 0
     for name, command in specs:
+        if verify_source() != 0:
+            overall = 2
+            ledger["models"].append(
+                {
+                    "name": name,
+                    "planned_tasks": 15,
+                    "command": command,
+                    "returncode": overall,
+                    "reason": "source_freeze_verification_failed",
+                }
+            )
+            break
         print(subprocess.list2cmdline(command), flush=True)
         returncode = None
         if not args.dry_run:

@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "status": "READY_FOR_USER_DECISION_NOT_AUTHORIZED",
+  "paper_id": "sure_2024",
+  "checks": {
+    "adapter_config": {
+      "valid": true,
+      "formal_execution_enabled": false,
+      "status": "METHOD_SMOKE_PASS_LICENSE_UNVERIFIED",
+      "sha256": "8d976818dca9b6677b5114c15241a5b009087eae04901adca79fc6b0711fe839"
+    },
+    "isolated_checkout": {
+      "valid": true,
+      "observed_commit": "5ce0193bc93e73b1c7f1f53aeda8854e997011e2",
+      "observed_remote": "https://github.com/Intellindust-AI-Lab/SURE.git",
+      "status_lines": [
+        "?? __pycache__/main.cpython-313.pyc",
+        "?? __pycache__/test.cpython-313.pyc",
+        "?? __pycache__/train.cpython-313.pyc",
+        "?? __pycache__/valid.cpython-313.pyc",
+        "?? model/__pycache__/classifier.cpython-313.pyc",
+        "?? utils/__pycache__/sam.cpython-313.pyc",
+        "?? utils/__pycache__/utils.cpython-313.pyc"
+      ],
+      "disallowed_status_lines": [],
+      "license_files": [],
+      "license_state": "missing_unverified_local_execution_only"
+    },
+    "dedicated_environment": {
+      "lock_valid": true,
+      "live_probe_valid": true,
+      "interpreter": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\sure_2024_cuda\\Scripts\\python.exe",
+      "lock_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\sure_2024.lock.txt",
+      "lock_sha256": "e136caaa1776bef95b235119d73d883c69caebbf34a2ddda1befe3b17249be2a",
+      "live_probe": {
+        "paper_id": "sure_2024",
+        "probe": "sure",
+        "interpreter": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\sure_2024_cuda\\Scripts\\python.exe",
+        "sys_prefix": "E:\\1\\hwnas\\hwnas\\.venv_benchmarks\\sure_2024_cuda",
+        "python": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+        "torch": "2.7.0+cu126",
+        "torchvision": "0.22.0+cu126",
+        "numpy": "2.4.4",
+        "cuda_build": "12.6",
+        "cuda_available": true,
+        "cuda_device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "cuda_tensor_sum": 4.0,
+        "checkout": "E:\\1\\hwnas\\hwnas\\reference\\_local\\SURE",
+        "observed_commit": "5ce0193bc93e73b1c7f1f53aeda8854e997011e2",
+        "details": {
+          "component": "SURE author FMFP/CRL/SAM source loader",
+          "source_hashes": {
+            "train.py": "316082b8034c360fe81138456acb5f2cd9655baead4264207c1563abc69fe50e",
+            "utils/sam.py": "b6152975c23245ffdd227c59fb4645d5379a2acae2c2c2acb0ef8f48944d7493",
+            "model/classifier.py": "c931dc51e029a8aeb722a75e7b84b22ee17ab18198a5c71880a5696ba99572ec",
+            "run/CIFAR10/wideresnet.sh": "72131f09c04a0cd38935c2d84bfef0bedc8bc18c5971e0805e61a8f284eaec89"
+          }
+        },
+        "status": "PASS"
+      },
+      "live_probe_stderr": ""
+    },
+    "mobilenet_v2_static_bridge": {
+      "valid": true,
+      "payload": {
+        "status": "PASS",
+        "shape": [
+          1,
+          8
+        ],
+        "head": "author_cosine_classifier",
+        "commit": "5ce0193bc93e73b1c7f1f53aeda8854e997011e2"
+      },
+      "stderr": "",
+      "scope": "CPU 随机张量前向与作者 cosine classifier 装配；不训练、不形成实验结果"
+    },
+    "source_license_audit": {
+      "valid": true,
+      "source_audit_pass": true,
+      "formal_eligible": false,
+      "blockers": [
+        "redistribution_license_unverified"
+      ],
+      "rule_zh": "只允许隔离目录本地重评；不得向项目仓库再分发作者源码。"
+    },
+    "existing_smoke": {
+      "valid": true,
+      "model": "simplecnn",
+      "fold": 0,
+      "seed": 42,
+      "epochs": 1,
+      "claimable": false,
+      "macro_f1": 0.28263650122831874,
+      "calibration_metrics": {
+        "aurc": 0.13955102180337414,
+        "brier": 0.4796127733200435,
+        "ece": 0.19770883496564162,
+        "failure_auroc": 0.7532252252252252,
+        "failure_fpr95": 0.7081081081081081,
+        "nll": 1.058414764558615
+      },
+      "summary_sha256": "58a7bcff1230379c6b8082ceb39597e62736d409c672ea05f88a76b416d5c7d6",
+      "limitation_zh": "现有 smoke 使用 SimpleCNN 与 64×64 输入，不能证明 224×224 MobileNetV2 的显存和训练稳定性。"
+    },
+    "canonical_entry": {
+      "valid": true,
+      "path": "E:\\1\\hwnas\\hwnas\\run_eval_protocol.py",
+      "sha256": "e6968ffe2217fa29117f1ed5a62d1ff5c72197ba6b3486d6f1bf270da28e3817"
+    },
+    "staged_execution_guard": {
+      "valid": true,
+      "guard_path": "E:\\1\\hwnas\\hwnas\\scripts\\run_sure_s_a_stage1_guarded.py",
+      "guard_sha256": "d2b9de5b3bc0e0dca6ec00ab9b0f58c05c262be8b78a470c1c76dd8ba627df84",
+      "template_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\sure_s_a_stage1_authorization_template_20260719.json.txt",
+      "template_sha256": "21cf2a20dcbfb3f9969959e0eb51e29f3b3a6e90eb23f7645d1f2dffeb81405e",
+      "template_status": "NOT_AUTHORIZED_TEMPLATE",
+      "remaining_fourteen_units_authorized": false
+    },
+    "campaign_readiness": {
+      "valid": true,
+      "status": "NOT_READY",
+      "passed": "2/9",
+      "scratch_result_dir": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260718\\g1_mobilenet_v2_scratch_v2",
+      "scratch_patch_integrity": true,
+      "sure_observed_pairs": []
+    },
+    "no_unauthorized_formal_execution": {
+      "valid": true,
+      "formal_record_count": 0,
+      "active_authorization_exists": false
+    },
+    "runtime_planning": {
+      "scratch_v2_observed_15_unit_hours": 8.155859442222221,
+      "scratch_v2_mean_minutes_per_unit": 32.623437768888884,
+      "sure_formal_runtime_measured": false,
+      "engineering_planning_band_hours": [
+        18,
+        30
+      ],
+      "basis_zh": "SURE 的 SAM 每批两次梯度计算、60% epoch 后还有 SWA BN 更新，且当前实现关闭 AMP；该区间只是容量规划推断，须由 MobileNetV2 一轮 smoke 校准。"
+    }
+  },
+  "errors": [],
+  "required_before_training": [
+    "用户选择并批准分阶段方案",
+    "重新冻结当前源代码并核验 snapshot",
+    "创建一次性、限 SURE 的可执行授权",
+    "先执行 1 fold × 1 seed × 1 epoch 的 MobileNetV2 技术 smoke"
+  ],
+  "recommended_scheme": "S-A",
+  "recommended_scheme_zh": "技术 smoke 通过后执行首个 150-epoch 正式单元，然后强制暂停，由用户依据首单元完整指标决定是否继续剩余 14 单元。",
+  "claim_boundary_zh": "本文件是只读就绪性核查，不是 SURE 实验结果，也不授权板卡、HLS 或功耗实验。",
+  "auditor_script": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/runtime/audit_sure_formal_readiness_20260719.txt",
+  "auditor_script_sha256": "7d5e5bdc153b34b9bd50da8755b95b045ac7cee074fb4df2e852a8fb348d5975"
+}

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-18T21:19:49.6779598+08:00",
+  "cycle_id": "nksid_av7k325_full_cycle_v2_20260712",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "status": "PASS",
+  "gate": "G1_accuracy_baselines_45_units",
+  "source_freezes": [
+    {
+      "scope": [
+        "g1_mobilenet_v2_grayscale_imagenet",
+        "g1_rl_arch_135_legacy_selected"
+      ],
+      "status": "PASS",
+      "manifest": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_freeze_manifest.json",
+      "manifest_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+      "archive": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_snapshot.zip",
+      "archive_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d",
+      "manifest_file_count": 556,
+      "archive_entry_count": 556,
+      "missing": 0,
+      "changed": 0,
+      "unexpected": 0,
+      "duplicate_entries": 0
+    },
+    {
+      "scope": [
+        "g1_mobilenet_v2_scratch_v2"
+      ],
+      "status": "PASS",
+      "manifest": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260718_v3/source_freeze_manifest.json",
+      "manifest_sha256": "cfbc7ec9373e762c39385d733e07682a39ef843f87c2a25100c3fb7bfb824f32",
+      "archive": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260718_v3/source_snapshot.zip",
+      "archive_sha256": "990d1dd08b1e966c4e85ff76661b4ceffb0986200a25859c8540cafe359a6ed3",
+      "manifest_file_count": 557,
+      "live_verification_status": "PASS",
+      "archive_entry_count": 557,
+      "missing": 0,
+      "changed": 0,
+      "unexpected": 0,
+      "duplicate_entries": 0
+    }
+  ],
+  "unit_accounting": {
+    "expected_units": 45,
+    "artifact_complete_units": 45,
+    "independent_audit_pass_units": 45,
+    "independent_audit_fail_units": 0,
+    "missing_units": 0,
+    "unexpected_units": 0
+  },
+  "groups": [
+    {
+      "run_name": "g1_mobilenet_v2_scratch_v2",
+      "method_id": "scratch_mobilenet_v2",
+      "run_fingerprint": "16592ad47ec990244cef3cac2d100bd0929a5cac7608904b3d63f41a97ee33aa",
+      "expected_units": 15,
+      "artifact_complete_units": 15,
+      "independent_audit_status": "PASS",
+      "independent_audit": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_scratch_v2_independent_audit_20260718.json",
+      "independent_audit_sha256": "0ee6e3d982ad902762350c6d5913fe00aacecfbf00ed08e6a54b2c1cce869e3b",
+      "outer_macro_f1_mean": 0.9099016279896589,
+      "outer_top1_mean": 0.9720894809721625,
+      "outer_weighted_f1_mean": 0.9754047132454141,
+      "claimable": true
+    },
+    {
+      "run_name": "g1_mobilenet_v2_grayscale_imagenet",
+      "method_id": "imagenet_pretrained_mobilenet_v2",
+      "run_fingerprint": "e9cc0c17cb17773396673c06cfa15157b7f8d8559454134b2da9a7ab76a47f01",
+      "expected_units": 15,
+      "artifact_complete_units": 15,
+      "independent_audit_status": "PASS",
+      "independent_audit": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_pretrained_independent_reaudit_20260718_final.json",
+      "independent_audit_sha256": "1ca244b7f40c2dbdc92d09caaa554a089dd21092131ac421108883d16feca395",
+      "outer_macro_f1_mean": 0.9316318800867744,
+      "outer_top1_mean": 0.9778262426586449,
+      "outer_weighted_f1_mean": 0.9785838641890703,
+      "claimable": true
+    },
+    {
+      "run_name": "g1_rl_arch_135_legacy_selected",
+      "method_id": "frozen_nas_champion",
+      "run_fingerprint": "1ce4ba03c9a29a9dc7c8cdd6e751944f6b8de4f9f98a581617e1c6ca6e1e0ea9",
+      "expected_units": 15,
+      "artifact_complete_units": 15,
+      "independent_audit_status": "PASS",
+      "independent_audit": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/g1_nas_independent_reaudit_20260718_final.json",
+      "independent_audit_sha256": "aa97f83c575d43282b8119052c504e72df35c547c86ffd9dee5f98732f2c48cf",
+      "outer_macro_f1_mean": 0.6936187231198493,
+      "outer_top1_mean": 0.8132039344888506,
+      "outer_weighted_f1_mean": 0.8496698582753558,
+      "claimable": true
+    }
+  ],
+  "launcher_exit_anomaly": {
+    "status": "ARTIFACTS_PASS_PROCESS_EXIT_UNRESOLVED",
+    "incident": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/scratch_v2_interruption_20260718_170145.md",
+    "observed_exit_code": null,
+    "stderr_bytes": 0,
+    "stdout_summary_complete": true,
+    "protocol_summary_complete": true,
+    "interpretation": "The guard recorded a blank process exit code after all 15 units and the protocol summary were written. This is not used as evidence of a zero process exit; G1 PASS is based on the independent artifact audits."
+  },
+  "measurement_first_ledger": {
+    "status": "PASS",
+    "g1_completed_tasks": 45,
+    "g1_required_tasks": 45,
+    "artifact": "artifacts/measurement_first_rebuild/status.json",
+    "artifact_sha256": "7b6903215393f48c1b0219f58bad55379f52d9b8a7fa0d607c7ed56ddbd514fd"
+  },
+  "gate_decision": {
+    "g1_pass": true,
+    "move_to_g2": true,
+    "move_to_g4": false,
+    "move_to_gate0": false,
+    "move_to_formal_search": false,
+    "next_action": "G2_HARDWARE_CALIBRATION",
+    "reason": "All 45 formal G1 units are artifact-complete and pass independent provenance, prediction, checkpoint, metric, fold-coverage, and patch-integrity audits."
+  },
+  "downstream_status": {
+    "search_proxy": "PENDING",
+    "retrain": "G1_COMPLETE_ONLY",
+    "g2_hls_calibration": "PENDING_HARDWARE_EXECUTION",
+    "g4_anchor": "PENDING",
+    "proxy_reliability_gate0": "PENDING_REMOTE_GPU",
+    "formal_search": "FROZEN",
+    "hls_route": "PENDING",
+    "board_com5": "PENDING",
+    "image_quality": "PENDING",
+    "calibration": "PENDING",
+    "external_power": "NOT_MEASURED"
+  }
+}

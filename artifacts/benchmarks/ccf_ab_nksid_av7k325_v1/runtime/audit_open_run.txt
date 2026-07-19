@@ -1,0 +1,402 @@
+#!/usr/bin/env python3
+"""Independent audit for frozen 5-known/3-unknown NKSID runs.
+
+The .txt suffix is intentional: this verifier is runtime evidence tooling and
+must not perturb an in-flight run's git_code_provenance allowlist.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+from datetime import datetime
+from itertools import combinations
+from pathlib import Path
+
+import numpy as np
+
+
+FOLD_SIZES = {0: 520, 1: 520, 2: 520, 3: 520, 4: 537}
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def macro_f1(labels: np.ndarray, predictions: np.ndarray, class_ids: list[int]) -> float:
+    scores: list[float] = []
+    for class_id in class_ids:
+        tp = int(np.sum((labels == class_id) & (predictions == class_id)))
+        fp = int(np.sum((labels != class_id) & (predictions == class_id)))
+        fn = int(np.sum((labels == class_id) & (predictions != class_id)))
+        precision = tp / (tp + fp) if tp + fp else 0.0
+        recall = tp / (tp + fn) if tp + fn else 0.0
+        scores.append(2 * precision * recall / (precision + recall) if precision + recall else 0.0)
+    return float(np.mean(scores)) if scores else 0.0
+
+
+def binary_roc(labels: np.ndarray, scores: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+    positives = int(labels.sum())
+    negatives = int(len(labels) - positives)
+    if positives == 0 or negatives == 0:
+        return np.asarray([0.0, 1.0]), np.asarray([0.0, 1.0]), math.nan
+    order = np.argsort(-scores, kind="mergesort")
+    sorted_labels = labels[order]
+    sorted_scores = scores[order]
+    distinct = np.r_[True, sorted_scores[1:] != sorted_scores[:-1]]
+    cumulative_tp = np.cumsum(sorted_labels)
+    cumulative_fp = np.cumsum(1 - sorted_labels)
+    indices = np.flatnonzero(np.r_[distinct[1:], True])
+    tpr = np.r_[0.0, cumulative_tp[indices] / positives, 1.0]
+    fpr = np.r_[0.0, cumulative_fp[indices] / negatives, 1.0]
+    return fpr, tpr, float(np.trapezoid(tpr, fpr))
+
+
+def open_metrics(
+    targets: list[int], predictions: list[int], confidences: list[float],
+    known_ids: list[int], threshold: float,
+) -> dict[str, float]:
+    labels = np.asarray(targets, dtype=np.int64)
+    predicted = np.asarray(predictions, dtype=np.int64)
+    confidence = np.asarray(confidences, dtype=np.float64)
+    known = np.isin(labels, known_ids)
+    unknown_id = max(max(known_ids), int(labels.max()), int(predicted.max())) + 1
+    accepted = confidence >= threshold
+    final_targets = np.where(known, labels, unknown_id)
+    final_predictions = np.where(accepted, predicted, unknown_id)
+    known_macro_f1 = macro_f1(labels[known], predicted[known], known_ids)
+    all_ids = [*known_ids, unknown_id]
+    osfm = macro_f1(final_targets, final_predictions, all_ids)
+    recalls = []
+    for class_id in all_ids:
+        mask = final_targets == class_id
+        recalls.append(float(np.mean(final_predictions[mask] == class_id)) if np.any(mask) else 0.0)
+    nma = float(np.mean(recalls))
+    unknown_labels = (~known).astype(np.int64)
+    fpr, tpr, unknown_auroc = binary_roc(unknown_labels, 1.0 - confidence)
+    eligible = np.flatnonzero(tpr >= 0.95)
+    unknown_fpr95 = float(np.min(fpr[eligible])) if eligible.size else math.nan
+    known_count = max(1, int(known.sum()))
+    unknown_count = max(1, int((~known).sum()))
+    thresholds = np.r_[math.inf, np.sort(np.unique(confidence))[::-1], -math.inf]
+    oscr_rows = []
+    for current in thresholds:
+        accept = confidence >= current
+        ccr = float(np.sum(known & accept & (predicted == labels)) / known_count)
+        unknown_fpr = float(np.sum((~known) & accept) / unknown_count)
+        oscr_rows.append((unknown_fpr, ccr))
+    oscr_rows = sorted(set(oscr_rows))
+    oscr_mac = float(np.trapezoid(
+        np.asarray([row[1] for row in oscr_rows]),
+        np.asarray([row[0] for row in oscr_rows]),
+    ))
+    return {
+        "known_macro_f1": known_macro_f1,
+        "nma": nma,
+        "osfm": osfm,
+        "oscr_mac": oscr_mac,
+        "unknown_auroc": unknown_auroc,
+        "unknown_fpr95": unknown_fpr95,
+    }
+
+
+def close(left: float, right: float) -> bool:
+    return math.isclose(float(left), float(right), rel_tol=0.0, abs_tol=1e-12)
+
+
+def parse_ints(value: str) -> list[int]:
+    return [int(item) for item in value.split(",") if item]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run-dir", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--expected-method", required=True)
+    parser.add_argument("--folds", default="0,1,2,3,4")
+    parser.add_argument("--seeds", default="42,43,44")
+    parser.add_argument("--require-environment-card", action="store_true")
+    args = parser.parse_args()
+
+    run_dir = Path(args.run_dir).resolve()
+    output = Path(args.output).resolve()
+    folds = parse_ints(args.folds)
+    seeds = parse_ints(args.seeds)
+    expected_pairs = {(fold, seed) for fold in folds for seed in seeds}
+    formal_full = folds == [0, 1, 2, 3, 4] and seeds == [42, 43, 44]
+    errors: list[str] = []
+    records: list[dict[str, object]] = []
+
+    manifest_path = run_dir / "run_manifest.json"
+    summary_path = run_dir / "protocol_summary.json"
+    if not manifest_path.is_file() or not summary_path.is_file():
+        errors.append("run manifest or summary is missing")
+        manifest, summary = {}, {}
+    else:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        summary = json.loads(summary_path.read_text(encoding="utf-8-sig"))
+
+    fingerprint = str(manifest.get("run_fingerprint") or "")
+    immutable = dict(manifest.get("immutable_config") or {})
+    claimability = dict(summary.get("claimability") or {})
+    completed = {(int(row["fold"]), int(row["seed"])) for row in (manifest.get("completed_pairs") or [])}
+    if completed != expected_pairs:
+        errors.append(f"completed pair set mismatch: {sorted(completed)}")
+    if summary.get("task") != "open_long_tail" or immutable.get("task") != "open_long_tail":
+        errors.append("task is not open_long_tail")
+    if formal_full and not (
+        claimability.get("claimable") is True
+        and claimability.get("protocol_complete") is True
+        and claimability.get("source_freeze_verified") is True
+        and int(claimability.get("observed_run_count") or 0) == 15
+    ):
+        errors.append("formal open-set claimability is incomplete")
+    if len(fingerprint) != 64 or summary.get("run_fingerprint") != fingerprint:
+        errors.append("run fingerprint mismatch")
+
+    source_freeze = dict(immutable.get("source_freeze") or {})
+    if not (
+        source_freeze.get("verification_status") == "PASS"
+        and int(source_freeze.get("verified_file_count") or 0) == 556
+        and len(str(source_freeze.get("manifest_sha256") or "")) == 64
+        and len(str(source_freeze.get("archive_sha256") or "")) == 64
+    ):
+        errors.append("source-freeze binding is invalid")
+    sample_binding = dict(immutable.get("open_set_sample_manifest") or {})
+    sample_manifest_path = Path(str(sample_binding.get("path") or ""))
+    sample_audit_path = Path(str(sample_binding.get("audit_path") or ""))
+    sample_manifest: dict[str, object] = {}
+    sample_audit: dict[str, object] = {}
+    sample_units: dict[tuple[int, int], dict[str, object]] = {}
+    sample_rows: list[dict[str, object]] = []
+    if not (
+        sample_manifest_path.is_file()
+        and len(str(sample_binding.get("sha256") or "")) == 64
+        and sha256_file(sample_manifest_path) == sample_binding.get("sha256")
+        and sample_audit_path.is_file()
+        and len(str(sample_binding.get("audit_sha256") or "")) == 64
+        and sha256_file(sample_audit_path) == sample_binding.get("audit_sha256")
+    ):
+        errors.append("open-set sample manifest/audit binding is invalid")
+    else:
+        sample_manifest = json.loads(sample_manifest_path.read_text(encoding="utf-8-sig"))
+        sample_audit = json.loads(sample_audit_path.read_text(encoding="utf-8-sig"))
+        sample_rows = list(sample_manifest.get("samples") or [])
+        try:
+            sample_units = {
+                (int(row["fold"]), int(row["seed"])): row
+                for row in sample_manifest.get("units", [])
+            }
+        except (KeyError, TypeError, ValueError):
+            sample_units = {}
+            errors.append("open-set sample unit keys are invalid")
+        expected_manifest_pairs = {
+            (fold, seed) for fold in range(5) for seed in (42, 43, 44)
+        }
+        open_config = dict(immutable.get("open_set_config") or {})
+        if not (
+            sample_manifest.get("schema_version") == 1
+            and sample_manifest.get("campaign_id") == immutable.get("campaign_id")
+            and sample_manifest.get("task") == "open_long_tail"
+            and sample_manifest.get("claimability_status") == "FROZEN_INPUT_NOT_RESULT"
+            and int(sample_manifest.get("dataset_sample_count") or 0) == 2617
+            and int(sample_manifest.get("unit_count") or 0) == 15
+            and list(sample_manifest.get("folds") or []) == [0, 1, 2, 3, 4]
+            and list(sample_manifest.get("seeds") or []) == [42, 43, 44]
+            and len(sample_rows) == 2617
+            and set(sample_units) == expected_manifest_pairs
+            and sample_manifest.get("protocol_sha256") == open_config.get("sha256")
+            and dict(sample_manifest.get("source_freeze") or {}).get("manifest_sha256")
+            == source_freeze.get("manifest_sha256")
+        ):
+            errors.append("open-set sample manifest identity/protocol mismatch")
+        if not (
+            sample_audit.get("status") == "PASS"
+            and sample_audit.get("manifest_sha256") == sample_binding.get("sha256")
+            and int(sample_audit.get("sample_rows") or 0) == 2617
+            and int(sample_audit.get("sample_hashes_reverified") or 0) == 2617
+            and int(sample_audit.get("accepted_units") or 0) == 15
+            and int(sample_audit.get("required_units") or 0) == 15
+            and int(sample_audit.get("formal_result_increment", -1)) == 0
+            and not list(sample_audit.get("errors") or [])
+        ):
+            errors.append("open-set sample manifest independent audit is invalid")
+    environment = immutable.get("environment_card")
+    if args.require_environment_card and not (
+        isinstance(environment, dict)
+        and environment.get("isolation_status") == "READY_DEDICATED_ENVIRONMENT"
+        and len(str(environment.get("freeze_sha256") or "")) == 64
+    ):
+        errors.append("dedicated environment card is invalid")
+
+    provenance = dict(manifest.get("code_provenance") or {})
+    code_state = str(provenance.get("code_state_sha256") or "")
+    patch_info = dict(provenance.get("tracked_patch") or {})
+    patch_path = Path(str(patch_info.get("path") or ""))
+    if not patch_path.is_file() or sha256_file(patch_path) != patch_info.get("sha256"):
+        errors.append("tracked code patch hash mismatch")
+    expected_data_sha = canonical_sha256(immutable.get("dataset") or {})
+    fold_samples: dict[tuple[int, int], set[str]] = {}
+    metric_values: dict[str, list[float]] = {
+        key: [] for key in ("known_macro_f1", "nma", "osfm", "oscr_mac", "unknown_auroc", "unknown_fpr95")
+    }
+
+    for fold, seed in sorted(expected_pairs):
+        record_path = run_dir / f"run_fold{fold}_seed{seed}.json"
+        if not record_path.is_file():
+            errors.append(f"missing {record_path.name}")
+            continue
+        record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+        prediction_info = dict(record.get("outer_predictions") or {})
+        checkpoint_info = dict(record.get("checkpoint") or {})
+        prediction_path = Path(str(prediction_info.get("path") or ""))
+        checkpoint_path = Path(str(checkpoint_info.get("path") or ""))
+        if not prediction_path.is_file() or sha256_file(prediction_path) != prediction_info.get("sha256"):
+            errors.append(f"prediction hash mismatch fold={fold} seed={seed}")
+            continue
+        if not checkpoint_path.is_file() or sha256_file(checkpoint_path) != checkpoint_info.get("sha256"):
+            errors.append(f"checkpoint hash mismatch fold={fold} seed={seed}")
+        rows = [json.loads(line) for line in prediction_path.read_text(encoding="utf-8").splitlines() if line]
+        expected_size = FOLD_SIZES[fold]
+        if len(rows) != expected_size or int(prediction_info.get("num_samples") or 0) != expected_size:
+            errors.append(f"row count mismatch fold={fold} seed={seed}")
+        sample_ids = [str(row.get("sample_id")) for row in rows]
+        if len(sample_ids) != len(set(sample_ids)):
+            errors.append(f"duplicate sample IDs fold={fold} seed={seed}")
+        spec = dict(record.get("open_set_spec") or {})
+        frozen_unit = sample_units.get((fold, seed), {})
+        frozen_indices = [int(value) for value in frozen_unit.get("outer_val_indices", [])]
+        frozen_sample_ids = [
+            str(sample_rows[index].get("sample_id"))
+            for index in frozen_indices
+            if 0 <= index < len(sample_rows)
+        ]
+        if sample_ids != frozen_sample_ids:
+            errors.append(f"prediction sample order differs from frozen manifest fold={fold} seed={seed}")
+        known_ids = [int(value) for value in spec.get("known_class_ids") or []]
+        unknown_ids = [int(value) for value in spec.get("unknown_class_ids") or []]
+        if len(known_ids) != 5 or len(unknown_ids) != 3 or set(known_ids) & set(unknown_ids) or set(known_ids + unknown_ids) != set(range(8)):
+            errors.append(f"invalid 5-known/3-unknown class holdout fold={fold} seed={seed}")
+        threshold_info = dict(record.get("open_set_threshold") or {})
+        threshold = float(threshold_info.get("threshold"))
+        if threshold_info.get("source") != "inner_validation_known_samples_only" or int(threshold_info.get("sample_count") or 0) <= 0:
+            errors.append(f"invalid threshold provenance fold={fold} seed={seed}")
+        checkpoint_sha = str(checkpoint_info.get("sha256") or "")
+        split_sha = str(record.get("split_sha256") or "")
+        if spec != dict(frozen_unit.get("protocol") or {}):
+            errors.append(f"open-set class protocol differs from frozen manifest fold={fold} seed={seed}")
+        if split_sha != frozen_unit.get("base_split_sha256"):
+            errors.append(f"base split differs from frozen manifest fold={fold} seed={seed}")
+        if record.get("open_set_sample_manifest") != sample_binding:
+            errors.append(f"record sample-manifest provenance mismatch fold={fold} seed={seed}")
+        for row_index, row in enumerate(rows):
+            confidence = float(row.get("confidence"))
+            target = int(row.get("target"))
+            frozen_target = (
+                int(sample_rows[frozen_indices[row_index]].get("target"))
+                if row_index < len(frozen_indices)
+                and 0 <= frozen_indices[row_index] < len(sample_rows)
+                else None
+            )
+            if not (
+                int(row.get("fold")) == fold
+                and int(row.get("seed")) == seed
+                and row.get("method") == args.expected_method
+                and row.get("config_sha") == fingerprint
+                and row.get("code_state_sha") == code_state
+                and row.get("checkpoint_sha") == checkpoint_sha
+                and row.get("split_sha") == split_sha
+                and row.get("data_sha") == expected_data_sha
+                and row.get("open_set_sample_manifest_sha") == sample_binding.get("sha256")
+                and target == frozen_target
+                and bool(row.get("target_is_known")) == (target in known_ids)
+                and bool(row.get("rejected_as_unknown")) == (confidence < threshold)
+                and close(float(row.get("unknown_score")), 1.0 - confidence)
+            ):
+                errors.append(f"row provenance/decision mismatch fold={fold} seed={seed}")
+                break
+        if record.get("run_fingerprint") != fingerprint:
+            errors.append(f"record fingerprint mismatch fold={fold} seed={seed}")
+        record_provenance = dict(record.get("provenance") or {})
+        if (
+            record_provenance.get("code_state_sha256") != code_state
+            or (record_provenance.get("source_freeze") or {}).get("verification_status") != "PASS"
+            or record_provenance.get("open_set_sample_manifest") != sample_binding
+        ):
+            errors.append(f"record provenance mismatch fold={fold} seed={seed}")
+        recomputed = open_metrics(
+            [int(row["target"]) for row in rows],
+            [int(row["prediction"]) for row in rows],
+            [float(row["confidence"]) for row in rows],
+            known_ids,
+            threshold,
+        )
+        reported = dict(record.get("outer_val") or {})
+        for key, value in recomputed.items():
+            if not close(value, float(reported.get(key))):
+                errors.append(f"metric mismatch {key} fold={fold} seed={seed}")
+            metric_values[key].append(value)
+        fold_samples[(fold, seed)] = set(sample_ids)
+        records.append({
+            "fold": fold,
+            "seed": seed,
+            "rows": len(rows),
+            "record_sha256": sha256_file(record_path),
+            "prediction_sha256": prediction_info.get("sha256"),
+            "checkpoint_sha256": checkpoint_info.get("sha256"),
+            "known_count": sum(int(row["target"]) in known_ids for row in rows),
+            "unknown_count": sum(int(row["target"]) not in known_ids for row in rows),
+            **recomputed,
+        })
+
+    for fold in folds:
+        sets = [fold_samples.get((fold, seed), set()) for seed in seeds]
+        if len(sets) > 1 and (not sets[0] or any(current != sets[0] for current in sets[1:])):
+            errors.append(f"outer samples differ across seeds for fold={fold}")
+    if formal_full:
+        for seed in seeds:
+            sets = [fold_samples.get((fold, seed), set()) for fold in folds]
+            if any(left & right for left, right in combinations(sets, 2)):
+                errors.append(f"outer folds overlap for seed={seed}")
+            if len(set().union(*sets)) != 2617:
+                errors.append(f"outer fold union is not 2617 for seed={seed}")
+    for key, values in metric_values.items():
+        summary_metric = dict((summary.get("open_set_metrics") or {}).get(key) or {})
+        if len(values) != len(expected_pairs) or int(summary_metric.get("n") or 0) != len(expected_pairs):
+            errors.append(f"summary count mismatch for {key}")
+        elif not close(sum(values) / len(values), float(summary_metric.get("mean"))):
+            errors.append(f"summary mean mismatch for {key}")
+
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS" if not errors else "FAIL",
+        "auditor_path": str(Path(__file__).resolve()),
+        "auditor_sha256": sha256_file(Path(__file__).resolve()),
+        "run_dir": str(run_dir),
+        "expected_method": args.expected_method,
+        "run_fingerprint": fingerprint,
+        "open_set_sample_manifest": sample_binding,
+        "record_count": len(records),
+        "records": records,
+        "errors": errors,
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    print(json.dumps({"status": result["status"], "output": str(output), "errors": errors}))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

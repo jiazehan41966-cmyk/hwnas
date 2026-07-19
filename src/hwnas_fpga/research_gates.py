@@ -8,6 +8,17 @@ from typing import Any, Mapping
 
 
 SEMANTIC_SAFE_SEARCH_SPACE_CARDINALITY = 15_728_640
+STAGE3_ALLOWED_METHODS = frozenset(
+    {
+        "aging_evolution",
+        "enumeration",
+        "hierarchical_random",
+        "proxyless",
+        "random",
+        "rl",
+        "spos",
+    }
+)
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -50,10 +61,63 @@ def stage3_gate_status(
             "artifacts/stage3_replan_approval.json",
         )
     )
+    gate0_path = root / str(
+        gate_cfg.get(
+            "proxy_reliability_gate0",
+            "artifacts/proxy_reliability_gate0/manifest_summary_v2.json",
+        )
+    )
+    g5_path = root / str(
+        gate_cfg.get(
+            "sonar_operator_gate",
+            "artifacts/sonar_operator_gate/sonar_operator_gate.json",
+        )
+    )
     calibration = _read_json(calibration_path)
     board = _read_json(board_path)
     approval = _read_json(approval_path)
+    gate0 = _read_json(gate0_path)
+    g5 = _read_json(g5_path)
+    gate0_work_units = int((gate0 or {}).get("work_unit_count", 0) or 0)
+    gate0_completed = int((gate0 or {}).get("formal_completed_work_units", 0) or 0)
+    gate0_status = str((gate0 or {}).get("gate_status", "")).strip().lower()
+    gate0_pass = bool(
+        gate0
+        and gate0_status in {"pass", "passed", "ready"}
+        and gate0_work_units > 0
+        and gate0_completed >= gate0_work_units
+    )
+    selected_methods: list[str] = []
+    if approval:
+        if isinstance(approval.get("methods"), list):
+            selected_methods = [str(value) for value in approval["methods"]]
+        elif approval.get("method") is not None:
+            selected_methods = [str(approval["method"])]
+    methods_are_valid = bool(selected_methods) and all(
+        method in STAGE3_ALLOWED_METHODS for method in selected_methods
+    )
+    search_cfg = cfg.get("search", {})
+    requested_method = (
+        str(search_cfg.get("method"))
+        if isinstance(search_cfg, Mapping) and search_cfg.get("method") is not None
+        else None
+    )
+    if requested_method == "aging":
+        requested_method = "aging_evolution"
+    search_space_cfg = cfg.get("search_space", {})
+    configured_ops = {
+        str(value)
+        for value in (
+            search_space_cfg.get("op_choices", [])
+            if isinstance(search_space_cfg, Mapping)
+            else []
+        )
+    }
+    sonar_ops = sorted(configured_ops & {"denoise", "edge"})
+    g5_required = bool(sonar_ops)
+    g5_pass = bool(not g5_required or (g5 and g5.get("overall_pass") is True))
     gates = {
+        "gate0_proxy_reliability_pass": gate0_pass,
         "g2_pass": bool(calibration and calibration.get("g2_pass") is True),
         "g4_claimable": bool(board and board.get("claimable") is True),
         "g4_zero_numeric_mismatch": bool(
@@ -63,10 +127,16 @@ def stage3_gate_status(
             approval and approval.get("approved") is True
         ),
         "stage3_method_selected": bool(
-            approval
-            and approval.get("method")
-            in {"enumeration", "spos", "hierarchical_random"}
+            methods_are_valid
         ),
+        "stage3_requested_method_approved": bool(
+            methods_are_valid
+            and (
+                requested_method is None
+                or requested_method in selected_methods
+            )
+        ),
+        "g5_sonar_operator_pass_or_not_required": g5_pass,
     }
     passed = all(gates.values())
     return {
@@ -78,15 +148,28 @@ def stage3_gate_status(
             SEMANTIC_SAFE_SEARCH_SPACE_CARDINALITY
         ),
         "gates": gates,
+        "requested_method": requested_method,
+        "approved_methods": selected_methods,
+        "allowed_methods": sorted(STAGE3_ALLOWED_METHODS),
+        "gate0_progress": {
+            "gate_status": gate0_status or None,
+            "formal_completed_work_units": gate0_completed,
+            "work_unit_count": gate0_work_units,
+        },
+        "g5_required": g5_required,
+        "g5_required_operators": sonar_ops,
         "evidence": {
             "calibration_v2": str(calibration_path),
             "board_validation": str(board_path),
             "replan_approval": str(approval_path),
+            "proxy_reliability_gate0": str(gate0_path),
+            "sonar_operator_gate": str(g5_path),
         },
         "boundary": (
-            "RL/Random/Proxyless remain legacy exploratory evidence. A new "
-            "claimable NKSID search requires G2, G4, and an explicit post-G4 "
-            "stage-3 method decision."
+            "Legacy searches remain exploratory evidence. A new claimable "
+            "NKSID search requires Gate0, G2, G4, any required G5 sonar-operator "
+            "admission, an explicit post-G4 stage-3 approval, and the requested "
+            "method must appear in that approval."
         ),
     }
 

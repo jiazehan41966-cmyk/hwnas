@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "status": "PAUSED_ATOMIC_BOUNDARY_PENDING_USER_DECISION",
+  "trigger": "INTERIM_NAS_CHAMPION_MATERIAL_UNDERPERFORMANCE",
+  "paused_local_time": "2026-07-17T14:24:41+08:00",
+  "policy": "When a material degradation or execution problem is detected, stop at an atomic boundary and reserve continue/terminate/protocol-change decisions for the user.",
+  "nas_run": {
+    "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected",
+    "accepted_atomic_units": 14,
+    "required_atomic_units": 15,
+    "remaining_pair": {"fold": 4, "seed": 44},
+    "aggregate_claimable": false,
+    "partial_audit_path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\g1_partial_audits\\nas_champion_partial.json",
+    "partial_audit_sha256": "0e8da5427b19fb8ddf2aefb871ee4965839c21f17e294887b2668b50dc6e507c",
+    "partial_audit_status": "PASS"
+  },
+  "last_accepted_unit": {
+    "fold": 4,
+    "seed": 43,
+    "samples": 537,
+    "macro_f1": 0.7006401504235198,
+    "top1": 0.8268156424581006,
+    "weighted_f1": 0.8545149423506884,
+    "ece": 0.17477996147877678,
+    "aurc": 0.04699735192663537,
+    "best_epoch": 109,
+    "split_sha256": "56e38b9fb478593a16b3a21b04e58bf27622fb31c023e0018683d475c33f1fb4",
+    "checkpoint_sha256": "f2493868d56a7680186c0525501f4c0c97ab1c0b224c8a197ca61a82a4fbaa7d",
+    "prediction_sha256": "0de0e1ce5ff3fe7dc6e5e34af835d9c6d69821bc28c0135d76ba07ea69776632"
+  },
+  "interim_paired_macro_f1": {
+    "unit": "fold_seed",
+    "paired_units": 14,
+    "nas_mean": 0.6904529533593076,
+    "nas_std": 0.02754329459580655,
+    "imagenet_pretrained_mean": 0.9300808160837644,
+    "imagenet_pretrained_std": 0.024315093004718714,
+    "mean_difference_nas_minus_pretrained": -0.23962786272445682,
+    "difference_min": -0.32503706676063493,
+    "difference_max": -0.16214331124783343,
+    "nas_wins": 0,
+    "paired_bootstrap_replicates": 10000,
+    "paired_bootstrap_seed": 20260717,
+    "paired_bootstrap_95ci": [-0.26121636477360405, -0.21695198215407444],
+    "boundary": "Interim decision support only; the NAS method is incomplete and these values are not a formal T2/F6 result."
+  },
+  "interruption": {
+    "stopped_python_pids": [23088, 19108],
+    "scheduled_task": "Codex_HWNAS_G1_20260716",
+    "scheduled_task_state_after_stop": "Ready",
+    "scheduled_task_last_result": 2,
+    "fold4_seed44_prediction_exists": false,
+    "fold4_seed44_record_exists": false,
+    "fold4_seed44_checkpoint_exists": false,
+    "downstream_sure_or_scratch_started_by_this_resume": false
+  },
+  "source_freeze": {
+    "manifest_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+    "verification": "PASS_556_OF_556"
+  },
+  "decision_required": {
+    "resume_nas_to_15": null,
+    "continue_downstream_closed_set_chain": null,
+    "allow_protocol_or_candidate_change": null
+  },
+  "allowed_decision_boundary": "No process may resume the final NAS unit or start SURE/scratch-v2 until a separate user-decision artifact explicitly approves the corresponding action."
+}

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "status": "PASS",
+  "bundle": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/scratch_v2_closed_set_3method_v1",
+  "bundle_manifest_sha256": "731e2520cf11fd697d3b0d689a237a6fc89b0f58b6d3f00d4e50372f585af112",
+  "auditor_script": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/runtime/audit_scratch_v2_closed_set_analysis_v1.txt",
+  "auditor_script_sha256": "13b509f2250bb046e7956d39dc41d411b3576c1806cf5711af38e1415238f988",
+  "checks": {
+    "manifest_output_count": 17,
+    "actual_output_count": 17,
+    "output_hash_failures": [],
+    "input_hash_failures": [],
+    "builder_script_hash_ok": true,
+    "paired_units_complete": true,
+    "scratch_legacy_exact_identity": true,
+    "recomputed_method_means": {
+      "scratch_v2": 0.9099016279896589,
+      "pretrained": 0.9316318800867744,
+      "nas": 0.6936187231198493
+    },
+    "recomputed_contrasts": {
+      "pretrained_minus_scratch": {
+        "mean_difference": 0.021730252097115463,
+        "p_raw": 0.00213623046875,
+        "p_holm": 0.00213623046875
+      },
+      "scratch_minus_nas": {
+        "mean_difference": 0.21628290486980958,
+        "p_raw": 6.103515625e-05,
+        "p_holm": 0.00018310546875
+      },
+      "pretrained_minus_nas": {
+        "mean_difference": 0.23801315696692507,
+        "p_raw": 6.103515625e-05,
+        "p_holm": 0.00018310546875
+      }
+    },
+    "figures": {
+      "figure-01-three-method-paired-macro-f1": {
+        "complete_five_file_family": true,
+        "png_width": 2065,
+        "png_height": 1234,
+        "png_dpi": [
+          299.9994,
+          299.9994
+        ],
+        "meta_ok": true,
+        "svg_ok": true,
+        "valid": true
+      },
+      "figure-02-paired-contrast-forest": {
+        "complete_five_file_family": true,
+        "png_width": 2079,
+        "png_height": 1053,
+        "png_dpi": [
+          299.9994,
+          299.9994
+        ],
+        "meta_ok": true,
+        "svg_ok": true,
+        "valid": true
+      }
+    },
+    "chinese_markdown": {
+      "analysis-report.md": true,
+      "stats-appendix.md": true,
+      "figure-catalog.md": true
+    },
+    "sure_pending_boundary_ok": true
+  },
+  "errors": [],
+  "manual_visual_inspection_required": true,
+  "claim_boundary_zh": "本审计只验证三方法阶段性统计包；SURE、板级准确率和功耗仍未测量。"
+}

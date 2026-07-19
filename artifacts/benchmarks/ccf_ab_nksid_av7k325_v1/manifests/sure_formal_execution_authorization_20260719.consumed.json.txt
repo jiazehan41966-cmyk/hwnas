@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "status": "AUTHORIZED",
+  "decision": "S-A",
+  "scope": "sure_technical_smoke_then_first_formal_unit_only",
+  "paper_id": "sure_2024",
+  "adapter_id": "sure_author_recipe",
+  "method_id": "sure_same_backbone",
+  "author_commit": "5ce0193bc93e73b1c7f1f53aeda8854e997011e2",
+  "backbone": "mobilenet_v2",
+  "image_size": 224,
+  "batch_size": 8,
+  "technical_smoke": {
+    "folds": [0],
+    "seeds": [42],
+    "epochs": 1,
+    "run_name": "sure_mobilenet_v2_tech_smoke_20260719"
+  },
+  "first_formal_stage": {
+    "planned_folds": [0, 1, 2, 3, 4],
+    "planned_seeds": [42, 43, 44],
+    "epochs": 150,
+    "max_new_units": 1,
+    "run_name": "sure_same_backbone"
+  },
+  "source_freeze_manifest": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/sure_s_a_stage1_20260719/source_freeze_manifest.json",
+  "source_freeze_manifest_sha256": "58bfe4ddcde7749cc40e40c5083fff129700664b053fa33dc911d42bb4f56409",
+  "source_freeze_archive_sha256": "1a5dd5193b5d2b4b49f1492de32bf7420de025baecb32ba980ac3223f1cf4dd9",
+  "mandatory_pause_after_first_formal_unit": true,
+  "allows_remaining_fourteen_units": false,
+  "allows_hls_route_board_power": false,
+  "approved_at": "2026-07-19T10:57:05+08:00",
+  "approval_record_zh": "用户明确授权：技术 smoke → 首个 150-epoch 单元 → 强制暂停，由用户决定剩余 14 单元。剩余 14 单元和所有硬件实验当前未授权。"
+}

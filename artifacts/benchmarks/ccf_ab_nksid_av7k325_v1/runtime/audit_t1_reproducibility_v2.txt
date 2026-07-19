@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""Independent fail-closed audit for enriched T1 v2 outputs."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import runpy
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON root must be object: {path}")
+    return payload
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--builder", required=True)
+    parser.add_argument("--table-prefix", required=True)
+    parser.add_argument("--meta", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    builder_path = Path(args.builder).resolve()
+    prefix = Path(args.table_prefix).resolve()
+    meta_path = Path(args.meta).resolve()
+    output = Path(args.output).resolve()
+    errors: list[str] = []
+
+    namespace = runpy.run_path(str(builder_path))
+    fields = tuple(namespace["FIELDS"])
+    paper_ids = tuple(namespace["PAPER_IDS"])
+    formal_status = dict(namespace["FORMAL_STATUS"])
+    markdown_text = namespace["markdown_text"]
+    latex_text = namespace["latex_text"]
+    meta = load_json(meta_path)
+    generator = dict(meta.get("generator") or {})
+    if (
+        Path(str(generator.get("path") or "")).resolve() != builder_path
+        or str(generator.get("sha256") or "").lower() != sha256_file(builder_path)
+    ):
+        errors.append("generator path/SHA binding mismatch")
+
+    for source in list(meta.get("inputs") or []):
+        path = Path(str(source.get("path") or ""))
+        if not path.is_file() or sha256_file(path) != source.get("sha256"):
+            errors.append(f"input source binding mismatch: {path}")
+    for source in list(meta.get("environment_sources") or []):
+        for path_field, sha_field in (
+            ("card_path", "card_sha256"),
+            ("lock_path", "lock_sha256"),
+        ):
+            path = Path(str(source.get(path_field) or ""))
+            if not path.is_file() or sha256_file(path) != source.get(sha_field):
+                errors.append(f"environment source binding mismatch: {path}")
+
+    paths = {
+        "csv": prefix.with_suffix(".csv"),
+        "markdown": prefix.with_suffix(".md"),
+        "latex": prefix.with_suffix(".tex"),
+    }
+    for key, path in paths.items():
+        binding = dict((meta.get("outputs") or {}).get(key) or {})
+        if (
+            not path.is_file()
+            or Path(str(binding.get("path") or "")).resolve() != path
+            or sha256_file(path) != binding.get("sha256")
+        ):
+            errors.append(f"output binding mismatch: {key}")
+
+    if paths["csv"].is_file():
+        with paths["csv"].open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+            observed_fields = tuple(reader.fieldnames or [])
+    else:
+        rows = []
+        observed_fields = ()
+    if observed_fields != fields:
+        errors.append("CSV schema/order mismatch")
+    if tuple(row.get("paper_id") for row in rows) != paper_ids:
+        errors.append("paper row set/order mismatch")
+    if len(rows) != 6:
+        errors.append("T1 must contain six rows")
+    if sum(row.get("registry_role") == "main" for row in rows) != 5:
+        errors.append("T1 must contain five main papers")
+    if sum(row.get("registry_role") == "supplementary" for row in rows) != 1:
+        errors.append("T1 must contain one supplementary paper")
+
+    for row in rows:
+        paper_id = str(row.get("paper_id"))
+        row_errors = []
+        if row.get("formal_numeric_eligible") != "False":
+            row_errors.append("formal_numeric_eligible must remain False")
+        if not str(row.get("blockers") or "").strip():
+            row_errors.append("formal-ineligible row lacks explicit blockers")
+        if row.get("local_unified_protocol_status") != formal_status.get(paper_id):
+            row_errors.append("local unified-protocol status drift")
+        if row.get("dedicated_environment_status") != "READY_DEDICATED_ENVIRONMENT":
+            row_errors.append("dedicated environment is not ready")
+        if row.get("environment_probe_status") != "PASS":
+            row_errors.append("environment probe is not PASS")
+        if row.get("source_audit_status") != "PASS":
+            row_errors.append("source audit is not PASS")
+        if row.get("license_state") == "verified":
+            if row.get("redistribution_status") != "LICENSE_VERIFIED_REDISTRIBUTABLE":
+                row_errors.append("verified license has wrong redistribution status")
+        elif row.get("redistribution_status") != "ISOLATED_LOCAL_ONLY_LICENSE_UNVERIFIED":
+            row_errors.append("unverified license is not isolated")
+        if paper_id == "esda_2024" and not (
+            row.get("comparability_class") == "C"
+            and row.get("numerical_comparison_rule") == "no_cross_platform_ranking"
+        ):
+            row_errors.append("ESDA class-C/no-cross-platform boundary drift")
+        if paper_id == "harp_2023" and "complete_network" not in row.get("blockers", ""):
+            row_errors.append("HARP lacks complete-network blocker")
+        if paper_id == "hw_pr_nas_2023" and row.get("source_smoke_status") != "BLOCKED_OFFICIAL_CODE_INCOMPLETE":
+            row_errors.append("HW-PR official-code blocker drift")
+        if row_errors:
+            errors.extend(f"{paper_id}: {message}" for message in row_errors)
+
+    if rows:
+        expected_md = markdown_text(rows)
+        expected_tex = latex_text(rows)
+        if paths["markdown"].read_text(encoding="utf-8") != expected_md:
+            errors.append("Markdown is not cell-identical to the CSV source")
+        if paths["latex"].read_text(encoding="utf-8") != expected_tex:
+            errors.append("LaTeX is not cell-identical to the CSV source")
+    if not (
+        meta.get("status") == "PASS"
+        and meta.get("table_id") == "T1"
+        and int(meta.get("row_count") or 0) == 6
+        and int(meta.get("column_count") or 0) == len(fields)
+        and int(meta.get("formal_numeric_eligible_count", -1)) == 0
+        and meta.get("all_rows_have_explicit_blockers") is True
+        and meta.get("cross_format_source_identity") is True
+    ):
+        errors.append("meta summary/count/boundary mismatch")
+
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS" if not errors else "FAIL",
+        "table_id": "T1",
+        "rows": len(rows),
+        "columns": len(observed_fields),
+        "main_papers": sum(row.get("registry_role") == "main" for row in rows),
+        "supplementary_papers": sum(row.get("registry_role") == "supplementary" for row in rows),
+        "formal_numeric_eligible": sum(row.get("formal_numeric_eligible") == "True" for row in rows),
+        "explicit_blocker_rows": sum(bool(str(row.get("blockers") or "").strip()) for row in rows),
+        "input_binding_count": len(meta.get("inputs") or []) + 2 * len(meta.get("environment_sources") or []),
+        "output_binding_count": len(meta.get("outputs") or {}),
+        "cross_format_identity_pass": not any("cell-identical" in error for error in errors),
+        "errors": errors,
+        "boundary": "T1 audit PASS does not promote any paper to formal numerical eligibility.",
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps({"status": result["status"], "rows": result["rows"], "errors": errors, "output": str(output)}, ensure_ascii=False))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

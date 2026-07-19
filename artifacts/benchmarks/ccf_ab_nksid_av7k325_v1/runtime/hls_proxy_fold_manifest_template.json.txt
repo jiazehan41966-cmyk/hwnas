@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "campaign_run_id": "REPLACE_CAMPAIGN_RUN_ID",
+  "fold_strategy": "leave_one_architecture_family_out",
+  "fold_count": 5,
+  "predictor_seed": 42,
+  "methods": [
+    "analytic_lut",
+    "linear_regression",
+    "gradient_boosting",
+    "harp_gnn"
+  ],
+  "targets": [
+    "hls_cycles",
+    "hls_ii",
+    "hls_lut",
+    "hls_dsp",
+    "hls_bram",
+    "hls_ff",
+    "route_wns_ns",
+    "route_tns_ns",
+    "achieved_clock_mhz",
+    "route_lut",
+    "route_dsp",
+    "route_bram",
+    "route_ff"
+  ],
+  "truth_csv_path": "REPLACE_HLS_ROUTE_CSV_PATH",
+  "truth_csv_sha256": "REPLACE_64_HEX",
+  "source_freeze_manifest_sha256": "REPLACE_64_HEX",
+  "project_code_commit": "REPLACE_40_HEX",
+  "project_code_state_sha256": "REPLACE_64_HEX",
+  "architecture_families": [
+    "ma_wlow_dshallow",
+    "ma_whigh_dshallow",
+    "ma_walternating_dmixed",
+    "ma_wlow_ddeep",
+    "ma_whigh_ddeep"
+  ],
+  "folds": [
+    {
+      "fold": 0,
+      "held_out_family": "ma_wlow_dshallow",
+      "train_families": [
+        "ma_whigh_dshallow",
+        "ma_walternating_dmixed",
+        "ma_wlow_ddeep",
+        "ma_whigh_ddeep"
+      ],
+      "train_sample_ids": ["REPLACE_WITH_ALL_NON_HELD_OUT_SAMPLE_IDS"],
+      "test_sample_ids": ["REPLACE_WITH_ALL_HELD_OUT_SAMPLE_IDS"]
+    },
+    {
+      "fold": 1,
+      "held_out_family": "ma_whigh_dshallow",
+      "train_families": [
+        "ma_wlow_dshallow",
+        "ma_walternating_dmixed",
+        "ma_wlow_ddeep",
+        "ma_whigh_ddeep"
+      ],
+      "train_sample_ids": ["REPLACE_WITH_ALL_NON_HELD_OUT_SAMPLE_IDS"],
+      "test_sample_ids": ["REPLACE_WITH_ALL_HELD_OUT_SAMPLE_IDS"]
+    },
+    {
+      "fold": 2,
+      "held_out_family": "ma_walternating_dmixed",
+      "train_families": [
+        "ma_wlow_dshallow",
+        "ma_whigh_dshallow",
+        "ma_wlow_ddeep",
+        "ma_whigh_ddeep"
+      ],
+      "train_sample_ids": ["REPLACE_WITH_ALL_NON_HELD_OUT_SAMPLE_IDS"],
+      "test_sample_ids": ["REPLACE_WITH_ALL_HELD_OUT_SAMPLE_IDS"]
+    },
+    {
+      "fold": 3,
+      "held_out_family": "ma_wlow_ddeep",
+      "train_families": [
+        "ma_wlow_dshallow",
+        "ma_whigh_dshallow",
+        "ma_walternating_dmixed",
+        "ma_whigh_ddeep"
+      ],
+      "train_sample_ids": ["REPLACE_WITH_ALL_NON_HELD_OUT_SAMPLE_IDS"],
+      "test_sample_ids": ["REPLACE_WITH_ALL_HELD_OUT_SAMPLE_IDS"]
+    },
+    {
+      "fold": 4,
+      "held_out_family": "ma_whigh_ddeep",
+      "train_families": [
+        "ma_wlow_dshallow",
+        "ma_whigh_dshallow",
+        "ma_walternating_dmixed",
+        "ma_wlow_ddeep"
+      ],
+      "train_sample_ids": ["REPLACE_WITH_ALL_NON_HELD_OUT_SAMPLE_IDS"],
+      "test_sample_ids": ["REPLACE_WITH_ALL_HELD_OUT_SAMPLE_IDS"]
+    }
+  ]
+}

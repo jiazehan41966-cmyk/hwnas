@@ -36,12 +36,41 @@ def read_json(path: Path) -> dict[str, Any] | None:
     return payload
 
 
+def run_patch_integrity(summary_path: Path) -> bool:
+    """Verify the manifest-bound tracked patch instead of trusting its summary."""
+
+    manifest_path = summary_path.parent / "run_manifest.json"
+    try:
+        manifest = read_json(manifest_path) or {}
+        tracked_patch = (
+            (manifest.get("code_provenance") or {}).get("tracked_patch") or {}
+        )
+        expected_sha256 = str(tracked_patch.get("sha256") or "")
+        raw_path = str(tracked_patch.get("path") or "")
+        if (
+            len(expected_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in expected_sha256.lower())
+            or not raw_path
+        ):
+            return False
+        patch_path = Path(raw_path)
+        if not patch_path.is_absolute():
+            patch_path = manifest_path.parent / patch_path
+        return patch_path.is_file() and sha256_file(patch_path) == expected_sha256
+    except (OSError, TypeError, ValueError):
+        return False
+
+
 def g1_status(root: Path) -> dict[str, Any]:
-    clean_root = root / "results/protocol/g1_clean_20260711"
+    legacy_clean_root = root / "results/protocol/g1_clean_20260711"
+    repaired_clean_root = root / "results/protocol/g1_clean_20260718"
     paths = {
-        "scratch": clean_root / "g1_mobilenet_v2_scratch/protocol_summary.json",
-        "pretrained": clean_root / "g1_mobilenet_v2_grayscale_imagenet/protocol_summary.json",
-        "rl_arch_135": clean_root / "g1_rl_arch_135_legacy_selected/protocol_summary.json",
+        "scratch": repaired_clean_root
+        / "g1_mobilenet_v2_scratch_v2/protocol_summary.json",
+        "pretrained": legacy_clean_root
+        / "g1_mobilenet_v2_grayscale_imagenet/protocol_summary.json",
+        "rl_arch_135": legacy_clean_root
+        / "g1_rl_arch_135_legacy_selected/protocol_summary.json",
     }
     summaries = {name: read_json(path) for name, path in paths.items()}
     gates = {
@@ -58,6 +87,7 @@ def g1_status(root: Path) -> dict[str, Any]:
     gates["completed_45_of_45"] = completed == 45
     for name, payload in summaries.items():
         prefix = f"{name}_"
+        gates[prefix + "tracked_patch_integrity"] = run_patch_integrity(paths[name])
         gates[prefix + "uniform_run_fingerprint"] = bool(
             payload
             and len(payload.get("run_fingerprints", [])) == 1

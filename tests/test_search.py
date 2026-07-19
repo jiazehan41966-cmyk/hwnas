@@ -3,8 +3,10 @@ from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
 from types import MethodType
+import math
 
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -12,18 +14,27 @@ from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.interfaces import CandidateMetrics, HardwareSpec, SearchCandidate, SearchConstraints
 from hwnas_fpga.search import (
     ActionSpace,
+    AgingEvolutionSearcher,
     Controller,
     RLSearcher,
     RewardFunction,
     RandomSearcher,
+    ParetoFrontSelector,
+    SearchEfficiencyMonitor,
+    architecture_signature,
     build_pareto_objectives,
+    build_pareto_representative_roles,
     build_pareto_selection_summary,
     compute_pareto_front,
     compute_pareto_ranks,
+    crowding_distances,
     create_searcher,
     write_pareto_selection_artifacts,
+    merge_search_efficiency,
+    resolve_pareto_objectives,
 )
 from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
+from hwnas_fpga.training import evaluate_sonar_robustness, resolve_sonar_robustness_config
 
 
 class SearchFactoryTests(unittest.TestCase):
@@ -53,6 +64,368 @@ class SearchFactoryTests(unittest.TestCase):
             seed=1,
         )
         self.assertIsInstance(searcher, RandomSearcher)
+
+    def test_create_multiobjective_aging_evolution_searcher(self) -> None:
+        searcher = create_searcher(
+            search_space=self.search_space,
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            method="aging_evolution",
+            seed=5,
+            selection_metric="macro_f1",
+            reward_weights={"accuracy": 1.0, "latency": 0.2},
+            pareto_cfg={
+                "objectives": ["macro_f1", "latency_ms", "lut"],
+                "directions": ["max", "min", "min"],
+            },
+            aging_cfg={"population_size": 6, "sample_size": 3},
+        )
+        self.assertIsInstance(searcher, AgingEvolutionSearcher)
+        self.assertEqual(searcher.population_size, 6)
+        self.assertEqual(searcher.sample_size, 3)
+        self.assertEqual(searcher.objectives[0], "macro_f1")
+        self.assertEqual(searcher.objectives, ["macro_f1", "latency_ms", "lut"])
+        self.assertEqual(searcher.survivor_selection, "pareto_crowding")
+
+    def test_explicit_pareto_axes_require_primary_metric(self) -> None:
+        with self.assertRaisesRegex(ValueError, "primary selection metric"):
+            resolve_pareto_objectives(
+                {"objectives": ["latency_ms", "lut"]},
+                selection_metric="macro_f1",
+            )
+
+    def test_crowding_distance_preserves_objective_boundaries(self) -> None:
+        candidates = [
+            SearchCandidate(
+                f"c{index}",
+                {},
+                CandidateMetrics(macro_f1=score, latency_ms=latency),
+            )
+            for index, (score, latency) in enumerate(
+                ((0.70, 30.0), (0.75, 20.0), (0.80, 10.0))
+            )
+        ]
+        distances = crowding_distances(candidates, ("macro_f1", "latency_ms"))
+        self.assertTrue(math.isinf(distances["c0"]))
+        self.assertTrue(math.isinf(distances["c2"]))
+        self.assertGreater(distances["c1"], 0.0)
+
+    def test_rank_selector_uses_crowding_for_same_rank(self) -> None:
+        candidates = [
+            SearchCandidate(
+                f"c{index}",
+                {},
+                CandidateMetrics(f_clean=quality, latency_ms=latency),
+            )
+            for index, (quality, latency) in enumerate(
+                ((0.70, 10.0), (0.75, 20.0), (0.80, 30.0), (0.85, 40.0))
+            )
+        ]
+        selected = ParetoFrontSelector(
+            objectives=["f_clean", "latency_ms"],
+            directions=["max", "min"],
+            selection_method="rank",
+        ).select(candidates, k=2)
+        self.assertEqual({candidate.arch_id for candidate in selected}, {"c0", "c3"})
+
+    def test_pareto_representative_roles_do_not_create_single_reward(self) -> None:
+        front = [
+            SearchCandidate(
+                "accuracy",
+                {},
+                CandidateMetrics(f_clean=0.92, f_robust=0.60, latency_ms=18.0, energy_mj=2.0),
+            ),
+            SearchCandidate(
+                "robust",
+                {},
+                CandidateMetrics(f_clean=0.82, f_robust=0.90, latency_ms=16.0, energy_mj=1.8),
+            ),
+            SearchCandidate(
+                "deployment",
+                {},
+                CandidateMetrics(f_clean=0.86, f_robust=0.80, latency_ms=9.0, energy_mj=1.0),
+            ),
+        ]
+        roles = build_pareto_representative_roles(
+            front,
+            objectives=["f_clean", "f_robust", "latency_ms", "energy_mj"],
+            directions=["max", "max", "min", "min"],
+        )
+        self.assertEqual(roles["roles"]["accuracy_first"]["arch_id"], "accuracy")
+        self.assertEqual(roles["roles"]["sonar_robust"]["arch_id"], "robust")
+        self.assertIn(
+            roles["roles"]["deployment_balanced"]["arch_id"],
+            {"accuracy", "robust", "deployment"},
+        )
+        self.assertFalse(roles["deployment_balanced_method"]["fixed_scalar_reward_weights"])
+
+    def test_aging_evolution_mutation_is_valid_and_unseen(self) -> None:
+        search_space = SearchSpace(
+            SearchSpaceConfig.from_dict(
+                {
+                    "input_channels": 1,
+                    "image_size": 32,
+                    "stem_channels": 8,
+                    "stage_strides": [1],
+                    "stage_channel_choices": [[8]],
+                    "stage_depth_choices": [[1]],
+                    "op_choices": ["conv", "mbconv"],
+                    "kernel_choices": [3],
+                    "expand_choices": [1, 2],
+                    "stage_block_choices": [
+                        [
+                            {"op": "conv", "kernel_size": 3, "expand_ratio": 1},
+                            {"op": "mbconv", "kernel_size": 3, "expand_ratio": 2},
+                        ]
+                    ],
+                    "num_classes": 2,
+                }
+            )
+        )
+        searcher = AgingEvolutionSearcher(
+            search_space=search_space,
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            seed=17,
+            population_size=2,
+            sample_size=2,
+        )
+        parent = searcher.sample_candidate()
+        searcher.seen_signatures.add(architecture_signature(parent))
+        child, mutation = searcher.mutate_architecture(parent)
+        self.assertIsNotNone(child)
+        self.assertFalse(search_space.validate(child))
+        self.assertNotEqual(architecture_signature(parent), architecture_signature(child))
+        self.assertIn(mutation["kind"], {"stage", "block", "random_fallback"})
+
+    def test_aging_evolution_two_parent_crossover_is_valid_and_unseen(self) -> None:
+        search_space = SearchSpace(
+            SearchSpaceConfig.from_dict(
+                {
+                    "input_channels": 1,
+                    "image_size": 32,
+                    "stem_channels": 8,
+                    "stage_strides": [1, 2, 2],
+                    "stage_channel_choices": [[8], [12], [16]],
+                    "stage_depth_choices": [[1], [1], [1]],
+                    "op_choices": ["conv", "mbconv"],
+                    "kernel_choices": [3],
+                    "expand_choices": [1, 2],
+                    "num_classes": 2,
+                }
+            )
+        )
+        searcher = AgingEvolutionSearcher(
+            search_space=search_space,
+            cost_estimator=self.estimator,
+            constraints=None,
+            seed=31,
+            population_size=2,
+            sample_size=2,
+            max_mutation_attempts=128,
+        )
+        parent_a = searcher.sample_candidate()
+        parent_b = None
+        for _ in range(128):
+            candidate = searcher.sample_candidate()
+            differences = sum(
+                left != right
+                for left, right in zip(parent_a.to_dict()["stages"], candidate.to_dict()["stages"])
+            )
+            if differences >= 2:
+                parent_b = candidate
+                break
+        self.assertIsNotNone(parent_b)
+        searcher.seen_signatures.update(
+            {architecture_signature(parent_a), architecture_signature(parent_b)}
+        )
+        child, metadata = searcher.crossover_architectures(parent_a, parent_b)
+        self.assertIsNotNone(child)
+        self.assertEqual(metadata["kind"], "crossover")
+        self.assertFalse(search_space.validate(child))
+        self.assertNotIn(architecture_signature(child), searcher.seen_signatures)
+
+    def test_aging_evolution_ages_population_and_keeps_pareto_archive(self) -> None:
+        search_space = SearchSpace(
+            SearchSpaceConfig.from_dict(
+                {
+                    "input_channels": 1,
+                    "image_size": 32,
+                    "stem_channels": 8,
+                    "stage_strides": [1, 2],
+                    "stage_channel_choices": [[8], [16]],
+                    "stage_depth_choices": [[1], [1]],
+                    "op_choices": ["conv", "mbconv"],
+                    "kernel_choices": [3],
+                    "expand_choices": [1, 2],
+                    "stage_block_choices": [
+                        [
+                            {"op": "conv", "kernel_size": 3, "expand_ratio": 1},
+                            {"op": "mbconv", "kernel_size": 3, "expand_ratio": 2},
+                        ],
+                        [
+                            {"op": "conv", "kernel_size": 3, "expand_ratio": 1},
+                            {"op": "mbconv", "kernel_size": 3, "expand_ratio": 2},
+                        ],
+                    ],
+                    "num_classes": 2,
+                }
+            )
+        )
+        searcher = AgingEvolutionSearcher(
+            search_space=search_space,
+            cost_estimator=self.estimator,
+            constraints=None,
+            seed=23,
+            population_size=2,
+            sample_size=2,
+            random_injection_probability=0.0,
+            max_mutation_attempts=64,
+            survivor_selection="oldest",
+            objective_weights={"accuracy": 1.0, "latency": 1.0},
+        )
+
+        def fake_evaluate(_self, architecture, *_args, **_kwargs):
+            index = len(_self.evaluated_candidates)
+            candidate = SearchCandidate(
+                f"temporary_{index}",
+                architecture.to_dict(),
+                CandidateMetrics(
+                    accuracy=0.70 + index * 0.01,
+                    macro_f1=0.60 + index * 0.02,
+                    top1=0.70 + index * 0.01,
+                    selection_score=0.60 + index * 0.02,
+                    latency_ms=20.0 - index,
+                    energy_mj=1.0,
+                    dsp=10,
+                    bram=10,
+                    lut=100,
+                ),
+            )
+            _self.evaluated_candidates.append(candidate)
+            _self.feasible_candidates.append(candidate)
+            _self.last_training_history = {"best_eval": {"macro_f1": candidate.metrics.macro_f1}}
+            _self.last_trained_model = None
+            _self.last_cost_estimate = None
+            return candidate, True
+
+        searcher.evaluate_candidate = MethodType(fake_evaluate, searcher)
+        best = searcher.search(
+            [],
+            None,
+            num_classes=2,
+            num_candidates=4,
+            train_epochs=0,
+            verbose=False,
+        )
+        self.assertEqual(len(searcher.evaluated_candidates), 4)
+        self.assertEqual(len(searcher.population), 2)
+        self.assertEqual(
+            [candidate.arch_id for candidate in searcher.population],
+            ["aging_arch_2", "aging_arch_3"],
+        )
+        self.assertGreaterEqual(len(searcher.pareto_archive), 1)
+        self.assertIs(best, searcher.best_candidate)
+        self.assertEqual(best.arch_id, "aging_arch_3")
+
+    def test_pareto_crowding_survivor_selection_keeps_boundaries(self) -> None:
+        searcher = AgingEvolutionSearcher(
+            search_space=self.search_space,
+            cost_estimator=self.estimator,
+            constraints=None,
+            seed=7,
+            population_size=2,
+            sample_size=2,
+            selection_metric="f_clean",
+            pareto_config={
+                "objectives": ["f_clean", "latency_ms"],
+                "directions": ["max", "min"],
+            },
+            survivor_selection="pareto_crowding",
+        )
+        candidates = [
+            SearchCandidate("fast", {}, CandidateMetrics(f_clean=0.70, latency_ms=10.0)),
+            SearchCandidate("middle", {}, CandidateMetrics(f_clean=0.80, latency_ms=20.0)),
+            SearchCandidate("accurate", {}, CandidateMetrics(f_clean=0.90, latency_ms=30.0)),
+        ]
+        searcher.population.extend(candidates)
+        searcher.birth_indices.update({candidate.arch_id: index for index, candidate in enumerate(candidates)})
+        removed = searcher._trim_population()
+        self.assertEqual(removed, ["middle"])
+        self.assertEqual({candidate.arch_id for candidate in searcher.population}, {"fast", "accurate"})
+
+    def test_sonar_robustness_protocol_is_deterministic(self) -> None:
+        torch.manual_seed(5)
+        inputs = torch.rand(12, 1, 8, 8) * 2.0 - 1.0
+        labels = torch.tensor([0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
+        loader = DataLoader(TensorDataset(inputs, labels), batch_size=4, shuffle=False)
+        model = torch.nn.Sequential(torch.nn.Flatten(), torch.nn.Linear(64, 3))
+        config = resolve_sonar_robustness_config({"enabled": True, "seed": 123})
+        first = evaluate_sonar_robustness(
+            model,
+            loader,
+            device="cpu",
+            num_classes=3,
+            class_weights=None,
+            config=config,
+        )
+        second = evaluate_sonar_robustness(
+            model,
+            loader,
+            device="cpu",
+            num_classes=3,
+            class_weights=None,
+            config=config,
+        )
+        self.assertEqual(first["protocol_sha256"], second["protocol_sha256"])
+        self.assertEqual(first["condition_results"], second["condition_results"])
+        self.assertAlmostEqual(first["f_robust"], second["f_robust"])
+
+    def test_cpu_search_efficiency_monitor_has_explicit_zero_gpu_hours(self) -> None:
+        with SearchEfficiencyMonitor("cpu") as monitor:
+            sum(range(1000))
+        summary = monitor.summary(
+            candidate_count=4,
+            feasible_count=3,
+            search_method="aging_evolution",
+        )
+        self.assertFalse(summary["cuda_used"])
+        self.assertEqual(summary["gpu_reserved_hours"], 0.0)
+        self.assertIsNone(summary["gpu_event_seconds"])
+        self.assertGreaterEqual(summary["wall_clock_seconds"], 0.0)
+
+    def test_search_efficiency_accumulates_resume_segments(self) -> None:
+        first = {
+            "search_method": "aging_evolution",
+            "cuda_used": True,
+            "wall_clock_seconds": 100.0,
+            "host_process_seconds": 20.0,
+            "gpu_reserved_wall_seconds": 100.0,
+            "gpu_reserved_hours": 100.0 / 3600.0,
+            "gpu_event_seconds": 70.0,
+            "peak_cuda_memory_bytes": 1000,
+            "candidate_count": 4,
+            "feasible_candidate_count": 3,
+        }
+        second = {
+            **first,
+            "wall_clock_seconds": 50.0,
+            "host_process_seconds": 10.0,
+            "gpu_reserved_wall_seconds": 50.0,
+            "gpu_reserved_hours": 50.0 / 3600.0,
+            "gpu_event_seconds": 35.0,
+            "peak_cuda_memory_bytes": 1200,
+            "candidate_count": 2,
+            "feasible_candidate_count": 2,
+        }
+        merged = merge_search_efficiency(first, second)
+        self.assertEqual(merged["segment_count"], 2)
+        self.assertEqual(merged["candidate_count"], 6)
+        self.assertEqual(merged["feasible_candidate_count"], 5)
+        self.assertAlmostEqual(merged["wall_clock_seconds"], 150.0)
+        self.assertAlmostEqual(merged["gpu_reserved_hours"], 150.0 / 3600.0)
+        self.assertAlmostEqual(merged["gpu_event_seconds"], 105.0)
+        self.assertEqual(merged["peak_cuda_memory_bytes"], 1200)
 
     def test_create_rl_searcher_with_reward_weights(self) -> None:
         searcher = create_searcher(

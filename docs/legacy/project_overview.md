@@ -4,7 +4,9 @@
 > `../repository_complete_introduction.md` for current implementation and
 > evidence status.
 >
-> Current formal MobileNetV2 mainline: `mbconv`, `fused_mbconv`, `denoise`, `edge`, `skip`.
+> Historical declared MobileNetV2 vocabulary: `mbconv`, `fused_mbconv`,
+> `denoise`, `edge`, `skip`. The current semantic-safe runtime policy pauses
+> `denoise` and `edge`; this legacy list is not an admission decision.
 >
 > `dw_pw_conv` remains available only for historical or lightweight-compatible
 > profiles and no longer represents the default formal search path.

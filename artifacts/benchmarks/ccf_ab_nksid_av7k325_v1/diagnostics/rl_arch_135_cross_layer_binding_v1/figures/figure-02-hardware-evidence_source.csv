@@ -1,0 +1,7 @@
+﻿type,label_zh,value,unit,evidence_class
+resource,LUT,9.13,%,vivado_route
+resource,FF,5.16,%,vivado_route
+resource,BRAM,28.65,%,vivado_route
+resource,DSP,72.86,%,vivado_route
+latency,搜索期 LUT 估计,7.2867750000000004,ms,proxy
+latency,COM5 板级实测,49.06201,ms,measured_latency_only

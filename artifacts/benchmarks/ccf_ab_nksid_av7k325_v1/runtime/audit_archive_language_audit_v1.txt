@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""独立复核实验档案中文覆盖审计与中文伴随档案绑定。"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+from pathlib import Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def has_chinese(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-root", required=True)
+    args = parser.parse_args()
+    root = Path(args.campaign_root).resolve()
+    manifests = root / "manifests"
+    stem = "archive_language_audit_v1"
+    manifest_path = manifests / f"{stem}.json.txt"
+    report_path = manifests / f"{stem}.md"
+    csv_path = manifests / f"{stem}.csv"
+    policy_path = manifests / "experiment_archive_language_policy_20260717.json.txt"
+    audit = json.loads(manifest_path.read_text(encoding="utf-8"))
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    checks: list[str] = []
+
+    if audit["language"] != "zh-CN" or policy["language"] != "zh-CN":
+        raise AssertionError("中文归档语言规则未绑定")
+    if audit["policy"]["sha256"] != sha256_file(policy_path):
+        raise AssertionError("覆盖审计未绑定当前中文归档规则")
+    if audit["source_inventory"]["sha256"] != sha256_file(csv_path):
+        raise AssertionError("覆盖审计 CSV 哈希不一致")
+    if audit["report"]["sha256"] != sha256_file(report_path):
+        raise AssertionError("覆盖审计 Markdown 哈希不一致")
+    checks.append("审计 manifest、中文规则、CSV 与报告哈希一致")
+
+    with csv_path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    row_by_path = {row["path"]: row for row in rows}
+    current_paths = []
+    for path in sorted(root.rglob("*.md")):
+        if path.name.startswith(stem):
+            continue
+        current_paths.append(path)
+        relative = path.relative_to(root).as_posix()
+        if relative not in row_by_path:
+            raise AssertionError(f"覆盖审计遗漏 Markdown：{relative}")
+        text = path.read_text(encoding="utf-8")
+        row = row_by_path[relative]
+        if row["sha256"] != sha256_file(path):
+            raise AssertionError(f"Markdown 哈希不一致：{relative}")
+        if (row["has_chinese"].lower() == "true") != has_chinese(text):
+            raise AssertionError(f"中文检测结果不一致：{relative}")
+        if (row["has_replacement_character"].lower() == "true") != ("�" in text):
+            raise AssertionError(f"乱码检测结果不一致：{relative}")
+        if row["companion_path"]:
+            companion = root / row["companion_path"]
+            if not companion.is_file() or row["companion_sha256"] != sha256_file(companion):
+                raise AssertionError(f"CSV 中的中文伴随档案绑定不一致：{relative}")
+    if len(current_paths) != len(rows):
+        raise AssertionError("Markdown 文件数与 CSV 不一致")
+    checks.append("全部 Markdown 路径、SHA、中文与乱码状态独立复算一致")
+
+    chinese_count = sum(row["has_chinese"].lower() == "true" for row in rows)
+    legacy_total = sum(row["has_chinese"].lower() != "true" for row in rows)
+    legacy_with_companion = sum(bool(row["companion_path"]) for row in rows)
+    legacy_pending = legacy_total - legacy_with_companion
+    corrupted_count = sum(row["has_replacement_character"].lower() == "true" for row in rows)
+    if audit["files_audited"] != len(rows):
+        raise AssertionError("审计文件数不一致")
+    if audit["files_with_chinese"] != chinese_count:
+        raise AssertionError("中文文件数不一致")
+    if audit["legacy_english_files_total"] != legacy_total:
+        raise AssertionError("历史英文原件总数不一致")
+    if audit["legacy_english_files_with_companion"] != legacy_with_companion:
+        raise AssertionError("已建立中文伴随档案数不一致")
+    if audit["legacy_english_files_pending_companion"] != legacy_pending:
+        raise AssertionError("历史英文待处理数不一致")
+    if audit["files_with_replacement_character"] != corrupted_count or corrupted_count != 0:
+        raise AssertionError("发现乱码或乱码统计不一致")
+    checks.append("中文覆盖、历史待处理与乱码计数一致")
+
+    companions = sorted(root.rglob("*.zh-CN.md"))
+    if not companions:
+        raise AssertionError("没有中文伴随档案")
+    companion_bindings = []
+    for companion in companions:
+        original = companion.with_name(companion.name.replace(".zh-CN.md", ".md"))
+        if not original.is_file():
+            raise AssertionError(f"中文伴随档案缺少英文原件：{companion}")
+        text = companion.read_text(encoding="utf-8")
+        original_sha = sha256_file(original)
+        if not has_chinese(text) or "�" in text:
+            raise AssertionError(f"中文伴随档案缺中文或存在乱码：{companion}")
+        if original.name not in text or original_sha not in text.lower():
+            raise AssertionError(f"中文伴随档案未绑定原件名称与 SHA：{companion}")
+        companion_bindings.append({
+            "companion": str(companion),
+            "companion_sha256": sha256_file(companion),
+            "original": str(original),
+            "original_sha256": original_sha,
+        })
+    required_companions = {
+        "formal_readiness.zh-CN.md",
+        "campaign_evidence_matrix_live_20260717.zh-CN.md",
+        "g1_nas_underperformance_pause_20260717.zh-CN.md",
+    }
+    if not required_companions.issubset({path.name for path in companions}):
+        raise AssertionError("当前关键状态缺少中文伴随档案")
+    checks.append("关键中文伴随档案存在并绑定只读英文原件 SHA")
+
+    report_text = report_path.read_text(encoding="utf-8")
+    if legacy_pending:
+        if "不能声明所有历史档案已完成中文化" not in report_text:
+            raise AssertionError("语言审计没有明确披露未完成状态")
+    elif "全部历史英文原件均已建立绑定 SHA 的中文伴随档案" not in report_text:
+        raise AssertionError("语言审计没有明确披露全部中文伴随档案已完成")
+    if audit["formal_evidence_increment"] != 0:
+        raise AssertionError("语言审计错误地增加了正式证据")
+    checks.append("未完成状态与正式证据边界表述明确")
+
+    result = {
+        "schema_version": 1,
+        "status": (
+            "PASS_ALL_HUMAN_ARCHIVES_CHINESE_OR_BOUND_COMPANION"
+            if legacy_pending == 0 else "PASS_WITH_LEGACY_COMPANIONS_PENDING"
+        ),
+        "language": "zh-CN",
+        "campaign_id": audit["campaign_id"],
+        "coverage_manifest": {"path": str(manifest_path), "sha256": sha256_file(manifest_path)},
+        "checks": checks,
+        "files_audited": len(rows),
+        "files_with_chinese": chinese_count,
+        "legacy_english_files_total": legacy_total,
+        "legacy_english_files_with_companion": legacy_with_companion,
+        "legacy_english_files_pending_companion": legacy_pending,
+        "verified_companion_bindings": companion_bindings,
+        "formal_evidence_increment": 0,
+        "boundary": (
+            "全部人类可读 Markdown 档案已直接使用中文，或作为只读英文原件具有绑定 SHA 的中文伴随档案。"
+            if legacy_pending == 0
+            else "当前中文规则与关键伴随档案有效，但仍有历史英文原件等待逐项中文伴随档案，不能声明全部完成。"
+        ),
+        "auditor": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__))},
+    }
+    output = manifests / f"{stem}_independent.json.txt"
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="")
+    print(json.dumps({
+        "status": result["status"],
+        "checks": len(checks),
+        "files_audited": len(rows),
+        "files_with_chinese": chinese_count,
+        "legacy_total": legacy_total,
+        "legacy_with_companion": legacy_with_companion,
+        "legacy_pending": legacy_pending,
+        "companions_verified": len(companions),
+        "formal_evidence_increment": 0,
+    }, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

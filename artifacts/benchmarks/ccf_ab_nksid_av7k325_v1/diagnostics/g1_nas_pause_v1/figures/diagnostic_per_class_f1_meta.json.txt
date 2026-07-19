@@ -1,0 +1,190 @@
+{
+  "language": "zh-CN",
+  "title_zh": "长尾类别贡献了最大的 NAS 容量损失",
+  "caption": "柱高为 14 个共同单元上的类别 F1 均值；括号中的 n 为这些单元在 outer-test 中的累计 support。",
+  "supports": "最大差距出现在 fishing_net 和 small_propeller，与有限容量优先损害少数类、进而降低 macro-F1 的解释一致。",
+  "limitations": "每个 fold 的同一样本会在三个 seed 中重复；n 仅为描述性 support，不能作为独立推断样本量。",
+  "claimability_status": "INTERIM_DIAGNOSTIC_ONLY_NOT_FORMAL_T2_F6",
+  "generation_script": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_g1_nas_pause_diagnostic_bundle.txt",
+    "sha256": "19be1a93674befc710ed4c48667545884d9d814b46f9e84c498a1e5228dd0fd1"
+  },
+  "source_csv": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1_source.csv",
+    "sha256": "08ea2c2702bcb9f7eef12a17db7982757aee58ef14fc68d0ac21e703354ba5c6"
+  },
+  "inputs": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_nas_underperformance_pause_20260717.json.txt",
+      "sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold0_seed42.json",
+      "sha256": "93e7c81faebb35882e932b22fcf5ace5bd909734c8a1d66159c678107a1d12ab"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold0_seed43.json",
+      "sha256": "3e552d717ef9e694e8f3a2efc09e0ee2bda1c18e1c450d9ad24b03b04f54e2bb"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold0_seed44.json",
+      "sha256": "1ce42aa8e296d01393f06d95323beef7d06284144c09c0ab0262bfae61e3f622"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold1_seed42.json",
+      "sha256": "887914daf0179359bb223160443e00e63e2fdbffa40a9080f6c856e35dcce325"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold1_seed43.json",
+      "sha256": "0e5d8b1f80bed638a13d4296c498c5bcb164ab4fa148eb1de47e45a07c4e2a48"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold1_seed44.json",
+      "sha256": "dfacfa1be8b096cc4d87b4faf2f2dad80cdfcaa96ab42a06e055afc16dc34a39"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold2_seed42.json",
+      "sha256": "42d590e79eb9933879ea0cb2e5f46b74fffc0533f37aef24d3c19970edd7a11c"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold2_seed43.json",
+      "sha256": "a3dbb4b518636a07c48f7e7d3bc3049d63bd509c13c7739b4452fbf5fb08cbc1"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold2_seed44.json",
+      "sha256": "ff0d64140b680436d1ee1cdc3bb3bdd02ac9dcf1d736eefaf72d57d980c03dde"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold3_seed42.json",
+      "sha256": "a8314ef4533ed20263e97a684838fd0a58c67fbc07fc52d0aef1fab6a71ce88d"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold3_seed43.json",
+      "sha256": "b21ca48d8b1a4a4b814e26f6aead7bd06a7a5b0f4fd076826cd6aefec66feddc"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold3_seed44.json",
+      "sha256": "a1888d7eee378abb031643beaf686d21819ae5592dbb44534f4db3c570a19abe"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold4_seed42.json",
+      "sha256": "26766157e704337a5fd85e86cc2ca0bfa7105dc1f75914d731cb3096910c2e79"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_rl_arch_135_legacy_selected\\run_fold4_seed43.json",
+      "sha256": "321a6ddda2e18302f6f4484edb7a35bbd23c339c00460a3486c9e5961f884747"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold0_seed42.json",
+      "sha256": "2b0f53d4fc79735237478d4fb341371873d974428b2bc5d6eefb820f650dfe97"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold0_seed43.json",
+      "sha256": "f58c280e3035add64d9ceabb99f649c90928530d667159d6aaad688b747e3e13"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold0_seed44.json",
+      "sha256": "6a80244690a93c5c67c2a83fb3fc3f458bb467bef6b9812a76e7dda5e7be3f59"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold1_seed42.json",
+      "sha256": "f210ad4338c73659e911744dd7ba2845c449255b43fc485c63f8f4b78a91caf3"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold1_seed43.json",
+      "sha256": "59352b7557b32059e307da6b90438de24d2d1a2bda36035fb5c498d25d05cd7c"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold1_seed44.json",
+      "sha256": "92f55915864aacd751e666a8c412faab103806757e7d9d7b4cefa25e0ed871c6"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold2_seed42.json",
+      "sha256": "0022ce41f6c6fcc8ae265c153d0dd1706beaa3b123572cb76ab25b3c8b7dc548"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold2_seed43.json",
+      "sha256": "9fd4f1039996b89ed5d538ba5052834a8a6e5ca3546b1f40570f78498f9550d4"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold2_seed44.json",
+      "sha256": "23bd4d67742c6e02501150210825866d6170361b68411eac6bf9820e8cacb841"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold3_seed42.json",
+      "sha256": "1626bda65b6419b40893475ac5a06a902e20af3bb114f6ae0c12f2a574402899"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold3_seed43.json",
+      "sha256": "7e4c40b3c6ddb4b6cbd57ac851d1399b0622205e4ac9370bc86d5a3a98cf2e45"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold3_seed44.json",
+      "sha256": "5db51d61aca0da16c72077927890d53a5294aaea780ca4a72c73a761d981ba4c"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold4_seed42.json",
+      "sha256": "acd8a67a49112407c58ee7e5cb97a34c511d71aa063d57d0766e52f3de31af1c"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_scratch\\run_fold4_seed43.json",
+      "sha256": "d92219750072db339b184462adbb0d9ded4ed8842f87c136055894f54c8c4c22"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold0_seed42.json",
+      "sha256": "7ee5dd6bc5b47b034ed6c7e1e76208762130c073dff740bc900f461af1e7c501"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold0_seed43.json",
+      "sha256": "d16b7d0fca6e1023df2c2efb1ca29a069a425de88a71df3b13f96d8bffda3066"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold0_seed44.json",
+      "sha256": "567b67b86c735f14a252058d1d378e98636ecb6d34b2cc37e8e6c9961512c79e"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold1_seed42.json",
+      "sha256": "48378ecf7e8436d47e6e02ce37ae922a5c3bed02b36b226dec7990c84a56439a"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold1_seed43.json",
+      "sha256": "911493d841862bf6c59ee642c4a61a54e2615dccba087c27c7e9b1226ffc295e"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold1_seed44.json",
+      "sha256": "75b7f0a4ef4c65f97087bf67d40836c96d92c987d836540e243fc773d607032d"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold2_seed42.json",
+      "sha256": "c04140584a737c064e1c4ab8b59a3ddea7dbfff68b32c435b4e7050c5aa74242"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold2_seed43.json",
+      "sha256": "8dd073bdb69d8ffee15e9697b6eefbce23227a7816c95f400e1318c9b541e77f"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold2_seed44.json",
+      "sha256": "251a9d5e00ed5eb45e23945b20dc4ab0acf41a27c3de3517a1fae83ec100b17d"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold3_seed42.json",
+      "sha256": "f4442e2de2a2982f36b76d64378f1f45da22b6fe42109f90dbd9cf0d110ee766"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold3_seed43.json",
+      "sha256": "caea188b8a2b44369f568e88106de7565355e15b1c49f30b51ac9c9f8103e1fc"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold3_seed44.json",
+      "sha256": "c380f519255a9e5de397b0635fd15c58e9b5349e18d6729668f255186b6faf1b"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold4_seed42.json",
+      "sha256": "3a80e903e322196023e34b0b770cc183837fb7f4a8deaae1207261a670ad0fb1"
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\protocol\\g1_clean_20260711\\g1_mobilenet_v2_grayscale_imagenet\\run_fold4_seed43.json",
+      "sha256": "1834c00c9cabaf642782cdd293d5c1a4983a595d7375a449b4be2c0d65d9f838"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+schema_version: 1
+protocol: nksid_open_long_tail_5known_3unknown_v1
+class_order:
+  - big_propeller
+  - cylinder
+  - fishing_net
+  - floats
+  - iron_pipeline
+  - small_propeller
+  - soft_pipeline
+  - tire
+folds:
+  0:
+    unknown: [big_propeller, cylinder, fishing_net]
+  1:
+    unknown: [fishing_net, floats, iron_pipeline]
+  2:
+    unknown: [iron_pipeline, small_propeller, soft_pipeline]
+  3:
+    unknown: [soft_pipeline, tire, big_propeller]
+  4:
+    unknown: [cylinder, floats, small_propeller]
+threshold_calibration:
+  source: inner_validation_known_samples_only
+  rule: accept_95_percent_known
+  confidence_quantile: 0.05
+formal_reporting:
+  outer_folds: [0, 1, 2, 3, 4]
+  seeds: [42, 43, 44]
+  unknown_classes_are_never_used_for_training: true
+  primary_closed_set_table_is_separate: true
+  metrics: [known_macro_f1, nma, osfm, oscr_mac, unknown_auroc, unknown_fpr95]

@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""Build a non-scientific bound smoke fixture and exercise the R4 auditor pass path."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+SOURCE_RUN = PROJECT_ROOT / "results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/builtin_open_msp_1x1x1"
+SAMPLE_MANIFEST = PROJECT_ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/open_long_tail_sample_manifest_v1.json.txt"
+SAMPLE_AUDIT = PROJECT_ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/open_long_tail_sample_manifest_v1_audit.json.txt"
+SOURCE_FREEZE = PROJECT_ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_freeze_manifest.json"
+AUDITOR = Path(__file__).with_name("audit_open_run.txt")
+EXPECTED_METHOD = "ce_msp_simplecnn_smoke"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def write_json(path: Path, payload: object) -> None:
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", required=True)
+    args = parser.parse_args()
+    output_root = Path(args.output_root).resolve()
+    if output_root.exists():
+        raise FileExistsError(f"refusing to overwrite contract fixture: {output_root}")
+    shutil.copytree(SOURCE_RUN, output_root)
+
+    sample_manifest = json.loads(SAMPLE_MANIFEST.read_text(encoding="utf-8-sig"))
+    sample_audit = json.loads(SAMPLE_AUDIT.read_text(encoding="utf-8-sig"))
+    freeze_payload = json.loads(SOURCE_FREEZE.read_text(encoding="utf-8-sig"))
+    archive = dict(freeze_payload.get("archive") or {})
+    archive_path = Path(str(archive["path"])).resolve()
+    if not (
+        sample_audit.get("status") == "PASS"
+        and sample_audit.get("manifest_sha256") == sha256_file(SAMPLE_MANIFEST)
+        and sha256_file(archive_path) == archive.get("sha256")
+    ):
+        raise RuntimeError("frozen input prerequisites are not PASS")
+
+    sample_binding = {
+        "path": str(SAMPLE_MANIFEST.resolve()),
+        "sha256": sha256_file(SAMPLE_MANIFEST),
+        "audit_path": str(SAMPLE_AUDIT.resolve()),
+        "audit_sha256": sha256_file(SAMPLE_AUDIT),
+        "claimability_status": "FROZEN_INPUT_NOT_RESULT",
+    }
+    source_freeze = {
+        "path": str(SOURCE_FREEZE.resolve()),
+        "manifest_sha256": sha256_file(SOURCE_FREEZE),
+        "archive_path": str(archive_path),
+        "archive_sha256": str(archive["sha256"]),
+        "verification_status": "PASS",
+        "verified_file_count": 556,
+    }
+
+    manifest_path = output_root / "run_manifest.json"
+    summary_path = output_root / "protocol_summary.json"
+    record_path = output_root / "run_fold0_seed42.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    summary = json.loads(summary_path.read_text(encoding="utf-8-sig"))
+    record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+    immutable = dict(manifest["immutable_config"])
+    immutable["open_set_sample_manifest"] = sample_binding
+    immutable["source_freeze"] = source_freeze
+    run_fingerprint = canonical_sha256(immutable)
+    code_state = "b" * 64
+    manifest["immutable_config"] = immutable
+    manifest["run_fingerprint"] = run_fingerprint
+    manifest["code_provenance"] = {
+        "code_state_sha256": code_state,
+        "tracked_patch": {
+            "path": str(AUDITOR.resolve()),
+            "sha256": sha256_file(AUDITOR),
+        },
+        "contract_fixture": "NON_SCIENTIFIC_SMOKE_ONLY",
+    }
+    summary["run_fingerprint"] = run_fingerprint
+
+    prediction_path = output_root / "outer_predictions_fold0_seed42.jsonl"
+    prediction_rows = [
+        json.loads(line)
+        for line in prediction_path.read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    checkpoint_name = Path(str(record["checkpoint"]["path"])).name
+    checkpoint_path = output_root / checkpoint_name
+    checkpoint_sha = sha256_file(checkpoint_path)
+    data_sha = canonical_sha256(immutable.get("dataset") or {})
+    for row in prediction_rows:
+        row["config_sha"] = run_fingerprint
+        row["code_state_sha"] = code_state
+        row["checkpoint_sha"] = checkpoint_sha
+        row["data_sha"] = data_sha
+        row["open_set_sample_manifest_sha"] = sample_binding["sha256"]
+    prediction_path.write_text(
+        "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in prediction_rows),
+        encoding="utf-8",
+    )
+    record["run_fingerprint"] = run_fingerprint
+    record["open_set_sample_manifest"] = sample_binding
+    record["provenance"] = {
+        **dict(record.get("provenance") or {}),
+        "code_state_sha256": code_state,
+        "source_freeze": source_freeze,
+        "open_set_sample_manifest": sample_binding,
+    }
+    record["checkpoint"] = {
+        **dict(record["checkpoint"]),
+        "path": str(checkpoint_path.resolve()),
+        "sha256": checkpoint_sha,
+    }
+    record["outer_predictions"] = {
+        **dict(record["outer_predictions"]),
+        "path": str(prediction_path.resolve()),
+        "sha256": sha256_file(prediction_path),
+        "num_samples": len(prediction_rows),
+    }
+    write_json(manifest_path, manifest)
+    write_json(summary_path, summary)
+    write_json(record_path, record)
+
+    audit_output = output_root / "sample_manifest_binding_audit.json"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(AUDITOR),
+            "--run-dir",
+            str(output_root),
+            "--output",
+            str(audit_output),
+            "--expected-method",
+            EXPECTED_METHOD,
+            "--folds",
+            "0",
+            "--seeds",
+            "42",
+        ],
+        cwd=PROJECT_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    audit = json.loads(audit_output.read_text(encoding="utf-8-sig"))
+    if completed.returncode != 0 or audit.get("status") != "PASS" or audit.get("errors"):
+        raise RuntimeError(completed.stdout + completed.stderr + json.dumps(audit.get("errors")))
+    result = {
+        "status": "PASS",
+        "boundary": "NON_SCIENTIFIC_SMOKE_ONLY_FORMAL_RESULT_INCREMENT_0",
+        "fixture": str(output_root),
+        "fixture_run_fingerprint": run_fingerprint,
+        "sample_manifest_sha256": sample_binding["sha256"],
+        "sample_audit_sha256": sample_binding["audit_sha256"],
+        "auditor_sha256": sha256_file(AUDITOR),
+        "accepted_units": 1,
+        "formal_result_increment": 0,
+        "audit_output": str(audit_output),
+        "audit_output_sha256": sha256_file(audit_output),
+    }
+    result_path = output_root / "contract_result.json"
+    write_json(result_path, result)
+    print(json.dumps(result))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

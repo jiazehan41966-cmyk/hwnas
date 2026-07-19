@@ -300,6 +300,28 @@ def input_mem_mapping_text(mapping: dict[str, str]) -> str:
     return ",\n    ".join(f".MEM_FILE_{idx:02d}({mapping[f'INPUT_MEM_FILE_{idx:02d}']})" for idx in range(32))
 
 
+def axil_completion_latch_text(specs: list[dict[str, Any]]) -> str:
+    if not specs:
+        raise ValueError("AXI-Lite completion latch requires at least one component")
+    done_signals = [f"{spec['role']}_axil_done" for spec in specs]
+    width = len(done_signals)
+    done_vector = ", ".join(reversed(done_signals))
+    return f"""
+wire [{width - 1}:0] axil_done_now = {{{done_vector}}};
+reg [{width - 1}:0] axil_done_seen = {width}'d0;
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        axil_done_seen <= {width}'d0;
+    end else if (start_pulse) begin
+        axil_done_seen <= {width}'d0;
+    end else begin
+        axil_done_seen <= axil_done_seen | axil_done_now;
+    end
+end
+wire all_axil_done = &axil_done_seen;
+""".strip()
+
+
 def write_full_network_top(
     project_root: Path,
     specs: list[dict[str, Any]],
@@ -381,7 +403,7 @@ def write_full_network_top(
 
     param_logic = "\n\n".join(fullcombo.build_param_logic_for_spec(spec, data_dir) for spec in specs)
     axil_blocks = "\n\n".join(fullcombo.axil_wires_and_ctrl(spec) for spec in specs)
-    axil_done_expr = " && ".join(f"{spec['role']}_axil_done" for spec in specs)
+    axil_completion_logic = axil_completion_latch_text(specs)
     axil_error_expr = " || ".join(f"{spec['role']}_axil_error" for spec in specs)
     status_led_width = int(board_cfg.get("status_led", {}).get("width", 2))
 
@@ -918,7 +940,7 @@ axis_checksum_sink #(
 wire [31:0] measured_cycles;
 wire counter_running;
 wire counter_done;
-wire all_axil_done = {axil_done_expr};
+{axil_completion_logic}
 wire any_axil_error = {axil_error_expr};
 wire strict_e2e_done = {completion_done_expr};
 cycle_counter u_cycle_counter (

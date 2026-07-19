@@ -1,0 +1,6 @@
+comparison,paired_units,mean_macro_f1,std_macro_f1,mean_difference_nas_minus_reference,paired_bootstrap_95ci_low,paired_bootstrap_95ci_high,nas_wins
+暂停的 NAS 候选,14,0.6904529533593076,0.02754329459580655,,,,
+从零训练 MobileNetV2,14,0.908091180617528,0.023834162217446105,,,,
+ImageNet 预训练 MobileNetV2,14,0.9300808160837644,0.024315093004718714,,,,
+NAS 减去从零训练 MobileNetV2,14,,,-0.21763822725822046,-0.23555403438089065,-0.1992988873186787,0
+NAS 减去 ImageNet 预训练 MobileNetV2,14,,,-0.23962786272445682,-0.26121636477360405,-0.21695198215407444,0
