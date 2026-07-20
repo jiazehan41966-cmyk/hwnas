@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""独立审计实验中断、用户决策与恢复协议。"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def require_chinese_text(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    if "�" in text or not any("\u4e00" <= char <= "\u9fff" for char in text):
+        raise AssertionError(f"中文档案缺失或存在乱码：{path}")
+
+
+def powershell(command: str) -> str:
+    completed = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", command],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    return completed.stdout.strip()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", required=True)
+    parser.add_argument("--campaign-root", required=True)
+    args = parser.parse_args()
+
+    repo = Path(args.repo).resolve()
+    root = Path(args.campaign_root).resolve()
+    manifests = root / "manifests"
+    policy_md = manifests / "experiment_stop_and_user_decision_policy_v1.md"
+    policy_json_path = manifests / "experiment_stop_and_user_decision_policy_v1.json.txt"
+    template_path = manifests / "experiment_resume_user_decision_template_v1.json.txt"
+    language_policy_path = manifests / "experiment_archive_language_policy_20260717.json.txt"
+    pause_manifest_path = manifests / "g1_nas_underperformance_pause_20260717.json.txt"
+    pause_state_path = manifests / "g1_pause_operational_state_20260717.json.txt"
+    decision_path = manifests / "g1_nas_underperformance_user_decision_20260717.json.txt"
+    freeze_path = root / "source_freeze" / "g1_20260715_v2" / "source_freeze_manifest.json"
+    diagnostic_summary = root / "diagnostics" / "g1_nas_pause_v1" / "tables" / "interim_summary.csv"
+    diagnostic_audit = root / "diagnostics" / "g1_nas_pause_v1" / "audit.json.txt"
+
+    for path in (policy_md, policy_json_path, template_path):
+        require_chinese_text(path)
+
+    policy = json.loads(policy_json_path.read_text(encoding="utf-8"))
+    template = json.loads(template_path.read_text(encoding="utf-8"))
+    language_policy = json.loads(language_policy_path.read_text(encoding="utf-8"))
+    pause_state = json.loads(pause_state_path.read_text(encoding="utf-8"))
+    diagnostic = json.loads(diagnostic_audit.read_text(encoding="utf-8"))
+    checks: list[str] = []
+
+    if policy["status"] != "ACTIVE" or policy["language"] != "zh-CN":
+        raise AssertionError("中断协议状态或语言不正确")
+    if set(policy["stop_levels"]) != {"S0", "S1", "S2", "S3"}:
+        raise AssertionError("中断等级不完整")
+    if policy["performance_threshold_policy"]["agent_may_invent_threshold"] is not False:
+        raise AssertionError("协议错误地允许代理自行设定性能阈值")
+    required_threshold_fields = {
+        "主指标与方向", "对标方法与配对单位", "最小有意义差异或容忍差值",
+        "检查点", "判断规则", "允许动作与最大范围",
+    }
+    if set(policy["performance_threshold_policy"]["required_fields"]) != required_threshold_fields:
+        raise AssertionError("性能中断阈值字段不完整")
+    checks.append("中断等级、用户阈值权限与禁止自动动作完整")
+
+    resume = policy["resume_authorization"]
+    if not all(
+        resume[key] is True
+        for key in (
+            "required", "separate_machine_readable_file", "must_bind_pause_manifest_sha256",
+            "must_limit_action_and_scope", "must_reverify_source_freeze", "auto_pause_at_approved_boundary",
+        )
+    ):
+        raise AssertionError("恢复授权门禁不完整")
+    if template["template_only"] is not True or template["executable_approval"] is not False:
+        raise AssertionError("恢复模板可能被误识别为批准文件")
+    if template["issued_by"] != "USER_DECISION_REQUIRED" or template["issued_at"] is not None:
+        raise AssertionError("恢复模板错误地包含授权")
+    checks.append("恢复必须绑定用户决策且模板不可执行")
+
+    if decision_path.exists():
+        raise AssertionError("发现未经本次审计确认的 G1 可执行批准文件")
+    task_state = powershell("(Get-ScheduledTask -TaskName 'Codex_HWNAS_G1_20260716').State.ToString()")
+    if task_state != "Disabled":
+        raise AssertionError(f"G1 计划任务未禁用：{task_state}")
+    process_count_text = powershell(
+        "$m=Get-CimInstance Win32_Process | Where-Object { "
+        "$_.Name -match '^python(\\.exe)?$' -and "
+        "$_.CommandLine -match 'run_eval_protocol|g1_rl_arch_135_legacy_selected|run_g1_persistent_20260716' }; "
+        "@($m).Count"
+    )
+    if int(process_count_text) != 0:
+        raise AssertionError("检测到仍在运行的 G1 Python 训练进程")
+    checks.append("计划任务禁用、训练进程为零且批准文件不存在")
+
+    if pause_state["scheduled_task"]["state"] != "Disabled" or pause_state["matching_python_training_processes"] != 0:
+        raise AssertionError("暂停状态卡与实时状态不一致")
+    pause_sha = sha256_file(pause_manifest_path)
+    if policy["current_g1"]["pause_manifest_sha256"] != pause_sha:
+        raise AssertionError("中断协议未绑定当前暂停 manifest")
+    if pause_state["bound_evidence"]["pause_manifest_sha256"] != pause_sha:
+        raise AssertionError("暂停状态卡未绑定当前暂停 manifest")
+    if pause_state["bound_evidence"]["chinese_archive_policy_sha256"] != sha256_file(language_policy_path):
+        raise AssertionError("暂停状态卡未绑定中文归档规则")
+    checks.append("中断协议、暂停状态卡与中文规则哈希绑定一致")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(repo / "scripts" / "freeze_experiment_source.py"),
+            "verify",
+            "--manifest",
+            str(freeze_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    freeze_result = json.loads(completed.stdout)
+    if freeze_result["status"] != "PASS" or freeze_result["expected_file_count"] != 556:
+        raise AssertionError("source freeze 未通过 556/556 核验")
+    if freeze_result["missing"] or freeze_result["unexpected"] or freeze_result["changed"]:
+        raise AssertionError("source freeze 存在缺失、意外或变更文件")
+    checks.append("source freeze 独立复核通过 556/556")
+
+    with diagnostic_summary.open("r", encoding="utf-8", newline="") as handle:
+        rows = {row["comparison"]: row for row in csv.DictReader(handle)}
+    expected = {
+        "暂停的 NAS 候选": 0.6904529533593076,
+        "从零训练 MobileNetV2": 0.908091180617528,
+        "ImageNet 预训练 MobileNetV2": 0.9300808160837644,
+    }
+    for name, value in expected.items():
+        if abs(float(rows[name]["mean_macro_f1"]) - value) > 1e-12:
+            raise AssertionError(f"G1 中断指标与诊断档案不一致：{name}")
+    if rows["NAS 减去从零训练 MobileNetV2"]["nas_wins"] != "0":
+        raise AssertionError("NAS 对 scratch 的胜出次数不一致")
+    if rows["NAS 减去 ImageNet 预训练 MobileNetV2"]["nas_wins"] != "0":
+        raise AssertionError("NAS 对 pretrained 的胜出次数不一致")
+    if diagnostic["status"] != "PASS_INDEPENDENT_AUDIT_INTERIM_DIAGNOSTIC_ONLY":
+        raise AssertionError("G1 中期诊断尚未通过独立审计")
+    if diagnostic["formal_t2_f6_increment"] != 0:
+        raise AssertionError("中期诊断错误地增加了正式 T2/F6 证据")
+    checks.append("当前 G1 S3 触发指标与独立诊断一致且正式增量为零")
+
+    audit = {
+        "schema_version": 1,
+        "status": "PASS",
+        "language": "zh-CN",
+        "campaign_id": policy["campaign_id"],
+        "policy": {"path": str(policy_json_path), "sha256": sha256_file(policy_json_path)},
+        "human_readable_policy": {"path": str(policy_md), "sha256": sha256_file(policy_md)},
+        "non_executable_template": {"path": str(template_path), "sha256": sha256_file(template_path)},
+        "checks": checks,
+        "current_state": "等待用户决定；训练、计划任务与板级实验均未运行。",
+        "formal_evidence_increment": 0,
+        "boundary": "本审计仅证明中断与恢复门禁有效，不授权恢复实验，也不替用户设定未来实验的性能阈值。",
+        "auditor": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__))},
+    }
+    output = manifests / "experiment_stop_policy_audit_v1.json.txt"
+    output.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="")
+    print(json.dumps({
+        "status": "PASS",
+        "checks": len(checks),
+        "task_state": task_state,
+        "training_processes": 0,
+        "formal_evidence_increment": 0,
+        "output": str(output),
+    }, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

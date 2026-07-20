@@ -1,0 +1,13 @@
+﻿{
+    "schema_version":  1,
+    "language":  "zh-CN",
+    "status":  "PASS",
+    "observed_exit_code_zero":  0,
+    "observed_exit_code_seven":  7,
+    "powershell_null_ne_zero":  true,
+    "wrapper_static_contract":  true,
+    "wrapper":  "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/runtime/run_scratch_v2_guarded_20260718.ps1",
+    "wrapper_sha256":  "17e434cccfce736c5cbe2e4c99833db73f8c3b0134d1dd727298c40ec81d0667",
+    "conclusion_zh":  "显式 WaitForExit、Refresh 和空值检查能够区分成功退出、非零退出与退出码不可用。",
+    "boundary_zh":  "本测试仅验证守护脚本退出码判定，不重新运行训练，也不改变已有实验结果。"
+}

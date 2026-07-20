@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T11:24:11",
+  "status": "PASS",
+  "table_id": "T1",
+  "rows": 6,
+  "columns": 26,
+  "main_papers": 5,
+  "supplementary_papers": 1,
+  "formal_numeric_eligible": 0,
+  "explicit_blocker_rows": 6,
+  "input_binding_count": 16,
+  "output_binding_count": 3,
+  "cross_format_identity_pass": true,
+  "errors": [],
+  "boundary": "T1 audit PASS does not promote any paper to formal numerical eligibility."
+}

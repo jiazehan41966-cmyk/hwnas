@@ -431,7 +431,8 @@ class ProxylessSearcher(BaseSearcher):
         selection_score = self._resolve_selection_score(summary, self.selection_metric)
         metrics = cost_estimate.to_candidate_metrics()
         metrics = CandidateMetrics(
-            accuracy=float(selection_score),
+            selection_score=float(selection_score),
+            accuracy=summary.get("top1"),
             macro_f1=summary.get("macro_f1"),
             weighted_f1=summary.get("weighted_f1"),
             top1=summary.get("top1"),

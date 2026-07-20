@@ -1,0 +1,526 @@
+#!/usr/bin/env python3
+"""Fail-closed inventory audit for formal HLS/route and board-latency CSVs.
+
+The .txt suffix is intentional: this runtime evidence tool must not perturb the
+code fingerprint of an in-flight frozen training run.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import re
+import statistics
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
+HEX40 = re.compile(r"^[0-9a-fA-F]{40}$")
+ROLES = {"accuracy_first", "knee_point", "resource_min"}
+SEMANTIC_PASS = {"PASS", "SEMANTIC_SAFE"}
+HLS_PASS = {"PASS", "SUCCESS", "CSYNTH_PASS"}
+ROUTE_PASS = {"PASS", "SUCCESS", "ROUTE_CLEAN"}
+CLAIMABLE_STATUS = {"CLAIMABLE"}
+COMPLETE_NETWORK_SCOPE = {"COMPLETE_NETWORK", "FULL_NETWORK"}
+MIN_BOARD_ROWS_PER_ROLE = 1000
+
+HLS_REQUIRED = {
+    "campaign_run_id", "sample_id", "paper_id", "method_id",
+    "architecture_family", "candidate_id", "candidate_sha256",
+    "checkpoint_sha256", "candidate_pool_manifest_sha256", "network_scope",
+    "hls_top_function", "hls_source_path", "hls_source_sha256",
+    "semantic_equivalence_status", "semantic_equivalence_report_path",
+    "semantic_equivalence_report_sha256", "source_freeze_manifest_sha256",
+    "project_code_commit", "project_code_state_sha256",
+    "toolchain_fingerprint", "vivado_version", "hls_version", "target_part",
+    "target_clock_mhz", "command_sha256", "config_sha256", "csynth_status",
+    "csynth_report_path", "csynth_report_sha256", "hls_cycles", "hls_ii",
+    "hls_lut", "hls_dsp", "hls_bram", "hls_ff", "route_status",
+    "route_report_path", "route_report_sha256", "route_wns_ns",
+    "route_tns_ns", "achieved_clock_mhz", "route_lut", "route_dsp",
+    "route_bram", "route_ff", "bitstream_path", "bitstream_sha256",
+    "failure_stage", "failure_category", "elapsed_s", "claimability_status",
+}
+BOARD_REQUIRED = {
+    "campaign_run_id", "paper_id", "method_id", "candidate_id",
+    "candidate_role", "candidate_sha256", "candidate_selection_manifest_path",
+    "candidate_selection_manifest_sha256", "candidate_manifest_path",
+    "candidate_manifest_sha256", "checkpoint_sha256",
+    "source_freeze_manifest_sha256", "project_code_commit",
+    "project_code_state_sha256", "data_sha256", "split_sha256",
+    "validation_manifest_path", "validation_manifest_sha256", "repeat_id",
+    "inference_index", "sample_id", "target", "prediction", "correct",
+    "host_start_ns", "host_end_ns", "latency_ms", "board_cycles", "clock_hz",
+    "status_code", "transport_crc_valid", "numeric_match", "temperature_c",
+    "bitstream_path", "bitstream_sha256", "payload_path", "payload_sha256",
+    "parity_summary_path", "parity_summary_sha256", "route_report_path",
+    "route_report_sha256", "toolchain_fingerprint", "board_target",
+    "board_serial", "serial_port", "baud", "claimability_status",
+}
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def read_csv(path: Path, required: set[str]) -> tuple[list[dict[str, str]], list[str]]:
+    if not path.is_file():
+        return [], [f"missing file: {path}"]
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        fields = set(reader.fieldnames or [])
+        missing = sorted(required - fields)
+        if missing:
+            return [], [f"missing columns: {missing}"]
+        return list(reader), []
+
+
+def resolve_bound_path(csv_path: Path, value: str) -> Path:
+    artifact = Path(str(value).strip()).expanduser()
+    if artifact.is_absolute():
+        return artifact.resolve()
+    project_relative = (Path.cwd() / artifact).resolve()
+    if project_relative.is_file():
+        return project_relative
+    return (csv_path.parent / artifact).resolve()
+
+
+def verify_bound_file(csv_path: Path, path_value: str, sha_value: str) -> tuple[bool, str]:
+    if not str(path_value).strip():
+        return False, "path is empty"
+    if not HEX64.fullmatch(str(sha_value).strip()):
+        return False, "SHA256 is invalid"
+    artifact = resolve_bound_path(csv_path, path_value)
+    if not artifact.is_file():
+        return False, f"file does not exist: {artifact}"
+    actual = sha256_file(artifact)
+    if actual.lower() != str(sha_value).strip().lower():
+        return False, f"SHA256 mismatch: {artifact}"
+    return True, ""
+
+
+def finite_number(value: str, *, nonnegative: bool = False, positive: bool = False) -> bool:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return False
+    if not math.isfinite(number):
+        return False
+    if positive and number <= 0:
+        return False
+    return not (nonnegative and number < 0)
+
+
+def is_true(value: str) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "pass"}
+
+
+def audit_hls(path: Path) -> dict[str, Any]:
+    rows, errors = read_csv(path, HLS_REQUIRED)
+    keys = [(row.get("campaign_run_id", ""), row.get("sample_id", "")) for row in rows]
+    if len(keys) != len(set(keys)):
+        errors.append("duplicate campaign_run_id/sample_id rows")
+    semantic = []
+    full_network = []
+    complete = []
+    claimable = []
+    malformed = []
+    for index, row in enumerate(rows, start=2):
+        row_errors = []
+        sha_fields = (
+            "candidate_sha256", "candidate_pool_manifest_sha256",
+            "hls_source_sha256", "semantic_equivalence_report_sha256",
+            "source_freeze_manifest_sha256", "project_code_state_sha256",
+            "toolchain_fingerprint", "command_sha256", "config_sha256",
+        )
+        if any(not HEX64.fullmatch(str(row.get(field, ""))) for field in sha_fields):
+            row_errors.append("required SHA256 field is invalid")
+        if not HEX40.fullmatch(str(row.get("project_code_commit", ""))):
+            row_errors.append("project_code_commit is invalid")
+        checkpoint = str(row.get("checkpoint_sha256", "")).strip()
+        if checkpoint and not HEX64.fullmatch(checkpoint):
+            row_errors.append("checkpoint_sha256 is invalid")
+        required_text = (
+            "campaign_run_id", "sample_id", "paper_id", "method_id",
+            "architecture_family", "candidate_id", "network_scope",
+            "hls_top_function", "vivado_version", "hls_version", "target_part",
+        )
+        if any(not str(row.get(field, "")).strip() for field in required_text):
+            row_errors.append("required identity/tool text field is empty")
+        if not finite_number(row.get("target_clock_mhz", ""), positive=True):
+            row_errors.append("target_clock_mhz is invalid")
+        if not finite_number(row.get("elapsed_s", ""), nonnegative=True):
+            row_errors.append("elapsed_s is invalid")
+
+        semantic_ok = str(row.get("semantic_equivalence_status", "")).upper() in SEMANTIC_PASS
+        if semantic_ok:
+            semantic.append(row)
+        full_network_ok = str(row.get("network_scope", "")).upper() in COMPLETE_NETWORK_SCOPE
+        if full_network_ok:
+            full_network.append(row)
+        claimability_ok = str(row.get("claimability_status", "")).upper() in CLAIMABLE_STATUS
+        if claimability_ok:
+            claimable.append(row)
+        csynth_ok = str(row.get("csynth_status", "")).upper() in HLS_PASS
+        route_ok = str(row.get("route_status", "")).upper() in ROUTE_PASS
+        if route_ok and not csynth_ok:
+            row_errors.append("route PASS cannot occur when csynth did not PASS")
+
+        binding_errors = []
+        for label, path_field, sha_field in (
+            ("hls source", "hls_source_path", "hls_source_sha256"),
+            (
+                "semantic equivalence report",
+                "semantic_equivalence_report_path",
+                "semantic_equivalence_report_sha256",
+            ),
+        ):
+            bound, reason = verify_bound_file(
+                path, row.get(path_field, ""), row.get(sha_field, "")
+            )
+            if not bound:
+                binding_errors.append(f"{label}: {reason}")
+
+        hls_numeric_ok = all(
+            finite_number(row.get(field, ""), nonnegative=True)
+            for field in (
+                "hls_cycles", "hls_ii", "hls_lut", "hls_dsp", "hls_bram",
+                "hls_ff",
+            )
+        )
+        route_numeric_ok = all(
+            finite_number(row.get(field, ""), nonnegative=True)
+            for field in ("route_lut", "route_dsp", "route_bram", "route_ff")
+        ) and all(
+            finite_number(row.get(field, ""))
+            for field in ("route_wns_ns", "route_tns_ns")
+        ) and finite_number(row.get("achieved_clock_mhz", ""), positive=True)
+
+        if csynth_ok:
+            if not hls_numeric_ok:
+                row_errors.append("csynth PASS row has invalid HLS metrics")
+            bound, reason = verify_bound_file(
+                path,
+                row.get("csynth_report_path", ""),
+                row.get("csynth_report_sha256", ""),
+            )
+            if not bound:
+                binding_errors.append(f"csynth report: {reason}")
+        elif str(row.get("csynth_report_path", "")).strip() or str(
+            row.get("csynth_report_sha256", "")
+        ).strip():
+            bound, reason = verify_bound_file(
+                path,
+                row.get("csynth_report_path", ""),
+                row.get("csynth_report_sha256", ""),
+            )
+            if not bound:
+                binding_errors.append(f"optional csynth failure report: {reason}")
+
+        if route_ok:
+            if not route_numeric_ok:
+                row_errors.append("route PASS row has invalid route metrics")
+            bound, reason = verify_bound_file(
+                path,
+                row.get("route_report_path", ""),
+                row.get("route_report_sha256", ""),
+            )
+            if not bound:
+                binding_errors.append(f"route report: {reason}")
+        elif str(row.get("route_report_path", "")).strip() or str(
+            row.get("route_report_sha256", "")
+        ).strip():
+            bound, reason = verify_bound_file(
+                path,
+                row.get("route_report_path", ""),
+                row.get("route_report_sha256", ""),
+            )
+            if not bound:
+                binding_errors.append(f"optional route failure report: {reason}")
+
+        bitstream_path = str(row.get("bitstream_path", "")).strip()
+        bitstream_sha = str(row.get("bitstream_sha256", "")).strip()
+        if bitstream_path or bitstream_sha:
+            bound, reason = verify_bound_file(path, bitstream_path, bitstream_sha)
+            if not bound:
+                binding_errors.append(f"bitstream: {reason}")
+        if binding_errors:
+            row_errors.extend(binding_errors)
+
+        if not csynth_ok or not route_ok:
+            if not str(row.get("failure_stage", "")).strip() or not str(
+                row.get("failure_category", "")
+            ).strip():
+                row_errors.append("failed stage lacks failure_stage/failure_category")
+
+        bindings_ok = not binding_errors
+        if (
+            semantic_ok
+            and full_network_ok
+            and claimability_ok
+            and csynth_ok
+            and route_ok
+            and hls_numeric_ok
+            and route_numeric_ok
+            and bindings_ok
+            and not row_errors
+        ):
+            complete.append(row)
+        if row_errors:
+            malformed.append(f"line {index}: " + "; ".join(row_errors))
+    errors.extend(malformed)
+    families = {str(row["architecture_family"]).strip() for row in complete if str(row["architecture_family"]).strip()}
+    complete_count = len(complete)
+    evidence_level = "DESCRIPTIVE" if complete_count < 30 else "EXPLORATORY" if complete_count < 100 else "FORMAL_COUNT_REACHED"
+    grouped_ready = complete_count >= 100 and len(families) >= 5 and not errors
+    return {
+        "path": str(path.resolve()),
+        "sha256": sha256_file(path) if path.is_file() else None,
+        "total_rows": len(rows),
+        "semantic_safe_rows": len(semantic),
+        "full_network_rows": len(full_network),
+        "claimable_rows": len(claimable),
+        "nonclaimable_rows": len(rows) - len(claimable),
+        "complete_hls_route_rows": complete_count,
+        "architecture_family_count": len(families),
+        "failure_rows": sum(str(row.get("csynth_status", "")).upper() not in HLS_PASS or str(row.get("route_status", "")).upper() not in ROUTE_PASS for row in rows),
+        "artifact_hash_binding_required": True,
+        "evidence_level": evidence_level,
+        "grouped_5fold_ready": grouped_ready,
+        "errors": errors,
+    }
+
+
+def quantile(values: list[float], q: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * q
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+
+def audit_board(path: Path) -> dict[str, Any]:
+    rows, errors = read_csv(path, BOARD_REQUIRED)
+    keys = [(row.get("candidate_id", ""), row.get("repeat_id", ""), row.get("inference_index", "")) for row in rows]
+    if len(keys) != len(set(keys)):
+        errors.append("duplicate candidate/repeat/inference rows")
+    roles = {str(row.get("candidate_role", "")).strip() for row in rows}
+    if rows and roles != ROLES:
+        errors.append(f"candidate roles must be exactly {sorted(ROLES)}")
+    candidate_ids_by_role = {
+        role: {
+            str(row.get("candidate_id", "")).strip()
+            for row in rows
+            if row.get("candidate_role") == role
+        }
+        for role in ROLES
+    }
+    if rows and any(len(values) != 1 for values in candidate_ids_by_role.values()):
+        errors.append("each candidate role must bind exactly one candidate_id")
+    role_candidate_ids = {
+        next(iter(values)) for values in candidate_ids_by_role.values() if len(values) == 1
+    }
+    if rows and len(role_candidate_ids) != len(ROLES):
+        errors.append("candidate roles must bind three distinct candidate IDs")
+
+    file_cache: dict[tuple[str, str], tuple[bool, str]] = {}
+
+    def cached_verify(path_value: str, sha_value: str) -> tuple[bool, str]:
+        key = (str(path_value).strip(), str(sha_value).strip().lower())
+        if key not in file_cache:
+            file_cache[key] = verify_bound_file(path, key[0], key[1])
+        return file_cache[key]
+
+    malformed = []
+    constant_fields = (
+        "paper_id", "method_id", "candidate_sha256",
+        "candidate_selection_manifest_sha256", "candidate_manifest_sha256",
+        "checkpoint_sha256", "source_freeze_manifest_sha256",
+        "project_code_commit", "project_code_state_sha256", "data_sha256",
+        "split_sha256", "validation_manifest_sha256", "bitstream_sha256",
+        "parity_summary_sha256", "route_report_sha256", "toolchain_fingerprint",
+        "board_target", "board_serial", "serial_port", "baud",
+    )
+    for role in ROLES:
+        selected = [row for row in rows if row.get("candidate_role") == role]
+        for field in constant_fields:
+            values = {str(row.get(field, "")).strip() for row in selected}
+            if len(values) > 1:
+                malformed.append(f"role {role}: {field} is not constant")
+
+    sample_maps: dict[str, dict[str, str]] = {}
+    for role in ROLES:
+        mapping: dict[str, str] = {}
+        for row in rows:
+            if row.get("candidate_role") != role:
+                continue
+            sample = str(row.get("sample_id", "")).strip()
+            target = str(row.get("target", "")).strip()
+            if sample in mapping and mapping[sample] != target:
+                malformed.append(f"role {role}: sample {sample} has inconsistent targets")
+            mapping[sample] = target
+        sample_maps[role] = mapping
+    paired_sample_sets_equal = bool(rows) and all(
+        sample_maps[role] == sample_maps["accuracy_first"] for role in ROLES
+    )
+    if rows and not paired_sample_sets_equal:
+        malformed.append("candidate roles do not share the same sample_id/target map")
+
+    for index, row in enumerate(rows, start=2):
+        row_errors = []
+        sha_fields = (
+            "candidate_sha256", "candidate_selection_manifest_sha256",
+            "candidate_manifest_sha256", "checkpoint_sha256",
+            "source_freeze_manifest_sha256", "project_code_state_sha256",
+            "data_sha256", "split_sha256", "validation_manifest_sha256",
+            "bitstream_sha256", "payload_sha256", "parity_summary_sha256",
+            "route_report_sha256", "toolchain_fingerprint",
+        )
+        if any(not HEX64.fullmatch(str(row.get(field, ""))) for field in sha_fields):
+            row_errors.append("required SHA256 field is invalid")
+        if not HEX40.fullmatch(str(row.get("project_code_commit", ""))):
+            row_errors.append("project_code_commit is invalid")
+        required_text = (
+            "campaign_run_id", "paper_id", "method_id", "candidate_id",
+            "candidate_role", "repeat_id", "inference_index", "sample_id",
+            "target", "prediction", "board_target", "board_serial",
+            "serial_port",
+        )
+        if any(not str(row.get(field, "")).strip() for field in required_text):
+            row_errors.append("required identity/board text field is empty")
+        for label, path_field, sha_field in (
+            (
+                "candidate selection manifest",
+                "candidate_selection_manifest_path",
+                "candidate_selection_manifest_sha256",
+            ),
+            ("candidate manifest", "candidate_manifest_path", "candidate_manifest_sha256"),
+            ("validation manifest", "validation_manifest_path", "validation_manifest_sha256"),
+            ("bitstream", "bitstream_path", "bitstream_sha256"),
+            ("payload", "payload_path", "payload_sha256"),
+            ("parity summary", "parity_summary_path", "parity_summary_sha256"),
+            ("route report", "route_report_path", "route_report_sha256"),
+        ):
+            bound, reason = cached_verify(
+                row.get(path_field, ""), row.get(sha_field, "")
+            )
+            if not bound:
+                row_errors.append(f"{label}: {reason}")
+        try:
+            start_ns = int(row.get("host_start_ns", ""))
+            end_ns = int(row.get("host_end_ns", ""))
+            latency_ms = float(row.get("latency_ms", ""))
+            observed_ms = (end_ns - start_ns) / 1_000_000.0
+            tolerance_ms = max(0.05, 0.01 * abs(observed_ms))
+            if start_ns < 0 or end_ns <= start_ns or latency_ms <= 0:
+                row_errors.append("host timestamps/latency are invalid")
+            elif abs(latency_ms - observed_ms) > tolerance_ms:
+                row_errors.append("latency_ms does not match host timestamps")
+        except (TypeError, ValueError):
+            row_errors.append("host timestamps/latency are invalid")
+        if not finite_number(row.get("board_cycles", ""), positive=True):
+            row_errors.append("board_cycles is invalid")
+        if not finite_number(row.get("clock_hz", ""), positive=True):
+            row_errors.append("clock_hz is invalid")
+        if not finite_number(row.get("temperature_c", "")):
+            row_errors.append("temperature_c is invalid")
+        if not finite_number(row.get("baud", ""), positive=True):
+            row_errors.append("baud is invalid")
+        if bool(is_true(row.get("correct", ""))) != (
+            str(row.get("target", "")).strip()
+            == str(row.get("prediction", "")).strip()
+        ):
+            row_errors.append("correct flag does not match target/prediction")
+        if str(row.get("claimability_status", "")).upper() not in CLAIMABLE_STATUS:
+            row_errors.append("claimability_status is not CLAIMABLE")
+        if row_errors:
+            malformed.append(f"line {index}: " + "; ".join(row_errors))
+
+    errors.extend(malformed)
+    summaries = []
+    for role in sorted(ROLES):
+        selected = [row for row in rows if row.get("candidate_role") == role]
+        latencies = [float(row["latency_ms"]) for row in selected if finite_number(row.get("latency_ms", ""), positive=True)]
+        failures = sum(
+            str(row.get("status_code", "")) != "0"
+            or not is_true(row.get("transport_crc_valid", ""))
+            or not is_true(row.get("numeric_match", ""))
+            for row in selected
+        )
+        summaries.append({
+            "candidate_role": role,
+            "rows": len(selected),
+            "valid_latency_rows": len(latencies),
+            "latency_p50_ms": quantile(latencies, 0.50),
+            "latency_p95_ms": quantile(latencies, 0.95),
+            "latency_p99_ms": quantile(latencies, 0.99),
+            "error_count": failures,
+            "error_rate": failures / len(selected) if selected else None,
+            "minimum_rows_required": MIN_BOARD_ROWS_PER_ROLE,
+            "minimum_rows_pass": len(selected) >= MIN_BOARD_ROWS_PER_ROLE,
+        })
+    if rows and any(summary["minimum_rows_pass"] is not True for summary in summaries):
+        errors.append(
+            f"each candidate role requires at least {MIN_BOARD_ROWS_PER_ROLE} inference rows"
+        )
+    return {
+        "path": str(path.resolve()),
+        "sha256": sha256_file(path) if path.is_file() else None,
+        "total_rows": len(rows),
+        "candidate_roles": sorted(roles),
+        "candidate_ids_by_role": {
+            role: sorted(values) for role, values in candidate_ids_by_role.items()
+        },
+        "paired_sample_sets_equal": paired_sample_sets_equal,
+        "bound_file_count": len(file_cache),
+        "summaries": summaries,
+        "schema_and_provenance_pass": bool(rows) and not errors,
+        "errors": errors,
+        "boundary": "Latency CSV validity does not establish route, parity, complete validation-set accuracy, or external power.",
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--hls-route-csv")
+    parser.add_argument("--board-latency-csv")
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    if not args.hls_route_csv and not args.board_latency_csv:
+        parser.error("provide --hls-route-csv and/or --board-latency-csv")
+    result: dict[str, Any] = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+    }
+    if args.hls_route_csv:
+        result["hls_route"] = audit_hls(Path(args.hls_route_csv).resolve())
+    if args.board_latency_csv:
+        result["board_latency"] = audit_board(Path(args.board_latency_csv).resolve())
+    result["overall_ready"] = bool(
+        result.get("hls_route", {}).get("grouped_5fold_ready", True)
+        and result.get("board_latency", {}).get("schema_and_provenance_pass", True)
+    )
+    payload = json.dumps(result, indent=2, ensure_ascii=False)
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(payload + "\n", encoding="utf-8")
+    print(payload)
+    return 0 if result["overall_ready"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

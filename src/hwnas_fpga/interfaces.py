@@ -31,9 +31,16 @@ class SearchConstraints:
 
 @dataclass
 class CandidateMetrics:
+    # Keep ``accuracy`` as the literal top-1 accuracy for new records;
+    # readers must retain a legacy fallback for old artifacts.
     accuracy: Optional[float] = None
     macro_f1: Optional[float] = None
     weighted_f1: Optional[float] = None
+    # F_clean is clean inner-validation macro-F1. F_robust is the mean
+    # macro-F1 over the frozen deterministic sonar-corruption suite.
+    f_clean: Optional[float] = None
+    f_robust: Optional[float] = None
+    robust_worst_macro_f1: Optional[float] = None
     top1: Optional[float] = None
     top5: Optional[float] = None
     latency_ms: Optional[float] = None
@@ -50,6 +57,8 @@ class CandidateMetrics:
     fanout_pressure: Optional[float] = None
     stream_width: Optional[float] = None
     physical_risk: Optional[float] = None
+    # The metric actually used by the configured search objective.
+    selection_score: Optional[float] = None
 
 
 @dataclass

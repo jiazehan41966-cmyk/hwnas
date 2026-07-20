@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "PAUSED_PENDING_USER_DECISION",
+  "language": "zh-CN",
+  "recorded_at": "2026-07-17T15:35:52.2260795+08:00",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "nas_completed_units": 14,
+  "nas_expected_units": 15,
+  "missing_unit": {
+    "fold": 4,
+    "seed": 44
+  },
+  "scheduled_task": {
+    "name": "Codex_HWNAS_G1_20260716",
+    "state": "Disabled",
+    "last_task_result": 2,
+    "last_run_time": "2026-07-17T15:24:41+08:00"
+  },
+  "matching_python_training_processes": 0,
+  "user_approval_file": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_nas_underperformance_user_decision_20260717.json.txt",
+    "exists": false
+  },
+  "bound_evidence": {
+    "pause_manifest_sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86",
+    "chinese_archive_policy_sha256": "7fe9b2d34052e2e451cd3db64db04be937369ac583bd0cf53c83333433c272ac",
+    "source_freeze_manifest_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+    "source_freeze_verification": "PASS_556_OF_556"
+  },
+  "resume_rule": "必须先取得用户明确决定，并重新核验 source freeze、批准文件与计划任务动作；禁止自动恢复。",
+  "formal_t2_f6_increment": 0
+}

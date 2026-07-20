@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "policy_id": "av7k325_route_claimability_v1",
+  "board_target": "alinx_av7k325",
+  "target_part": "xc7k325t-ffg900-2",
+  "target_clock_mhz": 200.0,
+  "require_route_pass_for_measured_feasible": true,
+  "physical_capacity": {
+    "route_lut": 203800.0,
+    "route_ff": 407600.0,
+    "route_bram": 445.0,
+    "route_dsp": 840.0
+  },
+  "formal_route_limits": {
+    "max_route_lut": 203800.0,
+    "max_route_ff": 407600.0,
+    "max_route_bram": 445.0,
+    "max_route_dsp": 700.0,
+    "min_route_wns_ns": 0.0,
+    "min_achieved_clock_mhz": 200.0
+  },
+  "capacity_source_path": "configs/hardware/alinx_av7k325.yaml",
+  "capacity_source_sha256": "REPLACE_64_HEX",
+  "route_policy_source_path": "hls_lut_builder/board_harness/scripts/pareto_route_gate.py",
+  "route_policy_source_sha256": "REPLACE_64_HEX",
+  "source_freeze_manifest_sha256": "REPLACE_64_HEX",
+  "project_code_commit": "REPLACE_40_HEX",
+  "project_code_state_sha256": "REPLACE_64_HEX",
+  "boundary": "Physical DSP capacity is 840, but formal deployment feasibility uses the stricter project route gate of route_dsp <= 700. Search-time analytic feasibility is not measured route feasibility."
+}

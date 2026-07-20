@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T11:32:09",
+  "status": "PASS",
+  "manifest": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\open_long_tail_sample_manifest_v1.json.txt",
+  "manifest_sha256": "59878d48786129c983e976b1cf8f4fc03bda79bd9e05ec5671ab42dedc1f7a3e",
+  "sample_rows": 2617,
+  "sample_hashes_reverified": 2617,
+  "accepted_units": 15,
+  "required_units": 15,
+  "folds": 5,
+  "seeds": 3,
+  "unknown_set_count": 5,
+  "formal_result_increment": 0,
+  "errors": [],
+  "boundary": "Manifest PASS freezes inputs only and does not establish open-set model performance."
+}

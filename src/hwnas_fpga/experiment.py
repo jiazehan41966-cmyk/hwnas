@@ -48,13 +48,22 @@ class _TeeStream:
 
     def write(self, data: str) -> int:
         for stream in self._streams:
-            stream.write(data)
-            stream.flush()
+            try:
+                stream.write(data)
+                stream.flush()
+            except (OSError, ValueError):
+                # A detached parent console can disappear while the durable
+                # run log remains valid. Do not abort a long experiment solely
+                # because one tee destination was closed.
+                continue
         return len(data)
 
     def flush(self) -> None:
         for stream in self._streams:
-            stream.flush()
+            try:
+                stream.flush()
+            except (OSError, ValueError):
+                continue
 
     def isatty(self) -> bool:
         primary = self._streams[0]
@@ -177,6 +186,17 @@ class ExperimentTracker:
     def write_operator_policy_summary(self, payload: Mapping[str, Any]) -> None:
         self._write_json(self.results_dir / "operator_policy_summary.json", payload)
 
+    def write_search_efficiency(self, payload: Mapping[str, Any]) -> None:
+        """Persist the common wall-clock/GPU-time comparison ledger."""
+        self._write_json(self.results_dir / "search_efficiency.json", payload)
+
+    def read_search_efficiency(self) -> Optional[dict[str, Any]]:
+        path = self.results_dir / "search_efficiency.json"
+        if not path.exists():
+            return None
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        return payload if isinstance(payload, dict) else None
+
     def write_baseline(
         self,
         *,
@@ -257,6 +277,38 @@ class ExperimentTracker:
             }
             torch.save(checkpoint, self.checkpoints_dir / "best_model.pt")
 
+    def save_representative_candidate(
+        self,
+        role: str,
+        candidate: SearchCandidate,
+        *,
+        model_state_dict: Optional[Mapping[str, Any]] = None,
+        history: Optional[Mapping[str, Any]] = None,
+        extra: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        """Persist a named Pareto representative without declaring an overall best."""
+
+        role_slug = _slugify(role)
+        payload = {
+            "saved_at": _utc_timestamp(),
+            "role": role,
+            "candidate": self._candidate_to_dict(candidate),
+            "history": dict(history) if history is not None else None,
+            "extra": dict(extra) if extra is not None else {},
+        }
+        self._write_json(
+            self.checkpoints_dir / f"{role_slug}_candidate.json",
+            payload,
+        )
+        if model_state_dict is not None:
+            torch.save(
+                {
+                    **payload,
+                    "model_state_dict": model_state_dict,
+                },
+                self.checkpoints_dir / f"{role_slug}_model.pt",
+            )
+
     def save_named_checkpoint(
         self,
         filename: str,
@@ -309,6 +361,9 @@ class ExperimentTracker:
         fieldnames = [
             "arch_id",
             "accuracy",
+            "f_clean",
+            "f_robust",
+            "robust_worst_macro_f1",
             "macro_f1",
             "weighted_f1",
             "top1",
@@ -337,6 +392,9 @@ class ExperimentTracker:
                     {
                         "arch_id": row["arch_id"],
                         "accuracy": metrics.get("accuracy"),
+                        "f_clean": metrics.get("f_clean"),
+                        "f_robust": metrics.get("f_robust"),
+                        "robust_worst_macro_f1": metrics.get("robust_worst_macro_f1"),
                         "macro_f1": metrics.get("macro_f1"),
                         "weighted_f1": metrics.get("weighted_f1"),
                         "top1": metrics.get("top1"),

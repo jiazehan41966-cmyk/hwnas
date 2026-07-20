@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Regression-test pass and fail-closed paths for the T6 five-family pilot auditor."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def run_audit(auditor: Path, manifest: Path, output: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(auditor), "--manifest", str(manifest), "--output", str(output)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--auditor", required=True)
+    parser.add_argument("--manifest", required=True)
+    parser.add_argument("--work-dir", required=True)
+    args = parser.parse_args()
+    auditor = Path(args.auditor).resolve()
+    manifest = Path(args.manifest).resolve()
+    work_dir = Path(args.work_dir).resolve()
+    work_dir.mkdir(parents=True, exist_ok=True)
+    source = json.loads(manifest.read_text(encoding="utf-8-sig"))
+
+    cases: list[dict[str, object]] = []
+    valid_result = run_audit(auditor, manifest, work_dir / "valid_audit.json.txt")
+    valid_payload = json.loads((work_dir / "valid_audit.json.txt").read_text(encoding="utf-8"))
+    cases.append({
+        "case": "valid_manifest",
+        "expected_exit": 0,
+        "observed_exit": valid_result.returncode,
+        "observed_status": valid_payload.get("status"),
+        "pass": valid_result.returncode == 0 and valid_payload.get("status") == "PASS",
+    })
+
+    board_mutation = dict(source)
+    board_mutation["board_required_for_current_stage"] = True
+    board_path = work_dir / "reject_board_required.json.txt"
+    write_json(board_path, board_mutation)
+    board_result = run_audit(auditor, board_path, work_dir / "reject_board_required_audit.json.txt")
+    board_audit = json.loads((work_dir / "reject_board_required_audit.json.txt").read_text(encoding="utf-8"))
+    cases.append({
+        "case": "reject_premature_board_requirement",
+        "expected_exit": 2,
+        "observed_exit": board_result.returncode,
+        "observed_status": board_audit.get("status"),
+        "pass": board_result.returncode == 2 and board_audit.get("status") == "FAIL",
+    })
+
+    duplicate_mutation = json.loads(json.dumps(source))
+    duplicate_mutation["pilots"][1] = duplicate_mutation["pilots"][0]
+    duplicate_path = work_dir / "reject_duplicate_family.json.txt"
+    write_json(duplicate_path, duplicate_mutation)
+    duplicate_result = run_audit(auditor, duplicate_path, work_dir / "reject_duplicate_family_audit.json.txt")
+    duplicate_audit = json.loads((work_dir / "reject_duplicate_family_audit.json.txt").read_text(encoding="utf-8"))
+    cases.append({
+        "case": "reject_duplicate_family_and_encoding",
+        "expected_exit": 2,
+        "observed_exit": duplicate_result.returncode,
+        "observed_status": duplicate_audit.get("status"),
+        "pass": duplicate_result.returncode == 2 and duplicate_audit.get("status") == "FAIL",
+    })
+
+    result = {
+        "status": "PASS" if all(bool(case["pass"]) for case in cases) else "FAIL",
+        "cases": cases,
+        "formal_hls_route_truth_increment": 0,
+        "boundary": "Regression fixtures validate the input contract only and are not hardware evidence.",
+    }
+    write_json(work_dir / "contract_test_summary.json.txt", result)
+    print(json.dumps(result))
+    return 0 if result["status"] == "PASS" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

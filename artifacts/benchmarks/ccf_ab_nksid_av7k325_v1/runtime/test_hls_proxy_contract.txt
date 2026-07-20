@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""Synthetic contract test for audit_hls_proxy_predictions.txt.
+
+Outputs live under results/.../contract_tests and are never formal T6 rows.
+"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import json
+import runpy
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[4]
+RUNTIME = Path(__file__).resolve().parent
+OUT = ROOT / "results/benchmarks/ccf_ab_nksid_av7k325_v1/contract_tests/hls_proxy_v1"
+FAMILIES = (
+    "ma_wlow_dshallow",
+    "ma_whigh_dshallow",
+    "ma_walternating_dmixed",
+    "ma_wlow_ddeep",
+    "ma_whigh_ddeep",
+)
+METHODS = (
+    "analytic_lut",
+    "linear_regression",
+    "gradient_boosting",
+    "harp_gnn",
+)
+PAPER_BY_METHOD = {
+    "analytic_lut": "project_internal",
+    "linear_regression": "project_internal",
+    "gradient_boosting": "project_internal",
+    "harp_gnn": "harp_2023",
+}
+TARGETS = (
+    "hls_cycles",
+    "hls_ii",
+    "hls_lut",
+    "hls_dsp",
+    "hls_bram",
+    "hls_ff",
+    "route_wns_ns",
+    "route_tns_ns",
+    "achieved_clock_mhz",
+    "route_lut",
+    "route_dsp",
+    "route_bram",
+    "route_ff",
+)
+
+
+def sha_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def sha_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(value, encoding="utf-8")
+
+
+def write_csv(path: Path, rows: list[dict[str, object]], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_fields(path: Path) -> list[str]:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle).fieldnames or [])
+
+
+def predicted_is_feasible(values: dict[str, float]) -> bool:
+    return (
+        values["route_lut"] <= 203800
+        and values["route_ff"] <= 407600
+        and values["route_bram"] <= 445
+        and values["route_dsp"] <= 700
+        and values["route_wns_ns"] >= 0
+        and values["achieved_clock_mhz"] >= 200
+    )
+
+
+def main() -> int:
+    OUT.mkdir(parents=True, exist_ok=True)
+    shared = OUT / "bound"
+    hls_source = shared / "network.cpp.txt"
+    semantic_report = shared / "semantic_equivalence.txt"
+    csynth_report = shared / "csynth_report.txt"
+    route_report = shared / "route_report.txt"
+    for path, value in (
+        (hls_source, "synthetic complete network source\n"),
+        (semantic_report, "PASS synthetic semantic equivalence\n"),
+        (csynth_report, "PASS synthetic csynth\n"),
+        (route_report, "PASS synthetic route\n"),
+    ):
+        write_text(path, value)
+
+    source_freeze = sha_text("synthetic-source-freeze")
+    code_state = sha_text("synthetic-code-state")
+    project_commit = "a" * 40
+    campaign_run = "synthetic_hls_proxy_contract_v1"
+    truth_fields = read_fields(RUNTIME / "hls_route_sample_template.csv")
+    truth_rows: list[dict[str, object]] = []
+    for index in range(100):
+        sample = f"hls_{index:03d}"
+        family = FAMILIES[index // 20]
+        route_dsp = 650.0 if index % 2 == 0 else 720.0
+        truth_rows.append({
+            "campaign_run_id": campaign_run,
+            "sample_id": sample,
+            "paper_id": "project_internal",
+            "method_id": "complete_network_measurement",
+            "architecture_family": family,
+            "candidate_id": f"candidate_{index:03d}",
+            "candidate_sha256": sha_text(f"candidate-{index}"),
+            "checkpoint_sha256": sha_text(f"checkpoint-{index}"),
+            "candidate_pool_manifest_sha256": sha_text("candidate-pool"),
+            "network_scope": "COMPLETE_NETWORK",
+            "hls_top_function": "sonar_classifier_top",
+            "hls_source_path": str(hls_source),
+            "hls_source_sha256": sha_file(hls_source),
+            "semantic_equivalence_status": "PASS",
+            "semantic_equivalence_report_path": str(semantic_report),
+            "semantic_equivalence_report_sha256": sha_file(semantic_report),
+            "source_freeze_manifest_sha256": source_freeze,
+            "project_code_commit": project_commit,
+            "project_code_state_sha256": code_state,
+            "toolchain_fingerprint": sha_text("vivado-2023.2"),
+            "vivado_version": "2023.2",
+            "hls_version": "2023.2",
+            "target_part": "xc7k325t-ffg900-2",
+            "target_clock_mhz": 200.0,
+            "command_sha256": sha_text(f"command-{index}"),
+            "config_sha256": sha_text(f"config-{index}"),
+            "csynth_status": "PASS",
+            "csynth_report_path": str(csynth_report),
+            "csynth_report_sha256": sha_file(csynth_report),
+            "hls_cycles": 100000.0 + index * 100,
+            "hls_ii": 1.0 + index % 3,
+            "hls_lut": 20000.0 + index * 50,
+            "hls_dsp": 300.0 + index % 30,
+            "hls_bram": 100.0 + index % 20,
+            "hls_ff": 40000.0 + index * 80,
+            "route_status": "PASS",
+            "route_report_path": str(route_report),
+            "route_report_sha256": sha_file(route_report),
+            "route_wns_ns": 0.10 + index / 10000.0,
+            "route_tns_ns": 0.0,
+            "achieved_clock_mhz": 204.0 + index / 100.0,
+            "route_lut": 30000.0 + index * 70,
+            "route_dsp": route_dsp,
+            "route_bram": 120.0 + index % 15,
+            "route_ff": 60000.0 + index * 100,
+            "bitstream_path": "",
+            "bitstream_sha256": "",
+            "failure_stage": "",
+            "failure_category": "",
+            "elapsed_s": 10.0 + index,
+            "claimability_status": "CLAIMABLE",
+        })
+    truth_csv = OUT / "truth.csv"
+    write_csv(truth_csv, truth_rows, truth_fields)
+
+    fold_manifest = {
+        "schema_version": 1,
+        "campaign_run_id": campaign_run,
+        "fold_strategy": "leave_one_architecture_family_out",
+        "fold_count": 5,
+        "predictor_seed": 42,
+        "methods": list(METHODS),
+        "targets": list(TARGETS),
+        "truth_csv_path": str(truth_csv),
+        "truth_csv_sha256": sha_file(truth_csv),
+        "source_freeze_manifest_sha256": source_freeze,
+        "project_code_commit": project_commit,
+        "project_code_state_sha256": code_state,
+        "architecture_families": list(FAMILIES),
+        "folds": [],
+    }
+    samples_by_family = {
+        family: [str(row["sample_id"]) for row in truth_rows if row["architecture_family"] == family]
+        for family in FAMILIES
+    }
+    all_samples = {str(row["sample_id"]) for row in truth_rows}
+    for fold, family in enumerate(FAMILIES):
+        test_ids = samples_by_family[family]
+        fold_manifest["folds"].append({
+            "fold": fold,
+            "held_out_family": family,
+            "train_families": [value for value in FAMILIES if value != family],
+            "train_sample_ids": sorted(all_samples - set(test_ids)),
+            "test_sample_ids": test_ids,
+        })
+    fold_path = OUT / "fold_manifest.json"
+    write_text(fold_path, json.dumps(fold_manifest, indent=2) + "\n")
+
+    capacity_source = ROOT / "configs/hardware/alinx_av7k325.yaml"
+    route_policy_source = ROOT / "hls_lut_builder/board_harness/scripts/pareto_route_gate.py"
+    feasibility = {
+        "schema_version": 1,
+        "policy_id": "av7k325_route_claimability_v1",
+        "board_target": "alinx_av7k325",
+        "target_part": "xc7k325t-ffg900-2",
+        "target_clock_mhz": 200.0,
+        "require_route_pass_for_measured_feasible": True,
+        "physical_capacity": {
+            "route_lut": 203800.0,
+            "route_ff": 407600.0,
+            "route_bram": 445.0,
+            "route_dsp": 840.0,
+        },
+        "formal_route_limits": {
+            "max_route_lut": 203800.0,
+            "max_route_ff": 407600.0,
+            "max_route_bram": 445.0,
+            "max_route_dsp": 700.0,
+            "min_route_wns_ns": 0.0,
+            "min_achieved_clock_mhz": 200.0,
+        },
+        "capacity_source_path": str(capacity_source),
+        "capacity_source_sha256": sha_file(capacity_source),
+        "route_policy_source_path": str(route_policy_source),
+        "route_policy_source_sha256": sha_file(route_policy_source),
+        "source_freeze_manifest_sha256": source_freeze,
+        "project_code_commit": project_commit,
+        "project_code_state_sha256": code_state,
+    }
+    feasibility_path = OUT / "feasibility.json"
+    write_text(feasibility_path, json.dumps(feasibility, indent=2) + "\n")
+
+    artifact_by_fold_method: dict[tuple[int, str], tuple[Path, Path]] = {}
+    for fold in range(5):
+        for method in METHODS:
+            artifact = shared / f"predictor_{fold}_{method}.txt"
+            config = shared / f"predictor_{fold}_{method}_config.txt"
+            write_text(artifact, f"synthetic predictor artifact {fold} {method}\n")
+            write_text(config, f"synthetic predictor config {fold} {method}\n")
+            artifact_by_fold_method[(fold, method)] = (artifact, config)
+
+    prediction_fields = read_fields(RUNTIME / "hls_proxy_prediction_template.csv")
+    prediction_rows: list[dict[str, object]] = []
+    fold_by_family = {family: fold for fold, family in enumerate(FAMILIES)}
+    for truth in truth_rows:
+        sample = str(truth["sample_id"])
+        family = str(truth["architecture_family"])
+        fold = fold_by_family[family]
+        measured_feasible = float(truth["route_dsp"]) <= 700.0
+        for method_index, method in enumerate(METHODS):
+            predicted_values: dict[str, float] = {}
+            for target in TARGETS:
+                measured = float(truth[target])
+                if method == "analytic_lut":
+                    predicted = measured
+                elif method == "linear_regression":
+                    predicted = measured - 30.0 if target == "route_dsp" else measured * 1.01
+                elif method == "gradient_boosting":
+                    predicted = measured + 60.0 if target == "route_dsp" else measured * 0.99
+                else:
+                    predicted = measured + (method_index + 1) * 0.001
+                predicted_values[target] = predicted
+            declared_predicted = predicted_is_feasible(predicted_values)
+            artifact, config = artifact_by_fold_method[(fold, method)]
+            for target in TARGETS:
+                prediction_rows.append({
+                    "campaign_run_id": campaign_run,
+                    "sample_id": sample,
+                    "architecture_family": family,
+                    "candidate_id": truth["candidate_id"],
+                    "grouped_fold": fold,
+                    "paper_id": PAPER_BY_METHOD[method],
+                    "method_id": method,
+                    "target_name": target,
+                    "predicted_value": predicted_values[target],
+                    "measured_value": truth[target],
+                    "predicted_feasible": str(declared_predicted).lower(),
+                    "measured_feasible": str(measured_feasible).lower(),
+                    "predictor_seed": 42,
+                    "predictor_artifact_path": str(artifact),
+                    "predictor_artifact_sha256": sha_file(artifact),
+                    "predictor_config_path": str(config),
+                    "predictor_config_sha256": sha_file(config),
+                    "fold_manifest_path": str(fold_path),
+                    "fold_manifest_sha256": sha_file(fold_path),
+                    "feasibility_config_path": str(feasibility_path),
+                    "feasibility_config_sha256": sha_file(feasibility_path),
+                    "input_truth_sha256": sha_file(truth_csv),
+                    "project_code_commit": project_commit,
+                    "project_code_state_sha256": code_state,
+                    "source_freeze_manifest_sha256": source_freeze,
+                    "claimability_status": "CLAIMABLE",
+                })
+    prediction_csv = OUT / "predictions.csv"
+    write_csv(prediction_csv, prediction_rows, prediction_fields)
+
+    namespace = runpy.run_path(str(RUNTIME / "audit_hls_proxy_predictions.txt"))
+    audit = namespace["audit_predictions"]
+    passing = audit(truth_csv, prediction_csv, fold_path, feasibility_path)
+    assert passing["formal_metrics_ready"] is True, passing["errors"][:10]
+    assert passing["prediction_rows"] == 5200
+    assert len(passing["metrics"]) == 52
+    assert len(passing["feasibility_summary"]) == 4
+
+    negative_results = {}
+    mutations = {
+        "duplicate": prediction_rows + [dict(prediction_rows[0])],
+        "missing": prediction_rows[:-1],
+        "measured_mismatch": [dict(row) for row in prediction_rows],
+        "feasibility_mismatch": [dict(row) for row in prediction_rows],
+    }
+    mutations["measured_mismatch"][0]["measured_value"] = float(mutations["measured_mismatch"][0]["measured_value"]) + 1.0
+    mutations["feasibility_mismatch"][0]["predicted_feasible"] = (
+        "false" if mutations["feasibility_mismatch"][0]["predicted_feasible"] == "true" else "true"
+    )
+    for name, rows in mutations.items():
+        path = OUT / f"predictions_{name}.csv"
+        write_csv(path, rows, prediction_fields)
+        result = audit(truth_csv, path, fold_path, feasibility_path)
+        assert result["formal_metrics_ready"] is False, name
+        negative_results[name] = {
+            "rejected": True,
+            "error_count": len(result["errors"]),
+            "first_errors": result["errors"][:5],
+        }
+
+    summary = {
+        "schema_version": 1,
+        "synthetic_only": True,
+        "formal_t6_denominator_increment": 0,
+        "truth_rows": len(truth_rows),
+        "prediction_rows": len(prediction_rows),
+        "expected_metric_rows": 52,
+        "positive_case": {
+            "formal_metrics_ready": passing["formal_metrics_ready"],
+            "metric_rows": len(passing["metrics"]),
+            "feasibility_method_rows": len(passing["feasibility_summary"]),
+        },
+        "negative_cases": negative_results,
+    }
+    summary_path = OUT / "contract_test_summary.json"
+    write_text(summary_path, json.dumps(summary, indent=2) + "\n")
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""Independent audit of the frozen sample-level open-set input manifest."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+from collections import Counter
+from datetime import datetime
+from itertools import combinations
+from pathlib import Path
+from typing import Any, Sequence
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from hwnas_fpga.benchmarks.open_set import load_open_set_spec
+from hwnas_fpga.data.dataset import NKSIDDataset
+from hwnas_fpga.data.protocol import build_protocol_split
+from hwnas_fpga.training.protocol_reporting import canonical_sha256
+
+
+FOLDS = tuple(range(5))
+SEEDS = (42, 43, 44)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def counts(indices: Sequence[int], samples: Sequence[tuple[str, int]], class_names: Sequence[str]) -> dict[str, int]:
+    observed = Counter(int(samples[index][1]) for index in indices)
+    return {name: int(observed.get(class_id, 0)) for class_id, name in enumerate(class_names)}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    manifest_path = Path(args.manifest).resolve()
+    output = Path(args.output).resolve()
+    payload = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    errors: list[str] = []
+    if not (
+        payload.get("schema_version") == 1
+        and payload.get("campaign_id") == "ccf_ab_nksid_av7k325_v1"
+        and payload.get("task") == "open_long_tail"
+        and payload.get("claimability_status") == "FROZEN_INPUT_NOT_RESULT"
+    ):
+        errors.append("manifest identity/status mismatch")
+
+    generator = dict(payload.get("generator") or {})
+    generator_path = Path(str(generator.get("path") or ""))
+    if not generator_path.is_file() or sha256_file(generator_path) != generator.get("sha256"):
+        errors.append("generator binding mismatch")
+    protocol_path = Path(str(payload.get("protocol_path") or ""))
+    evaluation_path = Path(str(payload.get("evaluation_protocol_path") or ""))
+    for label, path, sha_field in (
+        ("open protocol", protocol_path, "protocol_sha256"),
+        ("evaluation protocol", evaluation_path, "evaluation_protocol_sha256"),
+    ):
+        if not path.is_file() or sha256_file(path) != payload.get(sha_field):
+            errors.append(f"{label} binding mismatch")
+
+    freeze = dict(payload.get("source_freeze") or {})
+    freeze_path = Path(str(freeze.get("path") or ""))
+    archive_path = Path(str(freeze.get("archive_path") or ""))
+    if not freeze_path.is_file() or sha256_file(freeze_path) != freeze.get("manifest_sha256"):
+        errors.append("source-freeze manifest binding mismatch")
+        freeze_payload: dict[str, Any] = {}
+    else:
+        freeze_payload = json.loads(freeze_path.read_text(encoding="utf-8-sig"))
+    if not archive_path.is_file() or sha256_file(archive_path) != freeze.get("archive_sha256"):
+        errors.append("source-freeze archive binding mismatch")
+    frozen_files = {str(row.get("path")): str(row.get("sha256")) for row in freeze_payload.get("files", [])}
+    for path, observed_sha in (
+        (protocol_path, payload.get("protocol_sha256")),
+        (evaluation_path, payload.get("evaluation_protocol_sha256")),
+    ):
+        try:
+            relative = path.resolve().relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            errors.append(f"source path is outside project root: {path}")
+            continue
+        if frozen_files.get(relative) != observed_sha:
+            errors.append(f"source-freeze entry mismatch: {relative}")
+
+    data_dir = Path(str(payload.get("dataset_root") or ""))
+    dataset = NKSIDDataset(
+        data_dir=str(data_dir), image_size=224, is_training=False, fold=0,
+        use_kfold=False, split="full", output_channels=1,
+        image_error_policy="raise",
+    )
+    samples = list(dataset.samples)
+    class_names = tuple(dataset.classes)
+    if len(samples) != 2617 or tuple(payload.get("class_names") or []) != class_names:
+        errors.append("dataset sample count/class order mismatch")
+    if payload.get("class_counts") != counts(range(len(samples)), samples, class_names):
+        errors.append("dataset class counts mismatch")
+    sample_rows = list(payload.get("samples") or [])
+    if len(sample_rows) != len(samples) or int(payload.get("dataset_sample_count") or 0) != len(samples):
+        errors.append("sample manifest count mismatch")
+    if len({str(row.get("sample_id")) for row in sample_rows}) != len(sample_rows):
+        errors.append("sample manifest IDs are not unique")
+    reverified_sample_count = 0
+    for index, ((path_value, label_value), row) in enumerate(zip(samples, sample_rows)):
+        path = Path(path_value).resolve()
+        expected = {
+            "sample_index": index,
+            "relative_path": path.relative_to(data_dir).as_posix(),
+            "sample_id": str(path),
+            "target": int(label_value),
+            "class_name": class_names[int(label_value)],
+            "bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        }
+        reverified_sample_count += 1
+        if row != expected:
+            errors.append(f"sample row mismatch at index {index}")
+            if len(errors) > 50:
+                break
+
+    split_files = {str(row.get("name")): row for row in payload.get("split_files", [])}
+    for name in ("train_abs.txt", "kfold_train.txt", "kfold_val.txt"):
+        row = split_files.get(name)
+        path = data_dir / name
+        if row is None or not path.is_file() or row.get("sha256") != sha256_file(path) or int(row.get("bytes") or -1) != path.stat().st_size:
+            errors.append(f"dataset split-file binding mismatch: {name}")
+
+    units = {(int(row["fold"]), int(row["seed"])): row for row in payload.get("units", [])}
+    expected_pairs = {(fold, seed) for fold in FOLDS for seed in SEEDS}
+    if set(units) != expected_pairs or int(payload.get("unit_count") or 0) != 15:
+        errors.append("open-set unit set/count mismatch")
+    inner_val_fraction = float(payload.get("inner_val_fraction", -1.0))
+    if inner_val_fraction != 0.15:
+        errors.append("inner_val_fraction must equal frozen 0.15")
+    unknown_sets = []
+    outer_sequences: dict[tuple[int, int], tuple[int, ...]] = {}
+    accepted_units = 0
+    for fold, seed in sorted(expected_pairs):
+        row = units.get((fold, seed))
+        if row is None:
+            continue
+        unit_errors = []
+        spec = load_open_set_spec(protocol_path, fold=fold, observed_classes=class_names)
+        split = build_protocol_split(
+            samples, data_dir, fold_index=fold, seed=seed,
+            inner_val_fraction=inner_val_fraction, num_classes=len(class_names),
+        )
+        known = set(spec.known_class_ids)
+        train_known = tuple(index for index in split.train_indices if int(samples[index][1]) in known)
+        inner_known = tuple(index for index in split.inner_val_indices if int(samples[index][1]) in known)
+        outer = tuple(split.outer_val_indices)
+        outer_known = tuple(index for index in outer if int(samples[index][1]) in known)
+        outer_unknown = tuple(index for index in outer if int(samples[index][1]) not in known)
+        expected_membership = {
+            "known_train_indices": list(train_known),
+            "known_inner_val_indices": list(inner_known),
+            "outer_val_indices": list(outer),
+            "outer_known_indices": list(outer_known),
+            "outer_unknown_indices": list(outer_unknown),
+        }
+        for field, expected in expected_membership.items():
+            if row.get(field) != expected:
+                unit_errors.append(f"{field} mismatch")
+        if row.get("protocol") != spec.to_dict():
+            unit_errors.append("protocol spec mismatch")
+        if row.get("base_split_sha256") != canonical_sha256(split.to_dict()):
+            unit_errors.append("base split SHA mismatch")
+        expected_base_counts = {
+            "train": len(split.train_indices),
+            "inner_val": len(split.inner_val_indices),
+            "outer_val": len(split.outer_val_indices),
+        }
+        expected_known_counts = {
+            "train": len(train_known),
+            "inner_val": len(inner_known),
+            "outer_known": len(outer_known),
+            "outer_unknown": len(outer_unknown),
+        }
+        if row.get("base_counts") != expected_base_counts:
+            unit_errors.append("base counts mismatch")
+        if row.get("known_only_counts") != expected_known_counts:
+            unit_errors.append("known-only counts mismatch")
+        for field, indices in (
+            ("known_train_class_counts", train_known),
+            ("known_inner_class_counts", inner_known),
+            ("outer_all_class_counts", outer),
+        ):
+            if row.get(field) != counts(indices, samples, class_names):
+                unit_errors.append(f"{field} mismatch")
+        expected_unit_sha = canonical_sha256({
+            "known_train_indices": train_known,
+            "known_inner_val_indices": inner_known,
+            "outer_val_indices": outer,
+            "known_class_ids": spec.known_class_ids,
+            "unknown_class_ids": spec.unknown_class_ids,
+        })
+        if row.get("unit_membership_sha256") != expected_unit_sha:
+            unit_errors.append("unit membership SHA mismatch")
+        if set(train_known) & set(outer) or set(inner_known) & set(outer):
+            unit_errors.append("known train/inner overlaps outer")
+        if any(int(samples[index][1]) not in known for index in (*train_known, *inner_known)):
+            unit_errors.append("unknown class leaked into training/threshold calibration")
+        if set(outer_known) | set(outer_unknown) != set(outer) or set(outer_known) & set(outer_unknown):
+            unit_errors.append("outer known/unknown partition mismatch")
+        unknown_sets.append(tuple(spec.unknown_class_ids))
+        outer_sequences[(fold, seed)] = outer
+        if unit_errors:
+            errors.extend(f"fold={fold}, seed={seed}: {message}" for message in unit_errors)
+        else:
+            accepted_units += 1
+
+    for fold in FOLDS:
+        sequences = [outer_sequences.get((fold, seed), ()) for seed in SEEDS]
+        if not sequences[0] or not (sequences[0] == sequences[1] == sequences[2]):
+            errors.append(f"outer fold membership differs across seeds: fold={fold}")
+    for seed in SEEDS:
+        sets = [set(outer_sequences.get((fold, seed), ())) for fold in FOLDS]
+        if any(left & right for left, right in combinations(sets, 2)):
+            errors.append(f"outer folds overlap: seed={seed}")
+        if len(set().union(*sets)) != len(samples):
+            errors.append(f"outer fold union incomplete: seed={seed}")
+    if len(set(unknown_sets)) != 5:
+        errors.append("five fold-specific unknown-class sets are not unique")
+
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS" if not errors else "FAIL",
+        "manifest": str(manifest_path),
+        "manifest_sha256": sha256_file(manifest_path),
+        "sample_rows": len(sample_rows),
+        "sample_hashes_reverified": reverified_sample_count,
+        "accepted_units": accepted_units,
+        "required_units": 15,
+        "folds": 5,
+        "seeds": 3,
+        "unknown_set_count": len(set(unknown_sets)),
+        "formal_result_increment": 0,
+        "errors": errors,
+        "boundary": "Manifest PASS freezes inputs only and does not establish open-set model performance.",
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps({"status": result["status"], "samples": result["sample_rows"], "units": accepted_units, "errors": errors[:10], "output": str(output)}, ensure_ascii=False))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

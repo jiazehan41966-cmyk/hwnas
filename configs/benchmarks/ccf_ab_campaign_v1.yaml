@@ -1,0 +1,124 @@
+schema_version: 1
+campaign_id: ccf_ab_nksid_av7k325_v1
+registry: configs/benchmarks/paper_registry_v1.yaml
+claim_policy:
+  code_is_not_result: true
+  author_reported_numbers_are_not_local_baselines: true
+  cross_device_numeric_ranking_forbidden: true
+  classification_entrypoint: run_eval_protocol.py
+  gate_ledger: artifacts/measurement_first_rebuild/status.json
+
+classification:
+  task: closed_set
+  outer_folds: [0, 1, 2, 3, 4]
+  seeds: [42, 43, 44]
+  formal_methods:
+    - method_id: scratch_mobilenet_v2
+      adapter_id: builtin
+      result_dir: results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2
+    - method_id: imagenet_pretrained_mobilenet_v2
+      adapter_id: builtin
+      result_dir: results/protocol/g1_clean_20260711/g1_mobilenet_v2_grayscale_imagenet
+    - method_id: frozen_nas_champion
+      adapter_id: builtin
+      result_dir: results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected
+    - method_id: sure_same_backbone
+      adapter_id: sure_author_recipe
+      result_dir: results/benchmarks/ccf_ab_nksid_av7k325_v1/formal/closed/sure_same_backbone
+  primary_metric: macro_f1
+  secondary_metrics:
+    - top1
+    - balanced_accuracy
+    - weighted_f1
+    - per_class_precision_recall_f1_support
+  calibration_metrics: [ece, nll, brier, aurc, failure_auroc, failure_fpr95]
+  bootstrap_iterations: 10000
+  paired_permutation_iterations: 10000
+  multiplicity_correction: holm
+
+open_long_tail:
+  protocol: configs/benchmarks/nksid_open_long_tail_v1.yaml
+  methods: [ce_msp, dmcl_author_loss, plud_author_loss]
+  formal_methods:
+    - method_id: ce_msp
+      adapter_id: builtin
+      result_dir: results/benchmarks/ccf_ab_nksid_av7k325_v1/formal/open/ce_msp
+    - method_id: dmcl_author_loss
+      adapter_id: dmcl_author_loss
+      result_dir: results/benchmarks/ccf_ab_nksid_av7k325_v1/formal/open/dmcl_author_loss
+    - method_id: plud_author_loss
+      adapter_id: plud_author_loss
+      result_dir: results/benchmarks/ccf_ab_nksid_av7k325_v1/formal/open/plud_author_loss
+  conditional_method:
+    id: plud
+    admission: official_executable_code_present_in_author_archive
+    missing_status: OFFICIAL_CODE_NOT_AVAILABLE
+    observed_status: ADMITTED_METHOD_SMOKE_PASS
+  metrics: [known_macro_f1, nma, osfm, oscr_mac, unknown_auroc, unknown_fpr95]
+
+search:
+  methods: [random, rl, aging_evolution, hw_pr_nas]
+  pilot:
+    evaluator_calls: 50
+    seeds: [42, 43, 44]
+    evidence_class: exploratory
+  formal:
+    evaluator_calls: 300
+    seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+    evidence_class: confirmatory_after_gate_reentry
+  primary_metric: exact_normalized_hypervolume
+  hypervolume:
+    reference: [1.0, 1.0, 1.0]
+    objectives:
+      - {name: f_clean, direction: max, lower: 0.0, upper: 1.0}
+      - {name: f_robust, direction: max, lower: 0.0, upper: 1.0}
+      - name: latency_ms
+        direction: min
+        lower: 0.0
+        upper_from: search_constraints.max_latency_ms
+    feasibility_constraints: [lut, dsp, bram]
+  secondary_metrics:
+    - bidirectional_coverage
+    - unique_feasible_nondominated_count
+    - feasible_ratio
+    - top_k_recall
+    - ndcg_at_k
+    - gpu_hours
+    - wall_clock
+    - peak_cuda_memory
+    - failure_rate
+
+sonar_corruptions:
+  snr_db: [clean, 20, 15, 10, 5, 0]
+  snr_kinds: [awgn, speckle]
+  snr_tolerance_db: 0.2
+  blur_severity: [1, 2, 3, 4, 5]
+  contrast_severity: [1, 2, 3, 4, 5]
+  preserve_existing_f_robust_definition: true
+  paired_clean_metrics: [psnr, ssim, mse, snr, epi]
+  input_as_reference_metrics: [epi, enl, ssi]
+
+hls_proxy:
+  descriptive_below: 30
+  exploratory_below: 100
+  formal_minimum_samples: 100
+  validation: grouped_5fold_by_architecture_family
+  methods: [current_lut_analytic, linear_regression, gradient_boosting, harp_gnn]
+  metrics:
+    - mae
+    - rmse
+    - smape
+    - spearman_rho
+    - kendall_tau
+    - top_k_recall
+    - false_feasible_rate
+    - false_infeasible_rate
+
+power:
+  candidate_roles: [accuracy_first, knee_point, resource_min]
+  same_instrument_required: true
+  idle_blocks_per_candidate: 3
+  active_blocks_per_candidate: 3
+  minimum_inferences_per_active_block: 1000
+  primary_metric: dynamic_energy_mj_per_inference
+  secondary_metrics: [idle_w, active_w, dynamic_w, fps_per_w, board_temperature]

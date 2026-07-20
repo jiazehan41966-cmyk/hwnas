@@ -1,0 +1,357 @@
+#!/usr/bin/env python3
+"""Fail-closed provenance and UTC-alignment audit for the three-candidate power campaign.
+
+The .txt suffix is intentional: this runtime evidence tool may evolve while the
+source-frozen G1 training cohort is active without changing its code fingerprint.
+It supplements the canonical power importer and must be migrated into tested
+source code under a new freeze before final campaign acceptance.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from hwnas_fpga.hardware.power_measurement import audit_power_manifest
+
+
+HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
+HEX40 = re.compile(r"^[0-9a-fA-F]{40}$")
+ROLES = {"accuracy_first", "knee_point", "resource_min"}
+TIMESTAMP_BASIS = "unix_utc_epoch_seconds"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def resolve(manifest_path: Path, value: str) -> Path:
+    candidate = Path(str(value).strip()).expanduser()
+    return candidate.resolve() if candidate.is_absolute() else (manifest_path.parent / candidate).resolve()
+
+
+def verify_binding(manifest_path: Path, path_value: str, sha_value: str) -> tuple[bool, str, Path | None]:
+    if not str(path_value).strip():
+        return False, "path is empty", None
+    if not HEX64.fullmatch(str(sha_value).strip()):
+        return False, "SHA256 is invalid", None
+    path = resolve(manifest_path, path_value)
+    if not path.is_file():
+        return False, f"file does not exist: {path}", path
+    if sha256_file(path).lower() != str(sha_value).strip().lower():
+        return False, f"SHA256 mismatch: {path}", path
+    return True, "", path
+
+
+def parse_utc(value: Any) -> float:
+    text = str(value).strip().replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("UTC timestamp is timezone-naive")
+    return parsed.timestamp()
+
+
+def csv_time_stats(path: Path) -> dict[str, float | int]:
+    timestamps = []
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if "timestamp_s" not in set(reader.fieldnames or []):
+            raise ValueError(f"{path} lacks timestamp_s")
+        for line, row in enumerate(reader, start=2):
+            try:
+                timestamp = float(row["timestamp_s"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"{path}:{line}: invalid timestamp_s") from exc
+            if not math.isfinite(timestamp):
+                raise ValueError(f"{path}:{line}: non-finite timestamp_s")
+            timestamps.append(timestamp)
+    if len(timestamps) < 2:
+        raise ValueError(f"{path} requires at least two timestamps")
+    if any(right <= left for left, right in zip(timestamps, timestamps[1:])):
+        raise ValueError(f"{path} timestamps are not strictly increasing")
+    duration = timestamps[-1] - timestamps[0]
+    return {
+        "first_timestamp_s": timestamps[0],
+        "last_timestamp_s": timestamps[-1],
+        "sample_count": len(timestamps),
+        "duration_s": duration,
+        "observed_sample_rate_hz": (len(timestamps) - 1) / duration,
+    }
+
+
+def audit_manifest(path: Path) -> dict[str, Any]:
+    source = path.resolve()
+    payload = json.loads(source.read_text(encoding="utf-8-sig"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{source} must contain a JSON object")
+    errors = []
+
+    if payload.get("schema_version") != 2:
+        errors.append("schema_version must be 2")
+    role = str(payload.get("candidate_role", "")).strip()
+    if role not in ROLES:
+        errors.append(f"candidate_role must be one of {sorted(ROLES)}")
+    required_text = (
+        "campaign_run_id", "candidate_id", "candidate_role", "rail_scope",
+        "measurement_source", "timestamp_basis",
+    )
+    if any(not str(payload.get(field, "")).strip() for field in required_text):
+        errors.append("required campaign/candidate/protocol field is empty")
+    if payload.get("rail_scope") != "board_input_total":
+        errors.append("rail_scope must be board_input_total")
+    if payload.get("measurement_source") != "external_power_meter_csv":
+        errors.append("measurement_source must be external_power_meter_csv")
+    if payload.get("timestamp_basis") != TIMESTAMP_BASIS:
+        errors.append(f"timestamp_basis must be {TIMESTAMP_BASIS}")
+
+    sha_fields = (
+        "candidate_sha256", "candidate_selection_manifest_sha256",
+        "candidate_manifest_sha256", "checkpoint_sha256",
+        "source_freeze_manifest_sha256", "project_code_state_sha256",
+        "data_sha256", "split_sha256", "route_report_sha256",
+        "bitstream_sha256", "payload_sha256", "parity_summary_sha256",
+        "measurement_protocol_manifest_sha256", "measurement_protocol_fingerprint",
+    )
+    if any(not HEX64.fullmatch(str(payload.get(field, ""))) for field in sha_fields):
+        errors.append("required SHA256 field is invalid")
+    if not HEX40.fullmatch(str(payload.get("project_code_commit", ""))):
+        errors.append("project_code_commit is invalid")
+    if str(payload.get("measurement_protocol_fingerprint", "")).lower() != str(
+        payload.get("measurement_protocol_manifest_sha256", "")
+    ).lower():
+        errors.append("measurement_protocol_fingerprint must equal bound protocol manifest SHA256")
+
+    bound_files = []
+    protocol_path: Path | None = None
+    for label, path_field, sha_field in (
+        ("candidate selection manifest", "candidate_selection_manifest_path", "candidate_selection_manifest_sha256"),
+        ("candidate manifest", "candidate_manifest_path", "candidate_manifest_sha256"),
+        ("route report", "route_report_path", "route_report_sha256"),
+        ("bitstream", "bitstream_path", "bitstream_sha256"),
+        ("payload", "payload_path", "payload_sha256"),
+        ("parity summary", "parity_summary_path", "parity_summary_sha256"),
+        ("measurement protocol manifest", "measurement_protocol_manifest_path", "measurement_protocol_manifest_sha256"),
+    ):
+        ok, reason, bound = verify_binding(source, payload.get(path_field, ""), payload.get(sha_field, ""))
+        if not ok:
+            errors.append(f"{label}: {reason}")
+        elif bound is not None:
+            bound_files.append(str(bound))
+            if label == "measurement protocol manifest":
+                protocol_path = bound
+
+    instrument = payload.get("instrument") or {}
+    for field in (
+        "manufacturer", "model", "serial_number", "voltage_range",
+        "current_range", "calibration",
+    ):
+        if not str(instrument.get(field, "")).strip():
+            errors.append(f"instrument.{field} is empty")
+    try:
+        sample_rate = float(instrument.get("sample_rate_hz", 0))
+        if not math.isfinite(sample_rate) or sample_rate <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        sample_rate = 0.0
+        errors.append("instrument.sample_rate_hz is invalid")
+    ok, reason, calibration_path = verify_binding(
+        source,
+        instrument.get("calibration_certificate_path", ""),
+        instrument.get("calibration_certificate_sha256", ""),
+    )
+    if not ok:
+        errors.append(f"calibration certificate: {reason}")
+    elif calibration_path is not None:
+        bound_files.append(str(calibration_path))
+
+    if protocol_path is not None:
+        try:
+            protocol = json.loads(protocol_path.read_text(encoding="utf-8-sig"))
+            if protocol.get("schema_version") != 2:
+                errors.append("bound measurement protocol schema_version must be 2")
+            for field in ("rail_scope", "measurement_source", "timestamp_basis"):
+                if protocol.get(field) != payload.get(field):
+                    errors.append(f"bound measurement protocol {field} mismatch")
+            protocol_instrument = protocol.get("instrument") or {}
+            for field in (
+                "manufacturer", "model", "serial_number", "sample_rate_hz",
+                "voltage_range", "current_range", "calibration_certificate_sha256",
+            ):
+                expected = (
+                    instrument.get("calibration_certificate_sha256")
+                    if field == "calibration_certificate_sha256"
+                    else instrument.get(field)
+                )
+                if protocol_instrument.get(field) != expected:
+                    errors.append(f"bound measurement protocol instrument.{field} mismatch")
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"bound measurement protocol is unreadable: {exc}")
+
+    idle_values = [str(value) for value in payload.get("idle_csvs", [])]
+    idle_bindings = payload.get("idle_capture_bindings", [])
+    if len(idle_values) < 3 or len(idle_bindings) != len(idle_values):
+        errors.append("idle_csvs and idle_capture_bindings must contain the same at least three captures")
+    idle_stats = []
+    for index, (value, binding) in enumerate(zip(idle_values, idle_bindings), start=1):
+        if str(binding.get("csv", "")) != value:
+            errors.append(f"idle {index}: binding CSV does not match idle_csvs")
+        ok, reason, capture_path = verify_binding(source, value, binding.get("csv_sha256", ""))
+        if not ok or capture_path is None:
+            errors.append(f"idle {index}: {reason}")
+            continue
+        try:
+            stats = csv_time_stats(capture_path)
+            idle_stats.append(stats)
+            if stats["duration_s"] < 60.0:
+                errors.append(f"idle {index}: duration is below 60 s")
+            if sample_rate and abs(stats["observed_sample_rate_hz"] - sample_rate) / sample_rate > 0.05:
+                errors.append(f"idle {index}: observed sample rate differs by more than 5%")
+            if stats["first_timestamp_s"] < 1_500_000_000:
+                errors.append(f"idle {index}: timestamp_s is not a plausible UTC epoch")
+        except ValueError as exc:
+            errors.append(f"idle {index}: {exc}")
+
+    active_stats = []
+    for index, entry in enumerate(payload.get("active_captures", []), start=1):
+        ok, reason, capture_path = verify_binding(source, entry.get("csv", ""), entry.get("csv_sha256", ""))
+        if not ok or capture_path is None:
+            errors.append(f"active {index} CSV: {reason}")
+            continue
+        ok, reason, receipt_path = verify_binding(
+            source,
+            entry.get("run_repeat_receipt", ""),
+            entry.get("run_repeat_receipt_sha256", ""),
+        )
+        if not ok or receipt_path is None:
+            errors.append(f"active {index} receipt: {reason}")
+            continue
+        try:
+            stats = csv_time_stats(capture_path)
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8-sig"))
+            started = parse_utc(receipt.get("active_started_utc"))
+            finished = parse_utc(receipt.get("active_finished_utc"))
+            utc_duration = finished - started
+            elapsed = float(receipt.get("host_active_elapsed_s", 0))
+            tolerance = max(2.0 / sample_rate, 0.25) if sample_rate else 0.25
+            if abs(stats["first_timestamp_s"] - started) > tolerance or abs(
+                stats["last_timestamp_s"] - finished
+            ) > tolerance:
+                errors.append(f"active {index}: CSV does not align to receipt UTC interval")
+            if utc_duration < 60.0 or elapsed < 60.0:
+                errors.append(f"active {index}: active interval is below 60 s")
+            if abs(utc_duration - elapsed) > max(0.5, 0.01 * abs(elapsed)):
+                errors.append(f"active {index}: receipt UTC and monotonic durations disagree")
+            if sample_rate and abs(stats["observed_sample_rate_hz"] - sample_rate) / sample_rate > 0.05:
+                errors.append(f"active {index}: observed sample rate differs by more than 5%")
+            inference_count = int(entry.get("inference_count", 0))
+            if inference_count < 1000 or int(receipt.get("repeat_count", -1)) != inference_count:
+                errors.append(f"active {index}: inference/receipt repeat count is invalid")
+            for field in ("bitstream_sha256", "payload_sha256", "parity_summary_sha256"):
+                if str(receipt.get(field, "")).lower() != str(payload.get(field, "")).lower():
+                    errors.append(f"active {index}: receipt {field} mismatch")
+            if receipt.get("contains_programming") is not False or receipt.get("contains_uart_upload") is not False:
+                errors.append(f"active {index}: receipt includes programming or UART upload")
+            active_stats.append({**stats, "receipt_sha256": sha256_file(receipt_path)})
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"active {index}: {exc}")
+    if len(payload.get("active_captures", [])) < 3:
+        errors.append("at least three active captures are required")
+
+    try:
+        base = audit_power_manifest(payload, manifest_path=source)
+    except Exception as exc:
+        base = {"overall_pass": False, "error": str(exc)}
+        errors.append(f"canonical base power audit failed: {exc}")
+    if base.get("overall_pass") is not True:
+        errors.append("canonical base power audit did not pass")
+
+    return {
+        "manifest": str(source),
+        "manifest_sha256": sha256_file(source),
+        "candidate_id": payload.get("candidate_id"),
+        "candidate_role": role,
+        "instrument": instrument,
+        "measurement_protocol_fingerprint": payload.get("measurement_protocol_fingerprint"),
+        "candidate_selection_manifest_sha256": payload.get("candidate_selection_manifest_sha256"),
+        "source_freeze_manifest_sha256": payload.get("source_freeze_manifest_sha256"),
+        "project_code_state_sha256": payload.get("project_code_state_sha256"),
+        "data_sha256": payload.get("data_sha256"),
+        "split_sha256": payload.get("split_sha256"),
+        "bound_file_count": len(set(bound_files)),
+        "idle_time_stats": idle_stats,
+        "active_time_stats": active_stats,
+        "base_power_summary": base,
+        "errors": errors,
+        "overall_pass": not errors,
+    }
+
+
+def audit_campaign(paths: list[Path]) -> dict[str, Any]:
+    audits = [audit_manifest(path) for path in paths]
+    roles = {str(a.get("candidate_role", "")) for a in audits}
+    candidate_ids = {str(a.get("candidate_id", "")) for a in audits}
+    common_fields = (
+        "measurement_protocol_fingerprint", "candidate_selection_manifest_sha256",
+        "source_freeze_manifest_sha256", "project_code_state_sha256",
+        "data_sha256", "split_sha256",
+    )
+    gates = {
+        "exactly_three_manifests": len(paths) == 3,
+        "three_candidate_roles": roles == ROLES,
+        "three_distinct_candidates": len(candidate_ids) == 3 and "" not in candidate_ids,
+        "all_manifests_pass": all(a["overall_pass"] for a in audits),
+        "same_instrument": len({json.dumps(a.get("instrument") or {}, sort_keys=True) for a in audits}) == 1,
+    }
+    for field in common_fields:
+        gates[f"same_{field}"] = len({str(a.get(field, "")) for a in audits}) == 1 and all(
+            str(a.get(field, "")) for a in audits
+        )
+    return {
+        "schema_version": 2,
+        "manifest_count": len(paths),
+        "candidate_roles": sorted(roles),
+        "candidate_ids": sorted(candidate_ids),
+        "gates": gates,
+        "overall_pass": all(gates.values()),
+        "pareto_eligible": all(gates.values()),
+        "audits": audits,
+        "boundary": (
+            "Power enters T8/F11/F12 only after three fixed roles pass the base "
+            "measurement audit, file binding and UTC-alignment checks under one protocol."
+        ),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("manifests", nargs="+")
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    result = audit_campaign([Path(value).resolve() for value in args.manifests])
+    text = json.dumps(result, indent=2, ensure_ascii=False)
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text + "\n", encoding="utf-8")
+    print(text)
+    return 0 if result["overall_pass"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

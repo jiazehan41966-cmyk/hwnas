@@ -1,0 +1,474 @@
+#!/usr/bin/env python3
+"""生成 rl_arch_135 软件精度与历史硬件证据的中文跨层绑定分析。"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import itertools
+import json
+import random
+import statistics
+from datetime import datetime
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+
+REPO = Path(__file__).resolve().parents[4]
+CAMPAIGN = REPO / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+OUTPUT = CAMPAIGN / "diagnostics/rl_arch_135_cross_layer_binding_v1"
+FIGURES = OUTPUT / "figures"
+TABLES = OUTPUT / "tables"
+
+NAS_RUN = REPO / "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected"
+PRETRAINED_RUN = REPO / "results/protocol/g1_clean_20260711/g1_mobilenet_v2_grayscale_imagenet"
+CANDIDATE = REPO / "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json"
+BOARD_RUN = REPO / "hls_lut_builder/board_harness/results/sonar_classifier_rl_best_e2e_board/full_rank003_rl_arch_135_b58ae648c3"
+HARNESS_MANIFEST = BOARD_RUN / "harness_project/harness_manifest.json"
+HARNESS_SPEC = BOARD_RUN / "rl_best_e2e_harness_spec.json"
+PARAMETER_MANIFEST = REPO / "hls_lut_builder/results/v2_arch84_e2e_extension/arch84_latency_only_parameter_manifest.json"
+BUILD_RESULT = BOARD_RUN / "build_result.json"
+FINAL_HW_REPORT = REPO / "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/reports/003_rl_arch_135.final_hardware_validation_report.json"
+BITSTREAM = BOARD_RUN / "harness_project/bitstream/sonar_classifier_rl_best_e2e__full_rank003_rl_arch_135_b58ae648c3.bit"
+STABILITY = BOARD_RUN / "measurements/stability_runs.json"
+RAW_RUNS = BOARD_RUN / "measurements/measurements_raw_runs.csv"
+MEASUREMENT = BOARD_RUN / "measurements/sonar_classifier_rl_best_e2e__full_rank003_rl_arch_135_b58ae648c3.measurement.json"
+UTILIZATION = BOARD_RUN / "vivado_reports/harness_top_utilization_placed.rpt"
+EVIDENCE_BOUNDARY = REPO / "results/phase0_v4_sonar_stage3_k3_board_experiment/evidence_boundary_table.json"
+NAS_AUDIT = CAMPAIGN / "manifests/g1_nas_independent_audit_20260716.json"
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def encoding_signature(encoding: dict) -> str:
+    payload = json.dumps(dict(encoding), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def quantile(values: list[float], probability: float) -> float:
+    ordered = sorted(values)
+    position = probability * (len(ordered) - 1)
+    lower = int(position)
+    upper = min(len(ordered) - 1, lower + 1)
+    fraction = position - lower
+    return ordered[lower] * (1 - fraction) + ordered[upper] * fraction
+
+
+def fold_stratified_bootstrap(differences: dict[int, list[float]]) -> tuple[float, float]:
+    rng = random.Random(20260717)
+    folds = sorted(differences)
+    means: list[float] = []
+    for _ in range(10_000):
+        sampled: list[float] = []
+        for _ in range(len(folds)):
+            fold = rng.choice(folds)
+            sampled.extend(rng.choice(differences[fold]) for _ in differences[fold])
+        means.append(statistics.fmean(sampled))
+    return quantile(means, 0.025), quantile(means, 0.975)
+
+
+def parse_utilization() -> list[dict]:
+    text = UTILIZATION.read_text(encoding="utf-8", errors="strict")
+    labels = {
+        "Slice LUTs": "LUT",
+        "Slice Registers": "FF",
+        "Block RAM Tile": "BRAM",
+        "DSPs": "DSP",
+    }
+    rows = []
+    seen = set()
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        columns = [column.strip() for column in line.strip().strip("|").split("|")]
+        if len(columns) != 6 or columns[0] not in labels:
+            continue
+        resource = labels[columns[0]]
+        if resource in seen:
+            continue
+        used, capacity, percent = map(float, (columns[1], columns[4], columns[5]))
+        computed = 100.0 * used / capacity
+        if abs(computed - percent) > 0.02:
+            raise AssertionError(
+                f"Vivado {resource} 利用率不自洽：报告={percent}%，按 used/capacity 计算={computed:.4f}%"
+            )
+        rows.append({"resource": resource, "used": used, "capacity": capacity, "percent": percent})
+        seen.add(resource)
+    missing = set(labels.values()) - seen
+    if missing:
+        raise AssertionError(f"无法从 Vivado 报告解析资源：{sorted(missing)}")
+    return rows
+
+
+def replacement_paths(value, path="$" ) -> list[str]:
+    result: list[str] = []
+    if isinstance(value, str) and "\ufffd" in value:
+        result.append(path)
+    elif isinstance(value, dict):
+        for key, child in value.items():
+            result.extend(replacement_paths(child, f"{path}.{key}"))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            result.extend(replacement_paths(child, f"{path}[{index}]"))
+    return result
+
+
+def save_figure(fig, stem: str) -> None:
+    fig.savefig(FIGURES / f"{stem}.png", dpi=600, bbox_inches="tight")
+    fig.savefig(FIGURES / f"{stem}.pdf", bbox_inches="tight")
+    fig.savefig(FIGURES / f"{stem}.svg", bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_csv(path: Path, rows: list[dict]) -> None:
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def main() -> int:
+    FIGURES.mkdir(parents=True, exist_ok=True)
+    TABLES.mkdir(parents=True, exist_ok=True)
+
+    nas_summary = load_json(NAS_RUN / "protocol_summary.json")
+    pretrained_summary = load_json(PRETRAINED_RUN / "protocol_summary.json")
+    nas_audit = load_json(NAS_AUDIT)
+    candidate = load_json(CANDIDATE)
+    harness_manifest = load_json(HARNESS_MANIFEST)
+    harness_spec = load_json(HARNESS_SPEC)
+    parameter_manifest = load_json(PARAMETER_MANIFEST)
+    build_result = load_json(BUILD_RESULT)
+    final_hw = load_json(FINAL_HW_REPORT)
+    stability = load_json(STABILITY)
+    measurement = load_json(MEASUREMENT)
+    boundary = load_json(EVIDENCE_BOUNDARY)
+
+    if nas_audit.get("status") != "PASS" or nas_audit.get("record_count") != 15:
+        raise AssertionError("NAS 15/15 独立审计未通过")
+    if nas_summary["claimability"]["observed_run_count"] != 15:
+        raise AssertionError("NAS protocol summary 不是 15/15")
+
+    candidate_sha = sha256(CANDIDATE)
+    architecture = candidate["candidate"]["encoding"]
+    signature = encoding_signature(architecture)
+    if signature != candidate["pareto"]["encoding_signature"]:
+        raise AssertionError("候选 encoding signature 重算不一致")
+    if harness_manifest["source_candidate"]["candidate_sha256"] != candidate_sha:
+        raise AssertionError("harness manifest 未绑定当前候选 SHA")
+    if harness_spec["source"]["candidate_sha256"] != candidate_sha:
+        raise AssertionError("harness spec 未绑定当前候选 SHA")
+    if final_hw["candidate"]["encoding_signature"] != signature:
+        raise AssertionError("最终硬件报告的 encoding signature 不一致")
+    if parameter_manifest["parameter_mode"] != "latency_only_deterministic" or parameter_manifest["accuracy_claim"] != "none":
+        raise AssertionError("参数 manifest 不符合 latency-only 证据边界")
+    if harness_spec["parameter_mode"] != "latency_only_deterministic" or harness_spec["accuracy_claim"] != "none":
+        raise AssertionError("harness spec 错误地允许准确率声明")
+    if build_result["status"] != "success" or not build_result["timing_clean"]:
+        raise AssertionError("route build 未通过")
+    if final_hw["route_gate"]["gate_status"] != "PASS" or not final_hw["claimable_real_e2e_latency"]:
+        raise AssertionError("最终硬件报告未允许真实延迟声明")
+    if sha256(BITSTREAM) != final_hw["bitstream"]["bitstream_sha256"]:
+        raise AssertionError("bitstream SHA 不一致")
+    if stability["run_count"] != 5 or stability["stable"] is not True:
+        raise AssertionError("COM5 五次稳定性证据不完整")
+    raw_rows = list(csv.DictReader(RAW_RUNS.open("r", encoding="utf-8-sig", newline="")))
+    if len(raw_rows) != 5:
+        raise AssertionError("COM5 原始 CSV 不是五次测量")
+    if len({row["cycles"] for row in raw_rows}) != 1 or len({row["latency_ms"] for row in raw_rows}) != 1:
+        raise AssertionError("COM5 原始测量不稳定")
+
+    boundary_row = next(row for row in boundary["rows"] if row["arch_id"] == "rl_arch_135")
+    if boundary_row["board_val_accuracy_status"] != "not run" or boundary_row["power_energy_status"] != "not measured":
+        raise AssertionError("历史边界表与当前板级/功耗状态不一致")
+
+    nas_index = {(int(run["fold"]), int(run["seed"])): float(run["outer_val"]["macro_f1"]) for run in nas_summary["runs"]}
+    pretrained_index = {(int(run["fold"]), int(run["seed"])): float(run["outer_val"]["macro_f1"]) for run in pretrained_summary["runs"]}
+    pairs = sorted(set(nas_index) & set(pretrained_index))
+    if len(pairs) != 15:
+        raise AssertionError("软件配对单元不是 15")
+    pair_rows = []
+    by_fold: dict[int, list[float]] = {}
+    for fold, seed in pairs:
+        difference = nas_index[(fold, seed)] - pretrained_index[(fold, seed)]
+        by_fold.setdefault(fold, []).append(difference)
+        pair_rows.append({
+            "fold": fold,
+            "seed": seed,
+            "nas_macro_f1": nas_index[(fold, seed)],
+            "pretrained_macro_f1": pretrained_index[(fold, seed)],
+            "nas_minus_pretrained": difference,
+        })
+    differences = [row["nas_minus_pretrained"] for row in pair_rows]
+    ci_low, ci_high = fold_stratified_bootstrap(by_fold)
+    observed = abs(statistics.fmean(differences))
+    extreme = sum(
+        abs(statistics.fmean(value * sign for value, sign in zip(differences, signs))) >= observed - 1e-15
+        for signs in itertools.product((-1.0, 1.0), repeat=len(differences))
+    )
+    software_stats = {
+        "paired_n": 15,
+        "fold_n": 5,
+        "nas_mean": statistics.fmean(nas_index.values()),
+        "nas_sd": statistics.stdev(nas_index.values()),
+        "pretrained_mean": statistics.fmean(pretrained_index.values()),
+        "pretrained_sd": statistics.stdev(pretrained_index.values()),
+        "mean_difference": statistics.fmean(differences),
+        "ci95_low": ci_low,
+        "ci95_high": ci_high,
+        "bootstrap_iterations": 10_000,
+        "bootstrap_seed": 20260717,
+        "wins": sum(value > 0 for value in differences),
+        "exact_sign_flip_p": extreme / (2 ** len(differences)),
+        "cohens_dz": statistics.fmean(differences) / statistics.stdev(differences),
+    }
+
+    resource_rows = parse_utilization()
+    latency_rows = [
+        {"type": "latency", "label_zh": "搜索期 LUT 估计", "value": float(final_hw["nas_lut_estimate"]["latency_ms"]), "unit": "ms", "evidence_class": "proxy"},
+        {"type": "latency", "label_zh": "COM5 板级实测", "value": float(final_hw["real_board_e2e"]["e2e_latency_ms"]), "unit": "ms", "evidence_class": "measured_latency_only"},
+    ]
+    hardware_summary = {
+        "candidate_sha256": candidate_sha,
+        "encoding_signature": signature,
+        "architecture_identity": "PASS",
+        "weight_identity": "NOT_BOUND",
+        "parameter_mode": parameter_manifest["parameter_mode"],
+        "accuracy_claim": parameter_manifest["accuracy_claim"],
+        "route_status": "PASS",
+        "wns_ns": float(final_hw["route_gate"]["wns_ns"]),
+        "resources": resource_rows,
+        "bitstream_sha256": sha256(BITSTREAM),
+        "com5_runs": 5,
+        "com5_cycles": int(raw_rows[0]["cycles"]),
+        "com5_latency_ms": float(raw_rows[0]["latency_ms"]),
+        "com5_latency_sd_ms": statistics.pstdev(float(row["latency_ms"]) for row in raw_rows),
+        "com5_checksum": int(raw_rows[0]["checksum"]),
+        "board_accuracy": "NOT_RUN",
+        "power": "NOT_MEASURED",
+        "measurement_replacement_paths": replacement_paths(measurement),
+        "proxy_to_measured_latency_ratio": float(final_hw["real_board_e2e"]["e2e_latency_ms"]) / float(final_hw["nas_lut_estimate"]["latency_ms"]),
+    }
+
+    write_csv(FIGURES / "figure-01-software-macro-f1_source.csv", pair_rows)
+    figure2_rows = [
+        {"type": "resource", "label_zh": row["resource"], "value": row["percent"], "unit": "%", "evidence_class": "vivado_route"}
+        for row in resource_rows
+    ] + latency_rows
+    write_csv(FIGURES / "figure-02-hardware-evidence_source.csv", figure2_rows)
+
+    plt.rcParams.update({
+        "font.sans-serif": ["Microsoft YaHei", "SimHei", "Arial Unicode MS", "DejaVu Sans"],
+        "axes.unicode_minus": False,
+        "font.size": 9,
+    })
+    colors = {"nas": "#E69F00", "pretrained": "#0072B2"}
+    fig, ax = plt.subplots(figsize=(7.2, 3.8))
+    x = list(range(len(pair_rows)))
+    for index, row in enumerate(pair_rows):
+        ax.plot([index, index], [row["nas_macro_f1"], row["pretrained_macro_f1"]], color="#B0B0B0", linewidth=0.8, zorder=1)
+    ax.scatter(x, [row["nas_macro_f1"] for row in pair_rows], color=colors["nas"], marker="s", s=28, label="冻结 NAS 候选", zorder=3)
+    ax.scatter(x, [row["pretrained_macro_f1"] for row in pair_rows], color=colors["pretrained"], marker="o", s=28, label="预训练 MobileNetV2", zorder=3)
+    ax.axhline(software_stats["nas_mean"], color=colors["nas"], linestyle="--", linewidth=1.2)
+    ax.axhline(software_stats["pretrained_mean"], color=colors["pretrained"], linestyle="--", linewidth=1.2)
+    ax.set_ylabel("macro-F1（越高越好）")
+    ax.set_xlabel("配对 fold-seed 单元")
+    ax.set_xticks(x, [f"F{row['fold']}-S{row['seed']}" for row in pair_rows], rotation=45, ha="right")
+    ax.set_ylim(0.0, 1.02)
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend(frameon=False, ncol=2, loc="lower left")
+    fig.tight_layout()
+    save_figure(fig, "figure-01-software-macro-f1")
+
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.5))
+    axes[0].bar([row["resource"] for row in resource_rows], [row["percent"] for row in resource_rows], color=["#56B4E9", "#009E73", "#CC79A7", "#D55E00"])
+    axes[0].set_ylabel("器件利用率（%）")
+    axes[0].set_ylim(0, 100)
+    axes[0].grid(axis="y", alpha=0.25)
+    for index, row in enumerate(resource_rows):
+        axes[0].text(index, row["percent"] + 2, f"{row['percent']:.2f}%", ha="center", fontsize=8)
+    axes[0].set_title("Vivado route 后资源")
+    axes[1].bar([row["label_zh"] for row in latency_rows], [row["value"] for row in latency_rows], color=["#999999", "#0072B2"])
+    axes[1].set_ylabel("延迟（ms）")
+    axes[1].set_ylim(0, max(row["value"] for row in latency_rows) * 1.25)
+    axes[1].grid(axis="y", alpha=0.25)
+    for index, row in enumerate(latency_rows):
+        axes[1].text(index, row["value"] + 1.2, f"{row['value']:.3f}", ha="center", fontsize=8)
+    axes[1].set_title(f"代理与板级延迟（{hardware_summary['proxy_to_measured_latency_ratio']:.2f}×）")
+    axes[1].tick_params(axis="x", rotation=12)
+    fig.tight_layout()
+    save_figure(fig, "figure-02-hardware-evidence")
+
+    meta1 = {
+        "language": "zh-CN",
+        "title_zh": "冻结 NAS 候选与预训练 MobileNetV2 的 15 个配对 macro-F1",
+        "caption_zh": "每条灰线连接同一 fold-seed 单元。虚线表示各方法的 15 单元均值。所有 15 个单元中冻结 NAS 候选均低于预训练 MobileNetV2。",
+        "purpose_zh": "检验冻结架构的软件分类性能是否具有可报告的配对证据。",
+        "observation_zh": "NAS 平均 macro-F1 为 0.693619，预训练基线为 0.931632，NAS 胜出 0/15。",
+        "implication_zh": "该架构可保留为硬件可行负结果，但不能作为精度冠军。",
+        "limitations_zh": ["架构由历史 fold0 流程选择，不能证明 NAS 方法无偏泛化。", "缺少 acquisition/mission group 元数据。"],
+        "source_csv": "figure-01-software-macro-f1_source.csv",
+        "error_bar": "无；显示全部 15 个原始配对单元",
+        "generator_sha256": sha256(Path(__file__)),
+    }
+    meta2 = {
+        "language": "zh-CN",
+        "title_zh": "rl_arch_135 的 route 资源与延迟证据边界",
+        "caption_zh": "左图为 Vivado route 后资源利用率；右图并列搜索期 LUT 延迟估计与 COM5 确定性 harness 实测延迟。两者属于不同证据层，不能把代理值写成板级实测。",
+        "purpose_zh": "展示同一架构的硬件可行性，并暴露代理延迟与板级延迟的差异。",
+        "observation_zh": "DSP 利用率最高为 72.86%；COM5 延迟为 49.062 ms，是搜索期估计的 6.73 倍。",
+        "implication_zh": "硬件筛选必须依赖 route/COM5 校准，当前 bitstream 只支持延迟声明。",
+        "limitations_zh": ["硬件参数为 latency_only_deterministic，未绑定正式 checkpoint。", "板级分类准确率未运行。", "功耗未测量。"],
+        "source_csv": "figure-02-hardware-evidence_source.csv",
+        "error_bar": "无；资源为单次 route，COM5 五次结果完全相同",
+        "generator_sha256": sha256(Path(__file__)),
+    }
+    (FIGURES / "figure-01-software-macro-f1_meta.json").write_text(json.dumps(meta1, ensure_ascii=False, indent=2), encoding="utf-8")
+    (FIGURES / "figure-02-hardware-evidence_meta.json").write_text(json.dumps(meta2, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    evidence_rows = [
+        {"证据层": "冻结架构身份", "状态": "PASS", "可支持结论": "软件与硬件使用同一候选架构编码", "禁止结论": "不能由架构相同推断权重相同"},
+        {"证据层": "软件分类", "状态": "PASS_15_OF_15", "可支持结论": "冻结架构的 NKSID 软件 macro-F1", "禁止结论": "不能证明 NAS 方法无偏泛化"},
+        {"证据层": "权重绑定", "状态": "NOT_BOUND", "可支持结论": "无", "禁止结论": "不能声称 formal checkpoint 已部署"},
+        {"证据层": "Vivado route", "状态": "PASS", "可支持结论": "该架构映射可 route 且资源/时序已记录", "禁止结论": "不能证明软件数值等价"},
+        {"证据层": "COM5 延迟", "状态": "PASS_LATENCY_ONLY", "可支持结论": "确定性 harness bitstream 的板级端到端延迟", "禁止结论": "不能作为 NKSID 板级准确率"},
+        {"证据层": "板级分类准确率", "状态": "NOT_RUN", "可支持结论": "无", "禁止结论": "不能把 PyTorch 精度写成板级精度"},
+        {"证据层": "功耗", "状态": "NOT_MEASURED", "可支持结论": "搜索 proxy 与 Vivado estimate 仅作诊断", "禁止结论": "不能报告动态功耗或能耗实测"},
+    ]
+    write_csv(TABLES / "evidence-layers.csv", evidence_rows)
+    table_lines = ["| 证据层 | 状态 | 可支持结论 | 禁止结论 |", "|---|---|---|---|"]
+    table_lines.extend(f"| {row['证据层']} | {row['状态']} | {row['可支持结论']} | {row['禁止结论']} |" for row in evidence_rows)
+    (TABLES / "evidence-layers.md").write_text("\n".join(table_lines) + "\n", encoding="utf-8")
+
+    analysis_report = f"""# rl_arch_135 软件—硬件跨层绑定分析
+
+## 分析问题
+
+本分析回答：完成 15/15 软件评测的 `rl_arch_135`，是否能与历史 Vivado route 和 COM5 记录可靠绑定，以及这些证据允许支持哪些结论。
+
+## 结论
+
+架构身份绑定通过。正式软件运行、harness manifest 和 harness spec 均绑定 candidate SHA256 `{candidate_sha}`；候选 encoding signature 重算为 `{signature}`，与最终硬件报告一致。
+
+权重身份不通过。历史硬件 parameter manifest 明确记录 `parameter_mode=latency_only_deterministic`、`accuracy_claim=none`，没有绑定本次 15/15 的任何 checkpoint。因此可以把软件精度与硬件 route/延迟并列为“同一架构的不同证据层”，但不能声称正式软件权重已经部署到该 bitstream。
+
+## 核心结果
+
+- 软件：15 个 fold-seed 单元，NAS macro-F1 `{software_stats['nas_mean']:.6f} ± {software_stats['nas_sd']:.6f}`；预训练 MobileNetV2 `{software_stats['pretrained_mean']:.6f} ± {software_stats['pretrained_sd']:.6f}`。
+- 配对差值：`{software_stats['mean_difference']:.6f}`，按 fold 分层的 10,000 次 bootstrap 95% CI `[{software_stats['ci95_low']:.6f}, {software_stats['ci95_high']:.6f}]`，NAS 胜出 `{software_stats['wins']}/15`。
+- route：PASS，WNS `{hardware_summary['wns_ns']:.3f} ns`；LUT 18,598，FF 21,012，BRAM 127.5，DSP 612。
+- COM5：5 次确定性 harness 测量均为 `{hardware_summary['com5_cycles']}` cycles、`{hardware_summary['com5_latency_ms']:.6f} ms`、checksum `{hardware_summary['com5_checksum']}`。
+- 搜索期延迟估计为 `{latency_rows[0]['value']:.6f} ms`，板级实测为 `{latency_rows[1]['value']:.6f} ms`，相差 `{hardware_summary['proxy_to_measured_latency_ratio']:.2f}×`。该比例仅描述这一候选，不能直接推广。
+- 板级分类准确率：NOT_RUN。功耗：NOT_MEASURED。
+
+## 证据质量问题
+
+旧 measurement JSON 的 `vivado_hardware.stdout` 含 replacement character；受影响路径为 `{', '.join(hardware_summary['measurement_replacement_paths'])}`。核心 frame、原始 CSV、bitstream SHA、route 报告和五次稳定性数值不依赖该文本字段，因此延迟证据仍可读取；但该编码缺陷必须保留在限制中，不能静默清洗旧证据。
+
+## 决策含义
+
+当前候选适合作为“架构可 route、板级延迟可测，但精度明显不足”的负结果。若要建立同一权重实例的端到端 FPGA 结论，下一阶段必须由用户另行批准并完成：固定一个 formal checkpoint、权重导出 SHA、PyTorch—INT8—HLS 数值等价、重新生成 bitstream、NKSID 板级分类准确率、延迟和外部仪器功耗。当前分析不授权这些动作。
+
+## 证据边界表
+
+{chr(10).join(table_lines)}
+"""
+    (OUTPUT / "analysis-report.md").write_text(analysis_report, encoding="utf-8")
+
+    stats_appendix = f"""# 统计附录
+
+## 软件分类比较
+
+- 主指标：macro-F1，越高越好。
+- 分析单位：fold-seed 配对单元；5 folds × 3 seeds，n=15。
+- 描述统计：NAS `{software_stats['nas_mean']:.10f} ± {software_stats['nas_sd']:.10f}`；预训练 `{software_stats['pretrained_mean']:.10f} ± {software_stats['pretrained_sd']:.10f}`。
+- 配对均值差：`{software_stats['mean_difference']:.10f}`。
+- 不确定性：按 fold 分层的 10,000 次配对 bootstrap，seed 20260717，95% CI `[{software_stats['ci95_low']:.10f}, {software_stats['ci95_high']:.10f}]`。
+- 精确双侧配对 sign-flip permutation：p=`{software_stats['exact_sign_flip_p']:.14f}`。
+- 效应量：Cohen's dz=`{software_stats['cohens_dz']:.10f}`。
+- 多重比较：本 bundle 只检验一个预先声明的 macro-F1 主比较，不进行 Holm 调整；完整 T2 实验族仍需 scratch-v2 和 SURE 后统一校正。
+
+## 硬件描述统计
+
+- route 只有一个架构实例，不做推断统计。
+- COM5 有 5 次相同 bitstream、相同确定性输入的重复测量；latency 标准差为 `{hardware_summary['com5_latency_sd_ms']:.10f} ms`。零方差只表示该 harness 在这五次运行中稳定，不能代表真实 NKSID 输入分布。
+- 搜索 proxy 与 COM5 的 `{hardware_summary['proxy_to_measured_latency_ratio']:.6f}×` 比例是单候选描述，不是代理校准模型。
+- 板级分类准确率未运行，功耗未测量，因此没有相应均值、CI、p-value 或效应量。
+
+## 主要限制
+
+- formal checkpoint 与 bitstream 权重未绑定。
+- 架构由历史 fold0 流程选择，`nas_generalization_claimable=false`。
+- acquisition/mission group 元数据缺失。
+- 旧 Vivado stdout 存在编码替换字符；核心数值字段不受影响，但文本 provenance 不完整。
+"""
+    (OUTPUT / "stats-appendix.md").write_text(stats_appendix, encoding="utf-8")
+
+    figure_catalog = """# 图表目录
+
+## figure-01-software-macro-f1
+
+- 目的：展示 15 个完全配对的 fold-seed 软件分类结果。
+- 数据源：`figures/figure-01-software-macro-f1_source.csv`。
+- 读者应注意：所有配对线均从 NAS 指向更高的预训练基线。
+- 解释：冻结架构的软件精度落后是跨 fold-seed 一致的，而非由单一 seed 驱动。
+- 决策影响：保留该候选作为硬件可行负结果，不作为精度冠军。
+- 限制：不是无偏 NAS 方法泛化证据。
+
+## figure-02-hardware-evidence
+
+- 目的：显示 route 后资源占用，并把搜索期延迟 proxy 与 COM5 板级延迟明确分层。
+- 数据源：`figures/figure-02-hardware-evidence_source.csv`。
+- 读者应注意：DSP 利用率最高；COM5 延迟明显高于搜索 proxy。
+- 解释：该架构可以 route，但搜索 proxy 不能替代板级延迟。
+- 决策影响：未来搜索需基于更多 route/COM5 样本校准；单候选比例不能硬编码为修正系数。
+- 限制：bitstream 使用确定性 latency-only 参数，无板级准确率和功耗。
+"""
+    (OUTPUT / "figure-catalog.md").write_text(figure_catalog, encoding="utf-8")
+
+    input_paths = [
+        NAS_RUN / "protocol_summary.json", PRETRAINED_RUN / "protocol_summary.json", NAS_AUDIT,
+        CANDIDATE, HARNESS_MANIFEST, HARNESS_SPEC, PARAMETER_MANIFEST, BUILD_RESULT,
+        FINAL_HW_REPORT, BITSTREAM, STABILITY, RAW_RUNS, MEASUREMENT, UTILIZATION, EVIDENCE_BOUNDARY,
+    ]
+    generated_names = {
+        "evidence-manifest.json.txt",
+        "independent-audit.json.txt",
+        "independent-audit-report.md",
+    }
+    outputs = [path for path in OUTPUT.rglob("*") if path.is_file() and path.name not in generated_names]
+    manifest = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS_WITH_WEIGHT_BINDING_BLOCKER",
+        "formal_evidence_increment": 0,
+        "generator": str(Path(__file__).resolve()),
+        "generator_sha256": sha256(Path(__file__)),
+        "input_files": [{"path": str(path.resolve()), "sha256": sha256(path), "bytes": path.stat().st_size} for path in input_paths],
+        "output_files": [{"path": str(path.resolve()), "sha256": sha256(path), "bytes": path.stat().st_size} for path in sorted(outputs)],
+        "software_statistics": software_stats,
+        "hardware_summary": hardware_summary,
+        "claim_boundary_zh": "架构身份已绑定；formal checkpoint 权重未绑定。route/COM5 仅支持确定性 latency-only harness 的资源与延迟结论；板级准确率未运行，功耗未测量。",
+    }
+    (OUTPUT / "evidence-manifest.json.txt").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps({"status": manifest["status"], "output": str(OUTPUT), "files": len(manifest["output_files"])}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Independently reconstruct and audit the frozen T6 structural candidate pool."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections import Counter, defaultdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+FAMILY_ORDER = (
+    "dw_pw_dominant", "mbconv_dominant", "fused_mbconv_dominant",
+    "skip_heavy", "mixed_balanced",
+)
+SAFE_OPS = {"dw_pw_conv", "mbconv", "fused_mbconv", "skip"}
+SELECTION_SALT = "ccf_ab_nksid_av7k325_v1_t6_structural_pool_v1"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def architecture_family(blocks: list[dict[str, Any]]) -> str:
+    ops = [str(block["op"]) for block in blocks]
+    if not ops or any(op not in SAFE_OPS for op in ops):
+        return "INVALID"
+    if ops.count("skip") / len(ops) >= 0.25:
+        return "skip_heavy"
+    non_skip = [op for op in ops if op != "skip"]
+    counts = Counter(non_skip)
+    if len(counts) == 1 or counts.most_common(1)[0][1] > len(non_skip) / 2:
+        return {
+            "dw_pw_conv": "dw_pw_dominant",
+            "mbconv": "mbconv_dominant",
+            "fused_mbconv": "fused_mbconv_dominant",
+        }.get(counts.most_common(1)[0][0], "INVALID")
+    return "mixed_balanced"
+
+
+def selection_key(family: str, encoding_sha: str) -> str:
+    return hashlib.sha256(f"{SELECTION_SALT}|{family}|{encoding_sha}".encode()).hexdigest()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    manifest_path = Path(args.manifest).resolve()
+    output = Path(args.output).resolve()
+    payload = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    errors: list[str] = []
+    if not (
+        payload.get("schema_version") == 1
+        and payload.get("campaign_id") == "ccf_ab_nksid_av7k325_v1"
+        and payload.get("purpose") == "T6_COMPLETE_NETWORK_HLS_ROUTE_TRUTH_COLLECTION_DESIGN"
+        and payload.get("claimability_status") == "STRUCTURAL_POOL_FROZEN_TRUTH_NOT_COLLECTED"
+        and int(payload.get("formal_hls_route_truth_increment", -1)) == 0
+    ):
+        errors.append("manifest identity/status mismatch")
+    generator = dict(payload.get("generator") or {})
+    generator_path = Path(str(generator.get("path") or ""))
+    if not generator_path.is_file() or sha256_file(generator_path) != generator.get("sha256"):
+        errors.append("generator binding mismatch")
+    bindings = dict(payload.get("source_bindings") or {})
+    bound_files: dict[str, Path] = {}
+    for name in ("cli_args", "config", "run_info", "summary", "search_space_summary", "candidates_jsonl"):
+        binding = dict(bindings.get(name) or {})
+        path = Path(str(binding.get("path") or ""))
+        if not path.is_file() or sha256_file(path) != binding.get("sha256") or path.stat().st_size != int(binding.get("bytes") or -1):
+            errors.append(f"source binding mismatch: {name}")
+        else:
+            bound_files[name] = path
+    freeze = dict(payload.get("source_freeze") or {})
+    freeze_path = Path(str(freeze.get("path") or ""))
+    archive_path = Path(str(freeze.get("archive_path") or ""))
+    if not freeze_path.is_file() or sha256_file(freeze_path) != freeze.get("manifest_sha256"):
+        errors.append("source-freeze manifest binding mismatch")
+    if not archive_path.is_file() or sha256_file(archive_path) != freeze.get("archive_sha256"):
+        errors.append("source-freeze archive binding mismatch")
+
+    rows: list[dict[str, Any]] = []
+    if "candidates_jsonl" in bound_files:
+        rows = [json.loads(line) for line in bound_files["candidates_jsonl"].read_text(encoding="utf-8").splitlines() if line]
+    if len(rows) != 200 or int(payload.get("source_row_count") or 0) != 200:
+        errors.append("source row count mismatch")
+    by_family: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    unique_source: set[str] = set()
+    for row_index, row in enumerate(rows):
+        candidate = dict(row.get("candidate") or {})
+        encoding = dict(candidate.get("encoding") or {})
+        blocks = [dict(block) for stage in encoding.get("stages", []) for block in stage.get("blocks", [])]
+        family = architecture_family(blocks)
+        encoding_sha = canonical_sha256(encoding)
+        if encoding_sha in unique_source:
+            errors.append(f"duplicate source encoding: {encoding_sha}")
+        unique_source.add(encoding_sha)
+        arch_id = str(candidate.get("arch_id") or "")
+        candidate_path = bound_files.get("candidates_jsonl", Path()).parent / "candidates" / f"{arch_id}.json"
+        by_family[family].append({
+            "source_row_index": row_index,
+            "source_row_sha256": canonical_sha256(row),
+            "source_candidate_id": arch_id,
+            "source_candidate_path": str(candidate_path.resolve()),
+            "source_candidate_sha256": sha256_file(candidate_path) if candidate_path.is_file() else "MISSING",
+            "encoding": encoding,
+            "encoding_sha256": encoding_sha,
+            "architecture_family": family,
+            "operator_counts": dict(sorted(Counter(str(block["op"]) for block in blocks).items())),
+            "block_count": len(blocks),
+            "source_analytic_feasible": bool(row.get("feasible")),
+            "source_analytic_feasibility_role": "SAMPLING_STRATUM_ONLY_NOT_HARDWARE_TRUTH",
+            "selection_key": selection_key(family, encoding_sha),
+        })
+    if len(unique_source) != 200 or int(payload.get("source_unique_encoding_count") or 0) != 200:
+        errors.append("source unique-encoding count mismatch")
+    if set(by_family) != set(FAMILY_ORDER):
+        errors.append(f"source family set mismatch: {sorted(by_family)}")
+
+    expected_selected: list[dict[str, Any]] = []
+    for fold, family in enumerate(FAMILY_ORDER):
+        infeasible = sorted((row for row in by_family[family] if not row["source_analytic_feasible"]), key=lambda row: row["selection_key"])
+        feasible = sorted((row for row in by_family[family] if row["source_analytic_feasible"]), key=lambda row: row["selection_key"])
+        chosen_infeasible = infeasible[:5]
+        chosen = [*chosen_infeasible, *feasible[: 20 - len(chosen_infeasible)]]
+        if len(chosen) < 20:
+            chosen.extend(infeasible[len(chosen_infeasible): 20 - len(chosen)])
+        for within_index, row in enumerate(sorted(chosen, key=lambda item: item["selection_key"])):
+            row = dict(row)
+            row.update({
+                "sample_id": f"t6_{family}_{within_index:02d}",
+                "grouped_cv_fold": fold,
+                "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+                "semantic_equivalence_status": "PENDING",
+                "hls_route_truth_status": "NOT_COLLECTED",
+                "formal_truth_increment": 0,
+            })
+            expected_selected.append(row)
+    observed_selected = list(payload.get("candidates") or [])
+    if observed_selected != expected_selected:
+        errors.append("selected candidate set/order differs from independent reconstruction")
+    family_counts = Counter(str(row.get("architecture_family")) for row in observed_selected)
+    fold_counts = Counter(int(row.get("grouped_cv_fold", -1)) for row in observed_selected)
+    if family_counts != Counter({family: 20 for family in FAMILY_ORDER}) or fold_counts != Counter({fold: 20 for fold in range(5)}):
+        errors.append("selected family/fold balance mismatch")
+    if len(observed_selected) != 100 or len({str(row.get("encoding_sha256")) for row in observed_selected}) != 100:
+        errors.append("selected pool is not 100 unique candidates")
+    if any(int(row.get("formal_truth_increment", -1)) != 0 for row in observed_selected):
+        errors.append("structural candidate incorrectly increments formal truth")
+    expected_folds = []
+    for fold, family in enumerate(FAMILY_ORDER):
+        test_ids = sorted(row["sample_id"] for row in expected_selected if row["grouped_cv_fold"] == fold)
+        train_ids = sorted(row["sample_id"] for row in expected_selected if row["grouped_cv_fold"] != fold)
+        expected_folds.append({
+            "fold": fold,
+            "held_out_family": family,
+            "train_sample_ids": train_ids,
+            "test_sample_ids": test_ids,
+            "train_membership_sha256": canonical_sha256(train_ids),
+            "test_membership_sha256": canonical_sha256(test_ids),
+        })
+    grouped_cv = dict(payload.get("grouped_cv") or {})
+    if not (
+        grouped_cv.get("type") == "leave_one_architecture_family_out"
+        and int(grouped_cv.get("fold_count") or 0) == 5
+        and int(grouped_cv.get("test_candidates_per_fold") or 0) == 20
+        and int(grouped_cv.get("train_candidates_per_fold") or 0) == 80
+        and grouped_cv.get("folds") == expected_folds
+    ):
+        errors.append("grouped leave-one-family-out folds mismatch")
+
+    result = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS" if not errors else "FAIL",
+        "manifest": str(manifest_path),
+        "manifest_sha256": sha256_file(manifest_path),
+        "source_rows": len(rows),
+        "source_unique_encodings": len(unique_source),
+        "selected_candidates": len(observed_selected),
+        "selected_unique_encodings": len({str(row.get("encoding_sha256")) for row in observed_selected}),
+        "family_counts": dict(sorted(family_counts.items())),
+        "fold_counts": {str(key): value for key, value in sorted(fold_counts.items())},
+        "formal_hls_route_truth_increment": 0,
+        "errors": errors,
+        "boundary": "PASS freezes the structural DOE only; complete-network HLS/route truth remains 0/100.",
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    print(json.dumps({"status": result["status"], "selected": len(observed_selected), "families": result["family_counts"], "errors": errors[:10]}))
+    return 0 if not errors else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

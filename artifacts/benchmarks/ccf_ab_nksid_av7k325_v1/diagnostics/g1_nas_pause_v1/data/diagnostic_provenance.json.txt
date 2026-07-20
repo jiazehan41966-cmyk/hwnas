@@ -1,0 +1,53 @@
+{
+  "search": {
+    "config": {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\remote_phase0_v4_sonar_stage3_k3_rl300_search\\results\\nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_physical_phase0_v4_sonar_stage3_k3_lowdsp_draft\\config.yaml",
+      "sha256": "3ca780d479bd10a631ff0853e5235c5d432d9742ecc280549d6304ca3e1e4fcf"
+    },
+    "summary": {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\remote_phase0_v4_sonar_stage3_k3_rl300_search\\results\\nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_physical_phase0_v4_sonar_stage3_k3_lowdsp_draft\\results\\summary.json",
+      "sha256": "cfc3e6c2e989dbb8e2b51834959a6dd5bc5a402a0479c81c588601627a7584f3"
+    },
+    "method": "rl",
+    "num_candidates": 300,
+    "fold": 0,
+    "eval_epochs": 10,
+    "stage_depth_choices": [
+      [
+        1
+      ],
+      [
+        1
+      ],
+      [
+        1
+      ],
+      [
+        1
+      ]
+    ],
+    "best_arch_id": "rl_arch_135",
+    "encoding_signature": "b58ae648c3d1bde1c9651dec6b45b447a56daadfd77ad951dc1752b71a7afb3b",
+    "best_macro_f1": 0.642114601296272
+  },
+  "route": {
+    "manifest": {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\final_candidate_manifest.json",
+      "sha256": "2ef6b7404132440947ebb962ec9a974c56eb2a27c45fc8d7d8f8b02712f2df0d"
+    },
+    "selection_stage": "claimable_board_best",
+    "arch_id": "rl_arch_135",
+    "encoding_signature": "b58ae648c3d1bde1c9651dec6b45b447a56daadfd77ad951dc1752b71a7afb3b",
+    "gate_status": "PASS",
+    "wns_ns": 0.094,
+    "actual_resources": {
+      "lut": "18598",
+      "ff": "21012",
+      "bram": "127.5",
+      "dsp": "612"
+    },
+    "board_e2e_latency_ms": 49.06201,
+    "board_latency_claimable": true
+  },
+  "boundary": "历史搜索与 route 证据仅用于解释候选选择，不能将暂停的分类运行提升为正式 T2/F6 证据。"
+}

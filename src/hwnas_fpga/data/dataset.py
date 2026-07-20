@@ -10,9 +10,10 @@ from torch.utils.data import Dataset, DataLoader, Subset
 import torch
 import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple, List, Callable, Union
+from typing import Any, Optional, Tuple, List, Callable, Union
 import os
 import re
+import random
 
 # 尝试导入PIL，用于图像加载
 try:
@@ -29,6 +30,14 @@ try:
 except ImportError:
     HAS_TORCHVISION = False
     T = None
+
+
+def _seed_dataloader_worker(worker_id: int) -> None:
+    """Seed Python and NumPy in a Windows-spawn-safe DataLoader worker."""
+    del worker_id
+    worker_seed = torch.initial_seed() % (2**32)
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 class DummySonarDataset(Dataset):
@@ -146,27 +155,10 @@ def get_sonar_transforms(
         组合的变换函数
     """
     if not HAS_TORCHVISION:
-        def _fallback_transform(image: "Image.Image") -> torch.Tensor:
-            if output_channels == 3:
-                image = image.convert('RGB')
-            else:
-                image = image.convert('L')
-            resized = image.resize((image_size, image_size))
-            array = np.asarray(resized, dtype=np.float32) / 255.0
-            
-            if output_channels == 1:
-                tensor = torch.from_numpy(array).unsqueeze(0)
-            else:
-                tensor = torch.from_numpy(array).permute(2, 0, 1)
-                
-            if normalize:
-                if output_channels == 1:
-                    tensor = (tensor - 0.5) / 0.5
-                else:
-                    tensor = T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(tensor)
-            return tensor
-
-        return _fallback_transform
+        raise ImportError(
+            "torchvision is required for the reproducible sonar transform pipeline; "
+            "the silent resize-only fallback is disabled for formal experiments."
+        )
     
     transforms_list = []
     
@@ -177,7 +169,6 @@ def get_sonar_transforms(
         # 训练时的数据增强
         transforms_list.extend([
             T.RandomHorizontalFlip(p=0.5),
-            T.RandomVerticalFlip(p=0.3),
             T.RandomRotation(degrees=15),
             # 声呐图像专用：模拟不同距离和角度
             T.RandomAffine(
@@ -206,6 +197,28 @@ def get_sonar_transforms(
             transforms_list.append(T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
     
     return T.Compose(transforms_list)
+
+
+def protocol_normalization(*, output_channels: int = 1) -> dict[str, Any]:
+    """Return the immutable normalization policy used by formal runs.
+
+    The main protocol deliberately uses the same grayscale input distribution
+    for scratch and ImageNet-initialized MobileNetV2.  This metadata is kept in
+    one place so manifests and checkpoints cannot silently describe different
+    preprocessing contracts.
+    """
+    if int(output_channels) != 1:
+        raise ValueError(
+            "The frozen HW-NAS protocol is grayscale-only; use output_channels=1"
+        )
+    return {
+        "name": "grayscale_half_range",
+        "channels": 1,
+        "mean": [0.5],
+        "std": [0.5],
+        "source": "frozen_main_comparison",
+        "pretrained_imagenet_normalization": False,
+    }
 
 
 class NKSIDDataset(Dataset):
@@ -257,6 +270,7 @@ class NKSIDDataset(Dataset):
         split: str = "train",  # "train" or "val"
         output_channels: int = 1, # 1 为灰度图, 3 为 RGB (适配预训练模型)
         image_error_policy: str = "raise",
+        split_file_policy: str = "raise",
     ):
         """
         初始化NKSID数据集。
@@ -287,6 +301,12 @@ class NKSIDDataset(Dataset):
             raise ValueError(
                 "image_error_policy must be 'raise' or 'blank', "
                 f"got: {image_error_policy}"
+            )
+        self.split_file_policy = str(split_file_policy).strip().lower()
+        if self.split_file_policy not in {"raise", "fallback"}:
+            raise ValueError(
+                "split_file_policy must be 'raise' or 'fallback', "
+                f"got: {split_file_policy}"
             )
         self.classes = list(self.CLASSES)
         self.label_to_class = {idx: name for idx, name in enumerate(self.classes)}
@@ -428,16 +448,22 @@ class NKSIDDataset(Dataset):
             kfold_file = self.data_dir / "kfold_val.txt"
         
         if not kfold_file.exists():
-            print(f"  [警告] k折划分文件不存在: {kfold_file}，使用随机划分")
+            if self.split_file_policy != "fallback":
+                raise FileNotFoundError(
+                    f"NKSID k-fold split file is missing: {kfold_file}. "
+                    "The frozen evaluation protocol requires the official split files; "
+                    "pass split_file_policy='fallback' only for informal experiments."
+                )
+            print(f"  [警告] k折划分文件不存在: {kfold_file}，使用随机划分 (fallback 模式)")
             np.random.seed(42 + self.fold)
             indices = np.random.permutation(len(all_samples))
             split_idx = int(len(all_samples) * 0.8)
-            
+
             if self.split == "train":
                 selected_indices = indices[:split_idx]
             else:
                 selected_indices = indices[split_idx:]
-            
+
             return [all_samples[i] for i in selected_indices]
         
         # 读取k折划分文件
@@ -636,14 +662,22 @@ def create_dataloader(
     shuffle: bool = True,
     num_workers: int = 0,
     pin_memory: bool = False,
+    seed: Optional[int] = None,
 ) -> DataLoader:
     """创建数据加载器"""
+    generator = None
+    if seed is not None:
+        generator = torch.Generator()
+        generator.manual_seed(int(seed))
+
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        generator=generator,
+        worker_init_fn=_seed_dataloader_worker if num_workers > 0 else None,
     )
 
 
@@ -792,6 +826,7 @@ def create_nksid_dataloaders(
         shuffle=True,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        seed=int(split_seed),
     )
     
     val_loader = create_dataloader(
@@ -800,9 +835,106 @@ def create_nksid_dataloaders(
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        seed=int(split_seed) + 1,
     )
     
     return train_loader, val_loader, class_weights
+
+def create_protocol_dataloaders(
+    data_dir: str,
+    *,
+    fold: int,
+    seed: int,
+    batch_size: int = 32,
+    image_size: int = 224,
+    inner_val_fraction: float = 0.15,
+    num_workers: int = 4,
+    pin_memory: bool = True,
+    output_channels: int = 1,
+):
+    """Create dataloaders under the frozen NKSID evaluation protocol.
+
+    Returns train / inner-val / outer-val loaders plus the resolved
+    :class:`~hwnas_fpga.data.protocol.ProtocolSplit` and per-class train
+    counts. The outer validation loader must only be consumed once, for the
+    final report of a run — never for epoch or architecture selection.
+    """
+    from hwnas_fpga.data.protocol import build_protocol_split
+
+    train_view = NKSIDDataset(
+        data_dir=data_dir,
+        image_size=image_size,
+        is_training=True,
+        fold=fold,
+        use_kfold=False,
+        split="full",
+        output_channels=output_channels,
+        image_error_policy="raise",
+    )
+    eval_view = NKSIDDataset(
+        data_dir=data_dir,
+        image_size=image_size,
+        is_training=False,
+        fold=fold,
+        use_kfold=False,
+        split="full",
+        output_channels=output_channels,
+        image_error_policy="raise",
+    )
+    if len(train_view) != len(eval_view):
+        raise RuntimeError("train/eval dataset views disagree on sample count")
+
+    num_classes = len(train_view.classes)
+    split = build_protocol_split(
+        train_view.samples,
+        data_dir,
+        fold_index=fold,
+        seed=seed,
+        inner_val_fraction=inner_val_fraction,
+        num_classes=num_classes,
+    )
+
+    train_loader = create_dataloader(
+        Subset(train_view, list(split.train_indices)),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        seed=int(seed) + int(fold) * 100_000,
+    )
+    inner_val_loader = create_dataloader(
+        Subset(eval_view, list(split.inner_val_indices)),
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        seed=int(seed) + int(fold) * 100_000 + 1,
+    )
+    outer_val_loader = create_dataloader(
+        Subset(eval_view, list(split.outer_val_indices)),
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        seed=int(seed) + int(fold) * 100_000 + 2,
+    )
+
+    train_class_counts = torch.tensor(
+        split.metadata["train_class_counts"], dtype=torch.float32
+    )
+    return {
+        "train_loader": train_loader,
+        "inner_val_loader": inner_val_loader,
+        "outer_val_loader": outer_val_loader,
+        # Exposed for deterministic training-side calibration subsets. Callers
+        # must index it only with split.train_indices, never outer_val_indices.
+        "eval_dataset": eval_view,
+        "split": split,
+        "num_classes": num_classes,
+        "classes": list(train_view.classes),
+        "train_class_counts": train_class_counts,
+    }
+
 
 def download_nksid_dataset(target_dir: str = "data/NKSID") -> str:
     """

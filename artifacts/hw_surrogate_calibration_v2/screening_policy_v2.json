@@ -1,0 +1,123 @@
+{
+  "gates": {
+    "latency_ms": {
+      "metric": "latency_ms",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%",
+        "Spearman ranking below 0.8",
+        "independent full-network evidence gate incomplete"
+      ]
+    },
+    "dsp": {
+      "metric": "dsp",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%",
+        "independent full-network evidence gate incomplete"
+      ]
+    },
+    "lut": {
+      "metric": "lut",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%",
+        "independent full-network evidence gate incomplete"
+      ]
+    },
+    "bram": {
+      "metric": "bram",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%",
+        "independent full-network evidence gate incomplete"
+      ]
+    }
+  },
+  "diagnostic_in_sample_gates": {
+    "latency_ms": {
+      "metric": "latency_ms",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "P90 APE exceeds 25%",
+        "Spearman ranking below 0.8"
+      ]
+    },
+    "dsp": {
+      "metric": "dsp",
+      "hard_screening_enabled": true,
+      "mode": "interval_hard_screen",
+      "reasons": []
+    },
+    "lut": {
+      "metric": "lut",
+      "hard_screening_enabled": true,
+      "mode": "interval_hard_screen",
+      "reasons": []
+    },
+    "bram": {
+      "metric": "bram",
+      "hard_screening_enabled": true,
+      "mode": "interval_hard_screen",
+      "reasons": []
+    }
+  },
+  "independent_probe_gates": {
+    "dsp": {
+      "metric": "dsp",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%"
+      ]
+    },
+    "lut": {
+      "metric": "lut",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%"
+      ]
+    },
+    "bram": {
+      "metric": "bram",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%"
+      ]
+    },
+    "latency_ms": {
+      "metric": "latency_ms",
+      "hard_screening_enabled": false,
+      "mode": "pass_through_to_hls",
+      "reasons": [
+        "validation unavailable",
+        "fewer than 4 unique validation groups",
+        "P90 APE exceeds 25%",
+        "Spearman ranking below 0.8"
+      ]
+    }
+  },
+  "rule": "certified_reject only when a validated optimistic lower bound exceeds budget; failed gates pass through to HLS",
+  "power_energy": "not_measured_not_an_objective"
+}

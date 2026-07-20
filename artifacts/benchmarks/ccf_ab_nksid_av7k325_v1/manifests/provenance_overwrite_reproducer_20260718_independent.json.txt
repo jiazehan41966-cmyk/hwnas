@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "generated_at": "2026-07-18T08:21:29+08:00",
+  "status": "PASS",
+  "checks": [
+    "复现通过，正式入口未修改且正式证据增量为 0",
+    "生产入口、修复合同和未应用 patch 提案的 SHA/大小一致",
+    "正式入口仍与 556 文件冻结源一致，内容寻址提案尚未应用",
+    "固定路径会覆盖旧证据，内容寻址模型保留两个不同 patch",
+    "中文报告/合同有效，patch 提案包含内容寻址与总账完整性检查"
+  ],
+  "formal_entrypoint_modified": false,
+  "training_authorized": false,
+  "formal_evidence_increment": 0,
+  "reproducer": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\provenance_overwrite_reproducer_20260718.json.txt",
+    "sha256": "bf1489e5356f1589ac0f9caddd11a740faffd186b2df3f5cb15c33f7d26f8ec2"
+  },
+  "source_freeze": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_freeze_manifest.json",
+    "sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+    "verified_file_count": 556
+  },
+  "auditor": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\audit_provenance_overwrite_reproducer_v1.txt",
+    "sha256": "030e83c7e422006405d5af35578db1bb3221d56e3406ca2308785be0bd1ac157"
+  },
+  "boundary_zh": "本审计证明缺陷和提案边界，不授权修改入口、重新冻结或训练。"
+}

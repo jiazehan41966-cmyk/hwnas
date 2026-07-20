@@ -1,0 +1,10 @@
+﻿编号,工作包,有效状态,完成度,证据强度,已证明,尚未证明,下一准入条件
+R1,五篇主论文源码、版本、许可证与对应关系,PASS,5/5 审计卡,中等,仓库、固定 commit、许可证状态和论文—代码对应边界已记录,外部方法在 NKSID 上的效果,保持固定 commit；缺许可证代码继续隔离
+R2,独立环境与依赖锁定,PASS,6/6 环境卡,中等,六个注册方法具有独立环境卡与锁文件,完整作者训练程序可在本机端到端复现,正式运行前再次核验解释器、CUDA、PyTorch 与锁文件 SHA
+R3,闭集分类、校准与成本,G1_CONFLICT_HOLD,45/45 产物；30/45 独立审计通过；SURE 0/15,冲突，暂不定级,预训练和 NAS 各 15 个 fold-seed 单元通过专项审计,scratch provenance 完整；SURE 正式结果；四方法完整 T2,用户批准 provenance 修复、新源码冻结及 scratch-v2；另行批准 SURE 15 单元
+R4,开放集长尾声呐识别,FORMAL_NOT_STARTED,接口冒烟通过；CE+MSP/DMCL/PLUD 均 0/15,仅工程可行性,开放集入口、样本 manifest 与预测 schema 可运行,NMA、OSFM、OSCRmac、AUROC、FPR95 正式结果,用户批准后按冻结 class-holdout manifest 运行三方法 15 单元
+R5,四种 NAS 方法与 exact HV,FROZEN,正式 300 评估 × 10 paired seeds：0/40 方法种子单元,仅实现/契约,Random、RL、Aging 与 HW-PR 适配契约存在；冒烟不计正式结果,anytime exact HV、Pareto coverage、NDCG、失败率与成本,Gate0、G2、G4 与 stage-3 用户批准全部闭合
+R6,HLS/route 代理可靠性,TRUTH_NOT_COLLECTED,结构池 100/100；正式真值 0/100；先导 5/5 仅冻结输入,设计阶段,100 个唯一结构候选与五家族先导输入已冻结,完整网络语义等价、csynth、route、HARP grouped 5-fold 指标,先补候选特异 operator 映射与完整网络生成器，再批准 HLS 采集
+R7,AV7K325 route、板级延迟与外部功耗,NOT_MEASURED_FORMAL,正式候选 0/3；外部功率仪器 0/3,历史描述性证据,同一架构的历史 latency-only harness 可 route 且 COM5 可测,formal checkpoint 权重绑定、板级分类准确率、动态能耗,用户批准 checkpoint—INT8—HLS—bitstream 重建及板卡/功率仪器实验
+R8,测量优先门禁,IN_PROGRESS_WITH_G1_CONFLICT,G0 PASS；G1 总账 PASS 但覆盖审计 HOLD；G2/G4 PENDING；G3 FROZEN；G5 PAUSED；功耗 NOT_MEASURED,保守门禁,当前不能进入可声明正式搜索或板级联合结论,G2、G4、G5 与功耗闭合,先解决 G1 审计冲突，再按 gate 顺序闭合
+R9,正式表格与图片归档,PARTIAL,正式表 1/9；正式图 1/12,可追溯但不完整,T1 与 F1 的规定格式可用；诊断图不冒充正式编号图,T2–T9、F2–F12 的正式源数据与一键重建,各实验族闭合后由原始逐样本/逐候选/时间序列数据生成

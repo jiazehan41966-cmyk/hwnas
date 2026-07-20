@@ -13,3 +13,12 @@
 [submodule "reference/TinyTNAS"]
 	path = reference/TinyTNAS
 	url = https://github.com/BidyutSaha/TinyTNAS.git
+[submodule "reference/HW-PR-NAS"]
+	path = reference/HW-PR-NAS
+	url = https://github.com/IHIaadj/HW-PR-NAS.git
+[submodule "reference/HARP"]
+	path = reference/HARP
+	url = https://github.com/UCLA-VAST/HARP.git
+[submodule "reference/ESDA"]
+	path = reference/ESDA
+	url = https://github.com/CASR-HKU/ESDA.git

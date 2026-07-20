@@ -12,6 +12,7 @@ from .backbones import (
     list_macro_templates,
 )
 from .builder import (
+    AdaptiveDenoiseBlock,
     ConvBlock,
     DenoiseBlock,
     DepthwiseConvBlock,
@@ -28,6 +29,7 @@ from .builder import (
 from .proxyless import MixedOp, ProxylessSuperNet
 
 __all__ = [
+    "AdaptiveDenoiseBlock",
     "BackboneCandidate",
     "ConvBlock",
     "DenoiseBlock",

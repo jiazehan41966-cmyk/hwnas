@@ -416,6 +416,102 @@ class DenoiseBlock(nn.Module):
         return x
 
 
+class AdaptiveDenoiseBlock(nn.Module):
+    """声呐自适应去噪块 (denoise_v2, Lee 式门控)
+
+    经典 Lee 滤波的硬件友好近似：均匀区收敛到局部均值（强去斑点），
+    高梯度区收敛到原信号（保边缘）。修复 v1 固定低通核的边缘保持短板。
+
+        mu  = smooth(x)              # softmax 归一化可学习核（高斯初始化），即局部均值
+        d   = x - mu                 # 高通残差
+        e   = avgpool3(|d|)          # 空间聚合的边缘证据（斑点在聚合中被平均掉）
+        g   = sigmoid(alpha*e + beta)    # 逐通道可学习门控（对应 Lee 的 k 系数）
+        lee = mu + g * d             # g→0 平滑，g→1 保留
+        out = PW(ReLU(feat(x) + lee))，残差条件同 v1
+
+    门控证据用池化聚合而非逐像素 |d|：2026-07-10 的合成斑点扫描表明，
+    重斑点下逐像素残差门控会把噪声尖峰当边缘保留（经典 Lee 的失败模式，
+    EPI 反而低于纯高斯），空间聚合是门控不帮倒忙的前提。beta 可学习意味着
+    训练可将门完全关死退化回 v1 的纯平滑分支，因此 v2 的行为空间包含 v1。
+
+    相对 v1 仅新增逐元素 sub/abs/mul/add、3x3 平均池化与逐通道 sigmoid
+    （INT8 部署可用 256 项查表），无新增卷积。门控依赖输入，故不可折叠为
+    单一静态卷积——这是换取自适应性的确定代价。
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 5,
+        stride: int = 1,
+        use_gaussian: bool = True,
+    ):
+        super().__init__()
+
+        padding = kernel_size // 2
+
+        # 特征分支（同 v1）
+        self.dw_conv = nn.Conv2d(
+            in_channels, in_channels, kernel_size,
+            stride=stride, padding=padding, groups=in_channels, bias=False,
+        )
+        self.dw_bn = nn.BatchNorm2d(in_channels)
+
+        # 平滑核（同 v1：softmax 归一化，高斯初始化）
+        smooth_weight = torch.zeros(in_channels, 1, kernel_size, kernel_size)
+        if use_gaussian:
+            sigma = kernel_size / 4.0
+            coords = torch.arange(kernel_size, dtype=torch.float32) - kernel_size // 2
+            g = torch.exp(-coords ** 2 / (2 * sigma ** 2))
+            gaussian_2d = g.unsqueeze(0) * g.unsqueeze(1)
+            gaussian_2d = gaussian_2d / gaussian_2d.sum()
+            smooth_weight[:, 0] = torch.log(gaussian_2d.clamp_min(1e-12))
+        self.smooth_weight = nn.Parameter(smooth_weight)
+        self.smooth_padding = padding
+        self.stride = stride
+
+        # 逐通道门控参数：beta<0 使默认偏向平滑，alpha>0 使高残差区开门保边
+        self.gate_alpha = nn.Parameter(torch.full((1, in_channels, 1, 1), 4.0))
+        self.gate_beta = nn.Parameter(torch.full((1, in_channels, 1, 1), -2.0))
+
+        self.relu = nn.ReLU(inplace=True)
+        self.pw_conv = nn.Conv2d(in_channels, out_channels, 1, bias=False)
+        self.pw_bn = nn.BatchNorm2d(out_channels)
+        self.use_residual = stride == 1 and in_channels == out_channels
+
+    def adaptive_smooth(self, x: torch.Tensor) -> torch.Tensor:
+        """Lee 式自适应平滑分支（stride 在此分支内通过网格子采样对齐）。"""
+        C = self.smooth_weight.shape[0]
+        w = self.smooth_weight.view(C, -1)
+        w = F.softmax(w, dim=1).view_as(self.smooth_weight)
+        # 局部均值先按 stride 采样（与 conv 采样网格一致：中心 = i*stride）
+        mu = F.conv2d(x, w, stride=self.stride, padding=self.smooth_padding, groups=C)
+        x_sub = x[..., ::self.stride, ::self.stride] if self.stride > 1 else x
+        d = x_sub - mu
+        # 空间聚合的门控证据：斑点残差在 3x3 平均中互相抵消，真实边缘证据保留
+        evidence = F.avg_pool2d(d.abs(), kernel_size=3, stride=1, padding=1)
+        gate = torch.sigmoid(self.gate_alpha * evidence + self.gate_beta)
+        return mu + gate * d
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
+        feat = self.dw_conv(x)
+        feat = self.dw_bn(feat)
+        lee = self.adaptive_smooth(x)
+
+        x = feat + lee
+        x = self.relu(x)
+        x = self.pw_conv(x)
+        x = self.pw_bn(x)
+
+        if self.use_residual:
+            x = x + identity
+
+        return x
+
+
 class EdgeAwareBlock(nn.Module):
     """声呐专用轮廓/形状感知块
 
@@ -625,6 +721,16 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
             use_gaussian=True,
         )
 
+    elif op == "adaptive_denoise":
+        # 声呐自适应去噪块 (denoise_v2, Lee 式门控)；G5 准入前不得进入正式搜索
+        return AdaptiveDenoiseBlock(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=block_spec.kernel_size,
+            stride=block_spec.stride,
+            use_gaussian=True,
+        )
+
     elif op == "edge":
         # 声呐专用轮廓/边缘感知块
         return EdgeAwareBlock(
@@ -721,7 +827,7 @@ class HWNASModel(nn.Module):
                         return last_block.conv.out_channels
                 elif isinstance(last_block, MixConvBlock):
                     return last_block.pw_conv.out_channels
-                elif isinstance(last_block, DenoiseBlock):
+                elif isinstance(last_block, (DenoiseBlock, AdaptiveDenoiseBlock)):
                     return last_block.pw_conv.out_channels
                 elif isinstance(last_block, EdgeAwareBlock):
                     return last_block.fusion_conv.out_channels

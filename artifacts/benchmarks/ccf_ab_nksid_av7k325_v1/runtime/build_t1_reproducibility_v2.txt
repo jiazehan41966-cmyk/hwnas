@@ -1,0 +1,405 @@
+#!/usr/bin/env python3
+"""Build the enriched T1 source/license/reproducibility audit table.
+
+The .txt suffix keeps this runtime evidence builder outside the in-flight G1
+source fingerprint. It never infers numerical eligibility from source, smoke,
+environment or author-artifact availability alone.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+PAPER_IDS = (
+    "hw_pr_nas_2023",
+    "sure_2024",
+    "harp_2023",
+    "esda_2024",
+    "dmcl_sonar_oltr_2025",
+    "plud_sonar_oltr_2024",
+)
+FIELDS = (
+    "paper_id",
+    "registry_role",
+    "direction",
+    "venue",
+    "comparability_class",
+    "paper_year",
+    "paper_url",
+    "repo_url",
+    "checkout_path",
+    "pinned_commit",
+    "commit_match",
+    "remote_match",
+    "license_spdx",
+    "license_state",
+    "redistribution_status",
+    "paper_code_correspondence",
+    "source_audit_status",
+    "source_smoke_status",
+    "dedicated_environment_status",
+    "environment_probe_status",
+    "environment_lock_sha256",
+    "local_smoke_status",
+    "local_unified_protocol_status",
+    "numerical_comparison_rule",
+    "formal_numeric_eligible",
+    "blockers",
+)
+FORMAL_STATUS = {
+    "hw_pr_nas_2023": "BLOCKED_AUTHOR_RELEASE_INCOMPLETE;PENDING_LOCAL_PAPER_SPEC_FORMAL",
+    "sure_2024": "PENDING_0_OF_15_CLOSED_SET",
+    "harp_2023": "PENDING_0_COMPLETE_NETWORK_PROJECT_ROWS",
+    "esda_2024": "CLASS_C_WORKFLOW_REFERENCE_ONLY",
+    "dmcl_sonar_oltr_2025": "PENDING_0_OF_15_OPEN_LONG_TAIL",
+    "plud_sonar_oltr_2024": "PENDING_0_OF_15_OPEN_LONG_TAIL_SUPPLEMENTARY",
+}
+EXTRA_BLOCKERS = {
+    "hw_pr_nas_2023": (
+        "official_repository_runtime_incomplete",
+        "formal_300_evaluator_x10_seed_local_paper_spec_run_not_completed",
+    ),
+    "sure_2024": ("formal_15_unit_closed_set_run_not_completed",),
+    "harp_2023": (
+        "project_complete_network_llvm_graphs_not_generated",
+        "formal_grouped_hls_route_proxy_evaluation_not_completed",
+    ),
+    "esda_2024": (
+        "class_c_cross_board_numeric_ranking_prohibited",
+        "av7k325_local_board_and_power_campaign_not_completed",
+    ),
+    "dmcl_sonar_oltr_2025": (
+        "formal_15_unit_open_long_tail_run_not_completed",
+        "dmcl_paper_code_correspondence_partial",
+    ),
+    "plud_sonar_oltr_2024": (
+        "formal_15_unit_open_long_tail_run_not_completed",
+        "supplementary_method_not_dmcl_main_paper_result",
+    ),
+}
+RUN_BY_PAPER = {
+    "sure_2024": "sure_dedicated_env_1x1x1",
+    "dmcl_sonar_oltr_2025": "dmcl_dedicated_env_1x1x1",
+    "plud_sonar_oltr_2024": "plud_dedicated_env_1x1x1",
+}
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON root must be an object: {path}")
+    return payload
+
+
+def resolve(anchor: Path, value: Any) -> Path:
+    path = Path(str(value).strip()).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    project_relative = (Path.cwd() / path).resolve()
+    if project_relative.exists():
+        return project_relative
+    return (anchor.parent / path).resolve()
+
+
+def verify_bound_file(anchor: Path, path_value: Any, sha_value: Any) -> Path:
+    path = resolve(anchor, path_value)
+    expected = str(sha_value).strip().lower()
+    if len(expected) != 64 or not path.is_file() or sha256_file(path).lower() != expected:
+        raise ValueError(f"invalid file binding: {path}")
+    return path
+
+
+def atomic_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8", newline="")
+    os.replace(temporary, path)
+
+
+def csv_text(rows: list[dict[str, Any]]) -> str:
+    import io
+
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=FIELDS, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue()
+
+
+def md_cell(value: Any) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+def markdown_text(rows: list[dict[str, Any]]) -> str:
+    title = "# T1：开源基线资格、许可证与可复现性审计\n\n"
+    header = "| " + " | ".join(FIELDS) + " |\n"
+    rule = "| " + " | ".join("---" for _ in FIELDS) + " |\n"
+    body = "".join(
+        "| " + " | ".join(md_cell(row[field]) for field in FIELDS) + " |\n"
+        for row in rows
+    )
+    boundary = (
+        "\n> 边界：source、license、smoke 或 dedicated environment 通过均不等于完成本项目统一协议的数值复现；"
+        "所有 formal_numeric_eligible=False 的行不得进入跨方法数值排名。\n"
+    )
+    return title + header + rule + body + boundary
+
+
+def tex_cell(value: Any) -> str:
+    text = str(value)
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+        "\n": " ",
+    }
+    return "".join(replacements.get(character, character) for character in text)
+
+
+def latex_text(rows: list[dict[str, Any]]) -> str:
+    columns = "l" * len(FIELDS)
+    header = " & ".join(tex_cell(field) for field in FIELDS) + r" \\"
+    body = "\n".join(
+        " & ".join(tex_cell(row[field]) for field in FIELDS) + r" \\"
+        for row in rows
+    )
+    return (
+        "% T1: Open-source baseline eligibility, license and reproducibility audit\n"
+        "\\begin{table*}[t]\n"
+        "\\centering\n\\scriptsize\n"
+        "\\caption{T1: Open-source baseline eligibility, license and reproducibility audit. "
+        "Source/environment/smoke readiness does not imply formal numerical eligibility.}\n"
+        "\\resizebox{\\textwidth}{!}{%\n"
+        f"\\begin{{tabular}}{{{columns}}}\n\\toprule\n"
+        f"{header}\n\\midrule\n{body}\n\\bottomrule\n"
+        "\\end{tabular}%\n}\n"
+        "\\end{table*}\n"
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source-audit", required=True)
+    parser.add_argument("--source-smoke", required=True)
+    parser.add_argument("--integration-smoke", required=True)
+    parser.add_argument("--environment-index", required=True)
+    parser.add_argument("--output-prefix", required=True)
+    args = parser.parse_args()
+
+    source_audit_path = Path(args.source_audit).resolve()
+    source_smoke_path = Path(args.source_smoke).resolve()
+    integration_path = Path(args.integration_smoke).resolve()
+    environment_index_path = Path(args.environment_index).resolve()
+    source_audit = load_json(source_audit_path)
+    source_smoke = load_json(source_smoke_path)
+    integration = load_json(integration_path)
+    environment_index = load_json(environment_index_path)
+
+    audits = {row["paper"]["paper_id"]: row for row in source_audit.get("audits", [])}
+    source_smokes = {row["paper_id"]: row for row in source_smoke.get("records", [])}
+    runs = {row["run"]: row for row in integration.get("runs", [])}
+    contracts = {row["paper_id"]: row for row in integration.get("method_contracts", [])}
+    if tuple(audits) != PAPER_IDS:
+        raise ValueError(f"source-audit paper order/set mismatch: {tuple(audits)}")
+    if set(source_smokes) != set(PAPER_IDS):
+        raise ValueError("source-smoke paper set mismatch")
+    cards: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for card_value in environment_index.get("cards", []):
+        card_path = resolve(environment_index_path, card_value)
+        card = load_json(card_path)
+        paper_id = str(card.get("paper_id"))
+        if paper_id in cards:
+            raise ValueError(f"duplicate environment card: {paper_id}")
+        cards[paper_id] = (card_path, card)
+    if set(cards) != set(PAPER_IDS):
+        raise ValueError("environment-card paper set mismatch")
+    if environment_index.get("all_dedicated_environments_ready") is not True:
+        raise ValueError("dedicated environments are not all ready")
+
+    rows: list[dict[str, Any]] = []
+    environment_sources = []
+    for paper_id in PAPER_IDS:
+        audit = audits[paper_id]
+        paper = dict(audit["paper"])
+        source_record = source_smokes[paper_id]
+        card_path, card = cards[paper_id]
+        dedicated = dict(card.get("dedicated_environment") or {})
+        probe = dict(dedicated.get("probe") or {})
+        freeze = dict(dedicated.get("freeze") or {})
+        lock_path = verify_bound_file(card_path, freeze.get("path"), freeze.get("sha256"))
+        environment_sources.append({
+            "paper_id": paper_id,
+            "card_path": str(card_path),
+            "card_sha256": sha256_file(card_path),
+            "lock_path": str(lock_path),
+            "lock_sha256": sha256_file(lock_path),
+        })
+        if card.get("isolation_status") != "READY_DEDICATED_ENVIRONMENT":
+            raise ValueError(f"environment not ready: {paper_id}")
+        if probe.get("status") != "PASS":
+            raise ValueError(f"environment probe not PASS: {paper_id}")
+        if str(card.get("observed_commit")) != str(paper.get("pinned_commit")):
+            raise ValueError(f"environment commit mismatch: {paper_id}")
+
+        license_path = str(audit.get("license_file") or "").strip()
+        if license_path:
+            verify_bound_file(source_audit_path, license_path, audit.get("license_file_sha256"))
+        if paper_id in RUN_BY_PAPER:
+            run_name = RUN_BY_PAPER[paper_id]
+            smoke = runs.get(run_name)
+            if smoke is None or smoke.get("status") != "PASS":
+                raise ValueError(f"integration smoke missing/not PASS: {paper_id}")
+            for key in ("summary", "manifest"):
+                binding = dict(smoke.get(key) or {})
+                verify_bound_file(integration_path, binding.get("path"), binding.get("sha256"))
+            local_smoke_status = "PASS_NONCLAIMABLE_1X1X1"
+        else:
+            contract = contracts.get(paper_id)
+            if contract is None or contract.get("status") != "PASS":
+                raise ValueError(f"method contract missing/not PASS: {paper_id}")
+            verify_bound_file(integration_path, contract.get("path"), contract.get("sha256"))
+            local_smoke_status = str(contract.get("observed_status"))
+
+        blockers = list(audit.get("blockers") or []) + list(EXTRA_BLOCKERS[paper_id])
+        blockers = list(dict.fromkeys(str(value) for value in blockers if str(value)))
+        if not blockers:
+            raise ValueError(f"formal-ineligible row has no blocker: {paper_id}")
+        license_state = str(paper.get("license_state"))
+        redistribution_status = (
+            "LICENSE_VERIFIED_REDISTRIBUTABLE"
+            if license_state == "verified"
+            else "ISOLATED_LOCAL_ONLY_LICENSE_UNVERIFIED"
+        )
+        rows.append({
+            "paper_id": paper_id,
+            "registry_role": paper.get("registry_role"),
+            "direction": paper.get("direction"),
+            "venue": paper.get("venue"),
+            "comparability_class": paper.get("comparability_class"),
+            "paper_year": paper.get("year"),
+            "paper_url": paper.get("paper_url"),
+            "repo_url": paper.get("repo_url"),
+            "checkout_path": paper.get("checkout_path"),
+            "pinned_commit": paper.get("pinned_commit"),
+            "commit_match": bool(audit.get("commit_matches_pin")),
+            "remote_match": bool(audit.get("remote_matches_registry")),
+            "license_spdx": paper.get("license_spdx") or "UNVERIFIED",
+            "license_state": license_state,
+            "redistribution_status": redistribution_status,
+            "paper_code_correspondence": paper.get("paper_code_correspondence"),
+            "source_audit_status": "PASS" if audit.get("source_audit_pass") else "FAIL",
+            "source_smoke_status": source_record.get("status"),
+            "dedicated_environment_status": card.get("isolation_status"),
+            "environment_probe_status": probe.get("status"),
+            "environment_lock_sha256": freeze.get("sha256"),
+            "local_smoke_status": local_smoke_status,
+            "local_unified_protocol_status": FORMAL_STATUS[paper_id],
+            "numerical_comparison_rule": paper.get("numerical_comparison_rule"),
+            "formal_numeric_eligible": False,
+            "blockers": ";".join(blockers),
+        })
+
+    if sum(row["registry_role"] == "main" for row in rows) != 5:
+        raise ValueError("T1 must contain exactly five main papers")
+    if any(row["formal_numeric_eligible"] for row in rows):
+        raise ValueError("no T1 row is currently formal-numeric eligible")
+    if any(not row["blockers"] for row in rows):
+        raise ValueError("every current formal-ineligible row requires blockers")
+
+    prefix = Path(args.output_prefix).resolve()
+    outputs = {
+        "csv": prefix.with_suffix(".csv"),
+        "markdown": prefix.with_suffix(".md"),
+        "latex": prefix.with_suffix(".tex"),
+        "meta": prefix.with_name(prefix.name + "_meta.json.txt"),
+    }
+    rendered = {
+        "csv": csv_text(rows),
+        "markdown": markdown_text(rows),
+        "latex": latex_text(rows),
+    }
+    for key in ("csv", "markdown", "latex"):
+        atomic_write(outputs[key], rendered[key])
+        if outputs[key].read_text(encoding="utf-8") != rendered[key]:
+            raise ValueError(f"post-write content mismatch: {key}")
+    with outputs["csv"].open("r", encoding="utf-8", newline="") as handle:
+        csv_rows = list(csv.DictReader(handle))
+    if len(csv_rows) != len(rows) or tuple(csv_rows[0]) != FIELDS:
+        raise ValueError("CSV round-trip schema/row mismatch")
+
+    input_sources = []
+    for label, path in (
+        ("source_audit", source_audit_path),
+        ("source_smoke", source_smoke_path),
+        ("integration_smoke", integration_path),
+        ("environment_index", environment_index_path),
+    ):
+        input_sources.append({"label": label, "path": str(path), "sha256": sha256_file(path)})
+    meta = {
+        "schema_version": 1,
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "status": "PASS",
+        "table_id": "T1",
+        "title_zh": "开源基线资格、许可证与可复现性审计",
+        "title_en": "Open-source baseline eligibility, license and reproducibility audit",
+        "row_count": len(rows),
+        "column_count": len(FIELDS),
+        "main_paper_count": 5,
+        "supplementary_paper_count": 1,
+        "formal_numeric_eligible_count": 0,
+        "all_rows_have_explicit_blockers": all(bool(row["blockers"]) for row in rows),
+        "cross_format_source_identity": True,
+        "generator": {
+            "path": str(Path(__file__).resolve()),
+            "sha256": sha256_file(Path(__file__).resolve()),
+        },
+        "inputs": input_sources,
+        "environment_sources": environment_sources,
+        "outputs": {
+            key: {"path": str(path), "sha256": sha256_file(path)}
+            for key, path in outputs.items() if key != "meta"
+        },
+        "boundary": (
+            "Source, license, smoke, environment and author-artifact readiness do not establish a local numerical result. "
+            "Only completed unified-protocol evidence can change formal_numeric_eligible."
+        ),
+    }
+    atomic_write(outputs["meta"], json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
+    print(json.dumps({
+        "status": "PASS",
+        "rows": len(rows),
+        "columns": len(FIELDS),
+        "formal_numeric_eligible": 0,
+        "output_prefix": str(prefix),
+        "meta": str(outputs["meta"]),
+    }, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

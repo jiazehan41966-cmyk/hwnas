@@ -1,0 +1,3 @@
+architecture_id,proxy_name,budget,seed,outer_fold,metric,proxy_value,truth_value,proxy_direction,status,recipe_id,run_path,work_id
+gate0_example,naswot_v1,0,42,0,macro_f1,123.456,,max,completed,example_recipe,results/example.json,gate0_example_work
+gate0_example,trained_proxy_constant_lr_v1,150,42,0,macro_f1,0.7000,0.6800,max,completed,example_recipe,results/example_truth.json,gate0_example_truth_work

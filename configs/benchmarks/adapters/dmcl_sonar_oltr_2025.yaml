@@ -1,0 +1,19 @@
+schema_version: 1
+paper_id: dmcl_sonar_oltr_2025
+adapter_class: ExternalCommandAdapter
+checkout_path: reference/_local/Sonar-OLTR
+task: open_long_tail
+status: METHOD_SMOKE_PASS_CORRESPONDENCE_PARTIAL_LICENSE_UNVERIFIED
+formal_execution_enabled: false
+paper_code_correspondence: partial
+correspondence_boundary: >-
+  dmcl.py exists in the pinned archive, but the archive README documents the
+  2024 ESWA PLUD paper rather than the 2025 Scientific Reports DMCL paper.
+dmcl_status: METHOD_SMOKE_PASS
+plud_status: METHOD_SMOKE_PASS_AS_SEPARATE_PLUD_2024_PAPER
+method_smoke:
+  fold: 0
+  seed: 42
+  epochs: 1
+  backbone: simplecnn
+  result_path: results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/dmcl_author_loss_1x1x1

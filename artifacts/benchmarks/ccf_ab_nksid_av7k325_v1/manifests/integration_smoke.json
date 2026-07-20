@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "generated": "2026-07-19T20:11:52",
+  "runs": [
+    {
+      "run": "builtin_closed_1x1x1",
+      "task": "closed_set",
+      "status": "PASS",
+      "fold_seed_pairs": [
+        {
+          "fold": 0,
+          "seed": 42
+        }
+      ],
+      "prediction_count": 520,
+      "prediction_schema_errors": [],
+      "checkpoint_count": 1,
+      "claimable": false,
+      "claim_scope": "legacy_fold0_proxy",
+      "verified_dedicated_environment_required": false,
+      "verified_dedicated_environment": false,
+      "environment_error": null,
+      "formal_eligible": false,
+      "summary": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\builtin_closed_1x1x1\\protocol_summary.json",
+        "sha256": "6686f49533ff2f52d3fd26f194e22be03bb24ff252873be8b2f4431a39db9f1e"
+      },
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\builtin_closed_1x1x1\\run_manifest.json",
+        "sha256": "40738b930264771aa9d5577a61a3f90d36e97e5184dde0471114039145dec94b"
+      }
+    },
+    {
+      "run": "builtin_open_msp_1x1x1",
+      "task": "open_long_tail",
+      "status": "PASS",
+      "fold_seed_pairs": [
+        {
+          "fold": 0,
+          "seed": 42
+        }
+      ],
+      "prediction_count": 520,
+      "prediction_schema_errors": [],
+      "checkpoint_count": 1,
+      "claimable": false,
+      "claim_scope": "open_long_tail_experimental_pending_gate_audit",
+      "verified_dedicated_environment_required": false,
+      "verified_dedicated_environment": false,
+      "environment_error": null,
+      "formal_eligible": false,
+      "summary": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\builtin_open_msp_1x1x1\\protocol_summary.json",
+        "sha256": "f7b8493852f0d4c50028dc1162f7ca970b059d1e464bfd6054f51ce713f0f102"
+      },
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\builtin_open_msp_1x1x1\\run_manifest.json",
+        "sha256": "15b577000880ca2186df72598a81e0ad789c74160c71525c1b93e74d0c619661"
+      }
+    },
+    {
+      "run": "sure_dedicated_env_1x1x1",
+      "task": "closed_set",
+      "status": "PASS",
+      "fold_seed_pairs": [
+        {
+          "fold": 0,
+          "seed": 42
+        }
+      ],
+      "prediction_count": 520,
+      "prediction_schema_errors": [],
+      "checkpoint_count": 1,
+      "claimable": false,
+      "claim_scope": "legacy_fold0_proxy",
+      "verified_dedicated_environment_required": true,
+      "verified_dedicated_environment": true,
+      "environment_error": null,
+      "formal_eligible": false,
+      "summary": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\sure_dedicated_env_1x1x1\\protocol_summary.json",
+        "sha256": "58a7bcff1230379c6b8082ceb39597e62736d409c672ea05f88a76b416d5c7d6"
+      },
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\sure_dedicated_env_1x1x1\\run_manifest.json",
+        "sha256": "b6758bea0ab8dc6cf94bc2935f0f0ed6c05e69b8e47ce1ca8c2a36fce5a86bac"
+      }
+    },
+    {
+      "run": "dmcl_dedicated_env_1x1x1",
+      "task": "open_long_tail",
+      "status": "PASS",
+      "fold_seed_pairs": [
+        {
+          "fold": 0,
+          "seed": 42
+        }
+      ],
+      "prediction_count": 520,
+      "prediction_schema_errors": [],
+      "checkpoint_count": 1,
+      "claimable": false,
+      "claim_scope": "open_long_tail_experimental_pending_gate_audit",
+      "verified_dedicated_environment_required": true,
+      "verified_dedicated_environment": true,
+      "environment_error": null,
+      "formal_eligible": false,
+      "summary": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\dmcl_dedicated_env_1x1x1\\protocol_summary.json",
+        "sha256": "1f41e5168138f39f90c9c2fbd9ce35793c123c6e39536b72bd8cff7a2159b64e"
+      },
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\dmcl_dedicated_env_1x1x1\\run_manifest.json",
+        "sha256": "a1d88bde4e28af0ef9deefb569588d052d825d3e9dfcdffbc46d018d69ecfb1a"
+      }
+    },
+    {
+      "run": "plud_dedicated_env_1x1x1",
+      "task": "open_long_tail",
+      "status": "PASS",
+      "fold_seed_pairs": [
+        {
+          "fold": 0,
+          "seed": 42
+        }
+      ],
+      "prediction_count": 520,
+      "prediction_schema_errors": [],
+      "checkpoint_count": 1,
+      "claimable": false,
+      "claim_scope": "open_long_tail_experimental_pending_gate_audit",
+      "verified_dedicated_environment_required": true,
+      "verified_dedicated_environment": true,
+      "environment_error": null,
+      "formal_eligible": false,
+      "summary": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\plud_dedicated_env_1x1x1\\protocol_summary.json",
+        "sha256": "34f77532db6b6ca9f4febde31764aa3cb440b14f49c71ed2a2babfb7e52ba192"
+      },
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\plud_dedicated_env_1x1x1\\run_manifest.json",
+        "sha256": "53d260a366005279d2269c911530e3929e4b0204539172538cfce0ef45d82bf8"
+      }
+    }
+  ],
+  "method_contracts": [
+    {
+      "artifact": "hwpr_paper_spec_10",
+      "paper_id": "hw_pr_nas_2023",
+      "status": "PASS",
+      "observed_status": "PASS_NONCLAIMABLE_PAPER_SPEC_SMOKE",
+      "claimability_status": "NOT_CLAIMABLE",
+      "formal_eligible": false,
+      "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\hwpr_paper_spec_10\\paper_spec_smoke.json",
+      "sha256": "e5961da52c213cc136638e398cb3beea2d473111109f720eae10bade35eebc07"
+    },
+    {
+      "artifact": "harp_author_graph_contract",
+      "paper_id": "harp_2023",
+      "status": "PASS",
+      "observed_status": "PASS_AUTHOR_GRAPH_CONTRACT_ONLY",
+      "claimability_status": "NOT_CLAIMABLE",
+      "formal_eligible": false,
+      "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\harp_author_graph_contract\\graph_contract.json",
+      "sha256": "1b9c2cf02a80e89f349f60746fd233f4dd149f9958548a034b207ced84d85531"
+    },
+    {
+      "artifact": "esda_author_artifact_contract",
+      "paper_id": "esda_2024",
+      "status": "PASS",
+      "observed_status": "PASS_AUTHOR_ARTIFACT_CONTRACT_ONLY",
+      "claimability_status": "NOT_CLAIMABLE",
+      "formal_eligible": false,
+      "path": "E:\\1\\hwnas\\hwnas\\results\\benchmarks\\ccf_ab_nksid_av7k325_v1\\smoke\\esda_author_artifact_contract\\evidence_chain.json",
+      "sha256": "cfa31b792b8b0374b8cf12e552cf68993378006bfb9993094d653c86668a4b62"
+    }
+  ],
+  "all_integration_smokes_pass": true,
+  "all_method_contract_smokes_pass": true,
+  "all_builtin_integration_smokes_pass": true,
+  "any_smoke_formal_eligible": false,
+  "measurement_first": {
+    "overall_status": "IN_PROGRESS",
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\measurement_first_rebuild\\status.json",
+    "sha256": "c889d9c2f0e61cbea3a438c3e75e5454c6e208c7875265ce4c631835f7e63f7e"
+  },
+  "claim_boundary": "The 1-fold x 1-seed x 1-epoch simplecnn runs validate only the canonical closed/open-set pipeline and prediction schema. HW-PR, HARP, and ESDA contract smokes validate only bounded data/evidence flow. None populate T2/T3/T5/T6/T7/T8 or support model-performance or cross-board claims."
+}

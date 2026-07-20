@@ -1,0 +1,15 @@
+schema_version: 1
+paper_id: esda_2024
+adapter_class: ExternalCommandAdapter
+checkout_path: reference/ESDA
+task: artifact_workflow_reference
+status: DESIGN_REFERENCE_ONLY
+formal_execution_enabled: false
+cross_platform_numeric_ranking: false
+author_platform: ZCU102
+project_platform: AV7K325
+contract_smoke: scripts/run_esda_artifact_contract_smoke.py
+contract_status: PASS_AUTHOR_ARTIFACT_CONTRACT_ONLY
+evidence_boundary: >-
+  Author ZCU102 source, bitstreams, and power archives are workflow evidence only;
+  they do not populate AV7K325 T7/T8 or establish project board/power gates.

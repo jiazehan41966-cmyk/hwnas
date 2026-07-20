@@ -1,0 +1,108 @@
+schema_version: 1
+
+storage:
+  root: data/external
+  git_tracked: false
+  fetch_command: python scripts/fetch_external_sonar_datasets.py
+
+datasets:
+  roboflow_cylider2:
+    requested_url: https://universe.roboflow.com/yeesonmin-naver-com/cylider2
+    workspace: yeesonmin-naver-com
+    project: cylider2
+    version: latest
+    version_count_observed: 6
+    version_resolution: authenticated_project_metadata_or_cli_override
+    task: object_detection
+    license: CC BY 4.0
+    source_image_count: 476
+    latest_version:
+      version: 6
+      image_count: 478
+      split:
+        train: 330
+        valid: 99
+        test: 49
+      preprocessing:
+        auto_orient: true
+        resize: 1280x1280_stretch
+    classes:
+      - cylinder
+      - cylider
+      - manta
+    reconstructed_class_index:
+      0: cylinder
+      1: cylider
+      2: manta
+    reconstructed_v6_box_counts:
+      cylinder: 200
+      cylider: 139
+      manta: 139
+    default_export_format: yolov8
+    authentication: ROBOFLOW_API_KEY
+    integration_status: downloaded_verified_public_source_reconstruction
+    official_export_equivalent: false
+    local_manifest: data/external/roboflow_cylider2/dataset_manifest.json
+    tracked_source_index: artifacts/datasets/roboflow_cylider2_v6_source_index.json
+    reconstruction_boundary: >-
+      Original-resolution public images, v6 split assignments, and pixel-space
+      boxes were reconstructed into YOLO labels. The official v6 auto-orient
+      and 1280x1280 resize preprocessing was not applied.
+    label_policy:
+      preserve_source_labels: true
+      merge_cylinder_and_cylider: false
+
+  figshare_mine_detection:
+    article_url: https://figshare.com/articles/dataset/24574879
+    api_url: https://api.figshare.com/v2/articles/24574879
+    article_id: 24574879
+    doi: 10.6084/m9.figshare.24574879.v2
+    version: 2
+    task:
+      - object_detection
+      - classification
+      - segmentation
+    license: CC BY 4.0
+    image_count: 1170
+    classes:
+      - MILCO
+      - NOMBO
+    yolo_class_index:
+      0: MILCO
+      1: NOMBO
+    files:
+      - id: 43169008
+        name: 2010.zip
+        bytes: 67514394
+        md5: 43347a0cc383c0d3dbe0d24ae56f328d
+      - id: 43169002
+        name: 2015.zip
+        bytes: 22677520
+        md5: 93dfbb4fb7987734152c372496b4884c
+      - id: 43169005
+        name: 2017.zip
+        bytes: 19163464
+        md5: 9c2de230a2bbf654921416bea6fc0f42
+      - id: 43169011
+        name: 2018.zip
+        bytes: 106841977
+        md5: 25d091044a10c78674fedad655023e3b
+      - id: 43168999
+        name: 2021.zip
+        bytes: 1611502
+        md5: b84749b21fa95a4a4c7de3741db78bc7
+      - id: 44095121
+        name: Training.zip
+        bytes: 395600052
+        md5: b03dd2fda7d416c86d9d4bfad3ef2f86
+    integration_status: registered_public_download
+
+compatibility_boundary:
+  current_training_dataset: NKSID
+  current_training_task: single_label_image_classification
+  external_native_task: object_detection_or_mixed
+  merged_into_nksid: false
+  rationale: >-
+    Source annotations and split semantics must remain intact. A reviewed
+    detection-to-classification conversion or a detection-aware model head is
+    required before either dataset can enter HW-NAS training or metric tables.

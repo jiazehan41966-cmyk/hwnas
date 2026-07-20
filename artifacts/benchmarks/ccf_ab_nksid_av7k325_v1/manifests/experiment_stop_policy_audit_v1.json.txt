@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "language": "zh-CN",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "policy": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\experiment_stop_and_user_decision_policy_v1.json.txt",
+    "sha256": "bccbb48dfcc24e83fc674c1ce23abf09543b6de26840bdda36016e143cc1f5f2"
+  },
+  "human_readable_policy": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\experiment_stop_and_user_decision_policy_v1.md",
+    "sha256": "d8c707f338ac6ba4fda006ce854226e8a04b15f94aad361c75a26a1b3f06825a"
+  },
+  "non_executable_template": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\experiment_resume_user_decision_template_v1.json.txt",
+    "sha256": "c351653d179feab48d5e057db89640ef33a59f8bfe9fca3d8e522eadfed4a02d"
+  },
+  "checks": [
+    "中断等级、用户阈值权限与禁止自动动作完整",
+    "恢复必须绑定用户决策且模板不可执行",
+    "计划任务禁用、训练进程为零且批准文件不存在",
+    "中断协议、暂停状态卡与中文规则哈希绑定一致",
+    "source freeze 独立复核通过 556/556",
+    "当前 G1 S3 触发指标与独立诊断一致且正式增量为零"
+  ],
+  "current_state": "等待用户决定；训练、计划任务与板级实验均未运行。",
+  "formal_evidence_increment": 0,
+  "boundary": "本审计仅证明中断与恢复门禁有效，不授权恢复实验，也不替用户设定未来实验的性能阈值。",
+  "auditor": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\audit_experiment_stop_policy_v1.txt",
+    "sha256": "2c61ae11ef4cd16c93b0fe73fb7f4cc3a01fe97fb3fd8103028733771ae42865"
+  }
+}

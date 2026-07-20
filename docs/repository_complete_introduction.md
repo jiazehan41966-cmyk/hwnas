@@ -2,6 +2,11 @@
 
 本文整理自当前已归档的结构发现与静态审计文档，目标是给新人、后续审计执行者和实验维护者提供一份可以直接使用的仓库总览。本文不是新增代码审计，不替代各 `audit_*.md` 的路径行号证据。
 
+2026-07-19 增量边界：仓库已新增多目标 aging evolution、CCF A/B
+benchmark 适配/归档和 source-freeze 门禁；G1 已通过 45/45。它们不覆盖原
+静态审计，也不代表正式搜索或硬件闭环完成：G2/G4 仍 `PENDING`、G3 仍
+`FROZEN`、功耗仍 `NOT_MEASURED`、G5 仍 `PAUSED`。
+
 ## 1. 信息来源
 
 当前参与整理的归档文件如下：
@@ -14,6 +19,9 @@
 | `docs/audit_candidate_hardware.md` | 候选表示与硬件代价审计 | ArchitectureSpec 到模型、硬件估计、CandidateMetrics 的映射 |
 | `docs/audit_search_training_metrics.md` | 搜索训练指标链路审计 | random/RL/proxyless 搜索、训练评估、macro_f1/top1/feasibility 传播 |
 | `docs/audit_deploy_result_consumption.md` | 部署与结果消费审计 | checkpoint、ONNX/INT8/HLS stub、推理和 reporting schema |
+| `docs/FULL_EXPERIMENT_CYCLE_V2.md` | 当前完整实验周期 | 门禁顺序、候选冻结与功耗边界 |
+| `docs/MULTIOBJECTIVE_AGING_EVOLUTION.md` | RL/aging 比较 | 多目标定义、运行合同与人工批准边界 |
+| `docs/benchmark_campaigns/ccf_ab_nksid_av7k325_v1.md` | CCF A/B benchmark | 论文适配、readiness 与证据分层 |
 
 当前没有发现独立的 `docs/audit_hls_lut*.md` 或 `docs/audit_hls_lut_production*.md`。因此本文中关于 HLS/LUT 生产链的描述来自结构发现、入口配置审计、候选硬件审计和部署消费审计中已经覆盖的部分；operator manifest、模板、Vitis/Vivado/board harness 的完整生产链仍应以独立审计补齐。
 
@@ -433,6 +441,20 @@ Dynamic Phase0 evidence is maintained separately:
 - `docs/PHASE0_V3_BOARD_RESULTS.md`
 - `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`
 - `docs/PHASE0_V4_SONAR_RESULTS.md`
+
+Current measurement and research-gate archives are maintained separately:
+
+- `docs/EVAL_PROTOCOL.md`
+- `docs/MEASUREMENT_FIRST_REBUILD.md`
+- `docs/PROXY_RELIABILITY_AUDIT.md`
+- `docs/PROXY_RELIABILITY_AUDIT_V2.md`
+- `docs/EXTERNAL_SONAR_DATASETS.md`
+
+Proxy Reliability Gate 0 v2 reduces formal execution to 1,200 reusable
+150-epoch trajectories, but the current formal count is still `0/1200`.
+The completed CPU one-epoch benchmarks are explicitly ineligible as formal
+evidence, so Gate 0 remains `not_ready`. External detection/mixed-task datasets
+also remain separate from NKSID classification and board evidence.
 
 后续如果补做 HLS/LUT 生产链审计，应新增：
 

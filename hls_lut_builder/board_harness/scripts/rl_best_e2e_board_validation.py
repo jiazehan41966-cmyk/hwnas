@@ -34,6 +34,7 @@ REFERENCE_SUMMARY = (
     / "sonar_classifier_end_to_end_board"
     / "sonar_classifier_e2e_summary.json"
 )
+CANDIDATE_HLS_CACHE_ROOT = ROOT / "hls_lut_builder" / "results" / "candidate_hls_cache"
 
 sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -82,6 +83,8 @@ READY_MAPPING_STATUSES = {
     "mapped_to_current84_fullcombo",
     "mapped_to_arch84_extension",
     "mapped_to_phase0_v4_sonar_direct",
+    "mapped_to_candidate_hls_cache",
+    "structural_skip",
 }
 
 PHASE0_V4_SONAR_STAGE3_K3_DIRECT_CASES = {
@@ -115,9 +118,22 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("mode", choices=("plan", "generate", "build", "measure", "all", "refresh"))
     parser.add_argument("--candidate-path", type=str, help="RL best_candidate.json")
+    parser.add_argument(
+        "--candidate-hls-report",
+        default="",
+        help=(
+            "Audited candidate HLS report used to map exact architecture roles "
+            "to candidate_hls_cache csynth RTL."
+        ),
+    )
     parser.add_argument("--spec-path", type=str, help="Previously generated harness spec")
     parser.add_argument("--run-name", type=str, default="")
     parser.add_argument("--result-root", default=str(RESULT_ROOT))
+    parser.add_argument(
+        "--candidate-hls-cache-root",
+        default=str(CANDIDATE_HLS_CACHE_ROOT),
+        help="Candidate HLS cache root used to resolve exact component RTL without overwriting prior caches.",
+    )
     parser.add_argument("--board-config", default=str(DEFAULT_BOARD_CONFIG))
     parser.add_argument("--serial-port", default="COM5")
     parser.add_argument("--vivado", default=str(DEFAULT_VIVADO))
@@ -134,6 +150,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timing-variant", default="place_altspread_route_more_global")
     parser.add_argument("--impl-profile", choices=("default", "fanout_only", "fanout_floorplan"), default="default")
     parser.add_argument("--argmax-pipeline", action="store_true")
+    parser.add_argument(
+        "--dynamic-validation",
+        action="store_true",
+        help=(
+            "Generate the repeatable UART v1 input/output harness instead of the "
+            "legacy boot-time fixed-ROM harness."
+        ),
+    )
+    parser.add_argument(
+        "--dynamic-uart-baud",
+        type=int,
+        default=921_600,
+        help="Compile-time UART baud for --dynamic-validation.",
+    )
     parser.add_argument(
         "--completion-mode",
         choices=("axil_and_sink", "sink_and_argmax"),
@@ -182,6 +212,14 @@ def parse_args() -> argparse.Namespace:
         and not args.trained_checkpoint
     ):
         parser.error("--trained-checkpoint is required with --parameter-mode trained_checkpoint_mem")
+    if (
+        args.mode in {"generate", "build", "all"}
+        and args.dynamic_validation
+        and args.parameter_mode != "trained_checkpoint_mem"
+    ):
+        parser.error(
+            "--dynamic-validation requires --parameter-mode trained_checkpoint_mem"
+        )
     return args
 
 
@@ -348,6 +386,111 @@ def trace_candidate(architecture: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
+def apply_candidate_hls_report_mapping(
+    rows: list[dict[str, Any]],
+    *,
+    report_path: Path,
+    candidate_path: Path,
+) -> dict[str, Any]:
+    report = read_json(report_path)
+    if report.get("evidence_complete") is not True:
+        raise ValueError(f"Candidate HLS report is not evidence_complete: {report_path}")
+
+    expected_candidate_sha = sha256_file(candidate_path)
+    report_candidate_sha = str(report.get("candidate_sha256") or "")
+    if not report_candidate_sha or report_candidate_sha != expected_candidate_sha:
+        raise ValueError(
+            "Candidate HLS report hash does not match the selected candidate: "
+            f"{report_candidate_sha} != {expected_candidate_sha}"
+        )
+
+    report_roles = report.get("roles")
+    if not isinstance(report_roles, list):
+        raise ValueError(f"Candidate HLS report has no roles list: {report_path}")
+    roles_by_name = {
+        str(role.get("role")): role
+        for role in report_roles
+        if isinstance(role, dict) and role.get("role")
+    }
+
+    aliases = {"fc_classifier": "classifier"}
+    mapped = 0
+    structural_skips = 0
+    for row in rows:
+        layer_role = str(row.get("layer_role") or "")
+        report_role_name = aliases.get(layer_role, layer_role)
+        role = roles_by_name.get(report_role_name)
+        if role is None:
+            raise ValueError(
+                f"Candidate HLS report is missing role {report_role_name!r} "
+                f"for trace layer {layer_role!r}"
+            )
+
+        evidence_status = str(role.get("evidence_status") or "")
+        logical_op = str(role.get("logical_op") or "")
+        notes = str(row.get("notes") or "")
+        if logical_op == "skip" or evidence_status == "structural_skip":
+            row.update(
+                {
+                    "expected_current84_combo_query": "structural_skip",
+                    "current84_combo_case_name": "",
+                    "current84_mapping_status": "structural_skip",
+                    "board_measurement_namespace": "structural_identity",
+                    "combo_decomposition": "structural_skip",
+                    "component_roles": "",
+                    "component_case_names": "",
+                    "fullcombo_board_status": "structural_identity_no_hls_component",
+                    "notes": (
+                        f"{notes}; candidate_hls_report_structural_skip"
+                        if notes
+                        else "candidate_hls_report_structural_skip"
+                    ),
+                }
+            )
+            structural_skips += 1
+            continue
+
+        case_name = str(role.get("case_name") or "")
+        role_report_path = Path(str(role.get("report_path") or "")).expanduser()
+        role_report_sha = str(role.get("report_sha256") or "")
+        if evidence_status != "measured_csynth" or not case_name:
+            raise ValueError(
+                f"Role {report_role_name!r} is not measured_csynth: {evidence_status!r}"
+            )
+        if not role_report_path.is_file():
+            raise FileNotFoundError(f"Role csynth report not found: {role_report_path}")
+        if not role_report_sha or sha256_file(role_report_path) != role_report_sha:
+            raise ValueError(f"Role csynth report hash mismatch: {role_report_path}")
+
+        row.update(
+            {
+                "expected_current84_combo_query": case_name,
+                "current84_combo_case_name": case_name,
+                "current84_mapping_status": "mapped_to_candidate_hls_cache",
+                "board_measurement_namespace": "candidate_hls_cache",
+                "combo_decomposition": "direct",
+                "component_roles": "direct",
+                "component_case_names": case_name,
+                "fullcombo_board_status": "csynth_only_not_full_network_measured",
+                "notes": (
+                    f"{notes}; candidate_hls_report_exact_role_mapping"
+                    if notes
+                    else "candidate_hls_report_exact_role_mapping"
+                ),
+            }
+        )
+        mapped += 1
+
+    return {
+        "report_path": str(report_path.resolve()),
+        "report_sha256": sha256_file(report_path),
+        "candidate_sha256": expected_candidate_sha,
+        "mapped_component_layers": mapped,
+        "structural_skip_layers": structural_skips,
+        "status": "PASS",
+    }
+
+
 def _int_or_none(value: Any) -> int | None:
     try:
         return int(value)
@@ -394,7 +537,18 @@ def apply_phase0_v4_sonar_stage3_direct_mapping(rows: list[dict[str, Any]]) -> N
         )
 
 
-def resolve_rl_best_case_dir(case_name: str) -> Path:
+def resolve_rl_best_case_dir(case_name: str, candidate_hls_cache_root: Path | None = None) -> Path:
+    cache_root = candidate_hls_cache_root or CANDIDATE_HLS_CACHE_ROOT
+    cache_roots = [cache_root]
+    if cache_root.resolve() != CANDIDATE_HLS_CACHE_ROOT.resolve():
+        cache_roots.append(CANDIDATE_HLS_CACHE_ROOT)
+    for candidate_root in cache_roots:
+        candidate_cache_case = candidate_root / case_name
+        if candidate_cache_case.exists() and (
+            (candidate_cache_case / "project" / "solution1" / "impl" / "verilog").exists()
+            or (candidate_cache_case / "project" / "solution1" / "syn" / "verilog").exists()
+        ):
+            return candidate_cache_case.resolve()
     if case_name in PHASE0_V4_SONAR_STAGE3_K3_DIRECT_CASES.values():
         candidates = [
             PHASE0_V4_SONAR_STAGE3_K3_CASE_ROOT
@@ -421,6 +575,7 @@ def build_harness_spec(
     missing_components = [
         row
         for row in trace_rows
+        if row.get("current84_mapping_status") != "structural_skip"
         if not row.get("component_case_names") or not row.get("component_roles")
     ]
     status = "ready_to_generate" if mapping_ok and not missing_components else "not_generated_mapping_incomplete"
@@ -476,6 +631,13 @@ def write_plan_outputs(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
     root.mkdir(parents=True, exist_ok=True)
 
     trace_rows = trace_candidate(architecture)
+    candidate_hls_mapping = None
+    if args.candidate_hls_report:
+        candidate_hls_mapping = apply_candidate_hls_report_mapping(
+            trace_rows,
+            report_path=Path(args.candidate_hls_report).expanduser().resolve(),
+            candidate_path=candidate_path,
+        )
     gate = identity_gate(trace_rows, REFERENCE_TRACE)
     spec = build_harness_spec(
         run_name=name,
@@ -485,6 +647,8 @@ def write_plan_outputs(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
         trace_rows=trace_rows,
     )
     spec["parameter_mode"] = args.parameter_mode
+    if candidate_hls_mapping is not None:
+        spec["source"]["candidate_hls_mapping"] = candidate_hls_mapping
     if args.parameter_mode == "trained_checkpoint_mem":
         spec["trained_checkpoint"] = {
             "path": str(Path(args.trained_checkpoint).expanduser().resolve()),
@@ -500,6 +664,7 @@ def write_plan_outputs(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
         "candidate_arch_id": candidate.get("arch_id", ""),
         "identity_gate": gate,
         "harness_spec_status": spec["status"],
+        "candidate_hls_mapping": candidate_hls_mapping,
         "may_reuse_reference_arch84_bitstream": gate["matches_reference_arch84_e2e"],
         "reference_summary": str(REFERENCE_SUMMARY),
         "outputs": {
@@ -553,6 +718,27 @@ def load_spec_for_run(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
     return name, read_json(run_root(name) / "rl_best_e2e_harness_spec.json")
 
 
+def component_metadata_case_name(row: dict[str, Any]) -> str:
+    """Select the legacy formula key without changing the audited HLS case identity.
+
+    Candidate-cache case names are deliberately content-addressed rather than
+    operator-prefixed.  The shared harness metadata parser still dispatches a
+    few direct kernels by their historical operator prefix, so provide that
+    prefix only for metadata calculation.  The manifest keeps the original
+    candidate case name and records this formula key separately.
+    """
+
+    case_name = str(row["case_name"])
+    if str(row.get("namespace") or "") != "candidate_hls_cache":
+        return case_name
+    aliases = {
+        "stem": "stem_conv_k3_s2",
+        "head_conv": "pw_conv",
+        "fc_classifier": "fc_layer",
+    }
+    return aliases.get(str(row.get("layer_role") or ""), case_name)
+
+
 def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
     name, spec = load_spec_for_run(args)
     if spec.get("status") != "ready_to_generate":
@@ -573,6 +759,7 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
     component_rows = e2e.flattened_components(spec)
     overrides = component_overrides_from_manifest(args.component_overrides_from_manifest)
     overrides.update(variant.parse_component_overrides(args.component_override))
+    candidate_hls_cache_root = Path(args.candidate_hls_cache_root).expanduser().resolve()
     seen_overrides: set[str] = set()
     override_records: list[dict[str, str]] = []
     component_specs: list[dict[str, Any]] = []
@@ -588,14 +775,19 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
                 }
             )
             effective_row["case_name"] = overrides[effective_row["role"]]
-        case_dir = resolve_rl_best_case_dir(effective_row["case_name"])
+        case_dir = resolve_rl_best_case_dir(
+            effective_row["case_name"],
+            candidate_hls_cache_root=candidate_hls_cache_root,
+        )
+        metadata_case_name = component_metadata_case_name(effective_row)
         item = fullcombo.build_component_spec(
             effective_row["role"],
-            effective_row["case_name"],
+            metadata_case_name,
             case_dir,
             project / "export_rtl",
         )
         item.update(effective_row)
+        item["metadata_case_name"] = metadata_case_name
         component_specs.append(item)
     missing_overrides = sorted(set(overrides) - seen_overrides)
     if missing_overrides:
@@ -610,6 +802,8 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
         args.watchdog_cycles,
         argmax_pipeline=args.argmax_pipeline,
         completion_mode=args.completion_mode,
+        dynamic_validation=args.dynamic_validation,
+        dynamic_uart_baud=args.dynamic_uart_baud,
     )
     fullcombo.write_constraints(project, board_config)
     artifact = target_name(name)
@@ -621,13 +815,23 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
         "run_name": name,
         "module_name": "sonar_classifier_e2e_harness",
         "board_config": str(board_config),
-        "harness_kind": "single_full_network_latency_only_harness",
+        "harness_kind": (
+            "dynamic_validation_uart_v1"
+            if args.dynamic_validation
+            else "single_full_network_latency_only_harness"
+        ),
         "implementation_variant": True,
-        "parameter_mode": "latency_only_deterministic",
+        "parameter_mode": args.parameter_mode,
         "accuracy_claim": "none",
+        "validation_eligibility": (
+            "eligible_only_after_full_outer_validation_bit_exact_run"
+            if args.dynamic_validation
+            else "fixed_input_latency_only"
+        ),
         "timing_variant": args.timing_variant,
         "impl_profile": args.impl_profile,
         "component_overrides": override_records,
+        "candidate_hls_cache_root": str(candidate_hls_cache_root),
         "component_overrides_from_manifest": (
             str(Path(args.component_overrides_from_manifest).expanduser().resolve())
             if args.component_overrides_from_manifest
@@ -635,6 +839,10 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "argmax_pipeline": bool(args.argmax_pipeline),
         "completion_mode": args.completion_mode,
+        "dynamic_validation": bool(args.dynamic_validation),
+        "dynamic_uart_baud": (
+            int(args.dynamic_uart_baud) if args.dynamic_validation else None
+        ),
         "harness_fifo_depth": args.fifo_depth,
         "harness_fifo_style": args.fifo_style,
         "impl_profile_artifacts": impl_artifacts,

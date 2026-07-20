@@ -1,0 +1,90 @@
+project:
+  name: aging-vs-rl-dummy-smoke
+  seed: 42
+  output_dir: results
+  run_name: aging_vs_rl_dummy_smoke
+
+dataset:
+  name: dummy
+  data_dir: null
+  input_channels: 1
+  image_size: 32
+  num_classes: 3
+  num_workers: 0
+
+search_space:
+  macro_type: stage_based
+  stem_stride: 2
+  stage_strides: [1, 2]
+  stem_channels: 8
+  stage_channel_choices:
+    - [8]
+    - [12, 16]
+  stage_depth_choices:
+    - [1]
+    - [1]
+  kernel_choices: [3]
+  expand_choices: [1, 2]
+  op_choices: [conv, mbconv]
+
+constraints:
+  max_latency_ms: 1000.0
+  max_power_w: null
+  max_dsp: 10000
+  max_bram: 10000
+  max_lut: 1000000
+
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  estimator: analytic
+  lut_path: null
+  use_dummy_lut: false
+
+search:
+  method: rl
+  num_candidates: 4
+  episodes: 4
+  eval_epochs: 1
+  eval_early_stopping_patience: null
+  timeout_minutes: null
+  controller_hidden: 16
+  controller_lr: 0.005
+  selection_metric: f_clean
+  pareto:
+    selection_method: rank
+    topk: 4
+    objectives: [f_clean, f_robust, latency_ms, energy_mj]
+    directions: [max, max, min, min]
+  robustness:
+    enabled: true
+    protocol: sonar_corruption_v1
+    seed: 314159
+    aggregation: mean_macro_f1
+    normalization_mean: [0.5]
+    normalization_std: [0.5]
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.0
+    resource: 0.1
+  aging:
+    population_size: 2
+    sample_size: 2
+    random_injection_probability: 0.10
+    crossover_probability: 0.50
+    survivor_selection: pareto_crowding
+    max_mutation_attempts: 32
+    prefer_lightweight_initialization: false
+
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 16
+  epochs: 1
+
+deployment:
+  export_format: onnx
+  run_hls_validation: false

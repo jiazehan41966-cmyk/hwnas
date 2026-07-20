@@ -1,0 +1,18 @@
+schema_version: 1
+paper_id: hw_pr_nas_2023
+adapter_class: ExternalCommandAdapter
+checkout_path: reference/HW-PR-NAS
+task: nas_search
+status: OFFICIAL_CODE_INCOMPLETE_PAPER_SPEC_SMOKE_ONLY
+formal_execution_enabled: false
+implementation_boundary:
+  author_code_runtime: blocked
+  paper_spec_reimplementation: non_claimable_smoke_only
+  missing_readme_listed_files:
+    - surrogate_models/base_surrogate.py
+    - surrogate_models/accuracy_predictor.py
+    - surrogate_models/latency_predictor.py
+    - surrogate_models/energy_predictor.py
+  runtime_blockers:
+    - search_algo.py calls undefined valid_loss()
+    - test.py passes argparse.Namespace to an incompatible evolution_search signature

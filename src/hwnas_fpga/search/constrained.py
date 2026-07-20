@@ -255,7 +255,7 @@ class ConfigurableSearcher(BaseSearcher):
         if is_feasible:
             try:
                 model = build_model(architecture, num_classes=num_classes)
-                accuracy, _ = train_model(
+                selection_score, history = train_model(
                     model=model,
                     train_loader=train_loader,
                     num_classes=num_classes,
@@ -265,7 +265,13 @@ class ConfigurableSearcher(BaseSearcher):
                     class_weights=class_weights,
                     early_stopping_patience=2 if val_loader is not None else None,
                 )
-                candidate.metrics.accuracy = accuracy
+                best_eval = dict(history.get("best_eval") or {})
+                candidate.metrics.selection_score = selection_score
+                candidate.metrics.accuracy = best_eval.get("top1")
+                candidate.metrics.macro_f1 = best_eval.get("macro_f1")
+                candidate.metrics.weighted_f1 = best_eval.get("weighted_f1")
+                candidate.metrics.top1 = best_eval.get("top1")
+                candidate.metrics.top5 = best_eval.get("top5")
             except Exception as e:
                 print(f"Error training {arch_id}: {e}")
                 is_feasible = False

@@ -1,0 +1,24 @@
+schema_version: 1
+paper_id: plud_sonar_oltr_2024
+adapter_class: ExternalCommandAdapter
+checkout_path: reference/_local/Sonar-OLTR
+task: open_long_tail
+status: METHOD_SMOKE_PASS_LICENSE_UNVERIFIED
+formal_execution_enabled: false
+paper_code_correspondence: verified
+license_boundary: >-
+  No explicit repository license was found. The author push_logit_loss is
+  dynamically loaded from the ignored isolated checkout and is not
+  redistributed by this project.
+protocol_bridge:
+  task: open_long_tail
+  known_unknown_split: frozen_5_known_3_unknown
+  feature_bridge: input_to_final_linear_classifier
+  unknown_score: MSP
+  portability_deviation: author hard-coded CUDA permutation uses resolved device
+method_smoke:
+  fold: 0
+  seed: 42
+  epochs: 1
+  backbone: simplecnn
+  result_path: results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/plud_author_loss_1x1x1

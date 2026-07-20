@@ -300,6 +300,28 @@ def input_mem_mapping_text(mapping: dict[str, str]) -> str:
     return ",\n    ".join(f".MEM_FILE_{idx:02d}({mapping[f'INPUT_MEM_FILE_{idx:02d}']})" for idx in range(32))
 
 
+def axil_completion_latch_text(specs: list[dict[str, Any]]) -> str:
+    if not specs:
+        raise ValueError("AXI-Lite completion latch requires at least one component")
+    done_signals = [f"{spec['role']}_axil_done" for spec in specs]
+    width = len(done_signals)
+    done_vector = ", ".join(reversed(done_signals))
+    return f"""
+wire [{width - 1}:0] axil_done_now = {{{done_vector}}};
+reg [{width - 1}:0] axil_done_seen = {width}'d0;
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        axil_done_seen <= {width}'d0;
+    end else if (start_pulse) begin
+        axil_done_seen <= {width}'d0;
+    end else begin
+        axil_done_seen <= axil_done_seen | axil_done_now;
+    end
+end
+wire all_axil_done = &axil_done_seen;
+""".strip()
+
+
 def write_full_network_top(
     project_root: Path,
     specs: list[dict[str, Any]],
@@ -309,6 +331,8 @@ def write_full_network_top(
     watchdog_cycles: int,
     argmax_pipeline: bool = False,
     completion_mode: str = "axil_and_sink",
+    dynamic_validation: bool = False,
+    dynamic_uart_baud: int = 921_600,
 ) -> None:
     if completion_mode not in {"axil_and_sink", "sink_and_argmax"}:
         raise ValueError(f"unsupported e2e completion mode: {completion_mode}")
@@ -329,6 +353,16 @@ def write_full_network_top(
     input_word_count = int(first["case_meta"]["input_word_count"])
     axis_output_word_count = int(last["case_meta"]["output_word_count"])
     classifier_class_count = int(last["constants"].get("OUT_CH", max(1, output_width // 8)))
+    input_byte_count = input_word_count * input_keep
+    input_addr_width = max(1, (input_byte_count - 1).bit_length())
+    if dynamic_validation and (input_width != 8 or input_keep != 1):
+        raise ValueError(
+            "dynamic validation BRAM source currently requires byte-wide INT8 input"
+        )
+    if dynamic_validation and (output_width < 64 or classifier_class_count != 8):
+        raise ValueError(
+            "dynamic validation requires one output word containing exactly 8 INT8 logits"
+        )
 
     input_mem_paths = gh.generate_stream_mem_files(data_dir, "input_stream", input_word_count, input_width)
     input_word_mem = gh.generate_stream_word_mem_file(data_dir, "input_stream_words", input_word_count, input_width)
@@ -369,7 +403,7 @@ def write_full_network_top(
 
     param_logic = "\n\n".join(fullcombo.build_param_logic_for_spec(spec, data_dir) for spec in specs)
     axil_blocks = "\n\n".join(fullcombo.axil_wires_and_ctrl(spec) for spec in specs)
-    axil_done_expr = " && ".join(f"{spec['role']}_axil_done" for spec in specs)
+    axil_completion_logic = axil_completion_latch_text(specs)
     axil_error_expr = " || ".join(f"{spec['role']}_axil_error" for spec in specs)
     status_led_width = int(board_cfg.get("status_led", {}).get("width", 2))
 
@@ -512,38 +546,275 @@ end
     else:
         completion_done_expr = f"sink_done && all_axil_done && {argmax_done_expr}"
 
-    top = f"""`timescale 1ns / 1ps
+    uart_baud = (
+        int(dynamic_uart_baud)
+        if dynamic_validation
+        else int(board_cfg.get("uart", {}).get("baud", defaults_cfg["uart_baud"]))
+    )
+    if dynamic_validation:
+        start_logic = f"""
+reg start_pulse = 1'b0;
+reg run_active = 1'b0;
+reg completion_armed = 1'b0;
+reg [31:0] runs_remaining = 32'd0;
+reg [31:0] requested_repeat_count = 32'd0;
+reg [7:0] active_command = 8'd0;
+reg [31:0] active_sample_id = 32'd0;
 
-module harness_top (
-    input  wire sys_clk_p,
-    input  wire sys_clk_n,
-    input  wire sys_rst_n,
-    input  wire uart_rx,
-    output wire uart_tx,
-    output wire [{status_led_width - 1}:0] status_led
+wire uart_rx_byte_valid;
+wire [7:0] uart_rx_byte_data;
+wire uart_rx_framing_error;
+reg uart_rx_framing_latched = 1'b0;
+uart_rx_byte #(.CLK_FREQ_HZ(CLK_FREQ_HZ), .BAUD(UART_BAUD)) u_uart_rx_byte (
+    .clk(clk_main), .rst(!rst_n), .uart_rx(uart_rx),
+    .byte_valid(uart_rx_byte_valid), .byte_data(uart_rx_byte_data),
+    .framing_error(uart_rx_framing_error)
 );
 
-localparam integer CLK_FREQ_HZ = {int(board_cfg["clock"]["freq_hz"])};
-localparam integer UART_BAUD = {int(board_cfg.get("uart", {}).get("baud", defaults_cfg["uart_baud"]))};
-localparam integer BOOT_DELAY_CYCLES = {int(defaults_cfg["boot_delay_cycles"])};
-localparam integer STATUS_LED_WIDTH = {status_led_width};
-localparam integer INPUT_TDATA_WIDTH = {input_width};
-localparam integer INPUT_KEEP_WIDTH = {input_keep};
-localparam integer OUTPUT_TDATA_WIDTH = {output_width};
-localparam integer OUTPUT_KEEP_WIDTH = {output_keep};
-localparam integer INPUT_WORD_COUNT = {input_word_count};
-localparam integer AXIS_OUTPUT_WORD_COUNT = {axis_output_word_count};
-localparam integer CLASSIFIER_CLASS_COUNT = {classifier_class_count};
-localparam integer WATCHDOG_CYCLES = {watchdog_cycles};
+wire rx_payload_we;
+wire [INPUT_ADDR_WIDTH-1:0] rx_payload_addr;
+wire [7:0] rx_payload_data;
+wire rx_command_valid;
+wire [7:0] rx_command;
+wire [31:0] rx_sample_id;
+wire [31:0] rx_payload_len;
+wire [31:0] rx_repeat_count;
+wire rx_crc_ok;
+wire [7:0] rx_error_code;
+dynamic_validation_rx #(
+    .MAX_PAYLOAD_BYTES(INPUT_BYTE_COUNT),
+    .ADDR_WIDTH(INPUT_ADDR_WIDTH)
+) u_dynamic_validation_rx (
+    .clk(clk_main), .rst(!rst_n),
+    .rx_byte_valid(uart_rx_byte_valid), .rx_byte(uart_rx_byte_data),
+    .payload_we(rx_payload_we), .payload_addr(rx_payload_addr),
+    .payload_data(rx_payload_data), .command_valid(rx_command_valid),
+    .command(rx_command), .sample_id(rx_sample_id),
+    .payload_len(rx_payload_len), .repeat_count(rx_repeat_count),
+    .crc_ok(rx_crc_ok), .error_code(rx_error_code)
+);
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n)
+        uart_rx_framing_latched <= 1'b0;
+    else if (uart_rx_framing_error)
+        uart_rx_framing_latched <= 1'b1;
+    else if (rx_command_valid)
+        uart_rx_framing_latched <= 1'b0;
+end
 
-wire clk_ibuf;
-wire clk_main;
-IBUFDS u_sys_clk_ibufds (.I(sys_clk_p), .IB(sys_clk_n), .O(clk_ibuf));
-BUFG u_sys_clk_bufg (.I(clk_ibuf), .O(clk_main));
+wire response_busy;
+wire response_done;
+wire response_byte_valid;
+wire response_byte_ready;
+wire [7:0] response_byte_data;
+wire uart_tx_busy;
+"""
+        source_logic = """
+wire source_done;
+axis_byte_buffer_source #(
+    .DATA_WIDTH(INPUT_TDATA_WIDTH),
+    .KEEP_WIDTH(INPUT_KEEP_WIDTH),
+    .WORD_COUNT(INPUT_WORD_COUNT),
+    .BYTE_COUNT(INPUT_BYTE_COUNT),
+    .ADDR_WIDTH(INPUT_ADDR_WIDTH)
+) u_axis_byte_buffer_source (
+    .clk(clk_main), .rst_n(rst_n),
+    .byte_we(rx_payload_we && !run_active && !response_busy),
+    .byte_addr(rx_payload_addr), .byte_data(rx_payload_data),
+    .start(start_pulse),
+    .tdata(input_tdata), .tkeep(input_tkeep), .tstrb(input_tstrb),
+    .tlast(input_tlast), .tvalid(input_tvalid), .tready(input_tready),
+    .done(source_done)
+);
+"""
+        output_logits_logic = """
+reg [63:0] output_logits = 64'd0;
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        output_logits <= 64'd0;
+    end else if (start_pulse) begin
+        output_logits <= 64'd0;
+    end else if (output_tvalid && output_tready && output_word_count == 32'd0) begin
+        output_logits <= output_tdata[63:0];
+    end
+end
+"""
+        watchdog_active_expr = "run_active && completion_armed"
+        result_logic = """
+localparam [7:0] CMD_LOAD_RUN = 8'h01;
+localparam [7:0] CMD_RUN_REPEAT = 8'h02;
+localparam [7:0] CMD_PING = 8'h7F;
+localparam [7:0] STATUS_OK = 8'd0;
+localparam [7:0] STATUS_BAD_VERSION = 8'd1;
+localparam [7:0] STATUS_BAD_LENGTH = 8'd2;
+localparam [7:0] STATUS_BAD_CRC = 8'd3;
+localparam [7:0] STATUS_BUSY = 8'd4;
+localparam [7:0] STATUS_BAD_COMMAND = 8'd5;
+localparam [7:0] STATUS_AXIL_ERROR = 8'd6;
+localparam [7:0] STATUS_WATCHDOG = 8'd7;
+localparam [7:0] STATUS_UART_FRAMING = 8'd8;
 
-wire rst_n;
-reset_sync u_reset_sync (.clk(clk_main), .rst_n_async(sys_rst_n), .rst_n_sync(rst_n));
+reg response_start = 1'b0;
+reg [7:0] response_status = STATUS_OK;
+reg [7:0] response_command = 8'd0;
+reg [31:0] response_sample_id = 32'd0;
+reg [31:0] response_cycles = 32'd0;
+reg [63:0] response_logits = 64'd0;
+reg [7:0] response_argmax = 8'd0;
+reg [31:0] response_checksum = 32'd0;
+reg [31:0] response_repeat_count = 32'd0;
+reg result_sent = 1'b0;
 
+wire inference_complete = strict_e2e_done || watchdog_expired || any_axil_error;
+wire [31:0] current_result_cycles =
+    strict_e2e_done ? measured_cycles : watchdog_counter;
+
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        start_pulse <= 1'b0;
+        run_active <= 1'b0;
+        completion_armed <= 1'b0;
+        runs_remaining <= 32'd0;
+        requested_repeat_count <= 32'd0;
+        active_command <= 8'd0;
+        active_sample_id <= 32'd0;
+        response_start <= 1'b0;
+        response_status <= STATUS_OK;
+        response_command <= 8'd0;
+        response_sample_id <= 32'd0;
+        response_cycles <= 32'd0;
+        response_logits <= 64'd0;
+        response_argmax <= 8'd0;
+        response_checksum <= 32'd0;
+        response_repeat_count <= 32'd0;
+        result_sent <= 1'b0;
+    end else begin
+        start_pulse <= 1'b0;
+        response_start <= 1'b0;
+        if (response_done)
+            result_sent <= 1'b1;
+
+        if (run_active && !completion_armed && !start_pulse && !inference_complete)
+            completion_armed <= 1'b1;
+
+        if (rx_command_valid) begin
+            if (run_active || response_busy) begin
+                response_status <= STATUS_BUSY;
+                response_command <= rx_command;
+                response_sample_id <= rx_sample_id;
+                response_cycles <= 32'd0;
+                response_logits <= 64'd0;
+                response_argmax <= 8'd0;
+                response_checksum <= 32'd0;
+                response_repeat_count <= 32'd0;
+                response_start <= !response_busy;
+            end else if (!rx_crc_ok) begin
+                response_status <= STATUS_BAD_CRC;
+                response_command <= rx_command;
+                response_sample_id <= rx_sample_id;
+                response_cycles <= 32'd0;
+                response_logits <= 64'd0;
+                response_argmax <= 8'd0;
+                response_checksum <= 32'd0;
+                response_repeat_count <= 32'd0;
+                response_start <= 1'b1;
+            end else if (uart_rx_framing_latched) begin
+                response_status <= STATUS_UART_FRAMING;
+                response_command <= rx_command;
+                response_sample_id <= rx_sample_id;
+                response_cycles <= 32'd0;
+                response_logits <= 64'd0;
+                response_argmax <= 8'd0;
+                response_checksum <= 32'd0;
+                response_repeat_count <= 32'd0;
+                response_start <= 1'b1;
+            end else if (rx_command == CMD_PING) begin
+                response_status <= STATUS_OK;
+                response_command <= rx_command;
+                response_sample_id <= rx_sample_id;
+                response_cycles <= 32'd0;
+                response_logits <= 64'd0;
+                response_argmax <= 8'd0;
+                response_checksum <= 32'd0;
+                response_repeat_count <= 32'd0;
+                response_start <= 1'b1;
+                result_sent <= 1'b0;
+            end else if (rx_command == CMD_LOAD_RUN && rx_payload_len == INPUT_BYTE_COUNT) begin
+                active_command <= rx_command;
+                active_sample_id <= rx_sample_id;
+                requested_repeat_count <= 32'd1;
+                runs_remaining <= 32'd1;
+                completion_armed <= 1'b0;
+                run_active <= 1'b1;
+                start_pulse <= 1'b1;
+                result_sent <= 1'b0;
+            end else if (
+                rx_command == CMD_RUN_REPEAT &&
+                rx_payload_len == 32'd4 &&
+                rx_repeat_count > 32'd0
+            ) begin
+                active_command <= rx_command;
+                active_sample_id <= rx_sample_id;
+                requested_repeat_count <= rx_repeat_count;
+                runs_remaining <= rx_repeat_count;
+                completion_armed <= 1'b0;
+                run_active <= 1'b1;
+                start_pulse <= 1'b1;
+                result_sent <= 1'b0;
+            end else begin
+                response_status <=
+                    (rx_command == CMD_LOAD_RUN || rx_command == CMD_RUN_REPEAT)
+                    ? STATUS_BAD_LENGTH : STATUS_BAD_COMMAND;
+                response_command <= rx_command;
+                response_sample_id <= rx_sample_id;
+                response_cycles <= 32'd0;
+                response_logits <= 64'd0;
+                response_argmax <= 8'd0;
+                response_checksum <= 32'd0;
+                response_repeat_count <= 32'd0;
+                response_start <= 1'b1;
+            end
+        end else if (run_active && completion_armed && inference_complete) begin
+            if (any_axil_error || watchdog_expired || runs_remaining <= 32'd1) begin
+                run_active <= 1'b0;
+                completion_armed <= 1'b0;
+                response_status <= any_axil_error ? STATUS_AXIL_ERROR :
+                    (watchdog_expired ? STATUS_WATCHDOG : STATUS_OK);
+                response_command <= active_command;
+                response_sample_id <= active_sample_id;
+                response_cycles <= current_result_cycles;
+                response_logits <= output_logits;
+                response_argmax <= output_argmax;
+                response_checksum <= output_checksum;
+                response_repeat_count <= requested_repeat_count;
+                response_start <= 1'b1;
+            end else begin
+                runs_remaining <= runs_remaining - 32'd1;
+                completion_armed <= 1'b0;
+                start_pulse <= 1'b1;
+            end
+        end
+    end
+end
+
+dynamic_validation_response u_dynamic_validation_response (
+    .clk(clk_main), .rst(!rst_n), .start(response_start),
+    .status(response_status), .command(response_command),
+    .sample_id(response_sample_id), .cycles(response_cycles),
+    .logits(response_logits), .argmax(response_argmax),
+    .checksum(response_checksum), .repeat_count(response_repeat_count),
+    .byte_valid(response_byte_valid), .byte_ready(response_byte_ready),
+    .byte_data(response_byte_data), .busy(response_busy), .done(response_done)
+);
+
+uart_tx #(.CLK_FREQ_HZ(CLK_FREQ_HZ), .BAUD(UART_BAUD)) u_dynamic_uart_tx (
+    .clk(clk_main), .rst_n(rst_n), .data(response_byte_data),
+    .valid(response_byte_valid), .ready(response_byte_ready),
+    .tx(uart_tx), .busy(uart_tx_busy)
+);
+"""
+    else:
+        start_logic = """
 reg [31:0] boot_counter = 32'd0;
 reg boot_started = 1'b0;
 wire start_pulse = (boot_counter == BOOT_DELAY_CYCLES - 1) && !boot_started;
@@ -559,9 +830,8 @@ always @(posedge clk_main or negedge rst_n) begin
         end
     end
 end
-
-{chr(10).join(axis_decls)}
-
+"""
+        source_logic = f"""
 wire source_done;
 axis_rom_source #(
     .DATA_WIDTH(INPUT_TDATA_WIDTH),
@@ -574,56 +844,10 @@ axis_rom_source #(
     .tdata(input_tdata), .tkeep(input_tkeep), .tstrb(input_tstrb), .tlast(input_tlast),
     .tvalid(input_tvalid), .tready(input_tready), .done(source_done)
 );
-
-{chr(10).join(chain_blocks)}
-
-wire sink_done;
-wire [31:0] output_checksum;
-wire [31:0] output_word_count;
-axis_checksum_sink #(
-    .DATA_WIDTH(OUTPUT_TDATA_WIDTH),
-    .KEEP_WIDTH(OUTPUT_KEEP_WIDTH),
-    .EXPECTED_WORD_COUNT(AXIS_OUTPUT_WORD_COUNT)
-) u_axis_checksum_sink (
-    .clk(clk_main), .rst_n(rst_n), .clear(start_pulse),
-    .tdata(output_tdata), .tkeep(output_tkeep), .tstrb(output_tstrb), .tlast(output_tlast),
-    .tvalid(output_tvalid), .tready(output_tready), .done(sink_done),
-    .checksum(output_checksum), .word_count(output_word_count)
-);
-
-{argmax_logic}
-
-{axil_blocks}
-
-wire [31:0] measured_cycles;
-wire counter_running;
-wire counter_done;
-wire all_axil_done = {axil_done_expr};
-wire any_axil_error = {axil_error_expr};
-wire strict_e2e_done = {completion_done_expr};
-cycle_counter u_cycle_counter (
-    .clk(clk_main), .rst_n(rst_n), .clear(start_pulse), .start(start_pulse), .stop(strict_e2e_done),
-    .cycles(measured_cycles), .running(counter_running), .done(counter_done)
-);
-
-reg [31:0] watchdog_counter = 32'd0;
-reg watchdog_expired = 1'b0;
-always @(posedge clk_main or negedge rst_n) begin
-    if (!rst_n) begin
-        watchdog_counter <= 32'd0;
-        watchdog_expired <= 1'b0;
-    end else if (start_pulse) begin
-        watchdog_counter <= 32'd0;
-        watchdog_expired <= 1'b0;
-    end else if (!strict_e2e_done && !watchdog_expired && boot_started) begin
-        if (watchdog_counter >= WATCHDOG_CYCLES) begin
-            watchdog_expired <= 1'b1;
-        end else begin
-            watchdog_counter <= watchdog_counter + 32'd1;
-        end
-    end
-end
-
+"""
+        output_logits_logic = ""
+        watchdog_active_expr = "boot_started"
+        result_logic = f"""
 reg result_sent = 1'b0;
 reg result_start = 1'b0;
 always @(posedge clk_main or negedge rst_n) begin
@@ -649,6 +873,100 @@ result_uart_tx #(.CLK_FREQ_HZ(CLK_FREQ_HZ), .BAUD(UART_BAUD)) u_result_uart_tx (
     .status_code(result_status_code), .cycles(result_cycles), .checksum(result_checksum),
     .word_count(output_word_count), .tx(uart_tx), .busy(result_tx_busy), .done(result_tx_done)
 );
+"""
+
+    top = f"""`timescale 1ns / 1ps
+
+module harness_top (
+    input  wire sys_clk_p,
+    input  wire sys_clk_n,
+    input  wire sys_rst_n,
+    input  wire uart_rx,
+    output wire uart_tx,
+    output wire [{status_led_width - 1}:0] status_led
+);
+
+localparam integer CLK_FREQ_HZ = {int(board_cfg["clock"]["freq_hz"])};
+localparam integer UART_BAUD = {uart_baud};
+localparam integer BOOT_DELAY_CYCLES = {int(defaults_cfg["boot_delay_cycles"])};
+localparam integer STATUS_LED_WIDTH = {status_led_width};
+localparam integer INPUT_TDATA_WIDTH = {input_width};
+localparam integer INPUT_KEEP_WIDTH = {input_keep};
+localparam integer INPUT_BYTE_COUNT = {input_byte_count};
+localparam integer INPUT_ADDR_WIDTH = {input_addr_width};
+localparam integer OUTPUT_TDATA_WIDTH = {output_width};
+localparam integer OUTPUT_KEEP_WIDTH = {output_keep};
+localparam integer INPUT_WORD_COUNT = {input_word_count};
+localparam integer AXIS_OUTPUT_WORD_COUNT = {axis_output_word_count};
+localparam integer CLASSIFIER_CLASS_COUNT = {classifier_class_count};
+localparam integer WATCHDOG_CYCLES = {watchdog_cycles};
+
+wire clk_ibuf;
+wire clk_main;
+IBUFDS u_sys_clk_ibufds (.I(sys_clk_p), .IB(sys_clk_n), .O(clk_ibuf));
+BUFG u_sys_clk_bufg (.I(clk_ibuf), .O(clk_main));
+
+wire rst_n;
+reset_sync u_reset_sync (.clk(clk_main), .rst_n_async(sys_rst_n), .rst_n_sync(rst_n));
+
+{start_logic}
+
+{chr(10).join(axis_decls)}
+
+{source_logic}
+
+{chr(10).join(chain_blocks)}
+
+wire sink_done;
+wire [31:0] output_checksum;
+wire [31:0] output_word_count;
+axis_checksum_sink #(
+    .DATA_WIDTH(OUTPUT_TDATA_WIDTH),
+    .KEEP_WIDTH(OUTPUT_KEEP_WIDTH),
+    .EXPECTED_WORD_COUNT(AXIS_OUTPUT_WORD_COUNT)
+) u_axis_checksum_sink (
+    .clk(clk_main), .rst_n(rst_n), .clear(start_pulse),
+    .tdata(output_tdata), .tkeep(output_tkeep), .tstrb(output_tstrb), .tlast(output_tlast),
+    .tvalid(output_tvalid), .tready(output_tready), .done(sink_done),
+    .checksum(output_checksum), .word_count(output_word_count)
+);
+
+{argmax_logic}
+
+{output_logits_logic}
+
+{axil_blocks}
+
+wire [31:0] measured_cycles;
+wire counter_running;
+wire counter_done;
+{axil_completion_logic}
+wire any_axil_error = {axil_error_expr};
+wire strict_e2e_done = {completion_done_expr};
+cycle_counter u_cycle_counter (
+    .clk(clk_main), .rst_n(rst_n), .clear(start_pulse), .start(start_pulse), .stop(strict_e2e_done),
+    .cycles(measured_cycles), .running(counter_running), .done(counter_done)
+);
+
+reg [31:0] watchdog_counter = 32'd0;
+reg watchdog_expired = 1'b0;
+always @(posedge clk_main or negedge rst_n) begin
+    if (!rst_n) begin
+        watchdog_counter <= 32'd0;
+        watchdog_expired <= 1'b0;
+    end else if (start_pulse) begin
+        watchdog_counter <= 32'd0;
+        watchdog_expired <= 1'b0;
+    end else if (!strict_e2e_done && !watchdog_expired && {watchdog_active_expr}) begin
+        if (watchdog_counter >= WATCHDOG_CYCLES) begin
+            watchdog_expired <= 1'b1;
+        end else begin
+            watchdog_counter <= watchdog_counter + 32'd1;
+        end
+    end
+end
+
+{result_logic}
 
 {param_logic}
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure PSNR/SSIM for sonar image quality or operator-preservation checks."""
+"""Measure PSNR/SSIM/MSE/SNR/EPI/ENL/SSI for sonar image quality or operator-preservation checks."""
 
 from __future__ import annotations
 
@@ -20,7 +20,11 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from hwnas_fpga.data import NKSIDDataset
-from hwnas_fpga.metrics import compute_image_quality
+from hwnas_fpga.metrics import (
+    compute_image_quality,
+    equivalent_number_of_looks,
+    speckle_suppression_index,
+)
 
 
 IMAGE_EXTENSIONS = {".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
@@ -86,17 +90,68 @@ def sobel_magnitude(image: np.ndarray) -> np.ndarray:
     return np.clip(magnitude, 0.0, 1.0)
 
 
+def _box_mean(image: np.ndarray, window: int) -> np.ndarray:
+    pad = window // 2
+    padded = np.pad(image, ((pad, pad), (pad, pad)), mode="reflect")
+    integral = np.pad(padded, ((1, 0), (1, 0)), mode="constant").cumsum(axis=0).cumsum(axis=1)
+    window_sum = (
+        integral[window:, window:]
+        - integral[:-window, window:]
+        - integral[window:, :-window]
+        + integral[:-window, :-window]
+    )
+    return window_sum / float(window * window)
+
+
+def lee_filter(image: np.ndarray, window: int = 5) -> np.ndarray:
+    """经典 Lee 斑点滤波：均匀区取局部均值，边缘/目标区保留原值。
+
+    乘性噪声系数 Cu^2 用 var/mean^2 的中值估计（均匀区主导中值），
+    无需外部视数参数。out = mean + k*(x-mean)，k = var_signal/var。
+    """
+    eps = np.finfo(np.float64).eps
+    mean = _box_mean(image, window)
+    mean_sq = _box_mean(image * image, window)
+    var = np.maximum(mean_sq - mean * mean, 0.0)
+    cu2 = float(np.median(var / np.maximum(mean * mean, eps)))
+    noise_var = cu2 * mean * mean
+    signal_var = np.maximum(var - noise_var, 0.0)
+    k = signal_var / np.maximum(var, eps)
+    return np.clip(mean + k * (image - mean), 0.0, 1.0)
+
+
 def apply_transform(image: np.ndarray, transform_name: str) -> np.ndarray:
     name = transform_name.strip().lower()
     if name == "identity":
         return image.copy()
     if name == "denoise":
         return gaussian_denoise(image)
+    if name == "lee":
+        return lee_filter(image)
     if name == "edge":
         return sobel_magnitude(image)
     if name == "edge_enhanced":
         return np.clip(0.75 * image + 0.25 * sobel_magnitude(image), 0.0, 1.0)
     raise ValueError(f"unsupported transform: {transform_name}")
+
+
+METRIC_FIELDS = ("psnr", "ssim", "mse", "snr", "epi", "ssi", "enl_reference", "enl_candidate")
+
+
+def quality_fields(reference: np.ndarray, candidate: np.ndarray) -> dict[str, float]:
+    quality = compute_image_quality(reference, candidate)
+    return {
+        "psnr": quality.psnr,
+        "ssim": quality.ssim,
+        "mse": quality.mse,
+        "snr": quality.snr,
+        "epi": quality.epi,
+        # SSI 以 reference 为 noisy、candidate 为 filtered；仅在
+        # input_as_reference 协议下具有斑点抑制语义。
+        "ssi": speckle_suppression_index(reference, candidate),
+        "enl_reference": equivalent_number_of_looks(reference),
+        "enl_candidate": equivalent_number_of_looks(candidate),
+    }
 
 
 def clean_number(value: Any) -> Any:
@@ -164,7 +219,6 @@ def dataset_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[s
         class_name = dataset.label_to_class.get(label, str(label))
         for transform_name in transforms:
             candidate = apply_transform(reference, transform_name)
-            quality = compute_image_quality(reference, candidate)
             rows.append(
                 {
                     "mode": "dataset_transform",
@@ -174,9 +228,7 @@ def dataset_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[s
                     "class_name": class_name,
                     "label": label,
                     "image_path": str(path),
-                    "psnr": quality.psnr,
-                    "ssim": quality.ssim,
-                    "mse": quality.mse,
+                    **quality_fields(reference, candidate),
                 }
             )
     metadata = {
@@ -208,7 +260,6 @@ def paired_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[st
             continue
         reference = image_to_float01(ref_path, image_size=args.image_size)
         candidate = image_to_float01(cand_path, image_size=args.image_size)
-        quality = compute_image_quality(reference, candidate)
         rows.append(
             {
                 "mode": "paired",
@@ -218,9 +269,7 @@ def paired_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[st
                 "class_name": rel_path.parts[0] if len(rel_path.parts) > 1 else "",
                 "label": "",
                 "image_path": str(rel_path),
-                "psnr": quality.psnr,
-                "ssim": quality.ssim,
-                "mse": quality.mse,
+                **quality_fields(reference, candidate),
             }
         )
     metadata = {
@@ -235,6 +284,22 @@ def paired_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[st
     return rows, metadata
 
 
+def metric_stats(group_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    stats: dict[str, Any] = {}
+    for metric in METRIC_FIELDS:
+        summary = summarize(float(row[metric]) for row in group_rows)
+        stats[f"{metric}_mean"] = summary["mean"]
+        stats[f"{metric}_std"] = summary["std"]
+    psnr_summary = summarize(float(row["psnr"]) for row in group_rows)
+    ssim_summary = summarize(float(row["ssim"]) for row in group_rows)
+    stats["psnr_min"] = psnr_summary["min"]
+    stats["psnr_max"] = psnr_summary["max"]
+    stats["psnr_inf_count"] = psnr_summary["inf_count"]
+    stats["ssim_min"] = ssim_summary["min"]
+    stats["ssim_max"] = ssim_summary["max"]
+    return stats
+
+
 def build_summary(rows: list[dict[str, Any]], metadata: dict[str, Any]) -> dict[str, Any]:
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
@@ -242,24 +307,12 @@ def build_summary(rows: list[dict[str, Any]], metadata: dict[str, Any]) -> dict[
 
     summary_rows: list[dict[str, Any]] = []
     for (transform_name, class_name), group_rows in sorted(grouped.items()):
-        psnr_stats = summarize(float(row["psnr"]) for row in group_rows)
-        ssim_stats = summarize(float(row["ssim"]) for row in group_rows)
-        mse_stats = summarize(float(row["mse"]) for row in group_rows)
         summary_rows.append(
             {
                 "transform": transform_name,
                 "class_name": class_name,
                 "sample_count": len(group_rows),
-                "psnr_mean": psnr_stats["mean"],
-                "psnr_std": psnr_stats["std"],
-                "psnr_min": psnr_stats["min"],
-                "psnr_max": psnr_stats["max"],
-                "psnr_inf_count": psnr_stats["inf_count"],
-                "ssim_mean": ssim_stats["mean"],
-                "ssim_std": ssim_stats["std"],
-                "ssim_min": ssim_stats["min"],
-                "ssim_max": ssim_stats["max"],
-                "mse_mean": mse_stats["mean"],
+                **metric_stats(group_rows),
             }
         )
 
@@ -268,23 +321,11 @@ def build_summary(rows: list[dict[str, Any]], metadata: dict[str, Any]) -> dict[
     for row in rows:
         by_transform[str(row["transform"])].append(row)
     for transform_name, group_rows in sorted(by_transform.items()):
-        psnr_stats = summarize(float(row["psnr"]) for row in group_rows)
-        ssim_stats = summarize(float(row["ssim"]) for row in group_rows)
-        mse_stats = summarize(float(row["mse"]) for row in group_rows)
         overall_rows.append(
             {
                 "transform": transform_name,
                 "sample_count": len(group_rows),
-                "psnr_mean": psnr_stats["mean"],
-                "psnr_std": psnr_stats["std"],
-                "psnr_min": psnr_stats["min"],
-                "psnr_max": psnr_stats["max"],
-                "psnr_inf_count": psnr_stats["inf_count"],
-                "ssim_mean": ssim_stats["mean"],
-                "ssim_std": ssim_stats["std"],
-                "ssim_min": ssim_stats["min"],
-                "ssim_max": ssim_stats["max"],
-                "mse_mean": mse_stats["mean"],
+                **metric_stats(group_rows),
             }
         )
     return {"metadata": metadata, "overall": overall_rows, "by_class": summary_rows}
@@ -298,11 +339,12 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- mode: `{metadata.get('mode')}`",
         f"- reference_policy: `{metadata.get('reference_policy')}`",
         f"- samples: `{metadata.get('samples')}`",
-        "- boundary: PSNR/SSIM are image-quality or structure-preservation metrics; they are not classification accuracy.",
+        "- boundary: PSNR/SSIM/SNR/EPI are image-quality or structure-preservation metrics; they are not classification accuracy.",
         "- boundary: input_as_reference does not prove denoising restoration quality without clean/noisy paired ground truth.",
+        "- boundary: SSI/ENL treat the reference as the noisy input; they only have speckle-suppression semantics under input_as_reference.",
         "",
-        "| transform | samples | PSNR mean | PSNR std | SSIM mean | SSIM std | MSE mean |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| transform | samples | PSNR mean | PSNR std | SSIM mean | SSIM std | MSE mean | SNR mean | EPI mean | SSI mean | ENL cand mean |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in payload["overall"]:
         def fmt(value: Any) -> Any:
@@ -312,7 +354,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             return value
 
         lines.append(
-            "| {transform} | {sample_count} | {psnr_mean} | {psnr_std} | {ssim_mean} | {ssim_std} | {mse_mean} |".format(
+            "| {transform} | {sample_count} | {psnr_mean} | {psnr_std} | {ssim_mean} | {ssim_std} | {mse_mean} | {snr_mean} | {epi_mean} | {ssi_mean} | {enl_candidate_mean} |".format(
                 transform=row["transform"],
                 sample_count=row["sample_count"],
                 psnr_mean=fmt(row["psnr_mean"]),
@@ -320,6 +362,10 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
                 ssim_mean=fmt(row["ssim_mean"]),
                 ssim_std=fmt(row["ssim_std"]),
                 mse_mean=fmt(row["mse_mean"]),
+                snr_mean=fmt(row["snr_mean"]),
+                epi_mean=fmt(row["epi_mean"]),
+                ssi_mean=fmt(row["ssi_mean"]),
+                enl_candidate_mean=fmt(row["enl_candidate_mean"]),
             )
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -342,47 +388,52 @@ def main() -> None:
         json.dumps(clean_number(payload), indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+    summary_stat_fields = [
+        "psnr_mean",
+        "psnr_std",
+        "psnr_min",
+        "psnr_max",
+        "psnr_inf_count",
+        "ssim_mean",
+        "ssim_std",
+        "ssim_min",
+        "ssim_max",
+        "mse_mean",
+        "mse_std",
+        "snr_mean",
+        "snr_std",
+        "epi_mean",
+        "epi_std",
+        "ssi_mean",
+        "ssi_std",
+        "enl_reference_mean",
+        "enl_reference_std",
+        "enl_candidate_mean",
+        "enl_candidate_std",
+    ]
     write_csv(
         output_dir / "sonar_image_quality_per_image.csv",
         rows,
-        ["mode", "reference_policy", "transform", "sample_index", "class_name", "label", "image_path", "psnr", "ssim", "mse"],
+        [
+            "mode",
+            "reference_policy",
+            "transform",
+            "sample_index",
+            "class_name",
+            "label",
+            "image_path",
+            *METRIC_FIELDS,
+        ],
     )
     write_csv(
         output_dir / "sonar_image_quality_overall.csv",
         payload["overall"],
-        [
-            "transform",
-            "sample_count",
-            "psnr_mean",
-            "psnr_std",
-            "psnr_min",
-            "psnr_max",
-            "psnr_inf_count",
-            "ssim_mean",
-            "ssim_std",
-            "ssim_min",
-            "ssim_max",
-            "mse_mean",
-        ],
+        ["transform", "sample_count", *summary_stat_fields],
     )
     write_csv(
         output_dir / "sonar_image_quality_by_class.csv",
         payload["by_class"],
-        [
-            "transform",
-            "class_name",
-            "sample_count",
-            "psnr_mean",
-            "psnr_std",
-            "psnr_min",
-            "psnr_max",
-            "psnr_inf_count",
-            "ssim_mean",
-            "ssim_std",
-            "ssim_min",
-            "ssim_max",
-            "mse_mean",
-        ],
+        ["transform", "class_name", "sample_count", *summary_stat_fields],
     )
     write_markdown(output_dir / "sonar_image_quality_summary.md", payload)
     print(json.dumps({"status": "PASS", "output_dir": str(output_dir), "samples": metadata.get("samples")}, ensure_ascii=False, indent=2))

@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "status": "manifest_frozen_cpu_benchmark_completed",
+  "gate_status": "not_ready",
+  "manifest_path": "results/proxy_reliability_gate0/manifest_v2/architecture_manifest.json",
+  "manifest_fingerprint": "26a51d24124f4013d63f62619ca2bf12bd92eaf184fe38f79afbea0725382c9d",
+  "protocol_path": "configs/audit/proxy_reliability_gate0_v2.yaml",
+  "protocol_sha256": "0c9c4e7ba69e9280fcb1df8b488daea0d7a238c74381840801235057dbd1e90f",
+  "source_config_sha256": "593b436ce3b63f566133a9ed2748309a386c48e27fce7a27642c1ad5d9fcb99f",
+  "candidate_count": 48,
+  "work_unit_count": 1200,
+  "scheduler_policy": "prefix_consistent_single_trajectory_constant_lr",
+  "budgets": [
+    0,
+    1,
+    3,
+    10,
+    30,
+    150
+  ],
+  "truth_budget": 150,
+  "batch_size": 32,
+  "stage_counts": {
+    "phase_a_signal_discovery": 240,
+    "phase_b_fold_robustness": 192,
+    "phase_c_full_confirmation": 768
+  },
+  "fold_seed_cell_count": 25,
+  "v1_independent_training_epochs": 232800,
+  "v2_prefix_training_epochs": 180000,
+  "formal_completed_work_units": 0,
+  "benchmark": {
+    "status": "benchmark_completed",
+    "formal_eligible": false,
+    "device": "cpu",
+    "max_budget": 1,
+    "architecture_count": 3,
+    "epoch_seconds": {
+      "min_complexity": 47.51346600000397,
+      "median_complexity": 58.68074070000148,
+      "max_complexity": 80.06807190000836,
+      "mean": 62.08742620000461
+    },
+    "outer_evaluation_performed": false
+  }
+}

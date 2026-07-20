@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+"""Build the frozen sample-level NKSID 5-known/3-unknown manifest."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import sys
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Sequence
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from hwnas_fpga.benchmarks.open_set import load_open_set_spec
+from hwnas_fpga.data.dataset import NKSIDDataset
+from hwnas_fpga.data.protocol import build_protocol_split
+from hwnas_fpga.training.protocol_reporting import canonical_sha256
+
+
+FOLDS = tuple(range(5))
+SEEDS = (42, 43, 44)
+SPLIT_FILES = ("train_abs.txt", "kfold_train.txt", "kfold_val.txt")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def atomic_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8", newline="")
+    os.replace(temporary, path)
+
+
+def counts(indices: Sequence[int], samples: Sequence[tuple[str, int]], class_names: Sequence[str]) -> dict[str, int]:
+    observed = Counter(int(samples[index][1]) for index in indices)
+    return {name: int(observed.get(class_id, 0)) for class_id, name in enumerate(class_names)}
+
+
+def source_freeze_binding(path: Path, protocol_path: Path, evaluation_path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    entries = {str(row["path"]): row for row in payload.get("files", [])}
+    for source in (protocol_path, evaluation_path):
+        relative = source.resolve().relative_to(PROJECT_ROOT).as_posix()
+        entry = entries.get(relative)
+        if entry is None or entry.get("sha256") != sha256_file(source):
+            raise ValueError(f"source file is not bound by the source freeze: {relative}")
+    archive = dict(payload.get("archive") or {})
+    archive_path = Path(str(archive.get("path") or ""))
+    if not archive_path.is_file() or sha256_file(archive_path) != archive.get("sha256"):
+        raise ValueError("source-freeze archive binding is invalid")
+    return {
+        "path": str(path.resolve()),
+        "manifest_sha256": sha256_file(path),
+        "file_count": int(payload.get("file_count") or 0),
+        "git_head": str((payload.get("git") or {}).get("head") or ""),
+        "archive_path": str(archive_path.resolve()),
+        "archive_sha256": str(archive.get("sha256")),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-dir", required=True)
+    parser.add_argument("--protocol", required=True)
+    parser.add_argument("--evaluation-protocol", required=True)
+    parser.add_argument("--source-freeze", required=True)
+    parser.add_argument("--inner-val-fraction", type=float, default=0.15)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    data_dir = Path(args.data_dir).resolve()
+    protocol_path = Path(args.protocol).resolve()
+    evaluation_path = Path(args.evaluation_protocol).resolve()
+    source_freeze_path = Path(args.source_freeze).resolve()
+    output = Path(args.output).resolve()
+    if not 0.0 < args.inner_val_fraction < 1.0:
+        raise ValueError("inner-val-fraction must be in (0,1)")
+
+    dataset = NKSIDDataset(
+        data_dir=str(data_dir),
+        image_size=224,
+        is_training=False,
+        fold=0,
+        use_kfold=False,
+        split="full",
+        output_channels=1,
+        image_error_policy="raise",
+    )
+    samples = list(dataset.samples)
+    class_names = tuple(dataset.classes)
+    if len(samples) != 2617 or len(class_names) != 8:
+        raise ValueError(f"unexpected NKSID shape: samples={len(samples)}, classes={class_names}")
+
+    sample_rows = []
+    for index, (path_value, label_value) in enumerate(samples):
+        path = Path(path_value).resolve()
+        label = int(label_value)
+        if not path.is_file() or label < 0 or label >= len(class_names):
+            raise ValueError(f"invalid dataset sample {index}: {path}/{label}")
+        sample_rows.append({
+            "sample_index": index,
+            "relative_path": path.relative_to(data_dir).as_posix(),
+            "sample_id": str(path),
+            "target": label,
+            "class_name": class_names[label],
+            "bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        })
+    if len({row["sample_id"] for row in sample_rows}) != len(sample_rows):
+        raise ValueError("dataset sample IDs are not unique")
+
+    units = []
+    outer_by_fold: dict[int, tuple[int, ...]] = {}
+    for fold in FOLDS:
+        spec = load_open_set_spec(protocol_path, fold=fold, observed_classes=class_names)
+        known = set(spec.known_class_ids)
+        for seed in SEEDS:
+            split = build_protocol_split(
+                samples,
+                data_dir,
+                fold_index=fold,
+                seed=seed,
+                inner_val_fraction=args.inner_val_fraction,
+                num_classes=len(class_names),
+            )
+            train_known = tuple(
+                index for index in split.train_indices if int(samples[index][1]) in known
+            )
+            inner_known = tuple(
+                index for index in split.inner_val_indices if int(samples[index][1]) in known
+            )
+            outer = tuple(split.outer_val_indices)
+            outer_known = tuple(index for index in outer if int(samples[index][1]) in known)
+            outer_unknown = tuple(index for index in outer if int(samples[index][1]) not in known)
+            if not train_known or not inner_known or not outer_known or not outer_unknown:
+                raise ValueError(f"empty known/unknown partition fold={fold}, seed={seed}")
+            if any(int(samples[index][1]) not in known for index in (*train_known, *inner_known)):
+                raise ValueError("unknown-class sample leaked into known-only train/inner")
+            if set(outer_known) & set(outer_unknown) or set(outer_known) | set(outer_unknown) != set(outer):
+                raise ValueError("outer known/unknown partition is invalid")
+            if fold in outer_by_fold and outer_by_fold[fold] != outer:
+                raise ValueError(f"outer fold changes across seeds: fold={fold}")
+            outer_by_fold[fold] = outer
+            units.append({
+                "fold": fold,
+                "seed": seed,
+                "protocol": spec.to_dict(),
+                "base_split_sha256": canonical_sha256(split.to_dict()),
+                "base_counts": {
+                    "train": len(split.train_indices),
+                    "inner_val": len(split.inner_val_indices),
+                    "outer_val": len(split.outer_val_indices),
+                },
+                "known_only_counts": {
+                    "train": len(train_known),
+                    "inner_val": len(inner_known),
+                    "outer_known": len(outer_known),
+                    "outer_unknown": len(outer_unknown),
+                },
+                "known_train_indices": list(train_known),
+                "known_inner_val_indices": list(inner_known),
+                "outer_val_indices": list(outer),
+                "outer_known_indices": list(outer_known),
+                "outer_unknown_indices": list(outer_unknown),
+                "known_train_class_counts": counts(train_known, samples, class_names),
+                "known_inner_class_counts": counts(inner_known, samples, class_names),
+                "outer_all_class_counts": counts(outer, samples, class_names),
+                "unit_membership_sha256": canonical_sha256({
+                    "known_train_indices": train_known,
+                    "known_inner_val_indices": inner_known,
+                    "outer_val_indices": outer,
+                    "known_class_ids": spec.known_class_ids,
+                    "unknown_class_ids": spec.unknown_class_ids,
+                }),
+            })
+
+    for seed in SEEDS:
+        sets = [set(unit["outer_val_indices"]) for unit in units if unit["seed"] == seed]
+        if len(sets) != 5 or any(left & right for index, left in enumerate(sets) for right in sets[index + 1:]):
+            raise ValueError(f"outer folds overlap for seed={seed}")
+        if len(set().union(*sets)) != len(samples):
+            raise ValueError(f"outer-fold union is incomplete for seed={seed}")
+
+    split_bindings = []
+    for name in SPLIT_FILES:
+        path = data_dir / name
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        split_bindings.append({
+            "name": name,
+            "path": str(path),
+            "sha256": sha256_file(path),
+            "bytes": path.stat().st_size,
+        })
+    freeze = source_freeze_binding(source_freeze_path, protocol_path, evaluation_path)
+    manifest = {
+        "schema_version": 1,
+        "generated": datetime.now(timezone.utc).isoformat(),
+        "campaign_id": "ccf_ab_nksid_av7k325_v1",
+        "task": "open_long_tail",
+        "protocol_path": str(protocol_path),
+        "protocol_sha256": sha256_file(protocol_path),
+        "evaluation_protocol_path": str(evaluation_path),
+        "evaluation_protocol_sha256": sha256_file(evaluation_path),
+        "source_freeze": freeze,
+        "generator": {
+            "path": str(Path(__file__).resolve()),
+            "sha256": sha256_file(Path(__file__).resolve()),
+        },
+        "dataset_root": str(data_dir),
+        "dataset_sample_count": len(samples),
+        "class_names": list(class_names),
+        "class_counts": counts(range(len(samples)), samples, class_names),
+        "split_files": split_bindings,
+        "inner_val_fraction": args.inner_val_fraction,
+        "folds": list(FOLDS),
+        "seeds": list(SEEDS),
+        "unit_count": len(units),
+        "samples": sample_rows,
+        "units": units,
+        "claimability_status": "FROZEN_INPUT_NOT_RESULT",
+        "boundary": (
+            "This manifest freezes class and sample membership only. It contains no predictions, thresholds or performance results. "
+            "All CE+MSP, DMCL and PLUD formal runs must bind this exact manifest after canonical integration."
+        ),
+    }
+    atomic_write(output, json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    print(json.dumps({
+        "status": "PASS",
+        "output": str(output),
+        "sha256": sha256_file(output),
+        "samples": len(samples),
+        "units": len(units),
+        "formal_result_increment": 0,
+    }, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

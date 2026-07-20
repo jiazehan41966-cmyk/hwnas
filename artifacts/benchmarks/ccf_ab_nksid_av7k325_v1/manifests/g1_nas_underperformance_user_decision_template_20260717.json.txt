@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "user_decision_recorded": false,
+  "recorded_at": null,
+  "pause_manifest_sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86",
+  "resume_nas_to_15": null,
+  "continue_downstream_closed_set_chain": null,
+  "allow_protocol_or_candidate_change": null,
+  "decision_note": null,
+  "boundary": "This is a non-executable template. The wrapper reads only g1_nas_underperformance_user_decision_20260717.json.txt, which must be created after an explicit user decision."
+}

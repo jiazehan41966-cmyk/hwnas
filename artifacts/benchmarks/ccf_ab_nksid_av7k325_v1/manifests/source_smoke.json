@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "generated": "2026-07-15T14:31:13",
+  "python": ".venv_cuda\\Scripts\\python.exe",
+  "records": [
+    {
+      "paper_id": "hw_pr_nas_2023",
+      "mode": "source_completeness_audit",
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\HW-PR-NAS",
+      "files": [
+        "compute_metrics.py",
+        "search_algo.py",
+        "test.py"
+      ],
+      "status": "BLOCKED_OFFICIAL_CODE_INCOMPLETE",
+      "formal_eligible": false,
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "readme_listed_files_missing:['surrogate_models/base_surrogate.py', 'surrogate_models/accuracy_predictor.py', 'surrogate_models/latency_predictor.py', 'surrogate_models/energy_predictor.py']",
+      "expected_files": [
+        "surrogate_models/base_surrogate.py",
+        "surrogate_models/accuracy_predictor.py",
+        "surrogate_models/latency_predictor.py",
+        "surrogate_models/energy_predictor.py"
+      ],
+      "missing_expected_files": [
+        "surrogate_models/base_surrogate.py",
+        "surrogate_models/accuracy_predictor.py",
+        "surrogate_models/latency_predictor.py",
+        "surrogate_models/energy_predictor.py"
+      ],
+      "executed_mode": "source_compile_plus_readme_completeness_audit",
+      "command": [
+        ".venv_cuda\\Scripts\\python.exe",
+        "-c",
+        "import sys; from tokenize import open as source_open; [compile(source_open(path).read(), path, 'exec') for path in sys.argv[1:]]",
+        "compute_metrics.py",
+        "search_algo.py",
+        "test.py"
+      ]
+    },
+    {
+      "paper_id": "sure_2024",
+      "mode": "py_compile",
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\_local\\SURE",
+      "files": [
+        "main.py",
+        "train.py",
+        "valid.py",
+        "test.py"
+      ],
+      "status": "PASS",
+      "formal_eligible": false,
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "executed_mode": "source_compile_no_bytecode",
+      "command": [
+        ".venv_cuda\\Scripts\\python.exe",
+        "-c",
+        "import sys; from tokenize import open as source_open; [compile(source_open(path).read(), path, 'exec') for path in sys.argv[1:]]",
+        "main.py",
+        "train.py",
+        "valid.py",
+        "test.py"
+      ]
+    },
+    {
+      "paper_id": "harp_2023",
+      "mode": "py_compile",
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\HARP",
+      "files": [
+        "src/main.py",
+        "src/model.py",
+        "src/data.py"
+      ],
+      "status": "PASS",
+      "formal_eligible": false,
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "executed_mode": "source_compile_no_bytecode",
+      "command": [
+        ".venv_cuda\\Scripts\\python.exe",
+        "-c",
+        "import sys; from tokenize import open as source_open; [compile(source_open(path).read(), path, 'exec') for path in sys.argv[1:]]",
+        "src/main.py",
+        "src/model.py",
+        "src/data.py"
+      ]
+    },
+    {
+      "paper_id": "esda_2024",
+      "mode": "py_compile",
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\ESDA",
+      "files": [
+        "software/main.py",
+        "software/int_inference.py",
+        "software/search_sw.py"
+      ],
+      "status": "PASS",
+      "formal_eligible": false,
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "executed_mode": "source_compile_no_bytecode",
+      "command": [
+        ".venv_cuda\\Scripts\\python.exe",
+        "-c",
+        "import sys; from tokenize import open as source_open; [compile(source_open(path).read(), path, 'exec') for path in sys.argv[1:]]",
+        "software/main.py",
+        "software/int_inference.py",
+        "software/search_sw.py"
+      ]
+    },
+    {
+      "paper_id": "dmcl_sonar_oltr_2025",
+      "mode": "archive_audit",
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR",
+      "files": [
+        "Sonar-OLTR-main.rar"
+      ],
+      "status": "PASS_SOURCE_PRESENT",
+      "formal_eligible": false,
+      "returncode": null,
+      "stdout": "",
+      "stderr": "license_unverified_method_adapter_pending",
+      "archives": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\Sonar-OLTR-main.rar",
+          "size_bytes": 6359379,
+          "sha256": "4bd5158c491821bb1de3138856344949ca3ce1747f033601809d30774e7d5a61"
+        }
+      ],
+      "extracted_sources": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\dmcl.py",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/code/dmcl.py",
+          "size_bytes": 11219,
+          "sha256": "e2debfde4b8ee177d22eb53e6c573fef5b3e8e00d54b8a9ca208d74ac4362a61"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\plud.py",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/code/plud.py",
+          "size_bytes": 12327,
+          "sha256": "20521b02ac4e8a2a03537da98b6db453a7b1594c6f6f99069fcf746e9c2bede5"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/code/my_utils.py",
+          "size_bytes": 36505,
+          "sha256": "bbf4188bdc3fa50a04ba805bec1a22b94bfbae7220d49d4b65c209e6e050dd47"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\README_zh.md",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/README_zh.md",
+          "size_bytes": 7912,
+          "sha256": "c5f2a8a54422b35e9e348498bd3ad4ee1fc4dd9b30cb1a381fae012082df5ee6"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\requirements.txt",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/requirements.txt",
+          "size_bytes": 167,
+          "sha256": "6cb33e9e0c4bad5383fa62b9369f1270027d3694c48fb29c56acad5e1938d418"
+        }
+      ],
+      "extracted_compile": {
+        "command": [
+          ".venv_cuda\\Scripts\\python.exe",
+          "-c",
+          "import sys; from tokenize import open as source_open; [compile(source_open(path).read(), path, 'exec') for path in sys.argv[1:]]",
+          "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\dmcl.py",
+          "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\plud.py",
+          "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py:664: SyntaxWarning: \"is\" with 'str' literal. Did you mean \"==\"?\n  if use_single_metric is 'gmean':\nE:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py:666: SyntaxWarning: \"is\" with 'str' literal. Did you mean \"==\"?\n  elif use_single_metric is 'acc':\n"
+      },
+      "missing_extracted_patterns": []
+    },
+    {
+      "paper_id": "plud_sonar_oltr_2024",
+      "mode": "archive_audit",
+      "checkout": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR",
+      "files": [
+        "Sonar-OLTR-main.rar"
+      ],
+      "status": "PASS_SOURCE_PRESENT",
+      "formal_eligible": false,
+      "returncode": null,
+      "stdout": "",
+      "stderr": "license_unverified_method_adapter_pending",
+      "archives": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\Sonar-OLTR-main.rar",
+          "size_bytes": 6359379,
+          "sha256": "4bd5158c491821bb1de3138856344949ca3ce1747f033601809d30774e7d5a61"
+        }
+      ],
+      "extracted_sources": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\plud.py",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/code/plud.py",
+          "size_bytes": 12327,
+          "sha256": "20521b02ac4e8a2a03537da98b6db453a7b1594c6f6f99069fcf746e9c2bede5"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/code/my_utils.py",
+          "size_bytes": 36505,
+          "sha256": "bbf4188bdc3fa50a04ba805bec1a22b94bfbae7220d49d4b65c209e6e050dd47"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\README_zh.md",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/README_zh.md",
+          "size_bytes": 7912,
+          "sha256": "c5f2a8a54422b35e9e348498bd3ad4ee1fc4dd9b30cb1a381fae012082df5ee6"
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\requirements.txt",
+          "relative_path": "extracted/Sonar-OLTR-main - 副本/requirements.txt",
+          "size_bytes": 167,
+          "sha256": "6cb33e9e0c4bad5383fa62b9369f1270027d3694c48fb29c56acad5e1938d418"
+        }
+      ],
+      "extracted_compile": {
+        "command": [
+          ".venv_cuda\\Scripts\\python.exe",
+          "-c",
+          "import sys; from tokenize import open as source_open; [compile(source_open(path).read(), path, 'exec') for path in sys.argv[1:]]",
+          "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\plud.py",
+          "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "E:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py:664: SyntaxWarning: \"is\" with 'str' literal. Did you mean \"==\"?\n  if use_single_metric is 'gmean':\nE:\\1\\hwnas\\hwnas\\reference\\_local\\Sonar-OLTR\\extracted\\Sonar-OLTR-main - 副本\\code\\my_utils.py:666: SyntaxWarning: \"is\" with 'str' literal. Did you mean \"==\"?\n  elif use_single_metric is 'acc':\n"
+      },
+      "missing_extracted_patterns": []
+    }
+  ],
+  "all_source_checks_pass": false,
+  "claim_boundary": "In-memory source compilation is a syntax smoke, not a paper reproduction or local benchmark result."
+}

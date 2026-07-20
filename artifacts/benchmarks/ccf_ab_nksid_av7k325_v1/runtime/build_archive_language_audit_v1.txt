@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""生成 campaign 人类可读 Markdown 档案的中文覆盖审计。"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+from pathlib import Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def has_chinese(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def priority(relative: str) -> str:
+    name = relative.lower()
+    if any(token in name for token in ("campaign_evidence_matrix", "formal_readiness", "g1_nas_underperformance_pause", "g1_persistent_execution")):
+        return "P0：当前状态与用户决策"
+    if any(token in name for token in ("contract", "protocol", "t1_", "t6_", "t7_", "t8_", "statistical")):
+        return "P1：正式协议与图表合同"
+    return "P2：历史运行与开发记录"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-root", required=True)
+    args = parser.parse_args()
+    root = Path(args.campaign_root).resolve()
+    manifests = root / "manifests"
+    output_stem = "archive_language_audit_v1"
+    policy_path = manifests / "experiment_archive_language_policy_20260717.json.txt"
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    if policy["language"] != "zh-CN":
+        raise AssertionError("中文归档规则未启用")
+
+    rows: list[dict[str, object]] = []
+    for path in sorted(root.rglob("*.md")):
+        if path.name.startswith(output_stem):
+            continue
+        text = path.read_text(encoding="utf-8")
+        relative = path.relative_to(root).as_posix()
+        chinese = has_chinese(text)
+        replacement = "�" in text
+        companion = path.with_name(path.stem + ".zh-CN.md")
+        companion_exists = (not chinese) and companion.is_file()
+        if replacement:
+            status = "失败：存在乱码"
+            action = "立即修复后重新审计"
+        elif chinese:
+            status = "符合：含中文人类可读内容"
+            action = "保留并在重建时继续执行中文规则"
+        elif companion_exists:
+            status = "历史英文原件：中文伴随档案已建立"
+            action = "英文原件保持只读；使用已绑定 SHA 的中文伴随档案"
+        else:
+            status = "历史英文原件：待中文伴随档案"
+            action = "保留原 SHA，不直接改写；补充完整中文伴随档案"
+        rows.append({
+            "path": relative,
+            "bytes": path.stat().st_size,
+            "lines": len(text.splitlines()),
+            "sha256": sha256_file(path),
+            "has_chinese": chinese,
+            "has_replacement_character": replacement,
+            "companion_path": companion.relative_to(root).as_posix() if companion_exists else "",
+            "companion_sha256": sha256_file(companion) if companion_exists else "",
+            "priority": priority(relative),
+            "status_zh": status,
+            "required_action_zh": action,
+        })
+
+    csv_path = manifests / f"{output_stem}.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    chinese_count = sum(bool(row["has_chinese"]) for row in rows)
+    legacy_total = sum(not bool(row["has_chinese"]) for row in rows)
+    legacy_with_companion = sum(bool(row["companion_path"]) for row in rows)
+    legacy_pending = legacy_total - legacy_with_companion
+    corrupted_count = sum(bool(row["has_replacement_character"]) for row in rows)
+    legacy_rows = sorted(
+        (row for row in rows if not row["has_chinese"] and not row["companion_path"]),
+        key=lambda row: (str(row["priority"]), str(row["path"])),
+    )
+    coverage_status_line = (
+        "- 当前状态：`PASS_ALL_HUMAN_ARCHIVES_CHINESE_OR_BOUND_COMPANION`；全部历史英文原件均已建立绑定 SHA 的中文伴随档案。"
+        if legacy_pending == 0
+        else "- 当前状态：`PARTIAL_LEGACY_TRANSLATION_PENDING`；不能声明所有历史档案已完成中文化。"
+    )
+    report_lines = [
+        "# 实验档案中文覆盖审计 v1",
+        "",
+        "## 审计范围",
+        "",
+        f"本次审计覆盖 campaign `ccf_ab_nksid_av7k325_v1` 下除本审计自身外的 `{len(rows)}` 个 Markdown 人类可读档案。机器可读字段名、命令、路径、指标名和状态枚举不要求翻译。",
+        "",
+        "## 结果",
+        "",
+        f"- 已含中文人类可读内容：`{chinese_count}` 个。",
+        f"- 历史英文原件总数：`{legacy_total}` 个。",
+        f"- 已建立并绑定中文伴随档案：`{legacy_with_companion}` 个。",
+        f"- 仍需中文伴随档案：`{legacy_pending}` 个。",
+        f"- 检测到替换字符或乱码：`{corrupted_count}` 个。",
+        coverage_status_line,
+        "",
+        "## 处理原则",
+        "",
+        "历史英文原件属于已存在的来源证据。直接改写可能破坏已有 SHA256、审计卡和引用链，因此原件保持只读；每个原件应补充完整中文伴随档案，并绑定原件路径与 SHA256。所有新建或重建的正式报告、表格、图片、caption、限制和决策记录必须直接使用中文。",
+        "",
+        "## 待补中文伴随档案",
+        "",
+        "| 优先级 | 历史原件 | 行数 | SHA256 |",
+        "|---|---|---:|---|",
+    ]
+    for row in legacy_rows:
+        report_lines.append(
+            f"| {row['priority']} | `{row['path']}` | {row['lines']} | `{row['sha256']}` |"
+        )
+    report_lines.extend([
+        "",
+        "## 证据边界",
+        "",
+        "本审计只度量语言覆盖，不改变实验数据、结果、Gate、source freeze 或可声明范围；补充中文伴随档案也不得被解释为实验完成。",
+        "",
+    ])
+    report_path = manifests / f"{output_stem}.md"
+    report_path.write_text("\n".join(report_lines), encoding="utf-8", newline="")
+
+    manifest = {
+        "schema_version": 1,
+        "status": (
+            "FAIL_ENCODING_CORRUPTION" if corrupted_count
+            else "PASS_ALL_HUMAN_ARCHIVES_CHINESE_OR_BOUND_COMPANION" if legacy_pending == 0
+            else "PASS_AUDIT_PARTIAL_LEGACY_TRANSLATION_PENDING"
+        ),
+        "language": "zh-CN",
+        "campaign_id": "ccf_ab_nksid_av7k325_v1",
+        "scope": "Markdown 人类可读档案",
+        "files_audited": len(rows),
+        "files_with_chinese": chinese_count,
+        "legacy_english_files_total": legacy_total,
+        "legacy_english_files_with_companion": legacy_with_companion,
+        "legacy_english_files_pending_companion": legacy_pending,
+        "files_with_replacement_character": corrupted_count,
+        "policy": {"path": str(policy_path), "sha256": sha256_file(policy_path)},
+        "source_inventory": {"path": str(csv_path), "sha256": sha256_file(csv_path)},
+        "report": {"path": str(report_path), "sha256": sha256_file(report_path)},
+        "builder": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__))},
+        "formal_evidence_increment": 0,
+        "boundary": "语言覆盖审计不改变实验结果；历史英文原件保持只读并等待中文伴随档案。",
+    }
+    manifest_path = manifests / f"{output_stem}.json.txt"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="")
+    print(json.dumps({
+        "status": manifest["status"],
+        "files_audited": len(rows),
+        "files_with_chinese": chinese_count,
+        "legacy_total": legacy_total,
+        "legacy_with_companion": legacy_with_companion,
+        "legacy_pending": legacy_pending,
+        "corrupted": corrupted_count,
+        "formal_evidence_increment": 0,
+    }, ensure_ascii=False))
+    return 0 if corrupted_count == 0 else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

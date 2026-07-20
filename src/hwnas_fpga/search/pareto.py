@@ -11,6 +11,7 @@ References:
 import csv
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
@@ -22,6 +23,9 @@ from hwnas_fpga.interfaces import SearchConstraints
 
 PARETO_ARTIFACT_METRIC_COLUMNS = (
     "accuracy",
+    "f_clean",
+    "f_robust",
+    "robust_worst_macro_f1",
     "macro_f1",
     "weighted_f1",
     "top1",
@@ -31,7 +35,9 @@ PARETO_ARTIFACT_METRIC_COLUMNS = (
     "dsp",
     "bram",
     "lut",
-    "power_w",
+    # power_w intentionally excluded: it is a linear heuristic, not a
+    # measurement; keeping it out of default artifact columns prevents
+    # accidental use in Pareto claims (2026-07-03 audit finding #4).
     "memory_bandwidth_gbps",
     "offchip_mem_mb",
     "early_expand_pressure",
@@ -183,9 +189,12 @@ def build_pareto_objectives(
         add("bram", "min")
     if resource_requested or (constraints and constraints.max_lut is not None):
         add("lut", "min")
+    # power_w is a linear heuristic, not a measurement (audit finding #4).
+    # It never enters the Pareto front implicitly via max_power_w; feasibility
+    # filtering still applies. Explicit opt-in only, and any result using it
+    # must be labeled estimate-only.
     if (
         weights.get("power", 0.0) > 0
-        or (constraints and constraints.max_power_w is not None)
         or (isinstance(physical, dict) and physical.get("pareto_power"))
     ):
         add("power_w", "min")
@@ -219,6 +228,72 @@ def build_pareto_objectives(
     return objectives, directions
 
 
+def resolve_pareto_objectives(
+    pareto_config: Optional[Dict[str, Any]],
+    objective_weights: Optional[Dict[str, float]] = None,
+    constraints: Optional[SearchConstraints] = None,
+    selection_metric: Optional[str] = None,
+) -> Tuple[List[str], List[str]]:
+    """Resolve explicit Pareto axes, with legacy weight-based fallback.
+
+    ``objective_weights`` remains necessary for historical RL compatibility.
+    New non-scalar searches should prefer ``pareto.objectives`` so values such
+    as ``0.2`` cannot be mistaken for scalar reward coefficients.
+    """
+
+    config = dict(pareto_config or {})
+    explicit = config.get("objectives")
+    if explicit is None:
+        return build_pareto_objectives(
+            objective_weights,
+            constraints,
+            selection_metric=selection_metric,
+        )
+    if not isinstance(explicit, (list, tuple)) or not explicit:
+        raise ValueError("pareto.objectives must be a non-empty list")
+
+    objectives = [str(value) for value in explicit]
+    if len(set(objectives)) != len(objectives):
+        raise ValueError("pareto.objectives must not contain duplicates")
+    allowed = set(CandidateMetrics.__dataclass_fields__)
+    unknown = sorted(set(objectives) - allowed)
+    if unknown:
+        raise ValueError(f"Unsupported Pareto objectives: {unknown}")
+
+    from hwnas_fpga.search.searcher import resolve_pareto_task_metric
+
+    primary_metric = resolve_pareto_task_metric(selection_metric or "macro_f1")
+    if primary_metric not in objectives:
+        raise ValueError(
+            f"pareto.objectives must include primary selection metric {primary_metric!r}"
+        )
+    configured_directions = config.get("directions")
+    if configured_directions is None:
+        maximize = {
+            "accuracy",
+            "f_clean",
+            "f_robust",
+            "robust_worst_macro_f1",
+            "macro_f1",
+            "weighted_f1",
+            "top1",
+            "top5",
+            "selection_score",
+        }
+        directions = ["max" if objective in maximize else "min" for objective in objectives]
+    else:
+        if not isinstance(configured_directions, (list, tuple)):
+            raise ValueError("pareto.directions must be a list")
+        directions = [str(value).lower() for value in configured_directions]
+        if len(directions) != len(objectives):
+            raise ValueError("pareto.directions must align with pareto.objectives")
+        if any(direction not in {"max", "min"} for direction in directions):
+            raise ValueError("pareto.directions entries must be 'max' or 'min'")
+    if directions[objectives.index(primary_metric)] != "max":
+        raise ValueError("the primary classification objective must use direction 'max'")
+    return objectives, directions
+
+
 def pareto_encoding_signature(candidate: SearchCandidate) -> str:
     """Return a stable signature for route-gate de-duplication."""
     payload = json.dumps(candidate.encoding, sort_keys=True, ensure_ascii=False)
@@ -245,6 +320,80 @@ def _objective_values(
     return {objective: metrics.get(objective) for objective in objectives}
 
 
+def compute_crowding_distances(
+    candidates: List[SearchCandidate],
+    objectives: List[str],
+) -> Dict[str, float]:
+    """Compute NSGA-II crowding distance for one non-dominated rank.
+
+    Boundary candidates receive infinite distance. Missing objective values are
+    not promoted; callers should normally pass only fully evaluated candidates.
+    """
+
+    distances = {candidate.arch_id: 0.0 for candidate in candidates}
+    if not candidates:
+        return distances
+    if len(candidates) <= 2:
+        return {candidate.arch_id: math.inf for candidate in candidates}
+
+    for objective in objectives:
+        valid = [
+            candidate
+            for candidate in candidates
+            if getattr(candidate.metrics, objective, None) is not None
+        ]
+        if len(valid) <= 2:
+            for candidate in valid:
+                distances[candidate.arch_id] = math.inf
+            continue
+        ordered = sorted(
+            valid,
+            key=lambda candidate: (
+                float(getattr(candidate.metrics, objective)),
+                candidate.arch_id,
+            ),
+        )
+        lower = float(getattr(ordered[0].metrics, objective))
+        upper = float(getattr(ordered[-1].metrics, objective))
+        distances[ordered[0].arch_id] = math.inf
+        distances[ordered[-1].arch_id] = math.inf
+        scale = upper - lower
+        if scale <= 0.0:
+            continue
+        for index in range(1, len(ordered) - 1):
+            candidate = ordered[index]
+            if math.isinf(distances[candidate.arch_id]):
+                continue
+            previous_value = float(getattr(ordered[index - 1].metrics, objective))
+            next_value = float(getattr(ordered[index + 1].metrics, objective))
+            distances[candidate.arch_id] += abs(next_value - previous_value) / scale
+    return distances
+
+
+def _crowding_by_rank(
+    candidates: List[SearchCandidate],
+    ranks: List[int],
+    objectives: List[str],
+) -> Dict[int, float]:
+    """Return crowding distance keyed by object identity for every rank."""
+
+    result: Dict[int, float] = {}
+    for rank in sorted(set(ranks)):
+        front = [
+            candidate
+            for candidate, candidate_rank in zip(candidates, ranks)
+            if candidate_rank == rank
+        ]
+        front_distances = compute_crowding_distances(front, objectives)
+        for candidate in front:
+            result[id(candidate)] = front_distances.get(candidate.arch_id, 0.0)
+    return result
+
+
+def _serialize_crowding_distance(value: float) -> float | str:
+    return "inf" if math.isinf(value) else float(value)
+
+
 def build_pareto_ranked_rows(
     candidates: List[SearchCandidate],
     *,
@@ -260,6 +409,7 @@ def build_pareto_ranked_rows(
         id(candidate): index
         for index, candidate in enumerate(selected_candidates, start=1)
     }
+    crowding_by_id = _crowding_by_rank(candidates, ranks, objectives)
     rows: List[dict[str, Any]] = []
 
     for candidate_index, candidate in enumerate(candidates, start=1):
@@ -270,6 +420,9 @@ def build_pareto_ranked_rows(
                 "candidate_index": candidate_index,
                 "arch_id": candidate.arch_id,
                 "rank": rank,
+                "crowding_distance": _serialize_crowding_distance(
+                    crowding_by_id.get(id(candidate), 0.0)
+                ),
                 "pareto_front": id(candidate) in front_ids,
                 "selected": id(candidate) in selected_indices,
                 "selection_index": selected_indices.get(id(candidate)),
@@ -316,6 +469,7 @@ def build_pareto_selection_summary(
             {
                 "selection_index": selection_index,
                 "rank": row.get("rank"),
+                "crowding_distance": row.get("crowding_distance"),
                 "pareto_front": row.get("pareto_front", False),
                 "encoding_signature": row.get(
                     "encoding_signature",
@@ -333,6 +487,7 @@ def build_pareto_selection_summary(
         {
             "arch_id": row["arch_id"],
             "rank": row["rank"],
+            "crowding_distance": row["crowding_distance"],
             "pareto_front": row["pareto_front"],
             "selected": row["selected"],
             "selection_index": row["selection_index"],
@@ -361,6 +516,149 @@ def build_pareto_selection_summary(
     }
 
 
+def build_pareto_representative_roles(
+    pareto_front: List[SearchCandidate],
+    *,
+    objectives: List[str],
+    directions: List[str],
+) -> dict[str, Any]:
+    """Select transparent representative roles without creating one reward.
+
+    ``deployment_balanced`` is a generalized knee approximation: the Pareto
+    objectives are min-max normalized in their configured directions and the
+    candidate nearest to the ideal point is selected. It is intentionally
+    reported as an approximation, not as a uniquely defined mathematical knee.
+    """
+
+    if len(objectives) != len(directions):
+        raise ValueError("objectives and directions must have the same length")
+    if any(direction not in {"max", "min"} for direction in directions):
+        raise ValueError("directions entries must be 'max' or 'min'")
+
+    complete = [
+        candidate
+        for candidate in pareto_front
+        if all(getattr(candidate.metrics, objective, None) is not None for objective in objectives)
+    ]
+    if not complete:
+        return {
+            "schema_version": 1,
+            "status": "not_available",
+            "reason": "no Pareto candidate has all configured objective values",
+            "objectives": objectives,
+            "directions": directions,
+            "roles": {},
+        }
+
+    def maximize_role(metric: str, secondary: str) -> Optional[SearchCandidate]:
+        valid = [
+            candidate
+            for candidate in complete
+            if getattr(candidate.metrics, metric, None) is not None
+        ]
+        if not valid:
+            return None
+        return max(
+            valid,
+            key=lambda candidate: (
+                float(getattr(candidate.metrics, metric)),
+                float(getattr(candidate.metrics, secondary, float("-inf")) or float("-inf")),
+                candidate.arch_id,
+            ),
+        )
+
+    ranges: dict[str, tuple[float, float]] = {}
+    for objective in objectives:
+        values = [float(getattr(candidate.metrics, objective)) for candidate in complete]
+        ranges[objective] = (min(values), max(values))
+
+    def normalized_ideal_distance(candidate: SearchCandidate) -> float:
+        squared_terms: list[float] = []
+        for objective, direction in zip(objectives, directions):
+            value = float(getattr(candidate.metrics, objective))
+            lower, upper = ranges[objective]
+            if upper <= lower:
+                continue
+            utility = (value - lower) / (upper - lower)
+            if direction == "min":
+                utility = 1.0 - utility
+            squared_terms.append((1.0 - utility) ** 2)
+        if not squared_terms:
+            return 0.0
+        return math.sqrt(sum(squared_terms) / len(squared_terms))
+
+    crowding = compute_crowding_distances(complete, objectives)
+    balanced = min(
+        complete,
+        key=lambda candidate: (
+            normalized_ideal_distance(candidate),
+            -crowding.get(candidate.arch_id, 0.0),
+            candidate.arch_id,
+        ),
+    )
+    accuracy_first = maximize_role("f_clean", "f_robust")
+    sonar_robust = maximize_role("f_robust", "f_clean")
+
+    def role_payload(
+        candidate: Optional[SearchCandidate],
+        *,
+        rule: str,
+    ) -> Optional[dict[str, Any]]:
+        if candidate is None:
+            return None
+        payload = _candidate_to_dict(candidate)
+        payload.update(
+            {
+                "rule": rule,
+                "objective_values": _objective_values(candidate, objectives),
+                "crowding_distance": _serialize_crowding_distance(
+                    crowding.get(candidate.arch_id, 0.0)
+                ),
+                "normalized_ideal_distance": normalized_ideal_distance(candidate),
+            }
+        )
+        return payload
+
+    roles = {
+        "accuracy_first": role_payload(
+            accuracy_first,
+            rule="maximize f_clean on the full Pareto front",
+        ),
+        "sonar_robust": role_payload(
+            sonar_robust,
+            rule="maximize f_robust on the full Pareto front",
+        ),
+        "deployment_balanced": role_payload(
+            balanced,
+            rule="minimum normalized distance to the multi-objective ideal point",
+        ),
+    }
+    role_arch_ids = [payload["arch_id"] for payload in roles.values() if payload]
+    return {
+        "schema_version": 1,
+        "status": "complete",
+        "objectives": objectives,
+        "directions": directions,
+        "front_size": len(pareto_front),
+        "complete_front_size": len(complete),
+        "roles": roles,
+        "roles_may_overlap": True,
+        "unique_role_architecture_count": len(set(role_arch_ids)),
+        "deployment_balanced_method": {
+            "name": "normalized_ideal_distance",
+            "normalization": "per-objective min-max over the complete Pareto front",
+            "equal_axis_influence": True,
+            "fixed_scalar_reward_weights": False,
+            "claim_boundary": "generalized knee approximation, not a unique exact knee",
+        },
+        "claim_boundary": (
+            "f_robust measures classification robustness under the configured synthetic "
+            "sonar perturbations; hardware objectives remain estimator values until "
+            "route, board latency, and measured-power validation are complete"
+        ),
+    }
+
+
 def write_pareto_selection_artifacts(
     results_dir: str | Path,
     summary: dict[str, Any],
@@ -380,6 +678,7 @@ def write_pareto_selection_artifacts(
         "selected",
         "pareto_front",
         "rank",
+        "crowding_distance",
         "arch_id",
         "encoding_signature",
     ] + metric_columns
@@ -399,6 +698,7 @@ def write_pareto_selection_artifacts(
                     "selected": row.get("selected"),
                     "pareto_front": row.get("pareto_front"),
                     "rank": row.get("rank"),
+                    "crowding_distance": row.get("crowding_distance"),
                     "arch_id": row.get("arch_id"),
                     "encoding_signature": row.get("encoding_signature"),
                     **{column: metrics.get(column) for column in metric_columns},
@@ -627,6 +927,9 @@ class ParetoFrontSelector:
         if not candidates:
             return []
 
+        if self.selection_method == "rank":
+            return self._select_by_rank(candidates, min(k, len(candidates)))
+
         # 获取 Pareto 前沿
         pareto, _ = compute_pareto_front_numpy(
             candidates, self.objectives, self.directions
@@ -640,8 +943,6 @@ class ParetoFrontSelector:
             if reference_point is None:
                 reference_point = self._default_reference_point(pareto)
             return self._select_by_hypervolume(pareto, k, reference_point)
-        elif self.selection_method == "rank":
-            return self._select_by_rank(candidates, k)
         elif self.selection_method == "knee":
             return self._select_knee_point(pareto, k)
         else:
@@ -717,16 +1018,13 @@ class ParetoFrontSelector:
     def _select_by_rank(self, candidates: List[SearchCandidate], k: int) -> List[SearchCandidate]:
         """基于 Pareto 排名选择"""
         ranks = compute_pareto_ranks(candidates, self.objectives, self.directions)
-
-        primary_metric = self.objectives[0] if self.objectives else "top1"
+        crowding_by_id = _crowding_by_rank(candidates, ranks, self.objectives)
         sorted_candidates = sorted(
             zip(ranks, candidates),
             key=lambda x: (
                 x[0],
-                -(getattr(x[1].metrics, primary_metric, None) or 0),
-                getattr(x[1].metrics, "physical_risk", None) or float("inf"),
-                x[1].metrics.latency_ms or float("inf"),
-                x[1].metrics.dsp or float("inf"),
+                -crowding_by_id.get(id(x[1]), 0.0),
+                x[1].arch_id,
             ),
         )
 

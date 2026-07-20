@@ -1,16 +1,31 @@
 import tempfile
 import unittest
+from io import StringIO
 from pathlib import Path
 
 import torch
 
-from hwnas_fpga.experiment import ExperimentTracker
+from hwnas_fpga.experiment import ExperimentTracker, _TeeStream
 from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.interfaces import CandidateMetrics, HardwareSpec, SearchCandidate
 from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
 
 
 class ExperimentTrackerTests(unittest.TestCase):
+    def test_tee_keeps_durable_stream_when_parent_console_is_closed(self) -> None:
+        class BrokenStream:
+            def write(self, _data):
+                raise OSError(22, "Invalid argument")
+
+            def flush(self):
+                raise OSError(22, "Invalid argument")
+
+        durable = StringIO()
+        tee = _TeeStream(BrokenStream(), durable)
+        self.assertEqual(tee.write("still recorded"), len("still recorded"))
+        tee.flush()
+        self.assertEqual(durable.getvalue(), "still recorded")
+
     def test_tracker_writes_results_and_checkpoints(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tracker = ExperimentTracker(
@@ -74,6 +89,13 @@ class ExperimentTrackerTests(unittest.TestCase):
                 history={"val_acc": [0.75]},
                 extra={"selection_metric": "accuracy"},
             )
+            tracker.save_representative_candidate(
+                "accuracy_first_compatibility",
+                candidate,
+                model_state_dict=torch.nn.Linear(4, 2).state_dict(),
+                history={"val_acc": [0.75]},
+                extra={"not_an_overall_best": True},
+            )
             tracker.finalize(
                 status="completed",
                 candidates=[candidate],
@@ -94,6 +116,18 @@ class ExperimentTrackerTests(unittest.TestCase):
             self.assertTrue((tracker.checkpoints_dir / "search_state.json").exists())
             self.assertTrue((tracker.checkpoints_dir / "best_candidate.json").exists())
             self.assertTrue((tracker.checkpoints_dir / "best_model.pt").exists())
+            self.assertTrue(
+                (
+                    tracker.checkpoints_dir
+                    / "accuracy_first_compatibility_candidate.json"
+                ).exists()
+            )
+            self.assertTrue(
+                (
+                    tracker.checkpoints_dir
+                    / "accuracy_first_compatibility_model.pt"
+                ).exists()
+            )
 
 
 if __name__ == "__main__":

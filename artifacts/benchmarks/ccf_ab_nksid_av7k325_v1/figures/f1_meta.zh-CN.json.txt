@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "figure_id": "F1",
+  "title_zh": "分层证据与对标实验工作流",
+  "caption": "展示冻结的证据层级、当前保守 Gate 状态以及各实验方向进入正式结论前必须闭合的证据边界。",
+  "supported_claim": "定义本 campaign 的对标实验工作流和可声明边界。",
+  "limitations": [
+    "本图只表示概念性工作流，不包含任何实验性能结果。",
+    "图中 Gate 状态必须以后续机器审计 ledger 为准，不能从流程图推断实验已完成。"
+  ],
+  "original_meta": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_meta.json",
+    "sha256": "1543512a4031a31526876698d4de717c95eb6bc7b0ec67488cd1df299e9d963d"
+  },
+  "generator_sha256": "7dd9f5b6ec7a9d5b7c2661ddc67ef7839ecb95e540691671f5719323bcdc6ba6",
+  "source_data": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_source.csv",
+    "sha256": "92a0bb1f5d4d7dcb652ddbda26e3a63546fb1b87f31c35f6f56416133f8be29a"
+  },
+  "claimability_status": "概念工作流，不增加正式实验结果。"
+}

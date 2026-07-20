@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 import json
 
 import torch
@@ -12,6 +12,10 @@ import torch.nn as nn
 
 from hwnas_fpga.models import build_model
 from hwnas_fpga.search_space import ArchitectureSpec
+from hwnas_fpga.training.recipe import (
+    LogitAdjustedCrossEntropy,
+    build_warmup_cosine_scheduler,
+)
 from hwnas_fpga.training.trainer import (
     _resolve_selection_score,
     create_optimizer,
@@ -74,9 +78,17 @@ def retrain_architecture(
     early_stopping_patience: Optional[int] = None,
     selection_metric: str = "macro_f1",
     topk: int = 5,
+    lr_schedule: str = "constant",
+    warmup_epochs: int = 0,
+    min_lr_ratio: float = 0.01,
+    label_smoothing: float = 0.0,
+    logit_adjust_tau: float = 0.0,
+    class_counts: Optional[Sequence[float]] = None,
 ) -> tuple[nn.Module, dict[str, Any], dict[str, Any]]:
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
+    if lr_schedule not in {"constant", "cosine"}:
+        raise ValueError(f"lr_schedule must be 'constant' or 'cosine', got {lr_schedule}")
 
     model = build_model(
         architecture=architecture,
@@ -86,12 +98,35 @@ def retrain_architecture(
     criterion = nn.CrossEntropyLoss(
         weight=None if class_weights is None else class_weights.to(device)
     )
+    if logit_adjust_tau > 0 and class_counts is not None:
+        # Logit adjustment supersedes inverse-frequency class weights;
+        # keep the plain criterion for evaluation-loss reporting only.
+        train_criterion: nn.Module = LogitAdjustedCrossEntropy(
+            class_counts,
+            tau=logit_adjust_tau,
+            label_smoothing=label_smoothing,
+        ).to(device)
+    elif label_smoothing > 0:
+        train_criterion = nn.CrossEntropyLoss(
+            weight=None if class_weights is None else class_weights.to(device),
+            label_smoothing=label_smoothing,
+        )
+    else:
+        train_criterion = criterion
     optimizer = create_optimizer(
         model,
         optimizer_name=optimizer_name,
         lr=lr,
         weight_decay=weight_decay,
     )
+    scheduler = None
+    if lr_schedule == "cosine":
+        scheduler = build_warmup_cosine_scheduler(
+            optimizer,
+            epochs=epochs,
+            warmup_epochs=warmup_epochs,
+            min_lr_ratio=min_lr_ratio,
+        )
 
     history = {
         "train_loss": [],
@@ -128,13 +163,16 @@ def retrain_architecture(
 
             optimizer.zero_grad()
             outputs = model(inputs)
-            loss = criterion(outputs, targets)
+            loss = train_criterion(outputs, targets)
             loss.backward()
             optimizer.step()
 
             total_loss += loss.item() * inputs.size(0)
             total_correct += outputs.argmax(dim=1).eq(targets).sum().item()
             total_samples += targets.size(0)
+
+        if scheduler is not None:
+            scheduler.step()
 
         train_loss = total_loss / max(1, total_samples)
         train_acc = total_correct / max(1, total_samples)

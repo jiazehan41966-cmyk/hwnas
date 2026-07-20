@@ -186,6 +186,7 @@ def evaluate_classifier(
     device: str,
     num_classes: int,
     topk: int = 5,
+    input_transform: Optional[Callable[[torch.Tensor, int], torch.Tensor]] = None,
 ) -> dict[str, Any]:
     model.eval()
     total_loss = 0.0
@@ -193,7 +194,9 @@ def evaluate_classifier(
     total_topk = 0
     confusion = torch.zeros(int(num_classes), int(num_classes), dtype=torch.long)
 
-    for inputs, targets in data_loader:
+    for batch_index, (inputs, targets) in enumerate(data_loader):
+        if input_transform is not None:
+            inputs = input_transform(inputs, batch_index)
         inputs = inputs.to(device)
         targets = targets.to(device)
 
@@ -228,6 +231,10 @@ def _resolve_selection_score(summary: dict[str, float], selection_metric: str) -
         "macro_f1": "macro_f1",
         "f1": "macro_f1",
         "weighted_f1": "weighted_f1",
+        # F_clean is the clean inner-validation macro-F1.  Epoch selection is
+        # therefore still performed on the clean macro-F1 before robustness is
+        # evaluated on the restored best checkpoint.
+        "f_clean": "macro_f1",
     }
     key = aliases.get(normalized, normalized)
     if key not in summary:
@@ -271,9 +278,11 @@ def train_model(
         "selection_metric": selection_metric,
         "best_epoch": None,
         "best_eval": None,
+        "best_state_restored": False,
     }
 
     best_score = float("-inf")
+    best_state_dict: Optional[Dict[str, torch.Tensor]] = None
     patience_counter = 0
 
     for epoch in range(int(epochs)):
@@ -302,6 +311,10 @@ def train_model(
                 best_score = current_score
                 history["best_epoch"] = epoch + 1
                 history["best_eval"] = dict(val_summary)
+                best_state_dict = {
+                    name: value.detach().cpu().clone()
+                    for name, value in trainer.model.state_dict().items()
+                }
                 patience_counter = 0
             elif early_stopping_patience:
                 patience_counter += 1
@@ -320,7 +333,14 @@ def train_model(
                     "weighted_f1": float(train_acc),
                     "num_samples": float(len(train_loader.dataset)),
                 }
+                best_state_dict = {
+                    name: value.detach().cpu().clone()
+                    for name, value in trainer.model.state_dict().items()
+                }
 
     if best_score == float("-inf"):
         best_score = 0.0
+    if best_state_dict is not None:
+        trainer.model.load_state_dict(best_state_dict)
+        history["best_state_restored"] = True
     return float(best_score), history

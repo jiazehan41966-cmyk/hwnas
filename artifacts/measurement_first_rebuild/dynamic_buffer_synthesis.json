@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "scope": "isolated_dynamic_input_buffer_synthesis_only",
+  "generated": "2026-07-04T16:41:26+08:00",
+  "tool": {
+    "name": "Vivado",
+    "version": "2023.2",
+    "part": "xc7k325t-ffg900-2"
+  },
+  "configuration": {
+    "word_count": 50176,
+    "data_width_bits": 8,
+    "memory_bits": 401408
+  },
+  "utilization": {
+    "slice_luts": 60,
+    "slice_registers": 62,
+    "block_ram_tiles": 16,
+    "ramb36e1": 16
+  },
+  "command": "vivado.bat -mode batch -nolog -nojournal -source hls_lut_builder/board_harness/scripts/check_dynamic_buffer_synth.tcl -tclargs results/g4_rtl_syntax/dynamic_buffer_synth_full 50176",
+  "source": {
+    "path": "hls_lut_builder/board_harness/modules/axis_byte_buffer_source.v",
+    "sha256": "92f18dc65b60a4f46742bbaa8cd06b51d97486a60d3009a4db6ac3c1a2aab1fa"
+  },
+  "synthesis_script": {
+    "path": "hls_lut_builder/board_harness/scripts/check_dynamic_buffer_synth.tcl",
+    "sha256": "3aec88fdf2940cec44f074691cb8052fd8151dfc54c84d2ca3a311b32ae22061"
+  },
+  "raw_report": {
+    "path": "results/g4_rtl_syntax/dynamic_buffer_synth_full/utilization.rpt",
+    "sha256": "7fcacf4739f2dee1ad7185d6d449076593aad89eb62092772331e38a5199c83b"
+  },
+  "claim_boundary": "This proves BRAM mapping for the isolated input buffer. It is not a full-network HLS, route, timing, COM5, or accuracy result."
+}

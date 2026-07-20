@@ -539,6 +539,9 @@ def run_official_proxyless_search(
             offchip_mem_mb=cost_estimate.offchip_mem_mb,
         )
         candidate = SearchCandidate(arch_id=arch_id, encoding=encoding, metrics=metrics)
+        candidate.metrics.selection_score = candidate_selection_score(
+            candidate, selection_metric
+        )
 
         tracker.record_candidate(
             candidate,

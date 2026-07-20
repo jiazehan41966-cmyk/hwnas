@@ -1,0 +1,108 @@
+schema_version: 1
+cycle_id: nksid_av7k325_full_cycle_v2_20260712
+status: preregistered_not_started
+
+task:
+  dataset: NKSID
+  type: single_label_classification
+  primary_metric: macro_f1
+  secondary_metrics: [top1, weighted_f1, per_class_f1]
+  external_datasets: audit_only
+
+protocol:
+  config: configs/evaluation/nksid_frozen_protocol_v1.yaml
+  outer_folds: [0, 1, 2, 3, 4]
+  formal_seeds: [42, 43, 44]
+  outer_used_for_selection: false
+  group_generalization_claimable: false
+
+source_gate:
+  full_test_required: true
+  expected_test_command: python -m pytest tests -q
+  source_freeze_required: true
+  verify_before_each_formal_launcher: true
+  old_cycle_reuse: forbidden
+
+compute:
+  local_gpu: NVIDIA GeForce RTX 3050 Ti Laptop GPU
+  local_gpu_memory_mib: 4096
+  g1_num_workers: 0
+  gate0_full_execution: remote_gpu_required
+  gate0_gpu_benchmark_required: true
+  no_concurrent_formal_gpu_jobs: true
+
+stage_order:
+  - stage0_source_environment_data
+  - g0_protocol
+  - g1_accuracy_baselines
+  - g2_hardware_calibration
+  - g4_anchor_int8_board
+  - gate0_proxy_reliability
+  - stage3_replan_approval
+  - formal_search
+  - candidate_role_freeze
+  - outer_report_once
+  - final_candidate_deployment
+  - external_power_campaign
+  - deployment_packages
+
+g1:
+  models:
+    - mobilenet_v2_scratch
+    - mobilenet_v2_grayscale_imagenet
+    - rl_arch_135_legacy_selected
+  epochs: 150
+  tasks_per_model: 15
+  total_tasks: 45
+  output_dir: results/protocol/g1_full_cycle_v2_20260712
+
+g4_anchor:
+  target: rl_arch_193/fold1/seed42
+  purpose: close_int8_hls_full_validation_board_path_before_search
+  required_before_formal_search: true
+
+gate0:
+  config: configs/audit/proxy_reliability_gate0_v2.yaml
+  work_units: 1200
+  formal_completed_required: 1200
+  stages: [phase_a_signal_discovery, phase_b_fold_robustness, phase_c_full_confirmation]
+  stop_after_failed_stage: true
+
+stage3_search:
+  approval_artifact: artifacts/stage3_replan_approval.json
+  approval_template: configs/experiment/stage3_replan_approval.template.json
+  approval_must_be_manual: true
+  comparison_methods: [rl, aging_evolution]
+  equal_candidate_budget: 200
+  eval_epochs_per_candidate: 3
+  paired_seeds: [42, 43, 44]
+  pareto_objectives: [f_clean, f_robust, latency_ms, energy_mj]
+  pareto_directions: [max, max, min, min]
+  primary_compute_metric: job_gpu_reserved_hours
+  secondary_compute_metrics: [gpu_reserved_hours, gpu_event_seconds]
+  exclusive_gpu_required: true
+  counterbalanced_method_order: true
+  launcher: scripts/run_aging_vs_rl_benchmark.py
+  approval_does_not_follow_from_implementation: true
+
+candidate_selection:
+  evidence_scope: inner_validation_and_hardware_only
+  outer_metrics_forbidden: true
+  accuracy_first: highest_f_clean_on_full_pareto_front
+  sonar_robust: highest_f_robust_on_full_pareto_front
+  deployment_balanced: minimum_normalized_ideal_distance_on_full_pareto_front
+  roles_frozen_before_outer_evaluation: true
+
+power:
+  distinct_candidates_required: 3
+  candidate_roles:
+    - accuracy_first
+    - sonar_robust
+    - deployment_balanced
+  reference_candidate: g4_anchor_rl_arch_193
+  collision_fallback: highest_inner_ranked_route_clean_candidate_not_already_selected
+  external_meter_csv_required: true
+
+final_packages:
+  delivered_roles: [accuracy_first, sonar_robust, deployment_balanced]
+  third_power_candidate_is_reference_only: false

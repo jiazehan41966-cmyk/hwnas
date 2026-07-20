@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "campaign_run_id": "REPLACE_WITH_POWER_CAMPAIGN_ID",
+  "candidate_id": "REPLACE_WITH_FROZEN_CANDIDATE_ID",
+  "candidate_role": "REPLACE_WITH_accuracy_first_OR_knee_point_OR_resource_min",
+  "candidate_sha256": "REPLACE_WITH_64_HEX",
+  "candidate_selection_manifest_path": "REPLACE_WITH_PATH",
+  "candidate_selection_manifest_sha256": "REPLACE_WITH_64_HEX",
+  "candidate_manifest_path": "REPLACE_WITH_PATH",
+  "candidate_manifest_sha256": "REPLACE_WITH_64_HEX",
+  "checkpoint_sha256": "REPLACE_WITH_64_HEX",
+  "source_freeze_manifest_sha256": "REPLACE_WITH_64_HEX",
+  "project_code_commit": "REPLACE_WITH_40_HEX",
+  "project_code_state_sha256": "REPLACE_WITH_64_HEX",
+  "data_sha256": "REPLACE_WITH_64_HEX",
+  "split_sha256": "REPLACE_WITH_64_HEX",
+  "route_report_path": "REPLACE_WITH_PATH",
+  "route_report_sha256": "REPLACE_WITH_64_HEX",
+  "bitstream_path": "REPLACE_WITH_PATH",
+  "payload_path": "REPLACE_WITH_PATH",
+  "payload_sha256": "REPLACE_WITH_64_HEX",
+  "parity_summary_path": "REPLACE_WITH_PATH",
+  "parity_summary_sha256": "REPLACE_WITH_64_HEX",
+  "measurement_protocol_manifest_path": "power_measurement_protocol.json",
+  "measurement_protocol_manifest_sha256": "REPLACE_WITH_64_HEX",
+  "measurement_protocol_fingerprint": "REPLACE_WITH_SHARED_PROTOCOL_SHA256",
+  "rail_scope": "board_input_total",
+  "measurement_source": "external_power_meter_csv",
+  "timestamp_basis": "unix_utc_epoch_seconds",
+  "instrument": {
+    "manufacturer": "REPLACE",
+    "model": "REPLACE",
+    "serial_number": "REPLACE",
+    "sample_rate_hz": 0,
+    "voltage_range": "REPLACE",
+    "current_range": "REPLACE",
+    "calibration": "REPLACE_WITH_DATE_OR_CERTIFICATE",
+    "calibration_certificate_path": "REPLACE_WITH_PATH",
+    "calibration_certificate_sha256": "REPLACE_WITH_64_HEX"
+  },
+  "bitstream_sha256": "REPLACE_WITH_64_HEX",
+  "contains_programming": false,
+  "contains_uart_upload": false,
+  "idle_csvs": [
+    "idle_01.csv",
+    "idle_02.csv",
+    "idle_03.csv"
+  ],
+  "idle_capture_bindings": [
+    {"csv": "idle_01.csv", "csv_sha256": "REPLACE_WITH_64_HEX"},
+    {"csv": "idle_02.csv", "csv_sha256": "REPLACE_WITH_64_HEX"},
+    {"csv": "idle_03.csv", "csv_sha256": "REPLACE_WITH_64_HEX"}
+  ],
+  "active_captures": [
+    {
+      "csv": "active_01.csv",
+      "csv_sha256": "REPLACE_WITH_64_HEX",
+      "inference_count": 1000,
+      "run_repeat_receipt": "active_01_receipt.json",
+      "run_repeat_receipt_sha256": "REPLACE_WITH_64_HEX"
+    },
+    {
+      "csv": "active_02.csv",
+      "csv_sha256": "REPLACE_WITH_64_HEX",
+      "inference_count": 1000,
+      "run_repeat_receipt": "active_02_receipt.json",
+      "run_repeat_receipt_sha256": "REPLACE_WITH_64_HEX"
+    },
+    {
+      "csv": "active_03.csv",
+      "csv_sha256": "REPLACE_WITH_64_HEX",
+      "inference_count": 1000,
+      "run_repeat_receipt": "active_03_receipt.json",
+      "run_repeat_receipt_sha256": "REPLACE_WITH_64_HEX"
+    }
+  ]
+}

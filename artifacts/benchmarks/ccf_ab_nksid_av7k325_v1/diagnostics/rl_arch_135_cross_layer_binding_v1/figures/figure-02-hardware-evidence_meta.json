@@ -1,0 +1,16 @@
+{
+  "language": "zh-CN",
+  "title_zh": "rl_arch_135 的 route 资源与延迟证据边界",
+  "caption_zh": "左图为 Vivado route 后资源利用率；右图并列搜索期 LUT 延迟估计与 COM5 确定性 harness 实测延迟。两者属于不同证据层，不能把代理值写成板级实测。",
+  "purpose_zh": "展示同一架构的硬件可行性，并暴露代理延迟与板级延迟的差异。",
+  "observation_zh": "DSP 利用率最高为 72.86%；COM5 延迟为 49.062 ms，是搜索期估计的 6.73 倍。",
+  "implication_zh": "硬件筛选必须依赖 route/COM5 校准，当前 bitstream 只支持延迟声明。",
+  "limitations_zh": [
+    "硬件参数为 latency_only_deterministic，未绑定正式 checkpoint。",
+    "板级分类准确率未运行。",
+    "功耗未测量。"
+  ],
+  "source_csv": "figure-02-hardware-evidence_source.csv",
+  "error_bar": "无；资源为单次 route，COM5 五次结果完全相同",
+  "generator_sha256": "e89888ce72272e15d72d35a5d1c14ba149ec020a660073078f0eb9fdd3edc9a4"
+}

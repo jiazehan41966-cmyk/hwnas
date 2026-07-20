@@ -1,0 +1,249 @@
+from __future__ import annotations
+
+import csv
+import hashlib
+import itertools
+import json
+import math
+import re
+from pathlib import Path
+
+from PIL import Image
+
+
+ROOT = Path(__file__).resolve().parents[4]
+CAMPAIGN = ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+BUNDLE = CAMPAIGN / "diagnostics/scratch_v2_closed_set_3method_v1"
+OUT_JSON = CAMPAIGN / "manifests/scratch_v2_closed_set_analysis_independent_audit_20260718.json"
+OUT_MD = CAMPAIGN / "manifests/scratch_v2_closed_set_analysis_independent_audit_20260718.md"
+TOL = 1e-12
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def close(actual: float, expected: float, tolerance: float = TOL) -> bool:
+    return math.isclose(actual, expected, rel_tol=0.0, abs_tol=tolerance)
+
+
+def exact_sign_flip_p(differences: list[float]) -> float:
+    observed = abs(sum(differences) / len(differences))
+    extreme = 0
+    total = 0
+    for signs in itertools.product((-1.0, 1.0), repeat=len(differences)):
+        statistic = abs(sum(sign * value for sign, value in zip(signs, differences)) / len(differences))
+        extreme += statistic >= observed - 1e-15
+        total += 1
+    return extreme / total
+
+
+def holm(raw: dict[str, float]) -> dict[str, float]:
+    ordered = sorted(raw.items(), key=lambda item: item[1])
+    adjusted: dict[str, float] = {}
+    running = 0.0
+    m = len(ordered)
+    for rank, (name, value) in enumerate(ordered):
+        running = max(running, min(1.0, (m - rank) * value))
+        adjusted[name] = running
+    return adjusted
+
+
+def main() -> int:
+    errors: list[str] = []
+    checks: dict[str, object] = {}
+    manifest_path = BUNDLE / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    expected_outputs = {item["path"]: item for item in manifest["outputs"]}
+    actual_outputs = {
+        str(path.relative_to(BUNDLE)).replace("\\", "/"): path
+        for path in BUNDLE.rglob("*")
+        if path.is_file() and path.name != "manifest.json"
+    }
+    checks["manifest_output_count"] = len(expected_outputs)
+    checks["actual_output_count"] = len(actual_outputs)
+    if set(expected_outputs) != set(actual_outputs):
+        errors.append(
+            "清单文件集合不一致：missing="
+            + repr(sorted(set(expected_outputs) - set(actual_outputs)))
+            + ", extra="
+            + repr(sorted(set(actual_outputs) - set(expected_outputs)))
+        )
+    hash_failures: list[str] = []
+    for name in sorted(set(expected_outputs) & set(actual_outputs)):
+        item = expected_outputs[name]
+        path = actual_outputs[name]
+        if path.stat().st_size != int(item["bytes"]) or sha256(path) != item["sha256"]:
+            hash_failures.append(name)
+    checks["output_hash_failures"] = hash_failures
+    if hash_failures:
+        errors.append("输出文件大小或 SHA256 不匹配：" + ", ".join(hash_failures))
+
+    input_hash_failures: list[str] = []
+    for relative, expected_hash in manifest["input_hashes"].items():
+        path = ROOT / relative
+        if not path.is_file() or sha256(path) != expected_hash:
+            input_hash_failures.append(relative)
+    checks["input_hash_failures"] = input_hash_failures
+    if input_hash_failures:
+        errors.append("输入文件缺失或 SHA256 不匹配：" + ", ".join(input_hash_failures))
+
+    script_path = ROOT / manifest["script"]
+    script_hash_ok = script_path.is_file() and sha256(script_path) == manifest["script_sha256"]
+    checks["builder_script_hash_ok"] = script_hash_ok
+    if not script_hash_ok:
+        errors.append("生成脚本 SHA256 与清单不一致")
+
+    with (BUNDLE / "paired_units_source.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+        units = list(csv.DictReader(handle))
+    expected_units = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+    observed_units = {(int(row["fold"]), int(row["seed"])) for row in units}
+    units_ok = len(units) == 15 and observed_units == expected_units
+    checks["paired_units_complete"] = units_ok
+    if not units_ok:
+        errors.append("fold-seed 配对单元不是预声明的完整 15 单元")
+
+    scratch_identity = all(
+        close(float(row["scratch_v2"]), float(row["legacy_scratch"]))
+        and close(float(row["scratch_minus_legacy"]), 0.0)
+        for row in units
+    )
+    checks["scratch_legacy_exact_identity"] = scratch_identity
+    if not scratch_identity:
+        errors.append("scratch-v2 与旧 scratch 未逐单元完全一致")
+
+    stats = json.loads((BUNDLE / "stats.json").read_text(encoding="utf-8"))
+    if stats.get("n") != 15 or stats.get("metric") != "macro_f1":
+        errors.append("stats.json 的 n 或主指标不符合预声明")
+    method_means: dict[str, float] = {}
+    for method in ("scratch_v2", "pretrained", "nas"):
+        method_means[method] = sum(float(row[method]) for row in units) / len(units)
+    reported_means = {item["method"]: float(item["mean"]) for item in stats["descriptive"]}
+    mean_failures = [name for name, value in method_means.items() if not close(value, reported_means[name])]
+    checks["recomputed_method_means"] = method_means
+    if mean_failures:
+        errors.append("描述均值独立重算不一致：" + ", ".join(mean_failures))
+
+    reported_contrasts = {item["contrast_id"]: item for item in stats["contrasts"]}
+    definitions = {
+        "pretrained_minus_scratch": ("pretrained", "scratch_v2"),
+        "scratch_minus_nas": ("scratch_v2", "nas"),
+        "pretrained_minus_nas": ("pretrained", "nas"),
+    }
+    recomputed_raw: dict[str, float] = {}
+    contrast_failures: list[str] = []
+    recomputed_contrasts: dict[str, dict[str, float]] = {}
+    for name, (left, right) in definitions.items():
+        differences = [float(row[left]) - float(row[right]) for row in units]
+        mean_difference = sum(differences) / len(differences)
+        p_raw = exact_sign_flip_p(differences)
+        recomputed_raw[name] = p_raw
+        recomputed_contrasts[name] = {"mean_difference": mean_difference, "p_raw": p_raw}
+        reported = reported_contrasts[name]
+        if not close(mean_difference, float(reported["mean_difference"])) or not close(p_raw, float(reported["p_raw"])):
+            contrast_failures.append(name)
+    recomputed_holm = holm(recomputed_raw)
+    for name, value in recomputed_holm.items():
+        recomputed_contrasts[name]["p_holm"] = value
+        if not close(value, float(reported_contrasts[name]["p_holm"])):
+            contrast_failures.append(name + ":holm")
+    checks["recomputed_contrasts"] = recomputed_contrasts
+    if contrast_failures:
+        errors.append("配对对比独立重算不一致：" + ", ".join(contrast_failures))
+
+    figure_checks: dict[str, object] = {}
+    for stem in ("figure-01-three-method-paired-macro-f1", "figure-02-paired-contrast-forest"):
+        png = BUNDLE / "figures" / f"{stem}.png"
+        pdf = BUNDLE / "figures" / f"{stem}.pdf"
+        svg = BUNDLE / "figures" / f"{stem}.svg"
+        source = BUNDLE / "figures" / f"{stem}_source.csv"
+        meta_path = BUNDLE / "figures" / f"{stem}_meta.json"
+        with Image.open(png) as image:
+            width, height = image.size
+            dpi = image.info.get("dpi", (0.0, 0.0))
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        required_chinese = (
+            "title_zh", "caption_zh", "purpose_zh", "observation_zh",
+            "interpretation_zh", "implication_zh", "limitation",
+        )
+        chinese_ok = all(re.search(r"[\u4e00-\u9fff]", str(meta.get(key, ""))) for key in required_chinese)
+        complete = all(path.is_file() and path.stat().st_size > 100 for path in (png, pdf, svg, source, meta_path))
+        dpi_ok = len(dpi) == 2 and all(299.0 <= float(value) <= 301.0 for value in dpi)
+        meta_ok = (
+            meta.get("language") == "zh-CN"
+            and meta.get("script_sha256") == manifest["script_sha256"]
+            and meta.get("input_hashes") == manifest["input_hashes"]
+            and chinese_ok
+        )
+        svg_ok = "<svg" in svg.read_text(encoding="utf-8", errors="strict")
+        valid = complete and width >= 1800 and height >= 900 and dpi_ok and meta_ok and svg_ok
+        figure_checks[stem] = {
+            "complete_five_file_family": complete,
+            "png_width": width,
+            "png_height": height,
+            "png_dpi": [float(dpi[0]), float(dpi[1])],
+            "meta_ok": meta_ok,
+            "svg_ok": svg_ok,
+            "valid": valid,
+        }
+        if not valid:
+            errors.append(f"图片族验收失败：{stem}")
+    checks["figures"] = figure_checks
+
+    markdown_checks: dict[str, bool] = {}
+    for name in ("analysis-report.md", "stats-appendix.md", "figure-catalog.md"):
+        text = (BUNDLE / name).read_text(encoding="utf-8")
+        valid = "�" not in text and bool(re.search(r"[\u4e00-\u9fff]", text))
+        markdown_checks[name] = valid
+        if not valid:
+            errors.append(f"中文 Markdown 编码或语言验收失败：{name}")
+    checks["chinese_markdown"] = markdown_checks
+    sure_boundary_ok = (
+        "SURE" in stats.get("limitation_zh", "")
+        and "尚未" in stats.get("limitation_zh", "")
+        and manifest.get("status") == "PASS_THREE_METHOD_INTERIM_SURE_PENDING"
+    )
+    checks["sure_pending_boundary_ok"] = sure_boundary_ok
+    if not sure_boundary_ok:
+        errors.append("未明确保留 SURE 尚未执行的结论边界")
+
+    payload = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "status": "PASS" if not errors else "FAIL",
+        "bundle": str(BUNDLE.relative_to(ROOT)).replace("\\", "/"),
+        "bundle_manifest_sha256": sha256(manifest_path),
+        "auditor_script": str(Path(__file__).resolve().relative_to(ROOT)).replace("\\", "/"),
+        "auditor_script_sha256": sha256(Path(__file__).resolve()),
+        "checks": checks,
+        "errors": errors,
+        "manual_visual_inspection_required": True,
+        "claim_boundary_zh": "本审计只验证三方法阶段性统计包；SURE、板级准确率和功耗仍未测量。",
+    }
+    OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    status_zh = "通过" if not errors else "失败"
+    lines = [
+        "# scratch-v2 闭集统计包独立审计",
+        "",
+        f"- 机器审计结论：**{status_zh}**（`{payload['status']}`）。",
+        f"- 分析包清单 SHA256：`{payload['bundle_manifest_sha256']}`。",
+        f"- 清单内正式输出：{len(expected_outputs)} 个；磁盘实际正式输出：{len(actual_outputs)} 个。",
+        f"- fold-seed 配对单元：{len(units)} 个；scratch-v2 与旧 scratch 逐项恒等：{scratch_identity}。",
+        "- 已独立重算三方法均值、三个精确配对符号置换 p 值和 Holm 校正。",
+        "- 两个图片族均检查 PNG/PDF/SVG/源 CSV/meta JSON；PNG 要求 300 dpi。",
+        "- 自动审计不替代图片人工目视检查，目视结论应另行写入完成记录。",
+        "",
+        "## 证据边界",
+        "",
+        "SURE 尚未执行，因此这是三方法阶段性分析，不是完整 T2。板级准确率与功耗均未测量。",
+    ]
+    if errors:
+        lines += ["", "## 错误", ""] + [f"- {error}" for error in errors]
+    OUT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json.dumps({"status": payload["status"], "errors": errors, "json": str(OUT_JSON)}, ensure_ascii=False))
+    return 0 if not errors else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

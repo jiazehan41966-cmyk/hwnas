@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "status": "PASS_INTERIM_DIAGNOSTIC_ONLY",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "nas_units": 14,
+  "formal_t2_f6_increment": 0,
+  "generation_script": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_g1_nas_pause_diagnostic_bundle.txt",
+    "sha256": "19be1a93674befc710ed4c48667545884d9d814b46f9e84c498a1e5228dd0fd1"
+  },
+  "pause_manifest": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_nas_underperformance_pause_20260717.json.txt",
+    "sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86"
+  },
+  "evidence_sources": {
+    "search_config": {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\remote_phase0_v4_sonar_stage3_k3_rl300_search\\results\\nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_physical_phase0_v4_sonar_stage3_k3_lowdsp_draft\\config.yaml",
+      "sha256": "3ca780d479bd10a631ff0853e5235c5d432d9742ecc280549d6304ca3e1e4fcf"
+    },
+    "search_summary": {
+      "path": "E:\\1\\hwnas\\hwnas\\results\\remote_phase0_v4_sonar_stage3_k3_rl300_search\\results\\nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_physical_phase0_v4_sonar_stage3_k3_lowdsp_draft\\results\\summary.json",
+      "sha256": "cfc3e6c2e989dbb8e2b51834959a6dd5bc5a402a0479c81c588601627a7584f3"
+    },
+    "route_manifest": {
+      "path": "E:\\1\\hwnas\\hwnas\\hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\final_candidate_manifest.json",
+      "sha256": "2ef6b7404132440947ebb962ec9a974c56eb2a27c45fc8d7d8f8b02712f2df0d"
+    }
+  },
+  "files": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\analysis-report.md",
+      "sha256": "e6d5e928c08f79a61f6929ddc0099fd0de13578c6701beb4da3dbbca470fef13",
+      "bytes": 2746
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\data\\diagnostic_provenance.json.txt",
+      "sha256": "2defd4e637e6b5e580453e780094885529ee72671a05debeecd0bf756c07134e",
+      "bytes": 1938
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\data\\model_parameter_counts.csv",
+      "sha256": "e8dc29d7084ee10814dd33aa645cbff4afea36864149f5eb37fc9d39b9ee4ff9",
+      "bytes": 743
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\data\\paired_fold_seed_metrics.csv",
+      "sha256": "f4b4ae0c26ced174c39d23503f8aae7a2aff730057be35be3a5d89ea89226a1c",
+      "bytes": 6093
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\data\\per_class_f1.csv",
+      "sha256": "08ea2c2702bcb9f7eef12a17db7982757aee58ef14fc68d0ac21e703354ba5c6",
+      "bytes": 1612
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figure-catalog.md",
+      "sha256": "3d00ce2e433884a3c2cbd7e2591027eddd2afbd3c82ee1b58e6f4e395ba6c758",
+      "bytes": 779
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_paired_macro_f1.pdf",
+      "sha256": "36f2156ad11479c93548d83a38ca4d834513790b2624db749ebc09fd35f9bbf2",
+      "bytes": 27872
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_paired_macro_f1.png",
+      "sha256": "d0616722e0acc6ba094b5f1f9d5ddd77b14aa020f9fb56d8055e96bc2dee78a9",
+      "bytes": 224136
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_paired_macro_f1.svg",
+      "sha256": "33a90f40b73650cc0ffc6a72613ddb1d2cdf18d9936afdb7a3851f59d973fe14",
+      "bytes": 70236
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_paired_macro_f1_meta.json.txt",
+      "sha256": "334705d427449ca7055d1340ab22485d1dc48ec6f708679e1ff2da05bf9c039d",
+      "bytes": 10819
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_paired_macro_f1_source.csv",
+      "sha256": "f4b4ae0c26ced174c39d23503f8aae7a2aff730057be35be3a5d89ea89226a1c",
+      "bytes": 6093
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1.pdf",
+      "sha256": "8c7cb87b2ae2b503325d3fb28df8bd759614a3637a7c8a6b8e158d67c96ce3d1",
+      "bytes": 30695
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1.png",
+      "sha256": "dedd43ebea99367b298e05dd713fbe7ef643c82e77529d46913e59460bc95d7b",
+      "bytes": 166904
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1.svg",
+      "sha256": "f2509fad21bff83c2f3117f6090aaa8df9b80550fe3d9748507c15aa00cdb24a",
+      "bytes": 74219
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1_meta.json.txt",
+      "sha256": "a172021de1b34ca0b5d512dce423d15f44d737f63dee72a8514e58aff49732cb",
+      "bytes": 10809
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1_source.csv",
+      "sha256": "08ea2c2702bcb9f7eef12a17db7982757aee58ef14fc68d0ac21e703354ba5c6",
+      "bytes": 1612
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\stats-appendix.md",
+      "sha256": "640141888852acf3e1c0312b4e27217fb00c091864256b97d433683c3b851841",
+      "bytes": 1003
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\tables\\interim_summary.csv",
+      "sha256": "89facb78417470103723d9b50db5aed1685f4ccfaefca0e44f96e61708d18deb",
+      "bytes": 587
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\tables\\interim_summary.md",
+      "sha256": "2744edf0da24fbf7a571ec7fd59c56528889cfbfd4eb726c4343e6f25cb0c6a2",
+      "bytes": 553
+    }
+  ],
+  "language": "zh-CN",
+  "boundary": "本档案仅用于支持用户决策；NAS 仍未完成，不提升任何正式表格或图片。"
+}

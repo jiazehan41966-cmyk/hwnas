@@ -1,0 +1,381 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import os
+import re
+import subprocess
+from datetime import datetime
+from pathlib import Path
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[4]
+CAMPAIGN = ROOT / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+MANIFESTS = CAMPAIGN / "manifests"
+CONFIG = ROOT / "configs/benchmarks/adapters/sure_2024.yaml"
+CHECKOUT = ROOT / "reference/_local/SURE"
+ENV_CARD = CAMPAIGN / "environment/sure_2024.json"
+SOURCE_AUDIT = MANIFESTS / "source_audit.json"
+INTEGRATION_SMOKE = MANIFESTS / "integration_smoke.json"
+READINESS = MANIFESTS / "formal_readiness.json"
+SMOKE = ROOT / "results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/sure_dedicated_env_1x1x1"
+FORMAL = ROOT / "results/benchmarks/ccf_ab_nksid_av7k325_v1/formal/closed/sure_same_backbone"
+ACTIVE_AUTH = MANIFESTS / "sure_formal_execution_authorization_20260719.json.txt"
+OUT_JSON = MANIFESTS / "sure_formal_readiness_decision_20260719.json"
+OUT_MD = MANIFESTS / "sure_formal_readiness_decision_20260719.md"
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def run(command: list[str], *, timeout: int = 90, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=timeout,
+        check=False,
+        env=env,
+    )
+
+
+def main() -> int:
+    errors: list[str] = []
+    checks: dict[str, object] = {}
+
+    config = yaml.safe_load(CONFIG.read_text(encoding="utf-8-sig")) or {}
+    config_ok = bool(
+        config.get("paper_id") == "sure_2024"
+        and config.get("task") == "closed_set"
+        and config.get("checkout_path") == "reference/_local/SURE"
+        and config.get("formal_execution_enabled") is False
+        and "LICENSE_UNVERIFIED" in str(config.get("status") or "")
+    )
+    checks["adapter_config"] = {
+        "valid": config_ok,
+        "formal_execution_enabled": config.get("formal_execution_enabled"),
+        "status": config.get("status"),
+        "sha256": sha256(CONFIG),
+    }
+    if not config_ok:
+        errors.append("SURE adapter 配置未保持闭集、隔离目录、许可证未核验和正式开关关闭")
+
+    commit_process = run(["git", "-C", str(CHECKOUT), "rev-parse", "HEAD"])
+    remote_process = run(["git", "-C", str(CHECKOUT), "remote", "get-url", "origin"])
+    status_process = run(["git", "-C", str(CHECKOUT), "status", "--porcelain", "--untracked-files=all"])
+    observed_commit = commit_process.stdout.strip()
+    observed_remote = remote_process.stdout.strip()
+    status_lines = [line for line in status_process.stdout.splitlines() if line.strip()]
+    disallowed_status = [
+        line for line in status_lines
+        if not ("__pycache__/" in line or line.rstrip().endswith(".pyc"))
+    ]
+    license_files = [
+        path.name for path in CHECKOUT.iterdir()
+        if path.is_file() and re.match(r"(?i)^(license|copying|notice)(\..*)?$", path.name)
+    ]
+    checkout_ok = bool(
+        observed_commit == "5ce0193bc93e73b1c7f1f53aeda8854e997011e2"
+        and observed_remote == "https://github.com/Intellindust-AI-Lab/SURE.git"
+        and not disallowed_status
+        and not license_files
+    )
+    checks["isolated_checkout"] = {
+        "valid": checkout_ok,
+        "observed_commit": observed_commit,
+        "observed_remote": observed_remote,
+        "status_lines": status_lines,
+        "disallowed_status_lines": disallowed_status,
+        "license_files": license_files,
+        "license_state": "missing_unverified_local_execution_only",
+    }
+    if not checkout_ok:
+        errors.append("SURE 隔离 checkout 的 commit、remote、工作区或许可证状态与审计卡不一致")
+
+    environment_card = load_json(ENV_CARD)
+    dedicated = dict(environment_card.get("dedicated_environment") or {})
+    interpreter = Path(str(dedicated.get("interpreter") or ""))
+    freeze = dict(dedicated.get("freeze") or {})
+    lock_path = Path(str(freeze.get("path") or ""))
+    lock_ok = bool(
+        interpreter.is_file()
+        and lock_path.is_file()
+        and sha256(lock_path) == freeze.get("sha256")
+        and environment_card.get("isolation_status") == "READY_DEDICATED_ENVIRONMENT"
+    )
+    probe_command = [
+        str(interpreter),
+        str(ROOT / "scripts/probe_benchmark_environment.py"),
+        "--paper-id", "sure_2024",
+        "--probe", "sure",
+        "--checkout", "reference/_local/SURE",
+        "--pinned-commit", "5ce0193bc93e73b1c7f1f53aeda8854e997011e2",
+    ]
+    live_probe = run(probe_command, timeout=90) if interpreter.is_file() else None
+    try:
+        live_probe_payload = json.loads(live_probe.stdout.strip()) if live_probe and live_probe.returncode == 0 else {}
+    except json.JSONDecodeError:
+        live_probe_payload = {}
+    probe_ok = bool(
+        live_probe
+        and live_probe.returncode == 0
+        and live_probe_payload.get("status") == "PASS"
+        and live_probe_payload.get("observed_commit") == observed_commit
+        and live_probe_payload.get("cuda_available") is True
+    )
+    checks["dedicated_environment"] = {
+        "lock_valid": lock_ok,
+        "live_probe_valid": probe_ok,
+        "interpreter": str(interpreter),
+        "lock_path": str(lock_path),
+        "lock_sha256": sha256(lock_path) if lock_path.is_file() else None,
+        "live_probe": live_probe_payload,
+        "live_probe_stderr": live_probe.stderr.strip() if live_probe else "interpreter missing",
+    }
+    if not lock_ok or not probe_ok:
+        errors.append("SURE 专用 CUDA 环境锁或实时 probe 未通过")
+
+    bridge_code = (
+        "import json,torch;"
+        "from hwnas_fpga.models.backbones import build_backbone;"
+        "from hwnas_fpga.benchmarks.sure import load_sure_author_components,apply_author_cosine_classifier;"
+        "c=load_sure_author_components('reference/_local/SURE',pinned_commit='5ce0193bc93e73b1c7f1f53aeda8854e997011e2');"
+        "m,_=build_backbone(name='mobilenet_v2',num_classes=8,input_channels=1,pretrained=False);"
+        "meta=apply_author_cosine_classifier(m,components=c,num_classes=8,temperature=8.0);"
+        "shape=list(m(torch.zeros(1,1,224,224)).shape);"
+        "print(json.dumps({'status':'PASS','shape':shape,'head':meta['head'],'commit':c.commit}))"
+    )
+    bridge_env = dict(os.environ)
+    bridge_env["PYTHONPATH"] = str(ROOT / "src")
+    bridge_process = run([str(interpreter), "-c", bridge_code], timeout=90, env=bridge_env) if interpreter.is_file() else None
+    try:
+        bridge_payload = json.loads(bridge_process.stdout.strip()) if bridge_process and bridge_process.returncode == 0 else {}
+    except json.JSONDecodeError:
+        bridge_payload = {}
+    bridge_ok = bool(
+        bridge_payload.get("status") == "PASS"
+        and bridge_payload.get("shape") == [1, 8]
+        and bridge_payload.get("head") == "author_cosine_classifier"
+        and bridge_payload.get("commit") == observed_commit
+    )
+    checks["mobilenet_v2_static_bridge"] = {
+        "valid": bridge_ok,
+        "payload": bridge_payload,
+        "stderr": bridge_process.stderr.strip() if bridge_process else "interpreter missing",
+        "scope": "CPU 随机张量前向与作者 cosine classifier 装配；不训练、不形成实验结果",
+    }
+    if not bridge_ok:
+        errors.append("MobileNetV2 与 SURE 作者 cosine classifier 的静态装配/前向检查失败")
+
+    source_audit = load_json(SOURCE_AUDIT)
+    source_row = next(
+        row for row in source_audit.get("audits") or []
+        if (row.get("paper") or {}).get("paper_id") == "sure_2024"
+    )
+    source_ok = bool(
+        source_row.get("source_audit_pass") is True
+        and source_row.get("commit_matches_pin") is True
+        and source_row.get("formal_eligible") is False
+        and source_row.get("blockers") == ["redistribution_license_unverified"]
+    )
+    checks["source_license_audit"] = {
+        "valid": source_ok,
+        "source_audit_pass": source_row.get("source_audit_pass"),
+        "formal_eligible": source_row.get("formal_eligible"),
+        "blockers": source_row.get("blockers"),
+        "rule_zh": "只允许隔离目录本地重评；不得向项目仓库再分发作者源码。",
+    }
+    if not source_ok:
+        errors.append("SURE 来源/许可证审计状态与预期不一致")
+
+    smoke_summary = load_json(SMOKE / "protocol_summary.json")
+    smoke_record = load_json(SMOKE / "run_fold0_seed42.json")
+    smoke_claim = dict(smoke_summary.get("claimability") or {})
+    calibration = dict(smoke_record.get("outer_calibration") or {})
+    required_calibration = {"nll", "brier", "ece", "aurc", "failure_auroc", "failure_fpr95"}
+    smoke_ok = bool(
+        smoke_summary.get("model", {}).get("name") == "simplecnn"
+        and smoke_claim.get("claimable") is False
+        and smoke_claim.get("observed_run_count") == 1
+        and required_calibration <= set(calibration)
+        and all(math.isfinite(float(calibration[key])) for key in required_calibration)
+    )
+    checks["existing_smoke"] = {
+        "valid": smoke_ok,
+        "model": smoke_summary.get("model", {}).get("name"),
+        "fold": 0,
+        "seed": 42,
+        "epochs": smoke_summary.get("recipe", {}).get("epochs"),
+        "claimable": smoke_claim.get("claimable"),
+        "macro_f1": smoke_summary.get("outer_macro_f1", {}).get("mean"),
+        "calibration_metrics": {key: calibration.get(key) for key in sorted(required_calibration)},
+        "summary_sha256": sha256(SMOKE / "protocol_summary.json"),
+        "limitation_zh": "现有 smoke 使用 SimpleCNN 与 64×64 输入，不能证明 224×224 MobileNetV2 的显存和训练稳定性。",
+    }
+    if not smoke_ok:
+        errors.append("现有 SURE 专用环境 smoke 的模型、声明边界或校准指标不完整")
+
+    entry_text = (ROOT / "run_eval_protocol.py").read_text(encoding="utf-8")
+    canonical_entry_ok = all(
+        token in entry_text
+        for token in (
+            '"sure_author_recipe"',
+            '"--source-freeze-manifest"',
+            '"--max-new-units"',
+            '"execution_control"',
+            "load_sure_author_components",
+            "train_with_sure_author_recipe",
+        )
+    )
+    checks["canonical_entry"] = {
+        "valid": canonical_entry_ok,
+        "path": str(ROOT / "run_eval_protocol.py"),
+        "sha256": sha256(ROOT / "run_eval_protocol.py"),
+    }
+    if not canonical_entry_ok:
+        errors.append("唯一正式分类入口未完整绑定 SURE 或 source freeze")
+
+    guard_path = ROOT / "scripts/run_sure_s_a_stage1_guarded.py"
+    template_path = MANIFESTS / "sure_s_a_stage1_authorization_template_20260719.json.txt"
+    template = json.loads(template_path.read_text(encoding="utf-8-sig")) if template_path.is_file() else {}
+    staged_guard_ok = bool(
+        guard_path.is_file()
+        and template.get("status") == "NOT_AUTHORIZED_TEMPLATE"
+        and template.get("allows_remaining_fourteen_units") is False
+        and template.get("mandatory_pause_after_first_formal_unit") is True
+        and "--max-new-units" in guard_path.read_text(encoding="utf-8")
+    )
+    checks["staged_execution_guard"] = {
+        "valid": staged_guard_ok,
+        "guard_path": str(guard_path),
+        "guard_sha256": sha256(guard_path) if guard_path.is_file() else None,
+        "template_path": str(template_path),
+        "template_sha256": sha256(template_path) if template_path.is_file() else None,
+        "template_status": template.get("status"),
+        "remaining_fourteen_units_authorized": template.get("allows_remaining_fourteen_units"),
+    }
+    if not staged_guard_ok:
+        errors.append("S-A 分阶段守护程序或不可执行授权模板不完整")
+
+    readiness = load_json(READINESS)
+    r3 = next(row for row in readiness.get("requirements") or [] if row.get("requirement_id") == "R3_closed_set")
+    scratch = (r3.get("observed") or {}).get("scratch_mobilenet_v2") or {}
+    sure = (r3.get("observed") or {}).get("sure_same_backbone") or {}
+    readiness_ok = bool(
+        scratch.get("claimable") is True
+        and scratch.get("tracked_patch_integrity") is True
+        and "scratch_v2" in str(scratch.get("result_dir") or "")
+        and sure.get("claimable") is False
+        and sure.get("observed_pairs") == []
+    )
+    checks["campaign_readiness"] = {
+        "valid": readiness_ok,
+        "status": readiness.get("status"),
+        "passed": f"{readiness.get('passed_count')}/{readiness.get('requirement_count')}",
+        "scratch_result_dir": scratch.get("result_dir"),
+        "scratch_patch_integrity": scratch.get("tracked_patch_integrity"),
+        "sure_observed_pairs": sure.get("observed_pairs"),
+    }
+    if not readiness_ok:
+        errors.append("正式 readiness 未正确使用 scratch-v2 或未保持 SURE 0/15")
+
+    formal_records = list(FORMAL.glob("run_fold*_seed*.json")) if FORMAL.is_dir() else []
+    non_execution_ok = not formal_records and not ACTIVE_AUTH.exists()
+    checks["no_unauthorized_formal_execution"] = {
+        "valid": non_execution_ok,
+        "formal_record_count": len(formal_records),
+        "active_authorization_exists": ACTIVE_AUTH.exists(),
+    }
+    if not non_execution_ok:
+        errors.append("检测到未授权 SURE 正式记录或活动授权")
+
+    guard_log = ROOT / "logs/g1_clean_20260718/scratch_v2_guard_status.tsv"
+    lines = guard_log.read_text(encoding="utf-8-sig").splitlines()
+    timestamps = [datetime.fromisoformat(line.split("\t", 1)[0]) for line in lines if "\t" in line]
+    scratch_hours = (timestamps[-2] - timestamps[2]).total_seconds() / 3600.0
+    checks["runtime_planning"] = {
+        "scratch_v2_observed_15_unit_hours": scratch_hours,
+        "scratch_v2_mean_minutes_per_unit": scratch_hours * 60.0 / 15.0,
+        "sure_formal_runtime_measured": False,
+        "engineering_planning_band_hours": [18, 30],
+        "basis_zh": "SURE 的 SAM 每批两次梯度计算、60% epoch 后还有 SWA BN 更新，且当前实现关闭 AMP；该区间只是容量规划推断，须由 MobileNetV2 一轮 smoke 校准。",
+    }
+
+    payload = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "status": "READY_FOR_USER_DECISION_NOT_AUTHORIZED" if not errors else "FAIL",
+        "paper_id": "sure_2024",
+        "checks": checks,
+        "errors": errors,
+        "required_before_training": [
+            "用户选择并批准分阶段方案",
+            "重新冻结当前源代码并核验 snapshot",
+            "创建一次性、限 SURE 的可执行授权",
+            "先执行 1 fold × 1 seed × 1 epoch 的 MobileNetV2 技术 smoke",
+        ],
+        "recommended_scheme": "S-A",
+        "recommended_scheme_zh": "技术 smoke 通过后执行首个 150-epoch 正式单元，然后强制暂停，由用户依据首单元完整指标决定是否继续剩余 14 单元。",
+        "claim_boundary_zh": "本文件是只读就绪性核查，不是 SURE 实验结果，也不授权板卡、HLS 或功耗实验。",
+        "auditor_script": str(Path(__file__).resolve().relative_to(ROOT)).replace("\\", "/"),
+        "auditor_script_sha256": sha256(Path(__file__).resolve()),
+    }
+    OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    status_zh = "可提交用户决策，但尚未授权" if not errors else "核查失败"
+    lines_zh = [
+        "# SURE 正式实验就绪性与执行决策卡",
+        "",
+        f"- 状态：**{status_zh}**（`{payload['status']}`）。",
+        "- 本轮没有启动训练；SURE 正式结果仍为 `0/15`。",
+        f"- 作者代码 commit：`{observed_commit}`；远程：`{observed_remote}`。",
+        "- 许可证：仓库未发现 LICENSE/COPYING/NOTICE，只允许隔离目录本地重评，禁止再分发作者源码。",
+        f"- 专用 CUDA 环境实时 probe：`{'PASS' if probe_ok else 'FAIL'}`。",
+        f"- MobileNetV2 + 作者 cosine classifier 静态装配：`{'PASS' if bridge_ok else 'FAIL'}`；只做 CPU 随机张量前向，没有训练。",
+        "- 现有方法 smoke：SimpleCNN、fold 0、seed 42、1 epoch；不能证明正式 MobileNetV2 的显存与稳定性。",
+        "- 唯一正式入口：`run_eval_protocol.py`，且必须绑定新的 source freeze。",
+        "- 分阶段续接：`--max-new-units 1` 不进入实验 fingerprint；首单元后可在代码状态不变时安全复用并续跑。",
+        "- 授权模板状态：`NOT_AUTHORIZED_TEMPLATE`，守护程序拒绝用模板触发训练。",
+        "",
+        "## 为什么不能直接启动 15 单元",
+        "",
+        "正式配置开关仍为 `false`，scratch-v2 授权已经消费且不能复用。SURE 使用 SAM 双步更新、CRL、RegMixup、SWA 和 cosine classifier；当前配方关闭 AMP、梯度累积固定为 1。RTX 3050 Ti 仅 4 GB，SimpleCNN 64×64 smoke 不能排除 MobileNetV2 224×224 的 OOM 或显著变慢风险。",
+        "",
+        "## 三种可选执行方式",
+        "",
+        "| 方案 | 流程 | 会导向的结果 | 建议 |",
+        "|---|---|---|---|",
+        "| S-A | 新冻结 → MobileNetV2 1-epoch smoke → 首个 150-epoch 单元 → 强制暂停请用户决策 → 再决定剩余 14 单元 | 最早暴露 OOM、数值崩溃、训练时间或首单元效果问题；保留负结果，又不自动消耗全部预算 | **推荐** |",
+        "| S-B | 新冻结 → smoke → 一次运行全部 15 单元 | 最快获得完整 T2，但首单元很差也会继续，违背关键决策交给用户的要求 | 不建议 |",
+        "| S-C | 只做 MobileNetV2 1-epoch smoke | 只证明接口和显存可运行，不能形成论文比较结果 | 适合暂不投入长训练 |",
+        "",
+        "## 推荐停止规则",
+        "",
+        "技术 smoke 出现 OOM、NaN/Inf、作者源码哈希或 source freeze 不一致、逐样本预测缺失时立即 fail-closed。S-A 的首个 150-epoch 单元无论好坏都强制暂停，提交 macro_f1、top1、ECE、NLL、Brier、AURC、failure AUROC/FPR95、逐类 F1、显存和耗时，由用户决定是否继续；不预设会掩盖负结果的自动精度淘汰线。",
+        "",
+        "## 时间与证据边界",
+        "",
+        f"scratch-v2 的 15 单元实测耗时约 `{scratch_hours:.2f}` 小时。SURE 正式时间尚未测量；基于双步 SAM、SWA BN 更新和关闭 AMP，容量规划暂按 18–30 小时，必须由 1-epoch MobileNetV2 smoke 校准。该估计不得写入论文结果。",
+        "",
+        "本决策卡不授权 SURE、HLS、route、COM5、AV7K325 板级或功耗实验。",
+    ]
+    if errors:
+        lines_zh += ["", "## 错误", ""] + [f"- {error}" for error in errors]
+    OUT_MD.write_text("\n".join(lines_zh) + "\n", encoding="utf-8")
+    print(json.dumps({"status": payload["status"], "errors": errors, "json": str(OUT_JSON)}, ensure_ascii=False))
+    return 0 if not errors else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

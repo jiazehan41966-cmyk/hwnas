@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "template_only": true,
+  "executable_approval": false,
+  "language": "zh-CN",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "pause_manifest_path": "待用户决定后填写",
+  "pause_manifest_sha256": "待用户决定后填写",
+  "decision": "待用户明确选择",
+  "allowed_action": "待用户明确选择",
+  "maximum_scope": "待用户明确选择",
+  "auto_pause_boundary": "待用户明确选择",
+  "protocol_change_allowed": false,
+  "candidate_change_allowed": false,
+  "source_freeze_change_allowed": false,
+  "issued_by": "USER_DECISION_REQUIRED",
+  "issued_at": null,
+  "note": "本文件仅为中文模板，不是可执行批准文件，不得触发任何实验。"
+}

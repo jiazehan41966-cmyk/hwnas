@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "cards": [
+    "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\hw_pr_nas_2023.json",
+    "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\sure_2024.json",
+    "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\harp_2023.json",
+    "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\esda_2024.json",
+    "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\dmcl_sonar_oltr_2025.json",
+    "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\plud_sonar_oltr_2024.json"
+  ],
+  "ready_count": 6,
+  "required_count": 6,
+  "all_dedicated_environments_ready": true
+}

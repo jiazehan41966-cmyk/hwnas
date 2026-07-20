@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "language": "zh-CN",
+  "generated_at": "2026-07-18T08:15:39+08:00",
+  "status": "PASS_WITH_G1_CONFLICT_HOLD",
+  "effective_g1_status": "G1_CONFLICT_HOLD",
+  "formal_evidence_increment": 0,
+  "main_paper_count": 5,
+  "external_paper_formal_result_count": 0,
+  "requirements": [
+    {
+      "编号": "R1",
+      "工作包": "五篇主论文源码、版本、许可证与对应关系",
+      "有效状态": "PASS",
+      "完成度": "5/5 审计卡",
+      "证据强度": "中等",
+      "已证明": "仓库、固定 commit、许可证状态和论文—代码对应边界已记录",
+      "尚未证明": "外部方法在 NKSID 上的效果",
+      "下一准入条件": "保持固定 commit；缺许可证代码继续隔离"
+    },
+    {
+      "编号": "R2",
+      "工作包": "独立环境与依赖锁定",
+      "有效状态": "PASS",
+      "完成度": "6/6 环境卡",
+      "证据强度": "中等",
+      "已证明": "六个注册方法具有独立环境卡与锁文件",
+      "尚未证明": "完整作者训练程序可在本机端到端复现",
+      "下一准入条件": "正式运行前再次核验解释器、CUDA、PyTorch 与锁文件 SHA"
+    },
+    {
+      "编号": "R3",
+      "工作包": "闭集分类、校准与成本",
+      "有效状态": "G1_CONFLICT_HOLD",
+      "完成度": "45/45 产物；30/45 独立审计通过；SURE 0/15",
+      "证据强度": "冲突，暂不定级",
+      "已证明": "预训练和 NAS 各 15 个 fold-seed 单元通过专项审计",
+      "尚未证明": "scratch provenance 完整；SURE 正式结果；四方法完整 T2",
+      "下一准入条件": "用户批准 provenance 修复、新源码冻结及 scratch-v2；另行批准 SURE 15 单元"
+    },
+    {
+      "编号": "R4",
+      "工作包": "开放集长尾声呐识别",
+      "有效状态": "FORMAL_NOT_STARTED",
+      "完成度": "接口冒烟通过；CE+MSP/DMCL/PLUD 均 0/15",
+      "证据强度": "仅工程可行性",
+      "已证明": "开放集入口、样本 manifest 与预测 schema 可运行",
+      "尚未证明": "NMA、OSFM、OSCRmac、AUROC、FPR95 正式结果",
+      "下一准入条件": "用户批准后按冻结 class-holdout manifest 运行三方法 15 单元"
+    },
+    {
+      "编号": "R5",
+      "工作包": "四种 NAS 方法与 exact HV",
+      "有效状态": "FROZEN",
+      "完成度": "正式 300 评估 × 10 paired seeds：0/40 方法种子单元",
+      "证据强度": "仅实现/契约",
+      "已证明": "Random、RL、Aging 与 HW-PR 适配契约存在；冒烟不计正式结果",
+      "尚未证明": "anytime exact HV、Pareto coverage、NDCG、失败率与成本",
+      "下一准入条件": "Gate0、G2、G4 与 stage-3 用户批准全部闭合"
+    },
+    {
+      "编号": "R6",
+      "工作包": "HLS/route 代理可靠性",
+      "有效状态": "TRUTH_NOT_COLLECTED",
+      "完成度": "结构池 100/100；正式真值 0/100；先导 5/5 仅冻结输入",
+      "证据强度": "设计阶段",
+      "已证明": "100 个唯一结构候选与五家族先导输入已冻结",
+      "尚未证明": "完整网络语义等价、csynth、route、HARP grouped 5-fold 指标",
+      "下一准入条件": "先补候选特异 operator 映射与完整网络生成器，再批准 HLS 采集"
+    },
+    {
+      "编号": "R7",
+      "工作包": "AV7K325 route、板级延迟与外部功耗",
+      "有效状态": "NOT_MEASURED_FORMAL",
+      "完成度": "正式候选 0/3；外部功率仪器 0/3",
+      "证据强度": "历史描述性证据",
+      "已证明": "同一架构的历史 latency-only harness 可 route 且 COM5 可测",
+      "尚未证明": "formal checkpoint 权重绑定、板级分类准确率、动态能耗",
+      "下一准入条件": "用户批准 checkpoint—INT8—HLS—bitstream 重建及板卡/功率仪器实验"
+    },
+    {
+      "编号": "R8",
+      "工作包": "测量优先门禁",
+      "有效状态": "IN_PROGRESS_WITH_G1_CONFLICT",
+      "完成度": "G0 PASS；G1 总账 PASS 但覆盖审计 HOLD；G2/G4 PENDING；G3 FROZEN；G5 PAUSED；功耗 NOT_MEASURED",
+      "证据强度": "保守门禁",
+      "已证明": "当前不能进入可声明正式搜索或板级联合结论",
+      "尚未证明": "G2、G4、G5 与功耗闭合",
+      "下一准入条件": "先解决 G1 审计冲突，再按 gate 顺序闭合"
+    },
+    {
+      "编号": "R9",
+      "工作包": "正式表格与图片归档",
+      "有效状态": "PARTIAL",
+      "完成度": "正式表 1/9；正式图 1/12",
+      "证据强度": "可追溯但不完整",
+      "已证明": "T1 与 F1 的规定格式可用；诊断图不冒充正式编号图",
+      "尚未证明": "T2–T9、F2–F12 的正式源数据与一键重建",
+      "下一准入条件": "各实验族闭合后由原始逐样本/逐候选/时间序列数据生成"
+    }
+  ],
+  "paper_rows": [
+    {
+      "论文编号": "hw_pr_nas_2023",
+      "方向": "nas_pareto_surrogate",
+      "会议或期刊": "ACM TACO (CCF A)",
+      "对比类别": "B",
+      "固定提交": "296c6576fbae2b277e56c704ff3b6e648ec4c2be",
+      "许可证": "MIT",
+      "源码审计": "通过",
+      "源码冒烟": "BLOCKED_OFFICIAL_CODE_INCOMPLETE",
+      "论文代码对应": "partial",
+      "本地统一协议正式结果": "尚无",
+      "当前限制": "paper_code_correspondence_partial"
+    },
+    {
+      "论文编号": "sure_2024",
+      "方向": "classification_robustness_calibration",
+      "会议或期刊": "CVPR (CCF A)",
+      "对比类别": "B",
+      "固定提交": "5ce0193bc93e73b1c7f1f53aeda8854e997011e2",
+      "许可证": "缺失/未核验",
+      "源码审计": "通过",
+      "源码冒烟": "PASS",
+      "论文代码对应": "verified",
+      "本地统一协议正式结果": "尚无",
+      "当前限制": "redistribution_license_unverified"
+    },
+    {
+      "论文编号": "harp_2023",
+      "方向": "hls_proxy_reliability",
+      "会议或期刊": "ICCAD (CCF B)",
+      "对比类别": "B",
+      "固定提交": "c8bffd9411917b125846429b4d6be4f21c7a7165",
+      "许可证": "BSD-3-Clause",
+      "源码审计": "通过",
+      "源码冒烟": "PASS",
+      "论文代码对应": "verified",
+      "本地统一协议正式结果": "尚无",
+      "当前限制": "仍需本地统一协议重评"
+    },
+    {
+      "论文编号": "esda_2024",
+      "方向": "fpga_artifact_power_chain",
+      "会议或期刊": "FPGA (CCF B)",
+      "对比类别": "C",
+      "固定提交": "b75c8c93ca258158c06a6434f5f0f084add02ee5",
+      "许可证": "MIT",
+      "源码审计": "通过",
+      "源码冒烟": "PASS",
+      "论文代码对应": "verified",
+      "本地统一协议正式结果": "尚无",
+      "当前限制": "仍需本地统一协议重评"
+    },
+    {
+      "论文编号": "dmcl_sonar_oltr_2025",
+      "方向": "sonar_open_long_tail",
+      "会议或期刊": "Scientific Reports",
+      "对比类别": "A",
+      "固定提交": "eea8dc07ce007988150ac208cd09e00daedba2ca",
+      "许可证": "缺失/未核验",
+      "源码审计": "通过",
+      "源码冒烟": "PASS_SOURCE_PRESENT",
+      "论文代码对应": "partial",
+      "本地统一协议正式结果": "尚无",
+      "当前限制": "redistribution_license_unverified；paper_code_correspondence_partial"
+    }
+  ],
+  "g1_conflict": {
+    "canonical_ledger": "PASS",
+    "specialized_45_unit_audit": "FAIL",
+    "scratch_independent_audit": "FAIL",
+    "scratch_errors": [
+      "tracked code patch hash mismatch"
+    ],
+    "pretrained_independent_audit": "PASS",
+    "nas_independent_audit": "PASS",
+    "rule_zh": "存在冲突时采用更严格的独立 provenance 审计并冻结声明。"
+  },
+  "t6": {
+    "structural_candidates": 100,
+    "pilot_inputs": 5,
+    "formal_truth": 0,
+    "generator_ready": false
+  },
+  "hardware_boundary": {
+    "architecture_identity": "PASS",
+    "weight_identity": "NOT_BOUND",
+    "board_accuracy": "NOT_RUN",
+    "power": "NOT_MEASURED"
+  },
+  "archive": {
+    "available_tables": 1,
+    "required_tables": 9,
+    "available_figures": 1,
+    "required_figures": 12
+  },
+  "readiness_status": "NOT_READY",
+  "integration_smoke_formal_eligible": false,
+  "input_files": [
+    {
+      "label_zh": "论文源码审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\source_audit.json",
+      "sha256": "6323798f03c96ac3d122e6560441e6ef9743e50e7f54feed623ce41594eca6c8",
+      "bytes": 12933
+    },
+    {
+      "label_zh": "论文源码冒烟",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\source_smoke.json",
+      "sha256": "f40786481ab3fc304ee4dc2576ef025bb8ec1b5998299c702b181ba9687ded55",
+      "bytes": 10817
+    },
+    {
+      "label_zh": "统一接口冒烟",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\integration_smoke.json",
+      "sha256": "c3cfff64968748dcf4029cbacacde99ccbf47621674e11846182e2c3ac68f151",
+      "bytes": 7768
+    },
+    {
+      "label_zh": "独立环境索引",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\environment\\index.json",
+      "sha256": "60ddc85fdb12915fe8e2925a9e866b8cba1795368c3bc38540171eae21b8b6f1",
+      "bytes": 840
+    },
+    {
+      "label_zh": "正式就绪审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\formal_readiness.json",
+      "sha256": "64f92ced29c1ec3904460e687e27b24ee14226bfcfe0957e43a2f3ecd59029ef",
+      "bytes": 15296
+    },
+    {
+      "label_zh": "正式图表状态",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\artifact_status.json",
+      "sha256": "01c4525a7bf8fa42eb987eaec902abd0e7299ce1aebad20c99d5f67466569836",
+      "bytes": 12160
+    },
+    {
+      "label_zh": "测量优先总账",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\measurement_first_rebuild\\status.json",
+      "sha256": "596bfb7dd6bfd29fcb237564aceea1f636f0dcb9a94de3ffddfecff1d247ccaa",
+      "bytes": 7953
+    },
+    {
+      "label_zh": "G1_45单元专项审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_45_completion_audit_20260717.json",
+      "sha256": "4ba63879e15484dc580229099f1715f3cdf9f8bad3bfb6e175a887ceb08c713f",
+      "bytes": 3771
+    },
+    {
+      "label_zh": "G1_scratch独立审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_45audit_scratch_20260717.json",
+      "sha256": "6c208cea79662c425851fcd850bb5cf96478407341d88a23b33bb65370840c84",
+      "bytes": 6787
+    },
+    {
+      "label_zh": "G1_预训练独立审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_45audit_pretrained_20260717.json",
+      "sha256": "2c9cc6d2af767ca8870e4e424fa5d9547664356b62ae6908f7f7c55ee958b714",
+      "bytes": 6766
+    },
+    {
+      "label_zh": "G1_NAS独立审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\g1_45audit_nas_20260717.json",
+      "sha256": "78cc6c4575f1aca86e218580626161069289fbae1b7c27714b121863092ba4d6",
+      "bytes": 6776
+    },
+    {
+      "label_zh": "T6结构候选池",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_structural_candidate_pool_v1.json.txt",
+      "sha256": "046e1ecba4e73306beb46e381070b5c251ef9d59b08b8045c635b1a905d48f65",
+      "bytes": 315001
+    },
+    {
+      "label_zh": "T6五家族先导清单",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_five_family_pilot_manifest_v1.json.txt",
+      "sha256": "ae9aad20b0c10f5958a530f2860272d5455543970de19ba91e261b08efa7c17c",
+      "bytes": 16274
+    },
+    {
+      "label_zh": "T6映射缺口审计",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_five_family_mapping_gap_audit_v1.json.txt",
+      "sha256": "0d514c94d840a93ce2da57ed632f50092ef949fbc659e78eec06b67f638c8066",
+      "bytes": 12740
+    },
+    {
+      "label_zh": "NAS跨层绑定",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\evidence-manifest.json.txt",
+      "sha256": "7cad108230379c1ba42ec9a9d093eff6395c58431e055023a3b6abb190c7d115",
+      "bytes": 11493
+    },
+    {
+      "label_zh": "G1源码冻结",
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_freeze_manifest.json",
+      "sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+      "bytes": 107881
+    }
+  ],
+  "output_files": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_data\\campaign_completion_matrix_20260718.csv",
+      "sha256": "7a577c88df14fbbd614a51e896e2519e299df533bd087ce8fdf6eb620523fbfa",
+      "bytes": 2855
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\campaign_completion_evidence_audit_20260718.md",
+      "sha256": "3245918e2f6085e41657db1a085c28ed2a719695203aab185953e7b80f945b85",
+      "bytes": 6261
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\campaign_user_decision_checklist_20260718.md",
+      "sha256": "4fe118aa9dc7e1623b44b0d710234da9685bd0e29016765c27edf2b9d9a49b99",
+      "bytes": 1176
+    }
+  ],
+  "generator": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_campaign_completion_evidence_audit_v1.txt",
+    "sha256": "1770b62f9afd8a39f75c68a1bfb0fe32ca587004a07d56237e86fd8552fdccc0"
+  },
+  "boundary_zh": "本审计不改变实验结果；G1 冲突消除和用户批准前不得启动后续正式实验链。"
+}

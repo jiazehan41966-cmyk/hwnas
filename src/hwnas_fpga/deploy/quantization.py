@@ -10,6 +10,10 @@ from typing import Any, Iterable, Optional
 import torch
 from torch import nn
 
+from hwnas_fpga.deploy.fixed_point import (
+    FixedPointContract,
+    quantize_bias_int32,
+)
 from hwnas_fpga.deploy.inference import load_checkpoint_model
 
 
@@ -19,6 +23,9 @@ class QuantizationConfig:
     scheme: str = "symmetric"
     quantize_bias: bool = False
     target_modules: tuple[type[nn.Module], ...] = (nn.Conv2d, nn.Linear)
+    input_scale: float = 1.0 / 127.0
+    output_scale: float = 1.0 / 127.0
+    activation_scales: Optional[dict[str, float]] = None
 
 
 def quantize_tensor_symmetric(
@@ -57,7 +64,9 @@ def build_quantized_weight_package(
         raise ValueError("Only symmetric quantization is supported")
 
     quantized_weights: dict[str, torch.Tensor] = {}
+    quantized_biases: dict[str, torch.Tensor] = {}
     scales: dict[str, float] = {}
+    layers: list[dict[str, Any]] = []
     tensor_summaries: list[dict[str, Any]] = []
     total_original_bytes = 0
     total_quantized_bytes = 0
@@ -76,9 +85,24 @@ def build_quantized_weight_package(
         if not should_quantize:
             continue
 
-        quantized_tensor, scale = quantize_tensor_symmetric(tensor, bit_width=cfg.bit_width)
-        quantized_weights[name] = quantized_tensor.cpu()
-        scales[name] = scale
+        if param_name == "bias":
+            # Bias is never stored as INT8. It is an INT32 accumulator-domain
+            # tensor whose scale is input_scale * weight_scale.
+            weight_name = f"{module_name}.weight"
+            weight_scale = scales.get(weight_name)
+            if weight_scale is None:
+                raise ValueError(f"weight scale missing before bias quantization: {name}")
+            quantized_tensor = quantize_bias_int32(
+                tensor,
+                input_scale=cfg.input_scale,
+                weight_scale=weight_scale,
+            )
+            quantized_biases[name] = quantized_tensor.cpu()
+            scales[name] = float(cfg.input_scale * weight_scale)
+        else:
+            quantized_tensor, scale = quantize_tensor_symmetric(tensor, bit_width=cfg.bit_width)
+            quantized_weights[name] = quantized_tensor.cpu()
+            scales[name] = scale
         original_bytes = int(tensor.numel() * tensor.element_size())
         quantized_bytes = int(quantized_tensor.numel() * quantized_tensor.element_size())
         total_original_bytes += original_bytes
@@ -96,8 +120,13 @@ def build_quantized_weight_package(
         )
 
     summary = {
+        "schema_version": 2 if cfg.quantize_bias else 1,
         "bit_width": cfg.bit_width,
         "scheme": cfg.scheme,
+        "fixed_point_contract": FixedPointContract().to_dict(),
+        "zero_point": 0,
+        "input_scale": float(cfg.input_scale),
+        "output_scale": float(cfg.output_scale),
         "num_quantized_tensors": len(tensor_summaries),
         "original_weight_bytes": total_original_bytes,
         "quantized_weight_bytes": total_quantized_bytes,
@@ -107,15 +136,57 @@ def build_quantized_weight_package(
             else 1.0
         ),
         "tensors": tensor_summaries,
+        "bias_dtype": "int32" if cfg.quantize_bias else None,
+        "activation_requantization": "per_output_tensor_scale" if cfg.quantize_bias else None,
+        "parity_ready": False,
+        "claim_boundary": (
+            "Legacy weight-only package; parity_ready=false."
+            if not cfg.quantize_bias
+            else "INT8 weights plus INT32 bias metadata are packaged, but software/HLS "
+            "layer parity must pass before deployment claims are allowed."
+        ),
     }
+    if cfg.quantize_bias:
+        for module_name, module in module_lookup.items():
+            if not isinstance(module, cfg.target_modules):
+                continue
+            weight_name = f"{module_name}.weight"
+            if weight_name not in quantized_weights:
+                continue
+            weight_scale = scales[weight_name]
+            output_scale = float((cfg.activation_scales or {}).get(module_name, cfg.output_scale))
+            if output_scale <= 0:
+                raise ValueError(f"output scale must be positive for {module_name}")
+            layers.append(
+                {
+                    "name": module_name,
+                    "op": module.__class__.__name__,
+                    "weight_key": weight_name,
+                    "bias_key": f"{module_name}.bias" if module.bias is not None else None,
+                    "input_scale": float(cfg.input_scale),
+                    "weight_scale": float(weight_scale),
+                    "output_scale": output_scale,
+                    "stride": list(module.stride) if isinstance(module, nn.Conv2d) else None,
+                    "padding": list(module.padding) if isinstance(module, nn.Conv2d) else None,
+                    "dilation": list(module.dilation) if isinstance(module, nn.Conv2d) else None,
+                    "groups": int(module.groups) if isinstance(module, nn.Conv2d) else None,
+                }
+            )
+        summary["layers"] = layers
+        summary["layer_count"] = len(layers)
     package = {
-        "format": "hwnas_fpga_int8_weights_v1",
+        # Keep the old format label for the legacy default so existing readers
+        # remain compatible. A bias-enabled package is explicitly versioned v2.
+        "format": "hwnas_fpga_int8_weights_v2" if cfg.quantize_bias else "hwnas_fpga_int8_weights_v1",
+        "schema_version": 2 if cfg.quantize_bias else 1,
         "architecture": architecture,
         "candidate": candidate,
         "class_names": list(class_names or []),
         "quantization": summary,
         "weights": quantized_weights,
+        "biases": quantized_biases,
         "scales": scales,
+        "layers": layers,
     }
     return package, summary
 

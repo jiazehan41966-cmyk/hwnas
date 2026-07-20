@@ -8,7 +8,11 @@ branch `codex/repo-cleanup-review`.
 - `run_backbone_baseline.py`
   Macro-architecture screening and anchor export.
 - `run_search.py`
-  Unified search entrypoint for random, RL, and Proxyless-style runs.
+  Unified search entrypoint for random, RL, multi-objective aging evolution,
+  and Proxyless-style runs.
+- `run_eval_protocol.py`
+  Unique formal classification entrypoint; enforces fold/seed, provenance,
+  source-freeze, prediction, and reporting contracts.
 - `run_search_space_probe.py`
   Search-space feasibility probing without training.
 - `run_retrain.py`
@@ -24,6 +28,12 @@ branch `codex/repo-cleanup-review`.
 - `scripts/phase0_v4_three_lane_closure.py`
   Packaging-only by default; reconciles search, retrain, route, COM5, and
   ablation evidence without launching long-running work unless explicitly asked.
+- `scripts/audit_benchmark_*.py`, `scripts/build_benchmark_artifacts.py`
+  Benchmark source/readiness audits and fail-closed table/figure packaging.
+- `scripts/freeze_experiment_source.py`
+  Creates and verifies source manifests plus retained source snapshots.
+- `scripts/run_aging_vs_rl_benchmark.py`, `scripts/compare_search_methods.py`
+  Matched execution and analysis for the gated RL/aging comparison.
 
 ## Core Source Tree
 
@@ -38,7 +48,11 @@ branch `codex/repo-cleanup-review`.
 - `src/hwnas_fpga/metrics`
   Reusable image-quality metrics kept separate from classification metrics.
 - `src/hwnas_fpga/search`
-  Search algorithms and Pareto utilities.
+  Search algorithms, exact Pareto/HV utilities, aging evolution, and efficiency
+  accounting.
+- `src/hwnas_fpga/benchmarks`
+  Paper adapters, closed/open-set metrics, statistics, source registry,
+  readiness checks, and archive contracts.
 - `src/hwnas_fpga/training`
   Training and retraining helpers.
 - `src/hwnas_fpga/deploy`
@@ -55,6 +69,11 @@ branch `codex/repo-cleanup-review`.
 - `configs/search/*.yaml`
   Active search configs that back the current macro-screening, A1, random,
   RL, and ProxylessNAS workflows.
+- `configs/benchmarks/*.yaml`
+  Paper registry, runtime environments, adapter contracts, and the CCF A/B
+  benchmark campaign.
+- `configs/experiment/*.yaml` / `*.json`
+  Full-cycle preregistration and the unapproved Stage-3 decision template.
 - `configs/search/legacy/*.yaml`
   Historical one-off, budget-comparison, alignment, and smoke configs kept for
   provenance but not part of the current recommended workflow.
@@ -68,6 +87,10 @@ branch `codex/repo-cleanup-review`.
   `formal`, `baseline`, `smoke`, `debug`, `restart`, `viz`, or `stale`.
 - `artifacts/`
   Structured exports and LUT tables that support reproducible experiments.
+- `artifacts/benchmarks/<campaign_id>/`
+  Compact manifests, source-freeze snapshots, diagnostics, tables, figures,
+  and runtime contracts. Generated training checkpoints remain under ignored
+  `results/` paths.
 - `reference/`
   Retained on purpose. These repositories are design references, not part of
   the active runtime, but should remain available for provenance.

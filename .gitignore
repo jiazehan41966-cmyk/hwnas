@@ -3,6 +3,18 @@ results_archive/
 outputs/
 /logs/
 /results_port*/
+# Third-party datasets fetched by scripts/fetch_external_sonar_datasets.py.
+# Keep source metadata/configuration in Git, but never commit downloaded archives.
+/data/external/
+/data/synthetic_speckle/
+# Third-party benchmark code whose redistribution license has not been
+# verified.  Provenance manifests are tracked; the source checkout is not.
+/reference/_local/
+/.venv_benchmarks/
+# Generated packaging metadata and local research-tool exports.
+*.egg-info/
+*.pid
+/compass_artifact_*
 hls_lut_builder/results/
 hls_lut_builder/board_harness/_vivado_builds/
 hls_lut_builder/board_harness/projects/

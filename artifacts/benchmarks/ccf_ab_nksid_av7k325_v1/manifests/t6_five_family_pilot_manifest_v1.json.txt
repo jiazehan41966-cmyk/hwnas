@@ -1,0 +1,498 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T04:16:40.688913+00:00",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "purpose": "T6_FIVE_FAMILY_COMPLETE_NETWORK_EXPORT_PILOT",
+  "claimability_status": "PILOT_INPUT_FROZEN_TRUTH_NOT_COLLECTED",
+  "generator": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\build_t6_five_family_pilot_manifest.txt",
+    "sha256": "cdf82b5074e4ad92f011b938376b9f8a88c3e5aecf7a3a4efb07d5aea2249077"
+  },
+  "structural_pool": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_structural_candidate_pool_v1.json.txt",
+    "sha256": "046e1ecba4e73306beb46e381070b5c251ef9d59b08b8045c635b1a905d48f65"
+  },
+  "selection_policy": {
+    "family_order": [
+      "dw_pw_dominant",
+      "mbconv_dominant",
+      "fused_mbconv_dominant",
+      "skip_heavy",
+      "mixed_balanced"
+    ],
+    "per_family": 1,
+    "eligibility": "source_analytic_feasible == true within the frozen structural pool",
+    "ordering": "minimum (block_count, frozen selection_key)",
+    "purpose_boundary": "generator and semantic-equivalence coverage pilot only; not HLS/route performance sampling"
+  },
+  "required_stage_contract": [
+    "source-linked complete-network export",
+    "framework-versus-export semantic equivalence",
+    "Vitis HLS csynth with bound project/solution/report hashes",
+    "Vivado route with bound reports and explicit failure retention"
+  ],
+  "source_freeze": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_freeze_manifest.json",
+    "manifest_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+    "file_count": 556,
+    "archive_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\source_freeze\\g1_20260715_v2\\source_snapshot.zip",
+    "archive_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d"
+  },
+  "pilot_count": 5,
+  "pilots": [
+    {
+      "pilot_order": 0,
+      "pilot_id": "t6_family_pilot_00_dw_pw_dominant",
+      "pool_sample_id": "t6_dw_pw_dominant_04",
+      "architecture_family": "dw_pw_dominant",
+      "grouped_cv_fold": 0,
+      "source_candidate_id": "probe_0000",
+      "source_candidate_path": "E:\\1\\hwnas\\hwnas\\results\\a1_probe_mobile_anchor_av7k325\\results\\candidates\\probe_0000.json",
+      "source_candidate_sha256": "f8aa9d245165a65eadef5c126b9abfdedcc7b9a0149142da277d8a545272608c",
+      "source_row_index": 0,
+      "source_row_sha256": "acdef7adfe3a68f50cefa32aaa095b03af39ea8057b04c6e477dbae6e5239af2",
+      "encoding": {
+        "input_channels": 1,
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": null,
+        "num_classes": 8,
+        "stages": [
+          {
+            "channels": 32,
+            "depth": 1,
+            "stride": 1,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 32,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "fused_mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          }
+        ]
+      },
+      "encoding_sha256": "47a1c40c725a6c71066b26cdf1aad23ea65c5ad7177c74d0822648083b9df407",
+      "operator_counts": {
+        "dw_pw_conv": 3,
+        "fused_mbconv": 1
+      },
+      "block_count": 4,
+      "source_analytic_feasible": true,
+      "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+      "selection_key": "3106c9c61702ee05c576ba6cb2d0b62bb18c4d66e725fa66c00a00ff8d2d2b40",
+      "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+      "export_status": "NOT_STARTED",
+      "semantic_equivalence_status": "PENDING",
+      "csynth_status": "NOT_STARTED",
+      "route_status": "NOT_STARTED",
+      "formal_truth_increment": 0
+    },
+    {
+      "pilot_order": 1,
+      "pilot_id": "t6_family_pilot_01_mbconv_dominant",
+      "pool_sample_id": "t6_mbconv_dominant_05",
+      "architecture_family": "mbconv_dominant",
+      "grouped_cv_fold": 1,
+      "source_candidate_id": "probe_0060",
+      "source_candidate_path": "E:\\1\\hwnas\\hwnas\\results\\a1_probe_mobile_anchor_av7k325\\results\\candidates\\probe_0060.json",
+      "source_candidate_sha256": "abcf55460d10e6a4d608a9f2d2fe0757a02a2b259fa9afa7ea5f8a53369d7967",
+      "source_row_index": 60,
+      "source_row_sha256": "ca757924f99a9a1cc51d72762f06f27fc9acbc7189b7b1a3a252360948e30d93",
+      "encoding": {
+        "input_channels": 1,
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": null,
+        "num_classes": 8,
+        "stages": [
+          {
+            "channels": 32,
+            "depth": 1,
+            "stride": 1,
+            "blocks": [
+              {
+                "op": "mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 32,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "fused_mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 32,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 2
+              }
+            ]
+          }
+        ]
+      },
+      "encoding_sha256": "990070c9cf249f1eaeecf8d5e275e963690aab068707a15bb62207dbfe5e94c4",
+      "operator_counts": {
+        "fused_mbconv": 1,
+        "mbconv": 3
+      },
+      "block_count": 4,
+      "source_analytic_feasible": true,
+      "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+      "selection_key": "2c4ee005cbb75f2cd8e666dfa660a391efd510ae067b285bfbdd27e1347d95f2",
+      "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+      "export_status": "NOT_STARTED",
+      "semantic_equivalence_status": "PENDING",
+      "csynth_status": "NOT_STARTED",
+      "route_status": "NOT_STARTED",
+      "formal_truth_increment": 0
+    },
+    {
+      "pilot_order": 2,
+      "pilot_id": "t6_family_pilot_02_fused_mbconv_dominant",
+      "pool_sample_id": "t6_fused_mbconv_dominant_09",
+      "architecture_family": "fused_mbconv_dominant",
+      "grouped_cv_fold": 2,
+      "source_candidate_id": "probe_0048",
+      "source_candidate_path": "E:\\1\\hwnas\\hwnas\\results\\a1_probe_mobile_anchor_av7k325\\results\\candidates\\probe_0048.json",
+      "source_candidate_sha256": "29110d3c42004ab8707a130856adcccd9f4308daa0484779dda28113d9307896",
+      "source_row_index": 48,
+      "source_row_sha256": "b690fa53080773670b7fa18a0f40cd578cb662032a2e673d37473a37e3cec333",
+      "encoding": {
+        "input_channels": 1,
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": null,
+        "num_classes": 8,
+        "stages": [
+          {
+            "channels": 24,
+            "depth": 1,
+            "stride": 1,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "fused_mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 24,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "fused_mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "fused_mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          }
+        ]
+      },
+      "encoding_sha256": "f1335b4d5f45eba6b8a87c5e3e7add7a8f0f967c881a87c83de48b70cb63e662",
+      "operator_counts": {
+        "dw_pw_conv": 1,
+        "fused_mbconv": 3
+      },
+      "block_count": 4,
+      "source_analytic_feasible": true,
+      "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+      "selection_key": "27cdd8f8a55d8ac5f9c1cdb46435c0d8b033a24c557738fe15a150334e260b52",
+      "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+      "export_status": "NOT_STARTED",
+      "semantic_equivalence_status": "PENDING",
+      "csynth_status": "NOT_STARTED",
+      "route_status": "NOT_STARTED",
+      "formal_truth_increment": 0
+    },
+    {
+      "pilot_order": 3,
+      "pilot_id": "t6_family_pilot_03_skip_heavy",
+      "pool_sample_id": "t6_skip_heavy_00",
+      "architecture_family": "skip_heavy",
+      "grouped_cv_fold": 3,
+      "source_candidate_id": "probe_0136",
+      "source_candidate_path": "E:\\1\\hwnas\\hwnas\\results\\a1_probe_mobile_anchor_av7k325\\results\\candidates\\probe_0136.json",
+      "source_candidate_sha256": "45945b481ad44cb43a91b32e1e4a95eba906ee4aa6e1d955cce3243fe6eb17d2",
+      "source_row_index": 136,
+      "source_row_sha256": "5dcb2eaef6a3725718ba6f4e4a1da6b088ab72b6a6b531be64b8822fb2e88b51",
+      "encoding": {
+        "input_channels": 1,
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": null,
+        "num_classes": 8,
+        "stages": [
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 1,
+            "blocks": [
+              {
+                "op": "skip",
+                "kernel_size": 1,
+                "expand_ratio": 1,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 24,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 32,
+            "depth": 2,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 2
+              },
+              {
+                "op": "skip",
+                "kernel_size": 1,
+                "expand_ratio": 1,
+                "stride": 1
+              }
+            ]
+          }
+        ]
+      },
+      "encoding_sha256": "56749442d6ee3eaccf3735dc56fb769d47ca9be2fae8ac2d7395f4eb78febf89",
+      "operator_counts": {
+        "dw_pw_conv": 1,
+        "mbconv": 2,
+        "skip": 2
+      },
+      "block_count": 5,
+      "source_analytic_feasible": true,
+      "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+      "selection_key": "057a2032e51ead09bcfbdbdda01ccbbf061d1a030ee11d258b4ff7d11ae2ce37",
+      "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+      "export_status": "NOT_STARTED",
+      "semantic_equivalence_status": "PENDING",
+      "csynth_status": "NOT_STARTED",
+      "route_status": "NOT_STARTED",
+      "formal_truth_increment": 0
+    },
+    {
+      "pilot_order": 4,
+      "pilot_id": "t6_family_pilot_04_mixed_balanced",
+      "pool_sample_id": "t6_mixed_balanced_15",
+      "architecture_family": "mixed_balanced",
+      "grouped_cv_fold": 4,
+      "source_candidate_id": "probe_0188",
+      "source_candidate_path": "E:\\1\\hwnas\\hwnas\\results\\a1_probe_mobile_anchor_av7k325\\results\\candidates\\probe_0188.json",
+      "source_candidate_sha256": "770b11d34b08acae3053e9c77100ec0b3e813208d72c5e1636a20fcd06a99ce5",
+      "source_row_index": 188,
+      "source_row_sha256": "82da6c6946b8031f3d48d0f835eee226752456f8caad41ec6fec400cd264ebef",
+      "encoding": {
+        "input_channels": 1,
+        "stem_channels": 16,
+        "stem_stride": 2,
+        "head_channels": null,
+        "num_classes": 8,
+        "stages": [
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 1,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 1
+              }
+            ]
+          },
+          {
+            "channels": 16,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "dw_pw_conv",
+                "kernel_size": 3,
+                "expand_ratio": 1,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 24,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "fused_mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 2
+              }
+            ]
+          },
+          {
+            "channels": 24,
+            "depth": 1,
+            "stride": 2,
+            "blocks": [
+              {
+                "op": "mbconv",
+                "kernel_size": 3,
+                "expand_ratio": 2,
+                "stride": 2
+              }
+            ]
+          }
+        ]
+      },
+      "encoding_sha256": "4a7ae1e28481b8252847d58f998ab1ded800a07c221fa0cc46b4b0491572e686",
+      "operator_counts": {
+        "dw_pw_conv": 2,
+        "fused_mbconv": 1,
+        "mbconv": 1
+      },
+      "block_count": 4,
+      "source_analytic_feasible": true,
+      "source_analytic_feasibility_role": "PILOT_ORDERING_HINT_ONLY_NOT_HARDWARE_TRUTH",
+      "selection_key": "2e63c7a4f1a628971a96c1ba269b6a5d2ff5842b1d2b83a983cbfddfbc12cc64",
+      "network_scope": "COMPLETE_NETWORK_PENDING_EXPORT",
+      "export_status": "NOT_STARTED",
+      "semantic_equivalence_status": "PENDING",
+      "csynth_status": "NOT_STARTED",
+      "route_status": "NOT_STARTED",
+      "formal_truth_increment": 0
+    }
+  ],
+  "remaining_candidates_after_pilot": 95,
+  "queue_release_condition": "all five pilots pass export and semantic equivalence; csynth/route failures are retained rather than replaced",
+  "formal_hls_route_truth_increment": 0,
+  "board_required_for_current_stage": false,
+  "board_entry_stage": "bitstream programming and COM5 dynamic validation after route-feasible candidate selection",
+  "boundary": "This manifest freezes inputs only. It contains no HLS, route, board-latency or power measurement."
+}

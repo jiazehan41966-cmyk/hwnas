@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "operators": {
+    "denoise": {
+      "quantization_contract": "per_tensor_symmetric_int8_v1",
+      "software_spec_sha256": "TODO",
+      "hls_spec_sha256": "TODO",
+      "weight_export_complete": false,
+      "weight_export_sha256": "TODO",
+      "parity": {
+        "real_sample_count": 0,
+        "boundary_tensor_count": 0,
+        "random_tensor_count": 0,
+        "compared_element_count": 0,
+        "mismatch_count": 0
+      },
+      "matched_control": {
+        "operator": "denoise k3",
+        "control": "mbconv k3 e1",
+        "output_shape_equal": true,
+        "control_parameters": 1376,
+        "operator_parameters": 1376,
+        "control_macs": 1028608,
+        "operator_macs": 1028608,
+        "parameter_error_ratio": 0.0,
+        "mac_error_ratio": 0.0,
+        "measurement_scope": "folded deployment form, stage3 slot C_in=C_out=32 stride=1 28x28"
+      },
+      "hls": {
+        "evidence_complete": false,
+        "route_feasible": false
+      }
+    },
+    "edge": {
+      "quantization_contract": "per_tensor_symmetric_int8_v1",
+      "software_spec_sha256": "TODO",
+      "hls_spec_sha256": "TODO",
+      "weight_export_complete": false,
+      "weight_export_sha256": "TODO",
+      "parity": {
+        "real_sample_count": 0,
+        "boundary_tensor_count": 0,
+        "random_tensor_count": 0,
+        "compared_element_count": 0,
+        "mismatch_count": 0
+      },
+      "matched_control": {
+        "operator": "edge k3",
+        "control": "mbconv k3 e4",
+        "output_shape_equal": true,
+        "control_parameters": 9632,
+        "operator_parameters": 9248,
+        "control_macs": 7325696,
+        "operator_macs": 7225344,
+        "parameter_error_ratio": 0.03986710963455149,
+        "mac_error_ratio": 0.0136986301369863,
+        "measurement_scope": "folded deployment form, stage3 slot C_in=C_out=32 stride=1 28x28"
+      },
+      "hls": {
+        "evidence_complete": false,
+        "route_feasible": false
+      }
+    }
+  },
+  "ablation_variants": {
+    "mbconv_control": {
+      "folds": [],
+      "seeds": [],
+      "completed_runs": 0,
+      "claimable": false,
+      "outer_leakage": false
+    },
+    "denoise": {
+      "folds": [],
+      "seeds": [],
+      "completed_runs": 0,
+      "claimable": false,
+      "outer_leakage": false
+    },
+    "edge": {
+      "folds": [],
+      "seeds": [],
+      "completed_runs": 0,
+      "claimable": false,
+      "outer_leakage": false
+    },
+    "denoise_edge": {
+      "folds": [],
+      "seeds": [],
+      "completed_runs": 0,
+      "claimable": false,
+      "outer_leakage": false
+    }
+  },
+  "comparisons_vs_control": {
+    "denoise": {
+      "method": "paired_stratified_bootstrap",
+      "iterations": 0,
+      "macro_f1_mean_delta": 0,
+      "p_value": 1
+    },
+    "edge": {
+      "method": "paired_stratified_bootstrap",
+      "iterations": 0,
+      "macro_f1_mean_delta": 0,
+      "p_value": 1
+    },
+    "denoise_edge": {
+      "method": "paired_stratified_bootstrap",
+      "iterations": 0,
+      "macro_f1_mean_delta": 0,
+      "p_value": 1
+    }
+  },
+  "generated_by": "G5 pre-E1 manifest assembly",
+  "source_plan": "docs/SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md",
+  "candidate_paths": {
+    "mbconv_control": "E:\\1\\hwnas\\hwnas\\configs\\ablation\\sonar_g5_v1\\mbconv_control.candidate.json",
+    "denoise": "E:\\1\\hwnas\\hwnas\\configs\\ablation\\sonar_g5_v1\\denoise.candidate.json",
+    "edge": "E:\\1\\hwnas\\hwnas\\configs\\ablation\\sonar_g5_v1\\edge.candidate.json",
+    "denoise_edge": "E:\\1\\hwnas\\hwnas\\configs\\ablation\\sonar_g5_v1\\denoise_edge.candidate.json"
+  },
+  "e3_image_quality": {
+    "summary_json": "E:\\1\\hwnas\\hwnas\\results\\sonar_g5_e3_summary.json",
+    "summary_md": "E:\\1\\hwnas\\hwnas\\results\\sonar_g5_e3_summary.md",
+    "boundary": "E3 image-quality evidence is not consumed by the G5 admission audit as classification, HLS, route, board, or power evidence."
+  },
+  "boundary": "Pre-E1/E2 manifest: matched-control evidence and E3 outputs exist; formal ablation, bootstrap, INT8 parity, HLS route, board, and power evidence remain missing."
+}

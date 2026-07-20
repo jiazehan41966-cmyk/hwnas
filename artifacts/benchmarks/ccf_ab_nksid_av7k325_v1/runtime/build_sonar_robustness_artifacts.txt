@@ -1,0 +1,621 @@
+#!/usr/bin/env python3
+"""Build T4/T9 and Nature-style F7/F8 from four audited robustness runs."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import itertools
+import json
+import math
+import os
+from pathlib import Path
+import sys
+from typing import Any, Iterable
+
+import numpy as np
+from PIL import Image
+
+SCRIPT_PATH = Path(__file__).resolve()
+REPO_ROOT = SCRIPT_PATH.parents[4]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from hwnas_fpga.benchmarks.statistics import (
+    holm_adjust,
+    paired_permutation_test,
+    paired_stratified_bootstrap,
+)
+from hwnas_fpga.data import NKSID_CLASSES
+
+
+METHODS = (
+    "scratch_mobilenet_v2",
+    "imagenet_pretrained_mobilenet_v2",
+    "frozen_nas_champion",
+    "sure_same_backbone",
+)
+METHOD_LABELS = {
+    "scratch_mobilenet_v2": "Scratch MobileNetV2",
+    "imagenet_pretrained_mobilenet_v2": "ImageNet-pretrained MobileNetV2",
+    "frozen_nas_champion": "Frozen NAS champion",
+    "sure_same_backbone": "SURE recipe",
+}
+METHOD_COLORS = {
+    "scratch_mobilenet_v2": "#484878",
+    "imagenet_pretrained_mobilenet_v2": "#7884B4",
+    "frozen_nas_champion": "#B64342",
+    "sure_same_backbone": "#42949E",
+}
+METHOD_MARKERS = {
+    "scratch_mobilenet_v2": "o",
+    "imagenet_pretrained_mobilenet_v2": "s",
+    "frozen_nas_champion": "^",
+    "sure_same_backbone": "D",
+}
+EXPECTED_CONDITIONS = (
+    "clean",
+    *(f"awgn_snr_{snr}db" for snr in (20, 15, 10, 5, 0)),
+    *(f"speckle_snr_{snr}db" for snr in (20, 15, 10, 5, 0)),
+    *(f"blur_s{severity}" for severity in range(1, 6)),
+    *(f"contrast_s{severity}" for severity in range(1, 6)),
+)
+FIGURE_CONTRACT = SCRIPT_PATH.parent / "sonar_robustness_figure_contract_20260716.md"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def stable_seed(*values: object) -> int:
+    payload = "|".join(str(value) for value in values).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big", signed=False)
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+    os.replace(temporary, path)
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def verify_inventory(root: Path, manifest: dict[str, Any]) -> None:
+    outputs = dict(manifest.get("outputs") or {})
+    if not outputs:
+        raise RuntimeError(f"empty output inventory: {root}")
+    for relative, expected in outputs.items():
+        path = root / relative
+        if not path.is_file() or sha256_file(path) != expected.get("sha256"):
+            raise RuntimeError(f"robustness output inventory mismatch: {path}")
+
+
+def load_method(root: Path, method: str) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    method_root = root / method
+    manifest_path = method_root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    if not (
+        manifest.get("status") == "COMPLETE_INPUT_AUDIT_PASS_PENDING_G1_LEDGER"
+        and manifest.get("method_id") == method
+        and manifest.get("audit_status") == "PASS"
+        and manifest.get("existing_f_robust_definition_changed") is False
+    ):
+        raise RuntimeError(f"method robustness manifest is not eligible: {method}")
+    verify_inventory(method_root, manifest)
+
+    unit_rows: list[dict[str, Any]] = []
+    for unit_path in sorted((method_root / "units").glob("fold*_*.json")):
+        unit = json.loads(unit_path.read_text(encoding="utf-8-sig"))
+        raw_path = Path(unit["raw_path"])
+        if sha256_file(raw_path) != unit["raw_sha256"]:
+            raise RuntimeError(f"unit raw hash mismatch: {raw_path}")
+        for row in unit["metrics"]:
+            resolved = dict(row)
+            resolved["method"] = method
+            unit_rows.append(resolved)
+    expected_pairs = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+    for condition in EXPECTED_CONDITIONS:
+        pairs = {
+            (int(row["fold"]), int(row["seed"]))
+            for row in unit_rows
+            if row["condition_id"] == condition
+        }
+        if pairs != expected_pairs:
+            raise RuntimeError(f"{method}/{condition} pair mismatch: {sorted(pairs)}")
+    if len(unit_rows) != len(EXPECTED_CONDITIONS) * 15:
+        raise RuntimeError(f"unexpected unit metric count for {method}: {len(unit_rows)}")
+
+    auc_rows: list[dict[str, Any]] = []
+    for row in read_csv(method_root / "F7_auc_source.csv"):
+        auc_rows.append(
+            {
+                "method": method,
+                "kind": row["kind"],
+                "fold": int(row["fold"]),
+                "seed": int(row["seed"]),
+                "auc_f1_db": float(row["auc_f1_db"]),
+                "normalized_auc_0_20db": float(row["normalized_auc_0_20db"]),
+                "worst_case_macro_f1": float(row["worst_case_macro_f1"]),
+            }
+        )
+    if len(auc_rows) != 30:
+        raise RuntimeError(f"unexpected AUC row count for {method}: {len(auc_rows)}")
+    return manifest, unit_rows, auc_rows
+
+
+def stratified_mean_ci(
+    values: list[float],
+    strata: list[int],
+    *,
+    iterations: int = 10_000,
+    seed: int,
+) -> dict[str, float | int]:
+    array = np.asarray(values, dtype=np.float64)
+    labels = np.asarray(strata)
+    if array.shape != (15,) or labels.shape != (15,) or not np.all(np.isfinite(array)):
+        raise ValueError("formal mean CI requires exactly 15 finite fold-seed values")
+    groups = [np.flatnonzero(labels == fold) for fold in sorted(np.unique(labels))]
+    if [len(group) for group in groups] != [3, 3, 3, 3, 3]:
+        raise ValueError("formal strata must contain three seeds in each of five folds")
+    rng = np.random.default_rng(seed)
+    draws = np.empty(iterations, dtype=np.float64)
+    for iteration in range(iterations):
+        sampled = np.concatenate([rng.choice(group, size=group.size, replace=True) for group in groups])
+        draws[iteration] = float(np.mean(array[sampled]))
+    return {
+        "mean": float(np.mean(array)),
+        "ci95_low": float(np.quantile(draws, 0.025)),
+        "ci95_high": float(np.quantile(draws, 0.975)),
+        "n": 15,
+        "iterations": iterations,
+        "seed": seed,
+    }
+
+
+def keyed(rows: Iterable[dict[str, Any]], value_field: str) -> dict[tuple[int, int], float]:
+    result = {(int(row["fold"]), int(row["seed"])): float(row[value_field]) for row in rows}
+    if set(result) != {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}:
+        raise RuntimeError("paired fold-seed key mismatch")
+    return result
+
+
+def write_table_bundle(root: Path, table_id: str, title: str, rows: list[dict[str, Any]]) -> dict[str, str]:
+    if not rows:
+        raise ValueError(f"{table_id} has no rows")
+    fields = list(rows[0])
+    base = root / "tables" / table_id.lower()
+    write_csv(base.with_suffix(".csv"), rows, fields)
+    markdown = [f"# {table_id}: {title}", "", "| " + " | ".join(fields) + " |", "|" + "|".join("---" for _ in fields) + "|"]
+    for row in rows:
+        markdown.append("| " + " | ".join(str(row.get(field, "")).replace("|", "\\|") for field in fields) + " |")
+    base.with_suffix(".md").write_text("\n".join(markdown) + "\n", encoding="utf-8")
+
+    def latex(value: Any) -> str:
+        text = "" if value is None else str(value)
+        for old, new in (("\\", "\\textbackslash{}"), ("_", "\\_"), ("%", "\\%"), ("&", "\\&")):
+            text = text.replace(old, new)
+        return text
+
+    latex_rows = [" & ".join(latex(field) for field in fields) + " \\\\", r"\hline"]
+    latex_rows.extend(" & ".join(latex(row.get(field)) for field in fields) + " \\\\" for row in rows)
+    base.with_suffix(".tex").write_text("\n".join(latex_rows) + "\n", encoding="utf-8")
+    return {suffix: str(base.with_suffix(f".{suffix}")) for suffix in ("csv", "md", "tex")}
+
+
+def build_t4(
+    units_by_method: dict[str, list[dict[str, Any]]],
+    auc_by_method: dict[str, list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    table_rows: list[dict[str, Any]] = []
+    source_rows: list[dict[str, Any]] = []
+    for method in METHODS:
+        units = units_by_method[method]
+        clean = {
+            (int(row["fold"]), int(row["seed"])): float(row["macro_f1"])
+            for row in units if row["condition_id"] == "clean"
+        }
+        for condition in EXPECTED_CONDITIONS:
+            selected = [row for row in units if row["condition_id"] == condition]
+            values = [float(row["macro_f1"]) for row in selected]
+            folds = [int(row["fold"]) for row in selected]
+            ci = stratified_mean_ci(values, folds, seed=stable_seed("T4", method, condition))
+            drops = [clean[(int(row["fold"]), int(row["seed"]))] - float(row["macro_f1"]) for row in selected]
+            source_rows.append(
+                {
+                    "method": method,
+                    "method_label": METHOD_LABELS[method],
+                    "condition_id": condition,
+                    "family": selected[0]["condition_family"],
+                    "severity": selected[0].get("severity"),
+                    "target_snr_db": selected[0].get("target_snr_db"),
+                    "macro_f1_mean": ci["mean"],
+                    "macro_f1_ci95_low": ci["ci95_low"],
+                    "macro_f1_ci95_high": ci["ci95_high"],
+                    "drop_from_clean_mean": float(np.mean(drops)),
+                    "n_fold_seed": 15,
+                    "bootstrap_iterations": 10_000,
+                }
+            )
+        for kind in ("awgn", "speckle"):
+            selected_auc = [row for row in auc_by_method[method] if row["kind"] == kind]
+            auc_ci = stratified_mean_ci(
+                [float(row["normalized_auc_0_20db"]) for row in selected_auc],
+                [int(row["fold"]) for row in selected_auc],
+                seed=stable_seed("T4_AUC", method, kind),
+            )
+            worst_ci = stratified_mean_ci(
+                [float(row["worst_case_macro_f1"]) for row in selected_auc],
+                [int(row["fold"]) for row in selected_auc],
+                seed=stable_seed("T4_WORST", method, kind),
+            )
+            condition0 = next(row for row in source_rows if row["method"] == method and row["condition_id"] == f"{kind}_snr_0db")
+            table_rows.append(
+                {
+                    "method": METHOD_LABELS[method],
+                    "corruption": kind,
+                    "normalized_f1_snr_auc_mean": round(float(auc_ci["mean"]), 6),
+                    "auc_ci95": f"[{auc_ci['ci95_low']:.6f}, {auc_ci['ci95_high']:.6f}]",
+                    "worst_macro_f1_mean": round(float(worst_ci["mean"]), 6),
+                    "macro_f1_at_0db_mean": round(float(condition0["macro_f1_mean"]), 6),
+                    "drop_from_clean_at_0db": round(float(condition0["drop_from_clean_mean"]), 6),
+                    "n_fold_seed": 15,
+                    "claimability": "PENDING_G1_LEDGER",
+                }
+            )
+        for family in ("blur", "contrast"):
+            condition = next(row for row in source_rows if row["method"] == method and row["condition_id"] == f"{family}_s5")
+            table_rows.append(
+                {
+                    "method": METHOD_LABELS[method],
+                    "corruption": f"{family}_severity_5",
+                    "normalized_f1_snr_auc_mean": None,
+                    "auc_ci95": None,
+                    "worst_macro_f1_mean": round(float(condition["macro_f1_mean"]), 6),
+                    "macro_f1_at_0db_mean": None,
+                    "drop_from_clean_at_0db": round(float(condition["drop_from_clean_mean"]), 6),
+                    "n_fold_seed": 15,
+                    "claimability": "PENDING_G1_LEDGER",
+                }
+            )
+    return table_rows, source_rows
+
+
+def build_t9(auc_by_method: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for kind in ("awgn", "speckle"):
+        raw_p: dict[str, float] = {}
+        pending: list[dict[str, Any]] = []
+        for left, right in itertools.combinations(METHODS, 2):
+            left_map = keyed([row for row in auc_by_method[left] if row["kind"] == kind], "normalized_auc_0_20db")
+            right_map = keyed([row for row in auc_by_method[right] if row["kind"] == kind], "normalized_auc_0_20db")
+            keys = sorted(left_map)
+            left_values = [left_map[key] for key in keys]
+            right_values = [right_map[key] for key in keys]
+            comparison_id = f"{kind}:{left}_minus_{right}"
+            bootstrap = paired_stratified_bootstrap(
+                left_values,
+                right_values,
+                [fold for fold, _ in keys],
+                iterations=10_000,
+                seed=stable_seed("T9_BOOT", comparison_id),
+            )
+            permutation = paired_permutation_test(left_values, right_values)
+            raw_p[comparison_id] = float(permutation["p_value"])
+            pending.append(
+                {
+                    "experiment_family": f"T4_{kind}_normalized_auc",
+                    "comparison_id": comparison_id,
+                    "left_method": METHOD_LABELS[left],
+                    "right_method": METHOD_LABELS[right],
+                    "effect_left_minus_right": bootstrap["mean_difference"],
+                    "ci95_low": bootstrap["ci95_low"],
+                    "ci95_high": bootstrap["ci95_high"],
+                    "cohens_dz": bootstrap["cohens_dz"],
+                    "p_raw": permutation["p_value"],
+                    "permutation_exact": permutation["exact"],
+                    "n_paired": 15,
+                    "bootstrap_iterations": 10_000,
+                }
+            )
+        adjusted = holm_adjust(raw_p)
+        for row in pending:
+            row["p_holm"] = adjusted[row["comparison_id"]]
+            row["claimability"] = "PENDING_G1_LEDGER"
+            rows.append(row)
+    return rows
+
+
+def configure_matplotlib() -> None:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans", "Liberation Sans"]
+    plt.rcParams["svg.fonttype"] = "none"
+    mpl.rcParams.update(
+        {
+            "pdf.fonttype": 42,
+            "font.size": 7,
+            "axes.spines.right": False,
+            "axes.spines.top": False,
+            "axes.linewidth": 0.8,
+            "legend.frameon": False,
+        }
+    )
+
+
+def export_figure(figure, base: Path) -> dict[str, str]:
+    base.parent.mkdir(parents=True, exist_ok=True)
+    outputs = {
+        "svg": str(base.with_suffix(".svg")),
+        "pdf": str(base.with_suffix(".pdf")),
+        "png": str(base.with_suffix(".png")),
+    }
+    figure.savefig(outputs["svg"], bbox_inches="tight")
+    figure.savefig(outputs["pdf"], bbox_inches="tight")
+    figure.savefig(outputs["png"], dpi=300, bbox_inches="tight")
+    return outputs
+
+
+def build_f7(artifact_root: Path, source_rows: list[dict[str, Any]], input_manifests: list[Path]) -> dict[str, str]:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    configure_matplotlib()
+    figure, axes = plt.subplots(1, 2, figsize=(7.087, 3.228), sharex=True, sharey=True, constrained_layout=True)
+    x_values = [0, 5, 10, 15, 20]
+    for axis, kind, panel in zip(axes, ("awgn", "speckle"), ("a", "b"), strict=True):
+        for method in METHODS:
+            rows = [row for row in source_rows if row["method"] == method and row["family"] == kind]
+            by_snr = {int(float(row["target_snr_db"])): row for row in rows}
+            means = [float(by_snr[x]["macro_f1_mean"]) for x in x_values]
+            low = [float(by_snr[x]["macro_f1_ci95_low"]) for x in x_values]
+            high = [float(by_snr[x]["macro_f1_ci95_high"]) for x in x_values]
+            color = METHOD_COLORS[method]
+            axis.plot(
+                x_values,
+                means,
+                color=color,
+                marker=METHOD_MARKERS[method],
+                linewidth=1.6,
+                markersize=4.2,
+                label=METHOD_LABELS[method],
+            )
+            axis.fill_between(x_values, low, high, color=color, alpha=0.13, linewidth=0)
+        axis.set_title("AWGN" if kind == "awgn" else "Speckle noise", fontsize=8, weight="bold")
+        axis.set_xlabel("Image-domain SNR (dB)")
+        axis.set_xticks(x_values)
+        axis.set_xlim(0, 20)
+        axis.set_ylim(0, 1.0)
+        axis.grid(axis="y", color="#D8D8D8", linewidth=0.5, alpha=0.7)
+        axis.text(-0.12, 1.03, panel, transform=axis.transAxes, fontsize=9, fontweight="bold")
+        axis.text(0.02, 0.04, "n = 15 fold-seed units", transform=axis.transAxes, fontsize=6, color="#606060")
+    axes[0].set_ylabel("Macro-F1")
+    handles, labels = axes[0].get_legend_handles_labels()
+    figure.legend(handles, labels, loc="outside upper center", ncol=2, fontsize=6.5)
+    figure_dir = artifact_root / "figures"
+    source_path = figure_dir / "f7_source.csv"
+    write_csv(source_path, [row for row in source_rows if row["family"] in ("awgn", "speckle")], list(source_rows[0]))
+    outputs = export_figure(figure, figure_dir / "f7")
+    plt.close(figure)
+    meta = {
+        "figure_id": "F7",
+        "title_en": "Macro-F1 versus image-domain SNR",
+        "title_zh": "macro-F1-SNR 曲线",
+        "caption_en": "Macro-F1 under deterministic AWGN and speckle corruption. Lines are means and bands are 95% fold-stratified bootstrap intervals across 15 fold-seed units (10,000 draws).",
+        "caption_zh": "确定性 AWGN 与散斑噪声下的 macro-F1；曲线为 15 个 fold-seed 单元均值，阴影为 10,000 次按 fold 分层 bootstrap 的 95% 区间。",
+        "supported_claim": "Compares robustness degradation under the same samples, conditions and inference protocol; no deployment or real-world restoration claim.",
+        "limitations": [
+            "Fold-seed units reuse one dataset population and are not independent acquisition sites.",
+            "Clean is excluded from numerical F1-SNR AUC.",
+            "Campaign claimability remains PENDING until the G1 ledger closes.",
+        ],
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_sha256": sha256_file(FIGURE_CONTRACT),
+        "inputs": [{"path": str(path.resolve()), "sha256": sha256_file(path)} for path in input_manifests],
+        "source_data": {"path": str(source_path.resolve()), "sha256": sha256_file(source_path)},
+        "exports": {key: {"path": value, "sha256": sha256_file(Path(value))} for key, value in outputs.items()},
+    }
+    atomic_json(figure_dir / "f7_meta.json", meta)
+    outputs.update({"source_csv": str(source_path), "meta_json": str(figure_dir / "f7_meta.json")})
+    return outputs
+
+
+def build_f8(artifact_root: Path, representative_csv: Path, input_manifests: list[Path]) -> dict[str, str]:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    configure_matplotlib()
+    selected_conditions = (
+        "clean", "awgn_snr_10db", "awgn_snr_0db", "speckle_snr_10db",
+        "speckle_snr_0db", "blur_s5", "contrast_s5",
+    )
+    column_labels = ("Clean", "AWGN\n10 dB", "AWGN\n0 dB", "Speckle\n10 dB", "Speckle\n0 dB", "Blur\nS5", "Contrast\nS5")
+    all_rows = read_csv(representative_csv)
+    rows = [row for row in all_rows if row["condition_id"] in selected_conditions]
+    lookup = {(int(row["class_id"]), row["condition_id"]): row for row in rows}
+    expected = {(label, condition) for label in range(8) for condition in selected_conditions}
+    if set(lookup) != expected:
+        raise RuntimeError("F8 representative grid is incomplete")
+    figure, axes = plt.subplots(8, 7, figsize=(7.087, 8.071), facecolor="black")
+    for label in range(8):
+        for column, condition in enumerate(selected_conditions):
+            axis = axes[label, column]
+            path = Path(lookup[(label, condition)]["image_path"])
+            if sha256_file(path) != lookup[(label, condition)]["image_sha256"]:
+                raise RuntimeError(f"representative image hash mismatch: {path}")
+            with Image.open(path) as opened:
+                image = np.asarray(opened.convert("L"))
+            axis.imshow(image, cmap="gray", vmin=0, vmax=255, interpolation="nearest")
+            axis.set_facecolor("black")
+            axis.set_xticks([])
+            axis.set_yticks([])
+            for spine in axis.spines.values():
+                spine.set_visible(False)
+            if label == 0:
+                axis.set_title(column_labels[column], color="white", fontsize=6.5, pad=3)
+            if column == 0:
+                axis.set_ylabel(NKSID_CLASSES[label], color="white", fontsize=5.8, rotation=0, ha="right", va="center", labelpad=4)
+    figure.subplots_adjust(left=0.16, right=0.995, top=0.95, bottom=0.01, wspace=0.03, hspace=0.03)
+    figure_dir = artifact_root / "figures"
+    source_path = figure_dir / "f8_source.csv"
+    fields = list(rows[0])
+    write_csv(source_path, sorted(rows, key=lambda row: (int(row["class_id"]), selected_conditions.index(row["condition_id"]))), fields)
+    outputs = export_figure(figure, figure_dir / "f8")
+    plt.close(figure)
+    meta = {
+        "figure_id": "F8",
+        "title_en": "Clean and corrupted sonar examples",
+        "title_zh": "clean 与 corrupted 声呐样例网格",
+        "caption_en": "Deterministically selected NKSID examples (lowest global sample index per class) under frozen full-image corruptions. Images are qualitative context only.",
+        "caption_zh": "每类按最低全局样本索引确定的 NKSID 样例及冻结的全图 corruption；该图仅提供定性语境。",
+        "supported_claim": "Makes the tested corruption severities and representative-sample selection auditable.",
+        "limitations": [
+            "Representative images do not establish comparative model performance.",
+            "No local retouching, cropping or model-outcome-based sample selection was used.",
+            "No processed/restored images are claimed because the present experiment applies corruptions only.",
+        ],
+        "image_integrity": "global deterministic resize/corruption only; source and rendered SHA256 retained in f8_source.csv",
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_sha256": sha256_file(FIGURE_CONTRACT),
+        "inputs": [{"path": str(path.resolve()), "sha256": sha256_file(path)} for path in [representative_csv, *input_manifests]],
+        "source_data": {"path": str(source_path.resolve()), "sha256": sha256_file(source_path)},
+        "exports": {key: {"path": value, "sha256": sha256_file(Path(value))} for key, value in outputs.items()},
+    }
+    atomic_json(figure_dir / "f8_meta.json", meta)
+    outputs.update({"source_csv": str(source_path), "meta_json": str(figure_dir / "f8_meta.json")})
+    return outputs
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-id", default="ccf_ab_nksid_av7k325_v1")
+    parser.add_argument("--robust-root", default=None)
+    args = parser.parse_args()
+
+    robust_root = Path(args.robust_root).resolve() if args.robust_root else (
+        REPO_ROOT / "results" / "benchmarks" / args.campaign_id / "formal" / "robustness"
+    )
+    artifact_root = REPO_ROOT / "artifacts" / "benchmarks" / args.campaign_id
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    manifests: dict[str, dict[str, Any]] = {}
+    units_by_method: dict[str, list[dict[str, Any]]] = {}
+    auc_by_method: dict[str, list[dict[str, Any]]] = {}
+    input_manifest_paths: list[Path] = []
+    for method in METHODS:
+        manifest, units, auc = load_method(robust_root, method)
+        manifests[method] = manifest
+        units_by_method[method] = units
+        auc_by_method[method] = auc
+        input_manifest_paths.append(robust_root / method / "manifest.json")
+
+    source_dir = artifact_root / "source_data"
+    t4_rows, t4_source = build_t4(units_by_method, auc_by_method)
+    t9_rows = build_t9(auc_by_method)
+    closed_t9_path = source_dir / "t9_closed_statistics.csv"
+    if not closed_t9_path.is_file():
+        raise RuntimeError(
+            "closed-set T9 statistics are missing; run build_closed_classification_artifacts.txt first"
+        )
+    t9_rows = read_csv(closed_t9_path) + t9_rows
+    table_t4 = write_table_bundle(
+        artifact_root,
+        "T4",
+        "Sonar Corruption and SNR Robustness / 声呐噪声、SNR 与 corruption 鲁棒性",
+        t4_rows,
+    )
+    table_t9 = write_table_bundle(
+        artifact_root,
+        "T9",
+        "Ablations, Effect Sizes and Significance / 消融实验、效应量与显著性",
+        t9_rows,
+    )
+    write_csv(source_dir / "t4_all_conditions.csv", t4_source, list(t4_source[0]))
+    all_units = [dict(row) for method in METHODS for row in units_by_method[method]]
+    write_csv(
+        source_dir / "t4_fold_seed_units.csv",
+        all_units,
+        [
+            "method", "fold", "seed", "condition_id", "condition_family", "severity",
+            "target_snr_db", "num_samples", "macro_f1", "top1", "weighted_f1",
+        ],
+    )
+    all_auc = [dict(row) for method in METHODS for row in auc_by_method[method]]
+    write_csv(
+        source_dir / "t4_f1_snr_auc_units.csv",
+        all_auc,
+        ["method", "kind", "fold", "seed", "auc_f1_db", "normalized_auc_0_20db", "worst_case_macro_f1"],
+    )
+    f7 = build_f7(artifact_root, t4_source, input_manifest_paths)
+    representative_csv = robust_root / METHODS[0] / "F8_representative_manifest.csv"
+    f8 = build_f8(artifact_root, representative_csv, input_manifest_paths)
+    outputs = {
+        "T4": table_t4,
+        "T9": table_t9,
+        "F7": f7,
+        "F8": f8,
+        "source_data": {
+            path.name: {"path": str(path), "sha256": sha256_file(path)}
+            for path in sorted(source_dir.glob("t4_*.csv"))
+        },
+    }
+    build_manifest = {
+        "schema_version": 1,
+        "status": "COMPLETE_INPUT_AUDITS_PASS_PENDING_G1_LEDGER",
+        "campaign_id": args.campaign_id,
+        "generator_path": str(SCRIPT_PATH),
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_path": str(FIGURE_CONTRACT),
+        "figure_contract_sha256": sha256_file(FIGURE_CONTRACT),
+        "analysis_runtime": {
+            "interpreter": sys.executable,
+            "python": sys.version,
+            "numpy": np.__version__,
+            "pillow": __import__("PIL").__version__,
+            "matplotlib": __import__("matplotlib").__version__,
+        },
+        "input_manifests": [
+            {"path": str(path), "sha256": sha256_file(path)} for path in input_manifest_paths
+        ],
+        "statistics": {
+            "bootstrap_iterations": 10_000,
+            "bootstrap_unit": "fold_seed",
+            "bootstrap_strata": "outer_fold",
+            "permutation": "exact paired sign flip for n=15",
+            "multiple_testing": "Holm within each AWGN/speckle AUC family",
+        },
+        "outputs": outputs,
+        "boundary": "T4/F7/F8/T9 inputs are independently audited, but campaign claims remain PENDING until the G1 ledger closes.",
+    }
+    output_path = artifact_root / "manifests" / "sonar_robustness_artifact_build.json"
+    atomic_json(output_path, build_manifest)
+    print(json.dumps({"status": build_manifest["status"], "manifest": str(output_path)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

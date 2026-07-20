@@ -1,0 +1,15 @@
+{
+  "language": "zh-CN",
+  "title_zh": "冻结 NAS 候选与预训练 MobileNetV2 的 15 个配对 macro-F1",
+  "caption_zh": "每条灰线连接同一 fold-seed 单元。虚线表示各方法的 15 单元均值。所有 15 个单元中冻结 NAS 候选均低于预训练 MobileNetV2。",
+  "purpose_zh": "检验冻结架构的软件分类性能是否具有可报告的配对证据。",
+  "observation_zh": "NAS 平均 macro-F1 为 0.693619，预训练基线为 0.931632，NAS 胜出 0/15。",
+  "implication_zh": "该架构可保留为硬件可行负结果，但不能作为精度冠军。",
+  "limitations_zh": [
+    "架构由历史 fold0 流程选择，不能证明 NAS 方法无偏泛化。",
+    "缺少 acquisition/mission group 元数据。"
+  ],
+  "source_csv": "figure-01-software-macro-f1_source.csv",
+  "error_bar": "无；显示全部 15 个原始配对单元",
+  "generator_sha256": "e89888ce72272e15d72d35a5d1c14ba149ec020a660073078f0eb9fdd3edc9a4"
+}

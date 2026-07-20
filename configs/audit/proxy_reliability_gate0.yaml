@@ -1,0 +1,64 @@
+schema_version: 1
+audit: proxy_reliability_gate0
+source_search_config: configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml
+output_dir: results/proxy_reliability_gate0/manifest_v1
+
+sampling:
+  target_architectures: 48
+  pool_size: 4096
+  seed: 20260704
+  selection_independent_of_classification_proxy: true
+  dimensions:
+    - latency_ms
+    - dsp
+    - bram
+    - lut
+    - stage_width
+    - total_depth
+    - operator_mix
+    - feasibility_margin
+
+execution:
+  outer_protocol: nksid_outer5fold_inner_contiguous_v1
+  outer_folds: [0, 1, 2, 3, 4]
+  seeds: [42, 43, 44, 45, 46]
+  budgets: [0, 1, 3, 10, 30, 150]
+  truth_budget: 150
+  proxy_name: trained_proxy_constant_lr_v1
+  zero_cost_proxy_name: naswot_v1
+  zero_cost_calibration_batch_size: 16
+  short_budget_outer_evaluation: forbidden
+  full_budget_outer_evaluation: once_after_inner_selection
+  scheduler_policy: independent_exact_budget_constant_lr
+  metrics: [macro_f1, top1]
+  selection_metric: macro_f1
+  batch_size: 16
+  num_workers: 4
+  lr: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: null
+  inner_val_fraction: 0.15
+
+bootstrap:
+  iterations: 2000
+  seed: 20260704
+  primary_unit: architecture
+  nesting: [outer_fold, seed]
+
+classification_gate:
+  metric: macro_f1
+  min_architectures: 40
+  min_seeds: 5
+  min_outer_folds: 5
+  min_icc_relative_mean: 0.60
+  min_kendall_tau_b: 0.30
+  min_pairwise_accuracy: 0.65
+  max_regret_at5: 0.02
+  required_budgets: [0, 1, 3, 10, 30, 150]
+  use_bootstrap_bounds: true
+  min_bootstrap_iterations: 2000
+
+hardware_audit:
+  metrics: [latency_ms, dsp, bram, lut]
+  pareto_metrics: [latency_ms, dsp, bram, lut]
+  power_truth_required_for_power_claim: true

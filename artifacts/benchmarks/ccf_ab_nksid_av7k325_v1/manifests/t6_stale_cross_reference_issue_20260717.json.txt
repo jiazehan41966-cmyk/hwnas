@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "OPEN_REQUIRES_NEW_SOURCE_FREEZE",
+  "language": "zh-CN",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "referencing_document": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_hardware_collection_contract_patch_20260717.md",
+    "sha256": "6deef335ffdd4c0f5a91a1e9bda824ce22472de804cfc60f3226e12a005eba33"
+  },
+  "referenced_document": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_complete_network_collection_design_20260717.md",
+    "stale_recorded_sha256": "cd76632dcbb0151f513dd5bb3d171b4a111fb379c6ce406cfbb647f1db5c32a2",
+    "current_actual_sha256": "fb567a57a40a189703f66991b86ca8b081002f705eca834aafb9126b449c1f2f"
+  },
+  "impact": "历史交叉引用失效，但 T6 真实样本为 0/100，没有实测行被错误接纳。",
+  "required_fix": "在新 source freeze 下由 canonical 生成器重建绑定，并增加引用文件变化时 fail-closed 的测试。",
+  "board_required_for_fix": false,
+  "formal_evidence_increment": 0
+}

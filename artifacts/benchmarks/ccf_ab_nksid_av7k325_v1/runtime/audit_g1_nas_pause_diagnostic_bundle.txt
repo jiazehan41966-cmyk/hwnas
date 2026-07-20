@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""独立审计非正式 G1 NAS 暂停诊断档案。"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import random
+import statistics
+from pathlib import Path
+
+import torch
+import yaml
+from PIL import Image
+
+
+CLASSES = [
+    "big_propeller", "cylinder", "fishing_net", "floats",
+    "iron_pipeline", "small_propeller", "soft_pipeline", "tire",
+]
+METHODS = ("nas", "scratch", "pretrained")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def encoding_signature(encoding: dict[str, object]) -> str:
+    payload = json.dumps(dict(encoding), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def load_records(run_dir: Path) -> dict[tuple[int, int], dict[str, object]]:
+    records: dict[tuple[int, int], dict[str, object]] = {}
+    for path in sorted(run_dir.glob("run_fold*_seed*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        key = (int(payload["fold"]), int(payload["seed"]))
+        payload["_path"] = str(path.resolve())
+        payload["_sha256"] = sha256_file(path)
+        records[key] = payload
+    return records
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def assert_close(actual: float, expected: float, label: str, tol: float = 1e-12) -> None:
+    if not math.isfinite(actual) or not math.isfinite(expected) or abs(actual - expected) > tol:
+        raise AssertionError(f"{label}: actual={actual!r}, expected={expected!r}")
+
+
+def bootstrap_mean_ci(values: list[float], seed: int = 20260717) -> tuple[float, float]:
+    generator = random.Random(seed)
+    means = [
+        statistics.mean(values[generator.randrange(len(values))] for _ in values)
+        for _ in range(10_000)
+    ]
+    means.sort()
+    return means[250], means[9749]
+
+
+def checkpoint_parameters(path: Path) -> tuple[int, int]:
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    state = payload["model_state_dict"]
+    total = sum(int(value.numel()) for value in state.values())
+    excluded = ("running_mean", "running_var", "num_batches_tracked")
+    trainable_approx = sum(
+        int(value.numel()) for name, value in state.items()
+        if not any(token in name for token in excluded)
+    )
+    return total, trainable_approx
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bundle", required=True)
+    parser.add_argument("--nas-run", required=True)
+    parser.add_argument("--scratch-run", required=True)
+    parser.add_argument("--pretrained-run", required=True)
+    parser.add_argument("--pause-manifest", required=True)
+    parser.add_argument("--search-config", required=True)
+    parser.add_argument("--search-summary", required=True)
+    parser.add_argument("--route-manifest", required=True)
+    args = parser.parse_args()
+
+    bundle = Path(args.bundle).resolve()
+    run_dirs = {
+        "nas": Path(args.nas_run).resolve(),
+        "scratch": Path(args.scratch_run).resolve(),
+        "pretrained": Path(args.pretrained_run).resolve(),
+    }
+    pause_manifest = Path(args.pause_manifest).resolve()
+    search_config = Path(args.search_config).resolve()
+    search_summary = Path(args.search_summary).resolve()
+    route_manifest = Path(args.route_manifest).resolve()
+    manifest_path = bundle / "manifest.json.txt"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    checks: list[str] = []
+    if manifest["status"] != "PASS_INTERIM_DIAGNOSTIC_ONLY":
+        raise AssertionError("unexpected bundle status")
+    if manifest["campaign_id"] != "ccf_ab_nksid_av7k325_v1":
+        raise AssertionError("campaign identity mismatch")
+    if manifest["nas_units"] != 14 or manifest["formal_t2_f6_increment"] != 0:
+        raise AssertionError("formal evidence boundary mismatch")
+    if manifest.get("language") != "zh-CN":
+        raise AssertionError("manifest language is not zh-CN")
+    if "仅用于支持用户决策" not in manifest["boundary"] or "不提升任何正式" not in manifest["boundary"]:
+        raise AssertionError("manifest boundary is not explicit")
+    checks.append("manifest_identity_and_nonformal_boundary")
+
+    generator_path = Path(manifest["generation_script"]["path"])
+    if sha256_file(generator_path) != manifest["generation_script"]["sha256"]:
+        raise AssertionError("generation script hash mismatch")
+    if Path(manifest["pause_manifest"]["path"]).resolve() != pause_manifest:
+        raise AssertionError("pause manifest path mismatch")
+    if sha256_file(pause_manifest) != manifest["pause_manifest"]["sha256"]:
+        raise AssertionError("pause manifest hash mismatch")
+    expected_sources = {
+        "search_config": search_config,
+        "search_summary": search_summary,
+        "route_manifest": route_manifest,
+    }
+    for name, path in expected_sources.items():
+        entry = manifest["evidence_sources"][name]
+        if Path(entry["path"]).resolve() != path or entry["sha256"] != sha256_file(path):
+            raise AssertionError(f"bound evidence source mismatch: {name}")
+    checks.append("generator_pause_and_historical_sources_bound")
+
+    listed_paths = set()
+    for item in manifest["files"]:
+        path = Path(item["path"]).resolve()
+        listed_paths.add(path)
+        if not path.is_file():
+            raise AssertionError(f"listed file missing: {path}")
+        if path.stat().st_size != int(item["bytes"]):
+            raise AssertionError(f"listed byte count mismatch: {path}")
+        if sha256_file(path) != item["sha256"]:
+            raise AssertionError(f"listed hash mismatch: {path}")
+    actual_payload_files = {
+        path.resolve() for path in bundle.rglob("*")
+        if path.is_file() and path.name not in {"manifest.json.txt", "audit.json.txt"}
+    }
+    if listed_paths != actual_payload_files:
+        raise AssertionError(
+            f"manifest coverage mismatch: missing={actual_payload_files - listed_paths}, "
+            f"unexpected={listed_paths - actual_payload_files}"
+        )
+    checks.append("all_payload_file_hashes_and_bytes")
+
+    records = {name: load_records(path) for name, path in run_dirs.items()}
+    expected_all = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+    if set(records["nas"]) != expected_all - {(4, 44)}:
+        raise AssertionError("NAS is not exactly the expected 14/15 pause state")
+    if set(records["scratch"]) != expected_all or set(records["pretrained"]) != expected_all:
+        raise AssertionError("reference run coverage is not 15/15")
+    paired_keys = sorted(records["nas"])
+
+    paired_csv = bundle / "data" / "paired_fold_seed_metrics.csv"
+    paired_source = bundle / "figures" / "diagnostic_paired_macro_f1_source.csv"
+    if paired_csv.read_bytes() != paired_source.read_bytes():
+        raise AssertionError("paired figure source is not an exact data copy")
+    paired_rows = read_csv(paired_csv)
+    if [(int(row["fold"]), int(row["seed"])) for row in paired_rows] != paired_keys:
+        raise AssertionError("paired CSV unit ordering/coverage mismatch")
+    for row, key in zip(paired_rows, paired_keys):
+        for method in METHODS:
+            record = records[method][key]
+            for metric in ("macro_f1", "top1", "weighted_f1"):
+                assert_close(
+                    float(row[f"{method}_{metric}"]),
+                    float(record["outer_val"][metric]),
+                    f"{method} {key} {metric}",
+                )
+            if row[f"{method}_record_sha256"] != record["_sha256"]:
+                raise AssertionError(f"record hash mismatch: {method} {key}")
+        assert_close(
+            float(row["nas_minus_scratch_macro_f1"]),
+            float(row["nas_macro_f1"]) - float(row["scratch_macro_f1"]),
+            f"NAS-scratch difference {key}",
+        )
+        assert_close(
+            float(row["nas_minus_pretrained_macro_f1"]),
+            float(row["nas_macro_f1"]) - float(row["pretrained_macro_f1"]),
+            f"NAS-pretrained difference {key}",
+        )
+    checks.append("paired_fold_seed_metrics_recomputed_14_units")
+
+    class_csv = bundle / "data" / "per_class_f1.csv"
+    class_source = bundle / "figures" / "diagnostic_per_class_f1_source.csv"
+    if class_csv.read_bytes() != class_source.read_bytes():
+        raise AssertionError("per-class figure source is not an exact data copy")
+    class_rows = read_csv(class_csv)
+    if [row["class_name"] for row in class_rows] != CLASSES:
+        raise AssertionError("class order mismatch")
+    for class_index, row in enumerate(class_rows):
+        for method in METHODS:
+            values = [
+                float(records[method][key]["outer_per_class_f1"][class_index])
+                for key in paired_keys
+            ]
+            assert_close(float(row[f"{method}_mean_f1"]), statistics.mean(values), f"{method} class mean")
+            assert_close(float(row[f"{method}_std_f1"]), statistics.stdev(values), f"{method} class SD")
+        support = sum(
+            sum(records["nas"][key]["outer_confusion_matrix"][class_index])
+            for key in paired_keys
+        )
+        if int(row["outer_support_total_14_units"]) != support:
+            raise AssertionError(f"class support mismatch: {row['class_name']}")
+    checks.append("per_class_metrics_and_support_recomputed")
+
+    parameter_rows = read_csv(bundle / "data" / "model_parameter_counts.csv")
+    if {row["method"] for row in parameter_rows} != set(METHODS):
+        raise AssertionError("parameter method set mismatch")
+    for row in parameter_rows:
+        checkpoint = Path(row["checkpoint"]).resolve()
+        if checkpoint != run_dirs[row["method"]] / "best_fold0_seed42.pt":
+            raise AssertionError(f"checkpoint path mismatch: {row['method']}")
+        if sha256_file(checkpoint) != row["checkpoint_sha256"]:
+            raise AssertionError(f"checkpoint hash mismatch: {row['method']}")
+        total, trainable = checkpoint_parameters(checkpoint)
+        if total != int(row["state_tensor_elements"]) or trainable != int(row["trainable_parameter_approx"]):
+            raise AssertionError(f"parameter count mismatch: {row['method']}")
+    checks.append("checkpoint_hashes_and_parameter_counts_recomputed")
+
+    summary_rows = read_csv(bundle / "tables" / "interim_summary.csv")
+    summary_by_name = {row["comparison"]: row for row in summary_rows}
+    diffs = {
+        "NAS 减去从零训练 MobileNetV2": [float(row["nas_minus_scratch_macro_f1"]) for row in paired_rows],
+        "NAS 减去 ImageNet 预训练 MobileNetV2": [float(row["nas_minus_pretrained_macro_f1"]) for row in paired_rows],
+    }
+    for name, values in diffs.items():
+        row = summary_by_name[name]
+        ci_low, ci_high = bootstrap_mean_ci(values)
+        assert_close(float(row["mean_difference_nas_minus_reference"]), statistics.mean(values), f"{name} mean")
+        assert_close(float(row["paired_bootstrap_95ci_low"]), ci_low, f"{name} CI low")
+        assert_close(float(row["paired_bootstrap_95ci_high"]), ci_high, f"{name} CI high")
+        if int(row["nas_wins"]) != sum(value > 0 for value in values):
+            raise AssertionError(f"{name} win count mismatch")
+    checks.append("paired_bootstrap_10000_seed_20260717_recomputed")
+
+    search_cfg = yaml.safe_load(search_config.read_text(encoding="utf-8"))
+    search_result = json.loads(search_summary.read_text(encoding="utf-8"))
+    route_result = json.loads(route_manifest.read_text(encoding="utf-8"))
+    provenance = json.loads((bundle / "data" / "diagnostic_provenance.json.txt").read_text(encoding="utf-8"))
+    search_best = search_result["best_candidate"]
+    signature = encoding_signature(search_best["encoding"])
+    if provenance["search"]["method"] != search_cfg["search"]["method"]:
+        raise AssertionError("search method provenance mismatch")
+    if provenance["search"]["num_candidates"] != search_cfg["search"]["num_candidates"]:
+        raise AssertionError("search budget provenance mismatch")
+    if provenance["search"]["fold"] != search_cfg["dataset"]["fold"]:
+        raise AssertionError("search fold provenance mismatch")
+    if provenance["search"]["eval_epochs"] != search_cfg["search"]["eval_epochs"]:
+        raise AssertionError("search epochs provenance mismatch")
+    if provenance["search"]["stage_depth_choices"] != [[1], [1], [1], [1]]:
+        raise AssertionError("search-space depth provenance mismatch")
+    if provenance["search"]["best_arch_id"] != search_best["arch_id"] or provenance["search"]["encoding_signature"] != signature:
+        raise AssertionError("search candidate provenance mismatch")
+    assert_close(float(provenance["search"]["best_macro_f1"]), float(search_best["metrics"]["macro_f1"]), "search macro-F1")
+    if signature != route_result["candidate"]["encoding_signature"]:
+        raise AssertionError("search-to-route encoding signature mismatch")
+    if provenance["route"]["selection_stage"] != "claimable_board_best" or provenance["route"]["gate_status"] != "PASS":
+        raise AssertionError("route selection/gate provenance mismatch")
+    if provenance["route"]["actual_resources"] != route_result["route_gate"]["utilization"]:
+        raise AssertionError("route resource provenance mismatch")
+    assert_close(float(provenance["route"]["wns_ns"]), float(route_result["route_gate"]["wns_ns"]), "route WNS")
+    assert_close(
+        float(provenance["route"]["board_e2e_latency_ms"]),
+        float(route_result["final_validation"]["real_board_e2e"]["e2e_latency_ms"]),
+        "board E2E latency",
+    )
+    checks.append("search_space_candidate_and_route_provenance_recomputed")
+
+    expected_figures = {
+        "diagnostic_paired_macro_f1": ("中期配对 macro-F1（NAS 14/15，仅诊断）", paired_source),
+        "diagnostic_per_class_f1": ("长尾类别贡献了最大的 NAS 容量损失", class_source),
+    }
+    for stem, (expected_title_zh, source_csv) in expected_figures.items():
+        png = bundle / "figures" / f"{stem}.png"
+        pdf = bundle / "figures" / f"{stem}.pdf"
+        svg = bundle / "figures" / f"{stem}.svg"
+        meta_path = bundle / "figures" / f"{stem}_meta.json.txt"
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if meta.get("language") != "zh-CN" or "title_en" in meta:
+            raise AssertionError(f"figure language metadata mismatch: {stem}")
+        if meta["title_zh"] != expected_title_zh or "�" in meta["title_zh"]:
+            raise AssertionError(f"Chinese title encoding mismatch: {stem}")
+        if meta["claimability_status"] != "INTERIM_DIAGNOSTIC_ONLY_NOT_FORMAL_T2_F6":
+            raise AssertionError(f"figure claimability mismatch: {stem}")
+        if Path(meta["generation_script"]["path"]).resolve() != generator_path:
+            raise AssertionError(f"figure generator path mismatch: {stem}")
+        if meta["generation_script"]["sha256"] != sha256_file(generator_path):
+            raise AssertionError(f"figure generator hash mismatch: {stem}")
+        if Path(meta["source_csv"]["path"]).resolve() != source_csv.resolve():
+            raise AssertionError(f"figure source CSV path mismatch: {stem}")
+        if meta["source_csv"]["sha256"] != sha256_file(source_csv):
+            raise AssertionError(f"figure source CSV hash mismatch: {stem}")
+        with Image.open(png) as image:
+            dpi = image.info.get("dpi", (0, 0))
+            if image.width < 2500 or image.height < 1200:
+                raise AssertionError(f"figure dimensions too small: {stem}")
+            if not (299.0 <= float(dpi[0]) <= 301.0 and 299.0 <= float(dpi[1]) <= 301.0):
+                raise AssertionError(f"figure DPI mismatch: {stem}, dpi={dpi}")
+        if pdf.stat().st_size < 1000 or svg.stat().st_size < 1000:
+            raise AssertionError(f"vector export unexpectedly small: {stem}")
+    checks.append("png_300dpi_vector_exports_meta_and_utf8_titles")
+
+    report_text = (bundle / "analysis-report.md").read_text(encoding="utf-8")
+    if "不能证明 RL、HW-PR-NAS、Random 或 Aging" not in report_text or "必须建立新的协议和 source freeze" not in report_text:
+        raise AssertionError("analysis report evidence boundary missing")
+    if "�" in report_text or "鈥" in report_text:
+        raise AssertionError("analysis report contains encoding corruption")
+    checks.append("report_decision_boundary_and_utf8")
+
+    audit = {
+        "schema_version": 1,
+        "status": "PASS_INDEPENDENT_AUDIT_INTERIM_DIAGNOSTIC_ONLY",
+        "campaign_id": manifest["campaign_id"],
+        "bundle_manifest": {"path": str(manifest_path), "sha256": sha256_file(manifest_path)},
+        "auditor": {"path": str(Path(__file__).resolve()), "sha256": sha256_file(Path(__file__))},
+        "checks": checks,
+        "paired_units": 14,
+        "missing_unit": {"fold": 4, "seed": 44},
+        "formal_t2_f6_increment": 0,
+        "decision_state": "PAUSED_PENDING_USER_DECISION",
+        "language": "zh-CN",
+        "boundary": "本审计仅验证中期决策支持档案，不授权训练、不提升正式 T2/F6 证据，也不授权继续下游实验。",
+    }
+    output_path = bundle / "audit.json.txt"
+    output_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="")
+    print(json.dumps({
+        "status": audit["status"],
+        "checks": len(checks),
+        "paired_units": 14,
+        "formal_t2_f6_increment": 0,
+        "output": str(output_path),
+    }))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Any, Optional, List
+from typing import TYPE_CHECKING, Any, Mapping, Optional, List
 from datetime import datetime
 
 import torch
@@ -18,7 +18,11 @@ from hwnas_fpga.search_space import SearchSpace, ArchitectureSpec
 from hwnas_fpga.hardware import FPGACostEstimator, CostEstimate
 from hwnas_fpga.models import build_model
 from hwnas_fpga.search.pareto import compute_pareto_front
-from hwnas_fpga.training import train_model
+from hwnas_fpga.training import (
+    evaluate_sonar_robustness,
+    resolve_sonar_robustness_config,
+    train_model,
+)
 
 if TYPE_CHECKING:
     from hwnas_fpga.experiment import ExperimentTracker
@@ -28,6 +32,10 @@ def _metric_display_name(selection_metric: str) -> str:
     normalized = str(selection_metric or "macro_f1").strip().lower()
     if normalized in {"macro_f1", "f1"}:
         return "MacroF1"
+    if normalized == "f_clean":
+        return "F-clean"
+    if normalized == "f_robust":
+        return "F-robust"
     if normalized in {"accuracy", "top1"}:
         return "Top1"
     if normalized == "weighted_f1":
@@ -40,6 +48,8 @@ def resolve_pareto_task_metric(selection_metric: str) -> str:
     normalized = str(selection_metric or "macro_f1").strip().lower()
     if normalized in {"macro_f1", "f1"}:
         return "macro_f1"
+    if normalized in {"f_clean", "f_robust"}:
+        return normalized
     if normalized in {"accuracy", "top1"}:
         return "top1"
     if normalized == "weighted_f1":
@@ -51,15 +61,19 @@ def candidate_selection_score(candidate: SearchCandidate, selection_metric: str)
     metrics = candidate.metrics
     normalized = str(selection_metric or "macro_f1").strip().lower()
     if normalized in {"macro_f1", "f1"}:
-        value = metrics.macro_f1 if metrics.macro_f1 is not None else metrics.accuracy
+        value = metrics.macro_f1
     elif normalized in {"accuracy", "top1"}:
-        value = metrics.top1 if metrics.top1 is not None else metrics.accuracy
+        value = metrics.top1
     elif normalized == "weighted_f1":
-        value = metrics.weighted_f1 if metrics.weighted_f1 is not None else metrics.accuracy
+        value = metrics.weighted_f1
     else:
         value = getattr(metrics, normalized, None)
-        if value is None:
-            value = metrics.accuracy
+    if value is None:
+        value = metrics.selection_score
+    if value is None:
+        # Compatibility with pre-schema-change artifacts where ``accuracy``
+        # stored the configured selection score.
+        value = metrics.accuracy
     return float(value if value is not None else 0.0)
 
 
@@ -75,10 +89,12 @@ class BaseSearcher:
         search_space: SearchSpace,
         cost_estimator: FPGACostEstimator,
         constraints: Optional[SearchConstraints] = None,
+        robustness_config: Optional[Mapping[str, Any]] = None,
     ):
         self.search_space = search_space
         self.estimator = cost_estimator
         self.constraints = constraints
+        self.robustness_config = resolve_sonar_robustness_config(robustness_config)
 
         # 搜索历史
         self.evaluated_candidates: List[SearchCandidate] = []
@@ -87,6 +103,44 @@ class BaseSearcher:
         self.last_trained_model = None
         self.last_training_history = None
         self.last_cost_estimate: Optional[CostEstimate] = None
+
+    def attach_clean_and_robust_metrics(
+        self,
+        candidate: SearchCandidate,
+        *,
+        model: torch.nn.Module,
+        history: dict[str, Any],
+        val_loader: Optional[DataLoader],
+        num_classes: int,
+        class_weights: Optional[torch.Tensor],
+        device: str,
+    ) -> None:
+        """Attach F_clean and the frozen inner-validation robustness bundle."""
+
+        best_eval = dict(history.get("best_eval") or {})
+        candidate.metrics.f_clean = best_eval.get("macro_f1")
+        if not self.robustness_config["enabled"]:
+            history["robustness_eval"] = {
+                **self.robustness_config,
+                "status": "disabled",
+                "condition_results": [],
+            }
+            return
+        if val_loader is None:
+            raise ValueError("enabled robustness evaluation requires a validation loader")
+        robustness = evaluate_sonar_robustness(
+            model,
+            val_loader,
+            device=device,
+            num_classes=num_classes,
+            class_weights=class_weights,
+            config=self.robustness_config,
+        )
+        candidate.metrics.f_robust = float(robustness["f_robust"])
+        candidate.metrics.robust_worst_macro_f1 = float(
+            robustness["robust_worst_macro_f1"]
+        )
+        history["robustness_eval"] = robustness
 
     def check_feasibility(self, cost_estimate: CostEstimate) -> bool:
         """检查架构是否满足约束"""
@@ -185,8 +239,14 @@ class RandomSearcher(BaseSearcher):
         seed: int = 42,
         eval_early_stopping_patience: Optional[int] = 2,
         selection_metric: str = "macro_f1",
+        robustness_config: Optional[Mapping[str, Any]] = None,
     ):
-        super().__init__(search_space, cost_estimator, constraints)
+        super().__init__(
+            search_space,
+            cost_estimator,
+            constraints,
+            robustness_config=robustness_config,
+        )
         self.rng = random.Random(seed)
         self.eval_early_stopping_patience = eval_early_stopping_patience
         self.selection_metric = selection_metric
@@ -248,12 +308,22 @@ class RandomSearcher(BaseSearcher):
                     ),
                     selection_metric=self.selection_metric,
                 )
-                candidate.metrics.accuracy = accuracy
                 best_eval = dict(history.get("best_eval") or {})
+                candidate.metrics.selection_score = accuracy
+                candidate.metrics.accuracy = best_eval.get("top1")
                 candidate.metrics.macro_f1 = best_eval.get("macro_f1")
                 candidate.metrics.weighted_f1 = best_eval.get("weighted_f1")
                 candidate.metrics.top1 = best_eval.get("top1")
                 candidate.metrics.top5 = best_eval.get("top5")
+                self.attach_clean_and_robust_metrics(
+                    candidate,
+                    model=model,
+                    history=history,
+                    val_loader=val_loader,
+                    num_classes=num_classes,
+                    class_weights=class_weights,
+                    device=device,
+                )
                 self.last_trained_model = model
                 self.last_training_history = history
             except Exception as e:
@@ -494,6 +564,7 @@ def create_searcher(
             seed=seed,
             eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
             selection_metric=kwargs.get("selection_metric", "macro_f1"),
+            robustness_config=kwargs.get("robustness_cfg"),
         )
     if method == "rl":
         from .rl_searcher import RLSearcher
@@ -517,6 +588,33 @@ def create_searcher(
             exploration_epsilon_end=kwargs.get("exploration_epsilon_end"),
             exploration_epsilon_decay_episodes=kwargs.get("exploration_epsilon_decay_episodes", 0),
             exploration_bonus=kwargs.get("exploration_bonus", 0.0),
+            robustness_config=kwargs.get("robustness_cfg"),
+        )
+    if method in {"aging", "aging_evolution"}:
+        from .aging_evolution_searcher import AgingEvolutionSearcher
+
+        aging_cfg = dict(kwargs.get("aging_cfg") or {})
+        return AgingEvolutionSearcher(
+            search_space=search_space,
+            cost_estimator=cost_estimator,
+            constraints=constraints,
+            seed=seed,
+            eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
+            selection_metric=kwargs.get("selection_metric", "macro_f1"),
+            objective_weights=kwargs.get("reward_weights"),
+            pareto_config=kwargs.get("pareto_cfg"),
+            robustness_config=kwargs.get("robustness_cfg"),
+            population_size=int(aging_cfg.get("population_size", 32)),
+            sample_size=int(aging_cfg.get("sample_size", 8)),
+            random_injection_probability=float(
+                aging_cfg.get("random_injection_probability", 0.10)
+            ),
+            crossover_probability=float(aging_cfg.get("crossover_probability", 0.50)),
+            survivor_selection=str(aging_cfg.get("survivor_selection", "pareto_crowding")),
+            max_mutation_attempts=int(aging_cfg.get("max_mutation_attempts", 32)),
+            prefer_lightweight_initialization=bool(
+                aging_cfg.get("prefer_lightweight_initialization", False)
+            ),
         )
     if method == "proxyless":
         from .proxyless_searcher import ProxylessSearcher

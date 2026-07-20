@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "ACTIVE",
+  "language": "zh-CN",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "scope": [
+    "闭集分类",
+    "开放集与长尾分类",
+    "声呐 corruption 鲁棒性",
+    "NAS 搜索",
+    "HLS 与 route",
+    "板级延迟",
+    "外部功耗"
+  ],
+  "stop_levels": {
+    "S0": "硬件或人员安全风险，立即中断",
+    "S1": "来源与证据完整性失败，立即 fail-closed",
+    "S2": "运行或工具链故障，在安全原子边界中断",
+    "S3": "达到预先批准的性能或可行性检查点后中断"
+  },
+  "performance_threshold_policy": {
+    "status": "REQUIRES_EXPERIMENT_SPECIFIC_USER_APPROVAL",
+    "agent_may_invent_threshold": false,
+    "required_fields": [
+      "主指标与方向",
+      "对标方法与配对单位",
+      "最小有意义差异或容忍差值",
+      "检查点",
+      "判断规则",
+      "允许动作与最大范围"
+    ]
+  },
+  "forbidden_automatic_actions": [
+    "静默更换模型或候选",
+    "静默更换 seed、fold、数据划分或标签映射",
+    "改变主指标或统计方法",
+    "扩大搜索空间或加入预训练、蒸馏和新增强",
+    "降低审计要求",
+    "绕过 source freeze 或批准文件",
+    "自动进入下游实验"
+  ],
+  "resume_authorization": {
+    "required": true,
+    "separate_machine_readable_file": true,
+    "must_bind_pause_manifest_sha256": true,
+    "must_limit_action_and_scope": true,
+    "must_reverify_source_freeze": true,
+    "auto_pause_at_approved_boundary": true
+  },
+  "current_g1": {
+    "stop_level": "S3",
+    "state": "PAUSED_PENDING_USER_DECISION",
+    "completed_units": 14,
+    "expected_units": 15,
+    "missing_unit": {
+      "fold": 4,
+      "seed": 44
+    },
+    "scheduled_task_state": "Disabled",
+    "matching_training_processes": 0,
+    "user_approval_file_exists": false,
+    "formal_t2_f6_increment": 0,
+    "pause_manifest_sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86"
+  },
+  "scientific_boundary": "本协议只控制中断与恢复，不增加正式实验结果，也不授权改变当前协议。"
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "status": "PASS_FAIL_CLOSED",
+  "tested_local_time": "2026-07-17T14:29:48+08:00",
+  "wrapper_path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\run_g1_persistent_20260716.ps1",
+  "wrapper_sha256": "3d0fc1addcf7ab47353331606d917ff7507b7e222a84b41532ddfc3fcc1d1094",
+  "pause_manifest_sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86",
+  "approval_artifact_present": false,
+  "scheduled_task": "Codex_HWNAS_G1_20260716",
+  "scheduled_task_state_after_test": "Ready",
+  "scheduled_task_last_result": 2,
+  "predictions_before": 14,
+  "predictions_after": 14,
+  "unexpected_training_processes_after": 0,
+  "observed_gate_status": "PAUSED_PENDING_USER_DECISION",
+  "observed_gate_detail": "resume_nas_to_15",
+  "observed_stop_reason": "User decision is required before resume_nas_to_15; approval artifact is missing",
+  "source_freeze_verification_before_gate": "PASS_556_OF_556",
+  "boundary": "This verifies fail-closed orchestration only. It is not an experiment result and does not approve continuation."
+}

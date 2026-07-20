@@ -1,0 +1,128 @@
+project:
+  name: nksid-aging-mobile-anchor-mobilenet-v2-av7k325
+  seed: 42
+  output_dir: results
+  run_name: aging_mobile_anchor_mobilenet_v2_av7k325_200
+
+anchor_source:
+  source_run_name: backbone_nksid_av7k325_fair_scratch_seed42_gpu_20260417
+  selected_backbone_pool: results/backbone_nksid_av7k325_fair_scratch_seed42_gpu_20260417/results/selected_backbone_pool.json
+  source_role: search_anchor
+  source_arch_id: mobilenet_v2_scratch
+  source_backbone: mobilenet_v2
+
+dataset:
+  name: nksid
+  data_dir: data/NKSID
+  input_channels: 1
+  image_size: 224
+  num_classes: 8
+  fold: 0
+  num_workers: 0
+  split_mode: frozen_inner
+  inner_val_fraction: 0.15
+  normalization: grayscale
+
+search_space:
+  family_profile: mobile_anchor
+  macro_type: stage_based
+  stem_stride: 2
+  post_stem_downsample_stride: 1
+  stage_strides: [1, 2, 2, 2, 1, 2, 1]
+  stem_channels: 24
+  stage_base_channels: [8, 12, 16, 16, 20, 24, 24]
+  width_multipliers: [0.75, 1.0]
+  stage_depth_choices:
+    - [1]
+    - [1, 2]
+    - [1, 2]
+    - [2]
+    - [1, 2]
+    - [1, 2]
+    - [1]
+  kernel_choices: [3, 5]
+  expand_choices: [1, 2]
+  op_choices:
+    - mbconv
+    - denoise
+    - edge
+    - skip
+  head_conv_channels: 320
+
+constraints:
+  max_latency_ms: 50.0
+  max_power_w: 12.0
+  max_model_size_mb: null
+  max_dsp: 840
+  max_bram: 445
+  max_lut: 50950
+  max_memory_bandwidth_gbps: 3.0
+  max_offchip_mem_mb: 128.0
+
+hardware:
+  target: fpga
+  board: alinx_av7k325
+  quantization_bits: 8
+  estimator: analytic_lut_then_hls
+  lut_path: null
+  use_dummy_lut: false
+
+search:
+  method: aging_evolution
+  num_candidates: 200
+  episodes: 200
+  eval_epochs: 3
+  eval_early_stopping_patience: 2
+  timeout_minutes: null
+  selection_metric: f_clean
+  pareto:
+    selection_method: rank
+    topk: 5
+    # Keep the evolutionary selection pressure meaningful. DSP/BRAM and the
+    # remaining board limits stay hard feasibility gates instead of inflating
+    # the non-dominated space to eight weakly discriminating dimensions.
+    objectives: [f_clean, f_robust, latency_ms, energy_mj]
+    directions: [max, max, min, min]
+  robustness:
+    enabled: true
+    protocol: sonar_corruption_v1
+    seed: 314159
+    aggregation: mean_macro_f1
+    normalization_mean: [0.5]
+    normalization_std: [0.5]
+    conditions:
+      - {name: speckle_var_0p01, kind: speckle, variance: 0.01}
+      - {name: speckle_var_0p04, kind: speckle, variance: 0.04}
+      - {name: contrast_0p70, kind: contrast, factor: 0.70}
+      - {name: blur_3x3, kind: blur, kernel_size: 3}
+  objective_weights:
+    # Retained only for matched RL compatibility. Explicit pareto.objectives
+    # control aging evolution; these values are not combined into its reward.
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
+  aging:
+    population_size: 32
+    sample_size: 8
+    random_injection_probability: 0.10
+    crossover_probability: 0.50
+    survivor_selection: pareto_crowding
+    max_mutation_attempts: 64
+    prefer_lightweight_initialization: false
+
+training:
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 32
+  epochs: 200
+
+deployment:
+  export_format: onnx
+  run_hls_validation: false
+
+notes:
+  comparison_scope: Same historical mobile-anchor budget as the retained RL200 config.
+  claim_boundary: Historical comparison protocol only; new claimable NKSID search remains subject to G2, G4, G5, and G3 re-entry approval.
+  gpu_time_rule: Use parent-measured results/job_efficiency.json gpu_reserved_hours as primary full-job cost; use results/search_efficiency.json only as a search-call breakdown.

@@ -1,0 +1,621 @@
+#!/usr/bin/env python3
+"""Build audited T2/F6 and closed-set T9 source data from four formal runs."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import itertools
+import json
+import math
+import os
+from pathlib import Path
+import sys
+from typing import Any, Iterable
+
+import numpy as np
+import torch
+
+SCRIPT_PATH = Path(__file__).resolve()
+REPO_ROOT = SCRIPT_PATH.parents[4]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from hwnas_fpga.benchmarks.metrics import calibration_summary
+from hwnas_fpga.benchmarks.statistics import (
+    holm_adjust,
+    paired_permutation_test,
+    paired_stratified_bootstrap,
+)
+
+
+METHODS = (
+    "scratch_mobilenet_v2",
+    "imagenet_pretrained_mobilenet_v2",
+    "frozen_nas_champion",
+    "sure_same_backbone",
+)
+METHOD_LABELS = {
+    "scratch_mobilenet_v2": "Scratch MobileNetV2",
+    "imagenet_pretrained_mobilenet_v2": "ImageNet-pretrained MobileNetV2",
+    "frozen_nas_champion": "Frozen NAS champion",
+    "sure_same_backbone": "SURE recipe",
+}
+METHOD_COLORS = {
+    "scratch_mobilenet_v2": "#484878",
+    "imagenet_pretrained_mobilenet_v2": "#7884B4",
+    "frozen_nas_champion": "#B64342",
+    "sure_same_backbone": "#42949E",
+}
+METHOD_MARKERS = {
+    "scratch_mobilenet_v2": "o",
+    "imagenet_pretrained_mobilenet_v2": "s",
+    "frozen_nas_champion": "^",
+    "sure_same_backbone": "D",
+}
+EXPECTED_PAIRS = {(fold, seed) for fold in range(5) for seed in (42, 43, 44)}
+CONTRACT = SCRIPT_PATH.parent / "closed_classification_figure_contract_20260716.md"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def stable_seed(*values: object) -> int:
+    payload = "|".join(str(value) for value in values).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big", signed=False)
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+    os.replace(temporary, path)
+
+
+def softmax(logits: list[list[float]]) -> np.ndarray:
+    # Match the canonical entrypoint exactly: logits are reconstructed as
+    # torch.float32 before softmax, then passed to the NumPy metric layer.
+    return torch.softmax(torch.tensor(logits, dtype=torch.float32), dim=1).numpy()
+
+
+def classification_metrics(targets: list[int], predictions: list[int], classes: int = 8) -> dict[str, float]:
+    confusion = np.zeros((classes, classes), dtype=np.int64)
+    for target, prediction in zip(targets, predictions, strict=True):
+        confusion[target, prediction] += 1
+    support = confusion.sum(axis=1)
+    predicted = confusion.sum(axis=0)
+    per_f1 = []
+    recalls = []
+    for index in range(classes):
+        denominator = int(support[index] + predicted[index])
+        per_f1.append(0.0 if denominator == 0 else 2.0 * confusion[index, index] / denominator)
+        recalls.append(0.0 if support[index] == 0 else confusion[index, index] / support[index])
+    total = int(support.sum())
+    return {
+        "macro_f1": float(np.mean(per_f1)),
+        "top1": float(np.trace(confusion) / total),
+        "balanced_accuracy": float(np.mean(recalls)),
+        "weighted_f1": float(np.sum(np.asarray(per_f1) * support) / total),
+    }
+
+
+def close(left: float, right: float, tolerance: float = 1e-10) -> bool:
+    if math.isnan(left) and math.isnan(right):
+        return True
+    return math.isclose(float(left), float(right), rel_tol=0.0, abs_tol=tolerance)
+
+
+def verify_audit(path: Path, run_dir: Path, method: str) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    manifest_path = run_dir / "run_manifest.json"
+    if not manifest_path.is_file():
+        raise RuntimeError(f"run manifest is missing for {method}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    audit_pairs = {
+        (int(row["fold"]), int(row["seed"]))
+        for row in payload.get("records") or []
+    }
+    if not (
+        payload.get("status") == "PASS"
+        and int(payload.get("record_count") or 0) == 15
+        and not payload.get("errors")
+        and Path(payload.get("run_dir", "")).resolve() == run_dir
+        and payload.get("expected_method") == method
+        and payload.get("run_fingerprint") == manifest.get("run_fingerprint")
+        and audit_pairs == EXPECTED_PAIRS
+    ):
+        raise RuntimeError(f"independent audit is not a matching PASS for {method}")
+    return payload
+
+
+def checkpoint_state_counts(path: Path) -> tuple[int, int]:
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    state = payload["model_state_dict"]
+    all_elements = sum(int(value.numel()) for value in state.values() if torch.is_tensor(value))
+    buffer_suffixes = ("running_mean", "running_var", "num_batches_tracked")
+    weight_bias_elements = sum(
+        int(value.numel())
+        for name, value in state.items()
+        if torch.is_tensor(value) and not name.endswith(buffer_suffixes)
+    )
+    return all_elements, weight_bias_elements
+
+
+def load_method(run_dir: Path, audit_path: Path, method: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    audit = verify_audit(audit_path, run_dir, method)
+    audit_records = {
+        (int(row["fold"]), int(row["seed"])): row
+        for row in audit["records"]
+    }
+    units: list[dict[str, Any]] = []
+    all_rows: list[dict[str, Any]] = []
+    inventory: list[dict[str, Any]] = []
+    for fold, seed in sorted(EXPECTED_PAIRS):
+        record_path = run_dir / f"run_fold{fold}_seed{seed}.json"
+        record = json.loads(record_path.read_text(encoding="utf-8-sig"))
+        audit_record = audit_records[(fold, seed)]
+        if record_path.stat().st_mtime_ns > audit_path.stat().st_mtime_ns:
+            raise RuntimeError(f"record is newer than its independent audit {method}/{fold}/{seed}")
+        if (
+            record.get("run_fingerprint") != audit.get("run_fingerprint")
+            or record["outer_predictions"]["sha256"] != audit_record.get("prediction_sha256")
+            or record["checkpoint"]["sha256"] != audit_record.get("checkpoint_sha256")
+        ):
+            raise RuntimeError(f"record/audit binding mismatch {method}/{fold}/{seed}")
+        prediction_path = Path(record["outer_predictions"]["path"]).resolve()
+        checkpoint_path = Path(record["checkpoint"]["path"]).resolve()
+        if sha256_file(prediction_path) != record["outer_predictions"]["sha256"]:
+            raise RuntimeError(f"prediction hash mismatch {method}/{fold}/{seed}")
+        if sha256_file(checkpoint_path) != record["checkpoint"]["sha256"]:
+            raise RuntimeError(f"checkpoint hash mismatch {method}/{fold}/{seed}")
+        rows = [json.loads(line) for line in prediction_path.read_text(encoding="utf-8").splitlines() if line]
+        expected_size = 537 if fold == 4 else 520
+        if len(rows) != expected_size or len({row["sample_id"] for row in rows}) != expected_size:
+            raise RuntimeError(f"prediction row count/uniqueness mismatch {method}/{fold}/{seed}")
+        targets = [int(row["target"]) for row in rows]
+        predictions = [int(row["prediction"]) for row in rows]
+        probabilities = softmax([row["logits"] for row in rows])
+        basic = classification_metrics(targets, predictions)
+        calibration = calibration_summary(probabilities, targets)
+        for key in ("macro_f1", "top1", "weighted_f1"):
+            if not close(basic[key], float(record["outer_val"][key])):
+                raise RuntimeError(f"classification metric mismatch {method}/{fold}/{seed}/{key}")
+        for key in ("nll", "brier", "ece", "aurc", "failure_auroc", "failure_fpr95"):
+            if not close(float(calibration[key]), float(record["outer_calibration"][key])):
+                raise RuntimeError(f"calibration metric mismatch {method}/{fold}/{seed}/{key}")
+        state_elements, weight_bias_elements = checkpoint_state_counts(checkpoint_path)
+        unit = {
+            "method": method,
+            "fold": fold,
+            "seed": seed,
+            **basic,
+            "ece": float(calibration["ece"]),
+            "nll": float(calibration["nll"]),
+            "brier": float(calibration["brier"]),
+            "aurc": float(calibration["aurc"]),
+            "failure_auroc": float(calibration["failure_auroc"]),
+            "failure_fpr95": float(calibration["failure_fpr95"]),
+            "state_tensor_elements": state_elements,
+            "weight_bias_state_elements": weight_bias_elements,
+            "checkpoint_bytes": checkpoint_path.stat().st_size,
+            "risk_coverage": calibration["risk_coverage"],
+        }
+        units.append(unit)
+        for row, probability in zip(rows, probabilities, strict=True):
+            all_rows.append(
+                {
+                    "method": method,
+                    "fold": fold,
+                    "seed": seed,
+                    "sample_id": row["sample_id"],
+                    "target": int(row["target"]),
+                    "prediction": int(row["prediction"]),
+                    "probabilities": probability.tolist(),
+                }
+            )
+        inventory.append(
+            {
+                "fold": fold,
+                "seed": seed,
+                "record_path": str(record_path),
+                "record_sha256": sha256_file(record_path),
+                "prediction_path": str(prediction_path),
+                "prediction_sha256": record["outer_predictions"]["sha256"],
+                "checkpoint_path": str(checkpoint_path),
+                "checkpoint_sha256": record["checkpoint"]["sha256"],
+            }
+        )
+    return units, all_rows, {
+        "audit_path": str(audit_path),
+        "audit_sha256": sha256_file(audit_path),
+        "run_dir": str(run_dir),
+        "run_fingerprint": audit["run_fingerprint"],
+        "files": inventory,
+    }
+
+
+def stratified_mean_ci(values: list[float], folds: list[int], *, seed: int, iterations: int = 10_000) -> dict[str, float]:
+    array = np.asarray(values, dtype=np.float64)
+    labels = np.asarray(folds, dtype=np.int64)
+    if array.shape != (15,) or labels.shape != (15,) or not np.all(np.isfinite(array)):
+        raise ValueError("formal CI requires 15 finite fold-seed units")
+    groups = [np.flatnonzero(labels == fold) for fold in range(5)]
+    if [len(group) for group in groups] != [3, 3, 3, 3, 3]:
+        raise ValueError("expected three seeds in each fold")
+    rng = np.random.default_rng(seed)
+    draws = np.empty(iterations, dtype=np.float64)
+    for iteration in range(iterations):
+        sampled = np.concatenate([rng.choice(group, size=3, replace=True) for group in groups])
+        draws[iteration] = float(np.mean(array[sampled]))
+    return {
+        "mean": float(np.mean(array)),
+        "ci95_low": float(np.quantile(draws, 0.025)),
+        "ci95_high": float(np.quantile(draws, 0.975)),
+    }
+
+
+def metric_summary(units: list[dict[str, Any]], method: str, key: str) -> dict[str, float]:
+    return stratified_mean_ci(
+        [float(unit[key]) for unit in units],
+        [int(unit["fold"]) for unit in units],
+        seed=stable_seed("T2", method, key),
+    )
+
+
+def build_t2(units_by_method: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for method in METHODS:
+        units = units_by_method[method]
+        summaries = {key: metric_summary(units, method, key) for key in (
+            "macro_f1", "top1", "balanced_accuracy", "weighted_f1", "ece", "nll",
+            "brier", "aurc", "failure_auroc", "failure_fpr95",
+        )}
+        state_elements = {int(unit["state_tensor_elements"]) for unit in units}
+        weight_bias = {int(unit["weight_bias_state_elements"]) for unit in units}
+        if len(state_elements) != 1 or len(weight_bias) != 1:
+            raise RuntimeError(f"model state size changes across units for {method}")
+
+        def cell(key: str) -> str:
+            value = summaries[key]
+            return f"{value['mean']:.6f} [{value['ci95_low']:.6f}, {value['ci95_high']:.6f}]"
+
+        rows.append(
+            {
+                "method": METHOD_LABELS[method],
+                "macro_f1_mean_ci95": cell("macro_f1"),
+                "top1_mean_ci95": cell("top1"),
+                "balanced_accuracy_mean_ci95": cell("balanced_accuracy"),
+                "weighted_f1_mean_ci95": cell("weighted_f1"),
+                "ece_mean_ci95": cell("ece"),
+                "nll_mean_ci95": cell("nll"),
+                "brier_mean_ci95": cell("brier"),
+                "aurc_mean_ci95": cell("aurc"),
+                "failure_auroc_mean_ci95": cell("failure_auroc"),
+                "failure_fpr95_mean_ci95": cell("failure_fpr95"),
+                "weight_bias_state_elements": next(iter(weight_bias)),
+                "state_tensor_elements": next(iter(state_elements)),
+                "checkpoint_mib_mean": round(float(np.mean([unit["checkpoint_bytes"] for unit in units])) / (1024 * 1024), 4),
+                "training_wall_clock": "NOT_RECORDED",
+                "gpu_hours": "NOT_RECORDED",
+                "n_fold_seed": 15,
+                "claimability": "PENDING_G1_LEDGER",
+            }
+        )
+    return rows
+
+
+def keyed(units: list[dict[str, Any]], key: str) -> dict[tuple[int, int], float]:
+    result = {(int(unit["fold"]), int(unit["seed"])): float(unit[key]) for unit in units}
+    if set(result) != EXPECTED_PAIRS:
+        raise RuntimeError("paired unit key mismatch")
+    return result
+
+
+def build_t9_source(units_by_method: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    raw_p: dict[str, float] = {}
+    rows: list[dict[str, Any]] = []
+    for left, right in itertools.combinations(METHODS, 2):
+        left_map = keyed(units_by_method[left], "macro_f1")
+        right_map = keyed(units_by_method[right], "macro_f1")
+        keys = sorted(left_map)
+        left_values = [left_map[key] for key in keys]
+        right_values = [right_map[key] for key in keys]
+        comparison_id = f"closed_macro_f1:{left}_minus_{right}"
+        bootstrap = paired_stratified_bootstrap(
+            left_values,
+            right_values,
+            [fold for fold, _ in keys],
+            iterations=10_000,
+            seed=stable_seed("T2_BOOT", comparison_id),
+        )
+        permutation = paired_permutation_test(left_values, right_values)
+        raw_p[comparison_id] = float(permutation["p_value"])
+        rows.append(
+            {
+                "experiment_family": "T2_closed_macro_f1",
+                "comparison_id": comparison_id,
+                "left_method": METHOD_LABELS[left],
+                "right_method": METHOD_LABELS[right],
+                "effect_left_minus_right": bootstrap["mean_difference"],
+                "ci95_low": bootstrap["ci95_low"],
+                "ci95_high": bootstrap["ci95_high"],
+                "cohens_dz": bootstrap["cohens_dz"],
+                "p_raw": permutation["p_value"],
+                "permutation_exact": permutation["exact"],
+                "n_paired": 15,
+                "bootstrap_iterations": 10_000,
+            }
+        )
+    adjusted = holm_adjust(raw_p)
+    for row in rows:
+        row["p_holm"] = adjusted[row["comparison_id"]]
+        row["claimability"] = "PENDING_G1_LEDGER"
+    return rows
+
+
+def write_table_bundle(root: Path, rows: list[dict[str, Any]]) -> dict[str, str]:
+    fields = list(rows[0])
+    base = root / "tables" / "t2"
+    write_csv(base.with_suffix(".csv"), rows, fields)
+    title = "T2: Closed-set NKSID Classification, Calibration and Cost / NKSID 闭集分类、校准与计算成本"
+    markdown = [f"# {title}", "", "| " + " | ".join(fields) + " |", "|" + "|".join("---" for _ in fields) + "|"]
+    markdown.extend("| " + " | ".join(str(row[field]).replace("|", "\\|") for field in fields) + " |" for row in rows)
+    base.with_suffix(".md").write_text("\n".join(markdown) + "\n", encoding="utf-8")
+
+    def latex(value: Any) -> str:
+        text = "" if value is None else str(value)
+        for old, new in (("\\", "\\textbackslash{}"), ("_", "\\_"), ("%", "\\%"), ("&", "\\&")):
+            text = text.replace(old, new)
+        return text
+
+    latex_rows = [" & ".join(latex(field) for field in fields) + " \\\\", r"\hline"]
+    latex_rows.extend(" & ".join(latex(row[field]) for field in fields) + " \\\\" for row in rows)
+    base.with_suffix(".tex").write_text("\n".join(latex_rows) + "\n", encoding="utf-8")
+    return {suffix: str(base.with_suffix(f".{suffix}")) for suffix in ("csv", "md", "tex")}
+
+
+def bootstrap_risk_curves(units: list[dict[str, Any]], method: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    coverage_grid = np.linspace(0.01, 1.0, 100)
+    matrix = np.empty((15, len(coverage_grid)), dtype=np.float64)
+    folds = []
+    for index, unit in enumerate(sorted(units, key=lambda row: (row["fold"], row["seed"]))):
+        curve = unit["risk_coverage"]
+        coverage = np.asarray([row["coverage"] for row in curve], dtype=np.float64)
+        risk = np.asarray([row["risk"] for row in curve], dtype=np.float64)
+        matrix[index] = np.interp(coverage_grid, coverage, risk)
+        folds.append(int(unit["fold"]))
+    rng = np.random.default_rng(stable_seed("F6_RISK", method))
+    labels = np.asarray(folds)
+    groups = [np.flatnonzero(labels == fold) for fold in range(5)]
+    sampled = np.stack(
+        [np.concatenate([rng.choice(group, size=3, replace=True) for group in groups]) for _ in range(10_000)]
+    )
+    draws = matrix[sampled].mean(axis=1)
+    return coverage_grid, matrix.mean(axis=0), np.quantile(draws, 0.025, axis=0), np.quantile(draws, 0.975, axis=0)
+
+
+def configure_matplotlib() -> None:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans", "Liberation Sans"]
+    plt.rcParams["svg.fonttype"] = "none"
+    mpl.rcParams.update({
+        "pdf.fonttype": 42,
+        "font.size": 7,
+        "axes.spines.right": False,
+        "axes.spines.top": False,
+        "axes.linewidth": 0.8,
+        "legend.frameon": False,
+    })
+
+
+def export_figure(figure, base: Path) -> dict[str, str]:
+    base.parent.mkdir(parents=True, exist_ok=True)
+    outputs = {suffix: str(base.with_suffix(f".{suffix}")) for suffix in ("svg", "pdf", "png")}
+    figure.savefig(outputs["svg"], bbox_inches="tight")
+    figure.savefig(outputs["pdf"], bbox_inches="tight")
+    figure.savefig(outputs["png"], dpi=300, bbox_inches="tight")
+    return outputs
+
+
+def build_f6(
+    artifact_root: Path,
+    units_by_method: dict[str, list[dict[str, Any]]],
+    rows_by_method: dict[str, list[dict[str, Any]]],
+    input_files: list[Path],
+) -> dict[str, str]:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    configure_matplotlib()
+    figure, axes = plt.subplots(1, 2, figsize=(7.087, 3.228), constrained_layout=True)
+    reliability_source: list[dict[str, Any]] = []
+    risk_source: list[dict[str, Any]] = []
+    axes[0].plot([0, 1], [0, 1], linestyle="--", color="#A8A8A8", linewidth=1.0, label="Perfect calibration")
+    for method in METHODS:
+        rows = rows_by_method[method]
+        probabilities = np.asarray([row["probabilities"] for row in rows], dtype=np.float64)
+        targets = [int(row["target"]) for row in rows]
+        pooled = calibration_summary(probabilities, targets)
+        bins = [row for row in pooled["reliability_bins"] if row["count"]]
+        axes[0].plot(
+            [row["confidence"] for row in bins],
+            [row["accuracy"] for row in bins],
+            color=METHOD_COLORS[method],
+            marker=METHOD_MARKERS[method],
+            linewidth=1.4,
+            markersize=3.5,
+            label=METHOD_LABELS[method],
+        )
+        for index, row in enumerate(pooled["reliability_bins"]):
+            reliability_source.append(
+                {
+                    "method": method,
+                    "bin": index,
+                    "lower": row["lower"],
+                    "upper": row["upper"],
+                    "count": row["count"],
+                    "accuracy": row["accuracy"],
+                    "confidence": row["confidence"],
+                    "pooled_visualization_only": True,
+                }
+            )
+        coverage, risk_mean, risk_low, risk_high = bootstrap_risk_curves(units_by_method[method], method)
+        axes[1].plot(
+            coverage,
+            risk_mean,
+            color=METHOD_COLORS[method],
+            linewidth=1.6,
+            label=METHOD_LABELS[method],
+        )
+        axes[1].fill_between(coverage, risk_low, risk_high, color=METHOD_COLORS[method], alpha=0.13, linewidth=0)
+        for c, mean, low, high in zip(coverage, risk_mean, risk_low, risk_high, strict=True):
+            risk_source.append(
+                {
+                    "method": method,
+                    "coverage": c,
+                    "risk_mean": mean,
+                    "risk_ci95_low": low,
+                    "risk_ci95_high": high,
+                    "n_fold_seed": 15,
+                    "bootstrap_iterations": 10_000,
+                }
+            )
+    axes[0].set(xlabel="Mean confidence", ylabel="Empirical accuracy", xlim=(0, 1), ylim=(0, 1), title="Reliability")
+    axes[1].set(xlabel="Coverage", ylabel="Selective risk", xlim=(0, 1), ylim=(0, 1), title="Risk-coverage")
+    for panel, axis in zip(("a", "b"), axes, strict=True):
+        axis.grid(color="#D8D8D8", linewidth=0.5, alpha=0.7)
+        axis.text(-0.12, 1.03, panel, transform=axis.transAxes, fontsize=9, fontweight="bold")
+    handles, labels = axes[0].get_legend_handles_labels()
+    figure.legend(handles, labels, loc="outside upper center", ncol=3, fontsize=6.2)
+    figure_dir = artifact_root / "figures"
+    source_path = figure_dir / "f6_source.csv"
+    combined_source = [
+        {"panel": "reliability", **row} for row in reliability_source
+    ] + [
+        {"panel": "risk_coverage", **row} for row in risk_source
+    ]
+    fields = list(dict.fromkeys(key for row in combined_source for key in row))
+    write_csv(source_path, combined_source, fields)
+    outputs = export_figure(figure, figure_dir / "f6")
+    plt.close(figure)
+    meta = {
+        "figure_id": "F6",
+        "title_en": "Reliability and risk-coverage curves",
+        "title_zh": "可靠性图与 risk-coverage curve",
+        "caption_en": "Pooled reliability bins and mean risk-coverage curves. Risk bands are 95% fold-stratified bootstrap intervals over 15 fold-seed units (10,000 draws).",
+        "caption_zh": "合并可靠性分箱与平均 risk-coverage 曲线；风险阴影为 15 个 fold-seed 单元按 fold 分层、10,000 次 bootstrap 的 95% 区间。",
+        "supported_claim": "Compares confidence calibration and failure ranking under the same closed-set protocol.",
+        "limitations": [
+            "Pooled reliability bins are visualization only; inferential units remain fold-seed pairs.",
+            "All folds come from one dataset population.",
+            "Campaign claimability remains PENDING until the G1 ledger closes.",
+        ],
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_sha256": sha256_file(CONTRACT),
+        "inputs": [{"path": str(path.resolve()), "sha256": sha256_file(path)} for path in input_files],
+        "source_data": {"path": str(source_path.resolve()), "sha256": sha256_file(source_path)},
+        "exports": {key: {"path": value, "sha256": sha256_file(Path(value))} for key, value in outputs.items()},
+    }
+    atomic_json(figure_dir / "f6_meta.json", meta)
+    outputs.update({"source_csv": str(source_path), "meta_json": str(figure_dir / "f6_meta.json")})
+    return outputs
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-id", default="ccf_ab_nksid_av7k325_v1")
+    parser.add_argument("--scratch-run", required=True)
+    parser.add_argument("--scratch-audit", required=True)
+    parser.add_argument("--pretrained-run", required=True)
+    parser.add_argument("--pretrained-audit", required=True)
+    parser.add_argument("--nas-run", required=True)
+    parser.add_argument("--nas-audit", required=True)
+    parser.add_argument("--sure-run", required=True)
+    parser.add_argument("--sure-audit", required=True)
+    args = parser.parse_args()
+
+    bindings = {
+        "scratch_mobilenet_v2": (Path(args.scratch_run).resolve(), Path(args.scratch_audit).resolve()),
+        "imagenet_pretrained_mobilenet_v2": (Path(args.pretrained_run).resolve(), Path(args.pretrained_audit).resolve()),
+        "frozen_nas_champion": (Path(args.nas_run).resolve(), Path(args.nas_audit).resolve()),
+        "sure_same_backbone": (Path(args.sure_run).resolve(), Path(args.sure_audit).resolve()),
+    }
+    units_by_method: dict[str, list[dict[str, Any]]] = {}
+    rows_by_method: dict[str, list[dict[str, Any]]] = {}
+    input_inventory: dict[str, Any] = {}
+    for method in METHODS:
+        units, rows, inventory = load_method(*bindings[method], method)
+        units_by_method[method] = units
+        rows_by_method[method] = rows
+        input_inventory[method] = inventory
+
+    artifact_root = REPO_ROOT / "artifacts" / "benchmarks" / args.campaign_id
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    t2_rows = build_t2(units_by_method)
+    t2_outputs = write_table_bundle(artifact_root, t2_rows)
+    source_dir = artifact_root / "source_data"
+    unit_rows = []
+    for method in METHODS:
+        for unit in units_by_method[method]:
+            unit_rows.append({key: value for key, value in unit.items() if key != "risk_coverage"})
+    write_csv(source_dir / "t2_fold_seed_units.csv", unit_rows, list(unit_rows[0]))
+    t9_closed = build_t9_source(units_by_method)
+    write_csv(source_dir / "t9_closed_statistics.csv", t9_closed, list(t9_closed[0]))
+    input_files = [Path(input_inventory[method]["audit_path"]) for method in METHODS]
+    f6_outputs = build_f6(artifact_root, units_by_method, rows_by_method, input_files)
+    manifest = {
+        "schema_version": 1,
+        "status": "COMPLETE_INPUT_AUDITS_PASS_PENDING_G1_LEDGER",
+        "campaign_id": args.campaign_id,
+        "generator_path": str(SCRIPT_PATH),
+        "generator_sha256": sha256_file(SCRIPT_PATH),
+        "figure_contract_path": str(CONTRACT),
+        "figure_contract_sha256": sha256_file(CONTRACT),
+        "analysis_runtime": {
+            "interpreter": sys.executable,
+            "python": sys.version,
+            "numpy": np.__version__,
+            "torch": torch.__version__,
+            "matplotlib": __import__("matplotlib").__version__,
+        },
+        "inputs": input_inventory,
+        "outputs": {
+            "T2": t2_outputs,
+            "F6": f6_outputs,
+            "T9_closed_source": str(source_dir / "t9_closed_statistics.csv"),
+            "T2_units_source": str(source_dir / "t2_fold_seed_units.csv"),
+        },
+        "compute_boundary": "checkpoint bytes and state tensor elements are directly measured; wall-clock and GPU-hours are NOT_RECORDED",
+        "f5_status": "WITHHELD_PENDING_OPEN_SET_CONFUSION_EVIDENCE",
+        "claimability": "PENDING_G1_LEDGER",
+    }
+    output = artifact_root / "manifests" / "closed_classification_artifact_build.json"
+    atomic_json(output, manifest)
+    print(json.dumps({"status": manifest["status"], "manifest": str(output)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

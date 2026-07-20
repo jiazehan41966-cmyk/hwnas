@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "status": "manifest_frozen_training_not_started",
+  "gate_status": "not_ready",
+  "manifest_path": "results/proxy_reliability_gate0/manifest_v1/architecture_manifest.json",
+  "manifest_fingerprint": "bf8a50c7c81d07c48153b29f5c132f627542838371d52209e3e10e7aa1d1735e",
+  "protocol_path": "configs/audit/proxy_reliability_gate0.yaml",
+  "protocol_sha256": "69e6b609cf33b13a555304fefd11fc1f99db94c1a3d7d0721db1c3e926026f0e",
+  "source_config": "E:/1/hwnas/hwnas/configs/search/nksid_fpga_search_mobile_anchor_av7k325.yaml",
+  "source_config_sha256": "593b436ce3b63f566133a9ed2748309a386c48e27fce7a27642c1ad5d9fcb99f",
+  "candidate_count": 48,
+  "work_unit_count": 7200,
+  "pool_size": 4096,
+  "pool_seed": 20260704,
+  "sampling_summary": {
+    "target_count": 48,
+    "requested_feasibility_quotas": {
+      "feasible_interior": 24,
+      "near_boundary": 16,
+      "infeasible": 8
+    },
+    "allocated_feasibility_quotas": {
+      "feasible_interior": 29,
+      "near_boundary": 16,
+      "infeasible": 3
+    },
+    "actual_feasibility_counts": {
+      "feasible_interior": 29,
+      "near_boundary": 16,
+      "infeasible": 3
+    },
+    "operator_coverage": [
+      "mbconv",
+      "skip"
+    ],
+    "selection_method": "policy-filtered uniform pool; feasibility quota; standardized hardware/width/depth/operator maximin",
+    "selection_seed": 20260704,
+    "selection_independent_of_classification_proxy": true,
+    "pool_feasibility_counts": {
+      "feasible_interior": 3487,
+      "near_boundary": 606,
+      "infeasible": 3
+    },
+    "operator_policy": {
+      "original_ops": [
+        "mbconv",
+        "denoise",
+        "edge",
+        "skip"
+      ],
+      "kept_ops": [
+        "mbconv",
+        "skip"
+      ],
+      "removed_ops": [
+        {
+          "op": "denoise",
+          "deployment_status": "paused",
+          "reason": "PyTorch has feature plus smoothing branches; admitted HLS has one smoothing branch."
+        },
+        {
+          "op": "edge",
+          "deployment_status": "paused",
+          "reason": "PyTorch has four directional branches and 4C fusion; admitted HLS has one spatial branch."
+        }
+      ],
+      "conditional_ops": []
+    }
+  },
+  "ranges": {
+    "latency_ms": {
+      "min": 1.8899400000000002,
+      "median": 2.2660725,
+      "max": 3.10515,
+      "unique_n": 48
+    },
+    "dsp": {
+      "min": 323.0,
+      "median": 667.5,
+      "max": 994.0,
+      "unique_n": 46
+    },
+    "bram": {
+      "min": 206.0,
+      "median": 229.5,
+      "max": 254.0,
+      "unique_n": 32
+    },
+    "lut": {
+      "min": 9980.0,
+      "median": 16877.0,
+      "max": 23504.0,
+      "unique_n": 48
+    },
+    "total_depth": {
+      "min": 8.0,
+      "median": 10.0,
+      "max": 12.0,
+      "unique_n": 5
+    },
+    "mean_channels": {
+      "min": 12.857142857142858,
+      "median": 15.071428571428571,
+      "max": 17.142857142857142,
+      "unique_n": 23
+    },
+    "max_channels": {
+      "min": 18.0,
+      "median": 24.0,
+      "max": 24.0,
+      "unique_n": 3
+    },
+    "max_resource_utilization": {
+      "min": 0.46292134831460674,
+      "median": 0.7946428571428572,
+      "max": 1.1833333333333333,
+      "unique_n": 45
+    },
+    "feasibility_margin": {
+      "min": -0.18333333333333335,
+      "median": 0.20535714285714285,
+      "max": 0.5370786516853933,
+      "unique_n": 45
+    }
+  }
+}

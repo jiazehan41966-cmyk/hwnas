@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""独立核验全对标计划中文完成度审计及 fail-closed G1 覆盖状态。"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
+
+REPO = Path(__file__).resolve().parents[4]
+CAMPAIGN = REPO / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+MANIFESTS = CAMPAIGN / "manifests"
+DATE = "20260718"
+MANIFEST = MANIFESTS / f"campaign_completion_evidence_audit_{DATE}.json.txt"
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def has_chinese(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def main() -> int:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    checks: list[str] = []
+    if manifest["status"] != "PASS_WITH_G1_CONFLICT_HOLD" or manifest["effective_g1_status"] != "G1_CONFLICT_HOLD":
+        raise AssertionError("有效状态未按冲突冻结")
+    if manifest["formal_evidence_increment"] != 0:
+        raise AssertionError("完成度审计错误增加了正式证据")
+    checks.append("总状态为 G1 冲突冻结，正式证据增量为 0")
+
+    generator = Path(manifest["generator"]["path"])
+    if sha256(generator) != manifest["generator"]["sha256"]:
+        raise AssertionError("生成器 SHA 不一致")
+    for group in ("input_files", "output_files"):
+        for row in manifest[group]:
+            path = Path(row["path"])
+            if not path.is_file() or path.stat().st_size != row["bytes"] or sha256(path) != row["sha256"]:
+                raise AssertionError(f"证据文件不一致：{path}")
+    checks.append("生成器及全部输入输出 SHA/大小一致")
+
+    report = MANIFESTS / f"campaign_completion_evidence_audit_{DATE}.md"
+    decision = MANIFESTS / f"campaign_user_decision_checklist_{DATE}.md"
+    for path in (report, decision):
+        text = path.read_text(encoding="utf-8")
+        if not has_chinese(text) or "\ufffd" in text:
+            raise AssertionError(f"中文档案缺中文或含替换字符：{path}")
+    checks.append("完成度报告与用户决策表均为中文且无替换字符")
+
+    requirements = manifest["requirements"]
+    if len(requirements) != 9 or [row["编号"] for row in requirements] != [f"R{i}" for i in range(1, 10)]:
+        raise AssertionError("R1–R9 矩阵不完整")
+    pass_ids = [row["编号"] for row in requirements if row["有效状态"] == "PASS"]
+    if pass_ids != ["R1", "R2"]:
+        raise AssertionError(f"错误地提升了完成项：{pass_ids}")
+    checks.append("R1–R9 完整，只有 R1/R2 判定完成")
+
+    papers = manifest["paper_rows"]
+    if len(papers) != 5 or any(row["本地统一协议正式结果"] != "尚无" for row in papers):
+        raise AssertionError("五篇主论文或正式结果计数错误")
+    if manifest["external_paper_formal_result_count"] != 0:
+        raise AssertionError("外部论文正式结果不能大于 0")
+    checks.append("五篇主论文均已审计，但本地统一协议正式结果仍为 0")
+
+    conflict = manifest["g1_conflict"]
+    if not (
+        conflict["canonical_ledger"] == "PASS"
+        and conflict["specialized_45_unit_audit"] == "FAIL"
+        and conflict["scratch_independent_audit"] == "FAIL"
+        and conflict["pretrained_independent_audit"] == "PASS"
+        and conflict["nas_independent_audit"] == "PASS"
+        and conflict["scratch_errors"] == ["tracked code patch hash mismatch"]
+    ):
+        raise AssertionError(f"G1 冲突记录错误：{conflict}")
+    checks.append("总账 PASS 与 scratch provenance FAIL 的冲突被准确冻结")
+
+    if manifest["t6"] != {
+        "structural_candidates": 100,
+        "pilot_inputs": 5,
+        "formal_truth": 0,
+        "generator_ready": False,
+    }:
+        raise AssertionError(f"T6 状态错误：{manifest['t6']}")
+    if manifest["hardware_boundary"] != {
+        "architecture_identity": "PASS",
+        "weight_identity": "NOT_BOUND",
+        "board_accuracy": "NOT_RUN",
+        "power": "NOT_MEASURED",
+    }:
+        raise AssertionError(f"硬件边界错误：{manifest['hardware_boundary']}")
+    checks.append("T6 真值 0/100，权重未绑定、板级准确率未运行、功耗未测量")
+
+    archive = manifest["archive"]
+    if archive != {"available_tables": 1, "required_tables": 9, "available_figures": 1, "required_figures": 12}:
+        raise AssertionError(f"正式归档数量错误：{archive}")
+    csv_path = CAMPAIGN / f"source_data/campaign_completion_matrix_{DATE}.csv"
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) != 9 or not all(has_chinese("".join(row.values())) for row in rows):
+        raise AssertionError("中文完成度 CSV 不完整")
+    checks.append("正式归档为 1/9 表、1/12 图，中文源 CSV 含 9 项")
+
+    result = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "status": "PASS",
+        "effective_campaign_status": "IN_PROGRESS_WITH_G1_CONFLICT_HOLD",
+        "checks": checks,
+        "formal_evidence_increment": 0,
+        "manifest": {"path": str(MANIFEST.resolve()), "sha256": sha256(MANIFEST)},
+        "auditor": {"path": str(Path(__file__).resolve()), "sha256": sha256(Path(__file__))},
+        "boundary_zh": "本独立审计只确认完成度和证据边界，不批准或启动任何后续实验。",
+    }
+    json_path = MANIFESTS / f"campaign_completion_evidence_audit_{DATE}_independent.json.txt"
+    json_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report_path = MANIFESTS / f"campaign_completion_evidence_audit_{DATE}_independent.md"
+    lines = [
+        "# 全对标计划完成度独立审计",
+        "",
+        "- 状态：`PASS`。",
+        "- 有效活动状态：`IN_PROGRESS_WITH_G1_CONFLICT_HOLD`。",
+        "- 正式证据增量：`0`。",
+        "",
+        "## 已通过检查",
+        "",
+        *[f"- {item}。" for item in checks],
+        "",
+        "该审计不把总账的 G1 PASS 覆盖为科学结论；scratch patch 证据冲突消除前，采用更严格的冻结状态。",
+        "",
+    ]
+    report_path.write_text("\n".join(lines), encoding="utf-8")
+    print(json.dumps({"status": "PASS", "checks": len(checks), "output": str(report_path)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

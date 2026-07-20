@@ -4,6 +4,10 @@ import unittest
 from pathlib import Path
 import subprocess
 import sys
+from unittest.mock import patch
+
+import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -20,11 +24,51 @@ from hwnas_fpga.runtime import (
     apply_operator_policies_to_search_space,
     build_cost_estimator,
     build_search_space,
+    create_data_pipeline,
     load_anchor_profile_from_pool,
     load_config,
     load_lut_query_engine,
     load_operator_policies,
 )
+
+
+class DataPipelineProtocolTests(unittest.TestCase):
+    def test_frozen_inner_search_never_receives_outer_validation_loader(self) -> None:
+        dataset = TensorDataset(torch.zeros(4, 1, 4, 4), torch.tensor([0, 1, 0, 1]))
+        train_loader = DataLoader(dataset, batch_size=2)
+        inner_loader = DataLoader(dataset, batch_size=2)
+        outer_loader = DataLoader(dataset, batch_size=2)
+        bundle = {
+            "train_loader": train_loader,
+            "inner_val_loader": inner_loader,
+            "outer_val_loader": outer_loader,
+            "train_class_counts": torch.tensor([3.0, 1.0]),
+            "num_classes": 2,
+        }
+        with patch(
+            "hwnas_fpga.runtime.create_protocol_dataloaders",
+            return_value=bundle,
+        ) as factory:
+            resolved_train, resolved_val, weights, num_classes = create_data_pipeline(
+                dataset_name="nksid",
+                data_dir="data/NKSID",
+                batch_size=2,
+                image_size=4,
+                num_classes=2,
+                input_channels=1,
+                fold=0,
+                num_workers=0,
+                device="cpu",
+                split_seed=42,
+                split_mode="frozen_inner",
+                inner_val_fraction=0.15,
+            )
+        factory.assert_called_once()
+        self.assertIs(resolved_train, train_loader)
+        self.assertIs(resolved_val, inner_loader)
+        self.assertIsNot(resolved_val, outer_loader)
+        self.assertEqual(num_classes, 2)
+        self.assertAlmostEqual(float(weights.sum()), 2.0)
 
 
 class BoardProfileTests(unittest.TestCase):

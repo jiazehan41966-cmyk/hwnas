@@ -1,0 +1,4 @@
+method,label,checkpoint,checkpoint_sha256,state_tensor_elements,trainable_parameter_approx
+nas,暂停的 NAS 候选,E:\1\hwnas\hwnas\results\protocol\g1_clean_20260711\g1_rl_arch_135_legacy_selected\best_fold0_seed42.pt,b864ced54858d83a880e68cb6e7c2256c45e6c260a4dfe88e897c71ec94d0014,20123,18784
+scratch,从零训练 MobileNetV2,E:\1\hwnas\hwnas\results\protocol\g1_clean_20260711\g1_mobilenet_v2_scratch\best_fold0_seed42.pt,4f739caf3dde44e6b6cea418d386bf4c65680de862c18171856b7bae7a960a92,2267708,2233544
+pretrained,ImageNet 预训练 MobileNetV2,E:\1\hwnas\hwnas\results\protocol\g1_clean_20260711\g1_mobilenet_v2_grayscale_imagenet\best_fold0_seed42.pt,227351ede0a510d51e9e729c4df0e9eff722df1674a3360aeafc110dc675a36c,2267708,2233544

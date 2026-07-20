@@ -1,0 +1,6 @@
+order,stage,status,evidence
+1,Search proxy / 搜索代理,PENDING,"candidate logs, exact HV"
+2,Retrain / 冻结协议重训练,G1 PENDING,15 fold-seed predictions
+3,HLS / Route / 综合与布线,G3 FROZEN,"resources, WNS/TNS"
+4,COM5 board / 板级推理,G2 PENDING,"latency, FPS, errors"
+5,Power meter / 外部功率仪,NOT_MEASURED,"traces, dynamic mJ/inf"

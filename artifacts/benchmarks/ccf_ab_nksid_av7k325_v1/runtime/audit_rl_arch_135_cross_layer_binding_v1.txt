@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""独立审计 rl_arch_135 中文跨层绑定分析 bundle。"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import json
+from pathlib import Path
+
+from PIL import Image
+
+
+REPO = Path(__file__).resolve().parents[4]
+CAMPAIGN = REPO / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+OUTPUT = CAMPAIGN / "diagnostics/rl_arch_135_cross_layer_binding_v1"
+MANIFEST = OUTPUT / "evidence-manifest.json.txt"
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def has_chinese(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def main() -> int:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    checks: list[str] = []
+    if manifest["language"] != "zh-CN" or manifest["status"] != "PASS_WITH_WEIGHT_BINDING_BLOCKER":
+        raise AssertionError("manifest 状态或语言错误")
+    if manifest["formal_evidence_increment"] != 0:
+        raise AssertionError("诊断 bundle 错误增加正式证据")
+    checks.append("manifest 状态、语言与正式证据增量正确")
+
+    generator = Path(manifest["generator"])
+    if sha256(generator) != manifest["generator_sha256"]:
+        raise AssertionError("生成器 SHA 不一致")
+    for item in manifest["input_files"]:
+        path = Path(item["path"])
+        if not path.is_file() or sha256(path) != item["sha256"] or path.stat().st_size != item["bytes"]:
+            raise AssertionError(f"输入证据不一致：{path}")
+    for item in manifest["output_files"]:
+        path = Path(item["path"])
+        if not path.is_file() or sha256(path) != item["sha256"] or path.stat().st_size != item["bytes"]:
+            raise AssertionError(f"输出证据不一致：{path}")
+    checks.append("生成器、全部输入和输出的 SHA/大小一致")
+
+    for name in ("analysis-report.md", "stats-appendix.md", "figure-catalog.md"):
+        text = (OUTPUT / name).read_text(encoding="utf-8")
+        if not has_chinese(text) or "\ufffd" in text:
+            raise AssertionError(f"中文报告缺中文或含乱码：{name}")
+    checks.append("三份人类可读报告均为中文且无替换字符")
+
+    required_stems = ("figure-01-software-macro-f1", "figure-02-hardware-evidence")
+    for stem in required_stems:
+        for suffix in (".png", ".pdf", ".svg", "_source.csv", "_meta.json"):
+            path = OUTPUT / "figures" / f"{stem}{suffix}"
+            if not path.is_file() or path.stat().st_size == 0:
+                raise AssertionError(f"图表产物缺失：{path}")
+        meta = json.loads((OUTPUT / "figures" / f"{stem}_meta.json").read_text(encoding="utf-8"))
+        if meta["language"] != "zh-CN" or not has_chinese(json.dumps(meta, ensure_ascii=False)):
+            raise AssertionError(f"图 meta 不是中文：{stem}")
+        with Image.open(OUTPUT / "figures" / f"{stem}.png") as image:
+            dpi = image.info.get("dpi", (0, 0))
+            if min(dpi) < 590:
+                raise AssertionError(f"PNG 分辨率不足：{stem} {dpi}")
+    checks.append("两幅图均含 600 dpi PNG、PDF、SVG、源 CSV 和中文 meta")
+
+    with (OUTPUT / "figures/figure-01-software-macro-f1_source.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) != 15 or any(float(row["nas_minus_pretrained"]) >= 0 for row in rows):
+        raise AssertionError("软件配对源数据不符合 15 个全负差值")
+    checks.append("软件图源数据为 15 个配对单元且 NAS 胜出 0/15")
+
+    hardware = manifest["hardware_summary"]
+    if hardware["architecture_identity"] != "PASS" or hardware["weight_identity"] != "NOT_BOUND":
+        raise AssertionError("架构/权重身份边界错误")
+    if hardware["board_accuracy"] != "NOT_RUN" or hardware["power"] != "NOT_MEASURED":
+        raise AssertionError("板级准确率或功耗边界错误")
+    if hardware["com5_runs"] != 5 or hardware["route_status"] != "PASS":
+        raise AssertionError("route/COM5 描述证据不完整")
+    if hardware["measurement_replacement_paths"] != ["$.vivado_hardware.stdout"]:
+        raise AssertionError("旧 measurement 编码缺陷未准确记录")
+    expected_resources = {
+        "LUT": (18598.0, 203800.0, 9.13),
+        "FF": (21012.0, 407600.0, 5.16),
+        "BRAM": (127.5, 445.0, 28.65),
+        "DSP": (612.0, 840.0, 72.86),
+    }
+    observed_resources = {
+        row["resource"]: (float(row["used"]), float(row["capacity"]), float(row["percent"]))
+        for row in hardware["resources"]
+    }
+    if observed_resources != expected_resources:
+        raise AssertionError(f"route 资源解析错误：{observed_resources}")
+    with (OUTPUT / "figures/figure-02-hardware-evidence_source.csv").open(
+        "r", encoding="utf-8-sig", newline=""
+    ) as handle:
+        figure2_rows = list(csv.DictReader(handle))
+    figure2_resources = {
+        row["label_zh"]: float(row["value"])
+        for row in figure2_rows
+        if row["type"] == "resource"
+    }
+    if figure2_resources != {key: value[2] for key, value in expected_resources.items()}:
+        raise AssertionError(f"硬件图源数据错误：{figure2_resources}")
+    checks.append("架构 PASS、权重未绑定、板级准确率未运行、功耗未测量且 route 资源数值正确")
+
+    audit = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "status": "PASS",
+        "checks": checks,
+        "formal_evidence_increment": 0,
+        "manifest_sha256": sha256(MANIFEST),
+    }
+    audit_path = OUTPUT / "independent-audit.json.txt"
+    audit_path.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    report = ["# rl_arch_135 跨层绑定独立审计", "", "- 状态：`PASS`。", "- 正式证据增量：`0`。", "", "## 已通过检查", ""]
+    report.extend(f"- {item}。" for item in checks)
+    report.extend(["", "本审计确认 bundle 的可追溯性和声明边界，不把历史 latency-only bitstream 提升为 formal checkpoint 部署证据。", ""])
+    (OUTPUT / "independent-audit-report.md").write_text("\n".join(report), encoding="utf-8")
+    print(json.dumps({"status": "PASS", "checks": len(checks), "output": str(audit_path)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

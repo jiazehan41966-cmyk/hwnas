@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "PASS_ALL_HUMAN_META_CHINESE_OR_BOUND_COMPANION",
+  "language": "zh-CN",
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "meta_files_audited": 6,
+  "direct_chinese_meta": 4,
+  "historical_meta_with_chinese_companion": 2,
+  "pending": 0,
+  "records": [
+    {
+      "original": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_paired_macro_f1_meta.json.txt",
+      "original_sha256": "334705d427449ca7055d1340ab22485d1dc48ec6f708679e1ff2da05bf9c039d",
+      "status": "原始 meta 直接符合中文规则",
+      "companion": null
+    },
+    {
+      "original": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_nas_pause_v1\\figures\\diagnostic_per_class_f1_meta.json.txt",
+      "original_sha256": "a172021de1b34ca0b5d512dce423d15f44d737f63dee72a8514e58aff49732cb",
+      "status": "原始 meta 直接符合中文规则",
+      "companion": null
+    },
+    {
+      "original": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-01-software-macro-f1_meta.json",
+      "original_sha256": "c0e8789ce433d4757aa3d904e1d76c3abe3906d401da0f76af6a634393639b51",
+      "status": "原始 meta 直接符合中文规则",
+      "companion": null
+    },
+    {
+      "original": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\rl_arch_135_cross_layer_binding_v1\\figures\\figure-02-hardware-evidence_meta.json",
+      "original_sha256": "43917dac8da1fd2aaf45ca3a2d7c66ebaa09df8ad7180b9cc5fd0a9d34c23d7c",
+      "status": "原始 meta 直接符合中文规则",
+      "companion": null
+    },
+    {
+      "original": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_meta.json",
+      "original_sha256": "1543512a4031a31526876698d4de717c95eb6bc7b0ec67488cd1df299e9d963d",
+      "status": "只读历史 meta 已绑定中文 companion",
+      "companion": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_meta.zh-CN.json.txt",
+      "companion_sha256": "a6229c85d4f94737092bda26d8c11f8add11557c3683d0d0d6ac6113dc2abd76"
+    },
+    {
+      "original": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1_v2_meta.json.txt",
+      "original_sha256": "8aadc5038540003968e6da4bdc369da6742e9479fedd0563a554c2ff8d31bdfd",
+      "status": "只读历史 meta 已绑定中文 companion",
+      "companion": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1_v2_meta.zh-CN.json.txt",
+      "companion_sha256": "cceca2adf6cf78ab6b26250585f0a491fb0556b2d503437bc3fa91284e079a6b"
+    }
+  ],
+  "formal_evidence_increment": 0,
+  "boundary": "本审计只验证图表 meta 的中文表达和历史哈希绑定，不改变图表科学状态。",
+  "auditor": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\runtime\\audit_human_meta_language_v1.txt",
+    "sha256": "9ebcb1f4d09b29f847d5dc9aad53a186ed43b26d127297726633b4e318a1e99d"
+  }
+}

@@ -17,15 +17,55 @@ from .quantization import (
     export_checkpoint_quantized_weights,
     quantize_tensor_symmetric,
 )
+from .fixed_point import (
+    FixedPointContract,
+    avg_pool2d_int_reference,
+    conv2d_int_reference,
+    linear_int_reference,
+    max_pool2d_int_reference,
+    quantize_bias_int32,
+    relu_int_reference,
+    requantize_per_output_int8,
+    residual_add_int_reference,
+)
+from .int8_reference import (
+    IntegerReferenceClassifier,
+    IntegerReferenceResult,
+    UnsupportedIntegerOperatorError,
+    compare_integer_tensors,
+    run_integer_reference,
+)
+from .ptq_eval import prepare_integer_ptq
+from .reparam import (
+    FoldedDenoiseBlock,
+    FoldedEdgeBlock,
+    fold_denoise_block,
+    fold_edge_block,
+    fold_sonar_blocks,
+)
 from .report_parser import parse_backend_report, parse_backend_report_text
 
 __all__ = [
+    "FoldedDenoiseBlock",
+    "FoldedEdgeBlock",
     "HLSProjectConfig",
     "QuantizationConfig",
+    "FixedPointContract",
+    "IntegerReferenceResult",
+    "IntegerReferenceClassifier",
+    "UnsupportedIntegerOperatorError",
+    "fold_denoise_block",
+    "fold_edge_block",
+    "fold_sonar_blocks",
     "attach_hls_report",
     "build_quantized_weight_package",
+    "avg_pool2d_int_reference",
+    "compare_integer_tensors",
+    "conv2d_int_reference",
     "create_hls_project_stub",
     "export_checkpoint_quantized_weights",
+    "linear_int_reference",
+    "max_pool2d_int_reference",
     "export_checkpoint_to_onnx",
     "export_model_to_onnx",
     "iter_image_paths",
@@ -35,7 +75,13 @@ __all__ = [
     "parse_backend_report_text",
     "predict_image",
     "preprocess_image",
+    "prepare_integer_ptq",
     "quantize_tensor_symmetric",
+    "quantize_bias_int32",
+    "relu_int_reference",
+    "requantize_per_output_int8",
+    "residual_add_int_reference",
+    "run_integer_reference",
     "resolve_class_names",
     "resolve_inference_settings",
 ]

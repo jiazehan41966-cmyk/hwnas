@@ -1,5 +1,11 @@
 # Extension Operator Disposition
 
+> Historical screening snapshot. The current semantic-safe manifest and G5
+> ledger supersede the `Search Enabled` column: `denoise`, `edge`, and
+> `mixconv` are paused for new claimable searches until semantic parity and the
+> required admission gates pass. The measurements below remain retained as
+> hardware-screening evidence only.
+
 This document records the current keep/pause/drop decision for extension operators under the AV7K325 target and the `packed_stream_v1` contract.
 
 ## Decision Summary

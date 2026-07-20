@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 import random
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Any
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Any, Mapping
 from dataclasses import dataclass
 
 import torch
@@ -222,20 +222,21 @@ class Controller(nn.Module):
         self,
         stage_idx: int,
         block_idx: int,
-        prev_choices: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """前向传播，返回各决策类型的logits
+
+        注意：这是一个按位置分解的策略（factorized policy）——logits 只依赖
+        (stage_idx, block_idx)，不建模决策之间的依赖。项目的 strict40 与 B1
+        对比实验均未显示其优于随机搜索；RL 仅作为论文对比方法保留，
+        主线搜索请使用 run_supernet.py（SPOS 权重共享）。
 
         Args:
             stage_idx: 当前stage索引
             block_idx: 当前block索引
-            prev_choices: 之前的决策（用于建模依赖关系）
 
         Returns:
             各决策类型的logits字典
         """
-        # 构建输入特征
-        # 简化：使用stage和block索引的embedding
         stage_emb = self._get_embedding(stage_idx, self.max_stages)
         block_emb = self._get_embedding(block_idx, self.max_blocks_per_stage)
 
@@ -435,6 +436,7 @@ class RewardFunction:
         infeasible_penalty_mode: str = "fixed",
         infeasible_base_penalty: float = 1.0,
         infeasible_penalty_scale: float = 5.0,
+        normalization_scales: Optional[Mapping[str, float]] = None,
     ):
         self.accuracy_weight = accuracy_weight
         self.latency_weight = latency_weight
@@ -455,13 +457,24 @@ class RewardFunction:
         self.infeasible_penalty_scale = infeasible_penalty_scale
 
         # 用于归一化的统计信息
+        default_scales = {
+            "accuracy": 1.0,
+            "latency": 1.0,
+            "energy": 1.0,
+            "dsp": 1.0,
+            "bram": 1.0,
+            "lut": 1.0,
+        }
+        for key, value in dict(normalization_scales or {}).items():
+            if key not in default_scales:
+                raise ValueError(f"unsupported normalization scale: {key!r}")
+            numeric = float(value)
+            if not math.isfinite(numeric) or numeric <= 0:
+                raise ValueError(f"normalization scale for {key!r} must be positive")
+            default_scales[key] = numeric
+        self.normalization_scales = default_scales
         self._stats = {
-            "max_accuracy": 0.0,
-            "max_latency": 1.0,
-            "max_energy": 1.0,
-            "max_dsp": 1.0,
-            "max_bram": 1.0,
-            "max_lut": 1.0,
+            f"max_{key}": value for key, value in default_scales.items()
         }
 
     def compute_reward(
@@ -505,23 +518,15 @@ class RewardFunction:
                 )
             return -self.constraint_penalty
 
-        # 更新统计信息（指数移动平均）
-        self._stats["max_accuracy"] = max(
-            self._stats["max_accuracy"], accuracy
-        )
-        self._stats["max_latency"] = max(self._stats["max_latency"], latency_ms)
-        self._stats["max_energy"] = max(self._stats["max_energy"], energy_mj)
-        self._stats["max_dsp"] = max(self._stats["max_dsp"], dsp)
-        self._stats["max_bram"] = max(self._stats["max_bram"], bram)
-        self._stats["max_lut"] = max(self._stats["max_lut"], lut)
-
-        # 归一化
-        norm_accuracy = accuracy / (self._stats["max_accuracy"] + 1e-8)
-        norm_latency = latency_ms / (self._stats["max_latency"] + 1e-8)
-        norm_energy = energy_mj / (self._stats["max_energy"] + 1e-8)
-        norm_dsp = dsp / (self._stats["max_dsp"] + 1e-8)
-        norm_bram = bram / (self._stats["max_bram"] + 1e-8)
-        norm_lut = lut / (self._stats["max_lut"] + 1e-8)
+        # Use fixed reference scales; do not update them online.
+        # Fixed reference scales make reward values invariant to candidate
+        # evaluation order and to resume boundaries.
+        norm_accuracy = accuracy / self.normalization_scales["accuracy"]
+        norm_latency = latency_ms / self.normalization_scales["latency"]
+        norm_energy = energy_mj / self.normalization_scales["energy"]
+        norm_dsp = dsp / self.normalization_scales["dsp"]
+        norm_bram = bram / self.normalization_scales["bram"]
+        norm_lut = lut / self.normalization_scales["lut"]
 
         # 计算奖励
         reward = (
@@ -584,8 +589,14 @@ class RLSearcher(BaseSearcher):
         exploration_epsilon_end: Optional[float] = None,
         exploration_epsilon_decay_episodes: int = 0,
         exploration_bonus: float = 0.0,
+        robustness_config: Optional[Mapping[str, Any]] = None,
     ):
-        super().__init__(search_space, cost_estimator, constraints)
+        super().__init__(
+            search_space,
+            cost_estimator,
+            constraints,
+            robustness_config=robustness_config,
+        )
         self.train_epochs_per_arch = train_epochs_per_arch
         self.eval_early_stopping_patience = eval_early_stopping_patience
         self.selection_metric = selection_metric
@@ -628,6 +639,40 @@ class RLSearcher(BaseSearcher):
         reward_weights = reward_weights or {}
         reward_cfg = reward_cfg or {}
         resource_weight = float(reward_weights.get("resource", 0.1))
+        hardware_spec = self.estimator.hardware_spec
+        configured_scales = reward_cfg.get("normalization_scales")
+        if configured_scales is not None and not isinstance(configured_scales, Mapping):
+            raise ValueError("reward_cfg.normalization_scales must be a mapping")
+
+        def limit_scale(value: Optional[float]) -> float:
+            return max(1.0, float(value)) if value is not None else 1.0
+
+        normalization_scales = {
+            "accuracy": 1.0,
+            "latency": limit_scale(getattr(self.constraints, "max_latency_ms", None)),
+            "energy": limit_scale(getattr(self.constraints, "max_energy_mj", None)),
+            "dsp": limit_scale(
+                self._tightest_limit(
+                    getattr(self.constraints, "max_dsp", None),
+                    getattr(hardware_spec, "max_dsp", None),
+                )
+            ),
+            "bram": limit_scale(
+                self._tightest_limit(
+                    getattr(self.constraints, "max_bram", None),
+                    getattr(hardware_spec, "max_bram", None),
+                )
+            ),
+            "lut": limit_scale(
+                self._tightest_limit(
+                    getattr(self.constraints, "max_lut", None),
+                    getattr(hardware_spec, "max_lut", None),
+                )
+            ),
+        }
+        normalization_scales.update(
+            {key: float(value) for key, value in dict(configured_scales or {}).items()}
+        )
         self.reward_function = RewardFunction(
             accuracy_weight=float(reward_weights.get("accuracy", 1.0)),
             latency_weight=float(reward_weights.get("latency", 0.2)),
@@ -639,6 +684,7 @@ class RLSearcher(BaseSearcher):
             infeasible_penalty_mode=str(reward_cfg.get("infeasible_penalty_mode", "fixed")),
             infeasible_base_penalty=float(reward_cfg.get("infeasible_base_penalty", 1.0)),
             infeasible_penalty_scale=float(reward_cfg.get("infeasible_penalty_scale", 5.0)),
+            normalization_scales=normalization_scales,
         )
 
         # Baseline（用于减少方差）
@@ -647,6 +693,7 @@ class RLSearcher(BaseSearcher):
 
         # 搜索历史
         self.best_candidate: Optional[SearchCandidate] = None
+        self.best_reward_candidate: Optional[SearchCandidate] = None
         self.best_reward = float("-inf")
         self.best_selection_score = float("-inf")
 
@@ -1312,11 +1359,11 @@ class RLSearcher(BaseSearcher):
         }
 
         # 3. 如果可行，训练并评估精度
-        accuracy = 0.0
+        selection_score = 0.0
         if is_feasible:
             try:
                 model = build_model(architecture, num_classes=num_classes)
-                accuracy, history = train_model(
+                selection_score, history = train_model(
                     model=model,
                     train_loader=train_loader,
                     num_classes=num_classes,
@@ -1341,7 +1388,8 @@ class RLSearcher(BaseSearcher):
         best_eval = dict(self.last_training_history.get("best_eval") or {}) if self.last_training_history else {}
 
         candidate_metrics = cost_estimate.to_candidate_metrics()
-        candidate_metrics.accuracy = accuracy
+        candidate_metrics.selection_score = selection_score
+        candidate_metrics.accuracy = best_eval.get("top1")
         candidate_metrics.macro_f1 = best_eval.get("macro_f1")
         candidate_metrics.weighted_f1 = best_eval.get("weighted_f1")
         candidate_metrics.top1 = best_eval.get("top1")
@@ -1351,6 +1399,20 @@ class RLSearcher(BaseSearcher):
             encoding=architecture.to_dict(),
             metrics=candidate_metrics,
         )
+        if is_feasible and self.last_trained_model is not None and self.last_training_history is not None:
+            try:
+                self.attach_clean_and_robust_metrics(
+                    candidate,
+                    model=self.last_trained_model,
+                    history=self.last_training_history,
+                    val_loader=val_loader,
+                    num_classes=num_classes,
+                    class_weights=class_weights,
+                    device=self.device,
+                )
+            except Exception as exc:
+                print(f"Error evaluating robustness for {arch_id}: {exc}")
+                is_feasible = False
         self.evaluated_candidates.append(candidate)
         if is_feasible:
             self.feasible_candidates.append(candidate)
@@ -1373,11 +1435,12 @@ class RLSearcher(BaseSearcher):
             )
             if reward > self.best_reward:
                 self.best_reward = reward
+                self.best_reward_candidate = candidate
             if selection_score > self.best_selection_score:
                 self.best_selection_score = selection_score
                 self.best_candidate = candidate
 
-        return accuracy, metrics, is_feasible, candidate
+        return float(candidate_metrics.accuracy or 0.0), metrics, is_feasible, candidate
 
     def _check_controller_gradients_finite(self) -> None:
         for name, param in self.controller.named_parameters():
@@ -1649,6 +1712,7 @@ class RLSearcher(BaseSearcher):
             # 1. 生成架构
             architecture = self.generate_architecture()
             previous_best_selection_score = self.best_selection_score
+            previous_best_reward = self.best_reward
 
             # 2. 评估架构
             accuracy, metrics, is_feasible, candidate = self.evaluate_architecture(
@@ -1746,6 +1810,28 @@ class RLSearcher(BaseSearcher):
                                 "best_reward": self.best_reward,
                             },
                         )
+                if self.best_reward > previous_best_reward:
+                    artifact_tracker.save_named_checkpoint(
+                        "controller_reward_best.pt",
+                        {
+                            "saved_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+                            "episode": episode,
+                            "reward": reward_with_bonus,
+                            "best_reward": self.best_reward,
+                            "best_reward_candidate": {
+                                "arch_id": self.best_reward_candidate.arch_id
+                                if self.best_reward_candidate is not None
+                                else None,
+                                "metrics": (
+                                    self.best_reward_candidate.metrics.__dict__
+                                    if self.best_reward_candidate is not None
+                                    else None
+                                ),
+                            },
+                            "controller_state_dict": self.controller.state_dict(),
+                            "optimizer_state_dict": self.controller_optimizer.state_dict(),
+                        },
+                    )
                 artifact_tracker.update_search_state(
                     total_evaluated=len(self.evaluated_candidates),
                     feasible=len(self.feasible_candidates),
@@ -1759,6 +1845,12 @@ class RLSearcher(BaseSearcher):
                         "exploration_epsilon": self._current_exploration_epsilon(),
                         "loss": loss,
                         "baseline": self.baseline,
+                        "best_reward": self.best_reward,
+                        "best_reward_candidate": (
+                            self.best_reward_candidate.arch_id
+                            if self.best_reward_candidate is not None
+                            else None
+                        ),
                     },
                 )
 
@@ -1787,6 +1879,11 @@ class RLSearcher(BaseSearcher):
                 if self.best_candidate.metrics.top1 is not None:
                     print(f"  Top-1: {self.best_candidate.metrics.top1:.4f}")
                 print(f"  Latency: {self.best_candidate.metrics.latency_ms:.2f}ms")
+            if self.best_reward_candidate is not None:
+                print(
+                    f"Best reward candidate: {self.best_reward_candidate.arch_id} "
+                    f"({self.best_reward:.4f})"
+                )
 
         return self.best_candidate
 

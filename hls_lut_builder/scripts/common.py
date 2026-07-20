@@ -414,6 +414,10 @@ def _build_parameters(
 
     out_h = int(parameters.get("out_h", ((feature_h + (2 * padding) - kernel_size) // stride) + 1))
     out_w = int(parameters.get("out_w", ((feature_w + (2 * padding) - kernel_size) // stride) + 1))
+    residual_stream_depth = max(
+        1,
+        ((kernel_size - 1 - padding) * feature_w) + (kernel_size - padding),
+    )
 
     if operator_name.startswith("dw"):
         out_channels = in_channels
@@ -439,6 +443,7 @@ def _build_parameters(
             "groups": groups,
             "out_h": out_h,
             "out_w": out_w,
+            "residual_stream_depth": residual_stream_depth,
             "bitwidth": bitwidth,
             "input_parallelism": input_parallelism,
             "output_parallelism": output_parallelism,

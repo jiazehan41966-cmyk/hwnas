@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-17T12:01:42",
+  "status": "PASS",
+  "manifest": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\manifests\\t6_structural_candidate_pool_v1.json.txt",
+  "manifest_sha256": "046e1ecba4e73306beb46e381070b5c251ef9d59b08b8045c635b1a905d48f65",
+  "source_rows": 200,
+  "source_unique_encodings": 200,
+  "selected_candidates": 100,
+  "selected_unique_encodings": 100,
+  "family_counts": {
+    "dw_pw_dominant": 20,
+    "fused_mbconv_dominant": 20,
+    "mbconv_dominant": 20,
+    "mixed_balanced": 20,
+    "skip_heavy": 20
+  },
+  "fold_counts": {
+    "0": 20,
+    "1": 20,
+    "2": 20,
+    "3": 20,
+    "4": 20
+  },
+  "formal_hls_route_truth_increment": 0,
+  "errors": [],
+  "boundary": "PASS freezes the structural DOE only; complete-network HLS/route truth remains 0/100."
+}

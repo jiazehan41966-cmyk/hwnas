@@ -65,6 +65,11 @@ hardware:
   lut_path: null
   use_dummy_lut: false
   operator_manifest_path: hls_lut_builder/configs/operator_manifest_semantic_safe.yaml
+  # Scalar calibration v1 is retained as diagnostic evidence only. It mixed
+  # post-route resources with COM5 e2e latency and is not a valid hard-screen.
+  # Until calibration_v2 and independent probes pass, analytic metrics must
+  # pass through to candidate-level HLS evidence instead of rejecting candidates.
+  analytic_calibration_path: null
 
 search:
   method: rl

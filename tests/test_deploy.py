@@ -122,6 +122,7 @@ class DeployTests(unittest.TestCase):
 
             self.assertTrue(package_path.exists())
             self.assertGreater(summary["num_quantized_tensors"], 0)
+            self.assertFalse(summary["parity_ready"])
             self.assertTrue((package_path.with_suffix(".json")).exists())
 
             payload = torch.load(package_path, map_location="cpu")

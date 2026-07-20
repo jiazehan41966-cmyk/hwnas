@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "generated": "2026-07-15T19:25:59",
+  "tables": {
+    "T1": {
+      "title": "Open-source Baseline Eligibility and Reproducibility Audit / 开源基线资格、许可证与可复现性审计",
+      "status": "AVAILABLE",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t1.tex"
+      }
+    },
+    "T2": {
+      "title": "Closed-set NKSID Classification, Calibration and Cost / NKSID 闭集分类、校准与计算成本",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t2.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t2.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t2.tex"
+      }
+    },
+    "T3": {
+      "title": "Open-set Long-tailed Sonar Recognition / NKSID 开放集长尾识别",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t3.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t3.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t3.tex"
+      }
+    },
+    "T4": {
+      "title": "Sonar Corruption and SNR Robustness / 声呐噪声、SNR 与 corruption 鲁棒性",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t4.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t4.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t4.tex"
+      }
+    },
+    "T5": {
+      "title": "NAS Search Efficiency and Pareto Quality / NAS 搜索效率与 Pareto 质量",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t5.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t5.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t5.tex"
+      }
+    },
+    "T6": {
+      "title": "HLS and Route Proxy Reliability / HLS-Route 代理可靠性",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t6.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t6.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t6.tex"
+      }
+    },
+    "T7": {
+      "title": "AV7K325 Synthesis, Route and Board Latency / AV7K325 综合、布线与板级延迟",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t7.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t7.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t7.tex"
+      }
+    },
+    "T8": {
+      "title": "AV7K325 Power and Dynamic Energy Efficiency / AV7K325 功耗与动态能效",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t8.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t8.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t8.tex"
+      }
+    },
+    "T9": {
+      "title": "Ablations, Effect Sizes and Significance / 消融实验、效应量与显著性",
+      "status": "PENDING",
+      "files": {
+        "csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t9.csv",
+        "md": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t9.md",
+        "tex": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\tables\\t9.tex"
+      }
+    }
+  },
+  "figures": {
+    "F1": {
+      "title": "Evidence-aligned Benchmark Workflow / 分层证据与对标实验工作流",
+      "status": "AVAILABLE",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_meta.json"
+      }
+    },
+    "F2": {
+      "title": "Anytime Exact Hypervolume by NAS Method / 各 NAS 方法的 anytime exact HV",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f2.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f2.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f2_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f2_meta.json"
+      }
+    },
+    "F3": {
+      "title": "Feasible NAS Pareto Front / NAS 可行 Pareto front",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f3.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f3.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f3_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f3_meta.json"
+      }
+    },
+    "F4": {
+      "title": "Proxy Predictions versus HLS-Route Measurements / 代理预测值与 HLS-route 实测值",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f4.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f4.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f4_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f4_meta.json"
+      }
+    },
+    "F5": {
+      "title": "Closed- and Open-set Confusion Matrices / 闭集及开放集混淆矩阵",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f5.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f5.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f5_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f5_meta.json"
+      }
+    },
+    "F6": {
+      "title": "Reliability and Risk-Coverage Curves / 可靠性图与 risk-coverage curve",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f6.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f6.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f6_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f6_meta.json"
+      }
+    },
+    "F7": {
+      "title": "Macro-F1 versus Image-domain SNR / macro-F1-SNR 曲线",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f7.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f7.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f7_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f7_meta.json"
+      }
+    },
+    "F8": {
+      "title": "Clean, Corrupted and Processed Sonar Examples / clean-corrupted-processed 声呐样例",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f8.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f8.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f8_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f8_meta.json"
+      }
+    },
+    "F9": {
+      "title": "FPGA Resource Utilization / LUT-DSP-BRAM-FF 资源利用率",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f9.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f9.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f9_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f9_meta.json"
+      }
+    },
+    "F10": {
+      "title": "Board Latency Distribution and ECDF / 板级延迟分布与 ECDF",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f10.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f10.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f10_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f10_meta.json"
+      }
+    },
+    "F11": {
+      "title": "Idle-Active Power Traces and Dynamic Energy / 功率时间序列与动态能量",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f11.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f11.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f11_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f11_meta.json"
+      }
+    },
+    "F12": {
+      "title": "Accuracy-Latency-Energy Pareto Front / macro-F1、延迟和动态能耗 Pareto 图",
+      "status": "PENDING",
+      "files": {
+        "png_300dpi": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f12.png",
+        "vector_pdf": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f12.pdf",
+        "source_csv": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f12_source.csv",
+        "meta_json": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f12_meta.json"
+      }
+    }
+  },
+  "boundary": "PENDING items are not emitted as empty placeholders. AVAILABLE means every required archival format exists, not that the scientific Gate has passed."
+}

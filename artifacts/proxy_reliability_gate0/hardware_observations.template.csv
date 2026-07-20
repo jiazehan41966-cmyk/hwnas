@@ -1,0 +1,2 @@
+architecture_id,proxy_feasible,truth_feasible,truth_latency_source,truth_resource_source,truth_feasibility_source,proxy_latency_ms,truth_latency_ms,proxy_dsp,truth_dsp,proxy_bram,truth_bram,proxy_lut,truth_lut
+gate0_example,true,true,COM5 board timing,post-route utilization,route status,10.0,11.0,100,105,50,52,20000,21500

@@ -1,0 +1,20 @@
+{
+  "figure_id": "F1",
+  "title": "Evidence-aligned Benchmark Workflow / 分层证据与对标实验工作流",
+  "caption": "Frozen evidence layers and current conservative Gate states.",
+  "supported_claim": "Defines the benchmark evidence workflow and claim boundaries.",
+  "limitations": [
+    "Conceptual workflow only; contains no experimental performance result."
+  ],
+  "generator_sha256": "7dd9f5b6ec7a9d5b7c2661ddc67ef7839ecb95e540691671f5719323bcdc6ba6",
+  "inputs": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas\\configs\\benchmarks\\ccf_ab_campaign_v1.yaml",
+      "sha256": "0bd44e881b7080c2cc155ac2930e6168044e0d9e3bcafecbaf3e18752d647260"
+    }
+  ],
+  "source_data": {
+    "path": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\figures\\f1_source.csv",
+    "sha256": "92a0bb1f5d4d7dcb652ddbda26e3a63546fb1b87f31c35f6f56416133f8be29a"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "started_at": "2026-07-16T07:38:12+08:00",
+  "status": "INTERRUPTED_BY_SYSTEM_REBOOT",
+  "method_id": "imagenet_pretrained_mobilenet_v2",
+  "run_name": "g1_mobilenet_v2_grayscale_imagenet",
+  "process_id": 18120,
+  "worker_process_id": 13076,
+  "run_fingerprint": "ff1d84701305b45488e321213320adef3f54cfd2483f38b1d8fa1719befd42b0",
+  "planned_pairs": 15,
+  "completed_pairs_at_launch": 0,
+  "completed_pairs_at_interruption": 0,
+  "interruption": {
+    "shutdown_transition": "2026-07-16T07:45:36+08:00",
+    "operating_system_restart": "2026-07-16T07:45:49+08:00",
+    "event_provider": "Microsoft-Windows-Kernel-Power",
+    "event_id": 109,
+    "action": "Power Action Reboot",
+    "reason": "Kernel API",
+    "python_traceback_observed": false,
+    "cuda_oom_observed": false
+  },
+  "source_freeze": {
+    "verification_status": "PASS",
+    "verified_file_count": 556,
+    "manifest": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/source_freeze/g1_20260715_v2/source_freeze_manifest.json",
+    "manifest_sha256": "8b4de1d5bf8931c7a175cf913abd95b7a0a63848b2eaea3b2a87bc09ea2665dc",
+    "archive_sha256": "376e9e162240a2e15dd8456882c9f209ad16bfc8b8da5244fac51342c8d4410d"
+  },
+  "archived_interrupted_run": "results/protocol/g1_clean_20260711/interrupted_20260716_0407/g1_mobilenet_v2_grayscale_imagenet",
+  "archived_atomic_pairs": 4,
+  "old_and_new_records_mixed": false,
+  "force_used": false,
+  "stdout_log": "logs/g1_clean_20260711/pretrained_restart_20260716_stdout.log",
+  "stderr_log": "logs/g1_clean_20260711/pretrained_restart_20260716_stderr.log",
+  "claim_boundary": "This aborted execution produced no atomic fold-seed record and supports no model-performance claim."
+}

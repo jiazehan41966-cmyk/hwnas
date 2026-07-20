@@ -1,8 +1,13 @@
-"""PSNR and SSIM image-quality metrics.
+"""Sonar image-quality metrics: PSNR, SSIM, MSE, SNR, edge preservation, speckle.
 
 The functions here intentionally do not depend on scikit-image so they can run
 inside the lightweight project environment. Inputs are converted to float arrays
 in [0, 1] and may be 2-D grayscale, HWC, or CHW tensors/arrays.
+
+Reference-based metrics (PSNR/SSIM/MSE/SNR/EPI) require a meaningful reference:
+with ``input_as_reference`` they only measure operator effect, not restoration
+quality. ENL is no-reference; SSI compares a filtered image against its noisy
+input and is meaningful for the input-as-reference protocol.
 """
 
 from __future__ import annotations
@@ -19,6 +24,8 @@ class ImageQualityResult:
     psnr: float
     ssim: float
     mse: float
+    snr: float
+    epi: float
     data_range: float
 
 
@@ -114,6 +121,107 @@ def structural_similarity_index(
     return float(np.mean(channel_scores))
 
 
+def signal_to_noise_ratio(reference: Any, candidate: Any) -> float:
+    """SNR in dB: 10*log10(signal power / error power), error = candidate - reference."""
+    ref = _as_float01(reference)
+    cand = _as_float01(candidate)
+    if ref.shape != cand.shape:
+        raise ValueError(f"reference and candidate shapes differ: {ref.shape} vs {cand.shape}")
+    signal_power = float(np.mean(ref * ref))
+    noise_power = float(np.mean((cand - ref) ** 2))
+    if noise_power == 0.0:
+        return math.inf
+    if signal_power == 0.0:
+        return -math.inf
+    return float(10.0 * math.log10(signal_power / noise_power))
+
+
+def _sobel_gradient_magnitude(image: np.ndarray) -> np.ndarray:
+    padded = np.pad(image, ((1, 1), (1, 1)), mode="reflect")
+    gx = (
+        -padded[:-2, :-2]
+        + padded[:-2, 2:]
+        - 2.0 * padded[1:-1, :-2]
+        + 2.0 * padded[1:-1, 2:]
+        - padded[2:, :-2]
+        + padded[2:, 2:]
+    )
+    gy = (
+        -padded[:-2, :-2]
+        - 2.0 * padded[:-2, 1:-1]
+        - padded[:-2, 2:]
+        + padded[2:, :-2]
+        + 2.0 * padded[2:, 1:-1]
+        + padded[2:, 2:]
+    )
+    return np.sqrt(gx * gx + gy * gy)
+
+
+def edge_preservation_index(reference: Any, candidate: Any) -> float:
+    """EPI: Pearson correlation between Sobel gradient magnitudes, in [-1, 1].
+
+    1.0 means the candidate preserves the reference edge structure exactly;
+    low-pass smoothing that blurs target contours lowers the score.
+    """
+    ref = _to_channel_first(_as_float01(reference))
+    cand = _to_channel_first(_as_float01(candidate))
+    if ref.shape != cand.shape:
+        raise ValueError(f"reference and candidate shapes differ: {ref.shape} vs {cand.shape}")
+
+    scores: list[float] = []
+    for ref_channel, cand_channel in zip(ref, cand):
+        g_ref = _sobel_gradient_magnitude(ref_channel)
+        g_cand = _sobel_gradient_magnitude(cand_channel)
+        ref_centered = g_ref - g_ref.mean()
+        cand_centered = g_cand - g_cand.mean()
+        ref_norm = float(np.sqrt(np.sum(ref_centered * ref_centered)))
+        cand_norm = float(np.sqrt(np.sum(cand_centered * cand_centered)))
+        if ref_norm == 0.0 and cand_norm == 0.0:
+            scores.append(1.0)
+        elif ref_norm == 0.0 or cand_norm == 0.0:
+            scores.append(0.0)
+        else:
+            scores.append(float(np.sum(ref_centered * cand_centered) / (ref_norm * cand_norm)))
+    return float(np.mean(scores))
+
+
+def equivalent_number_of_looks(image: Any) -> float:
+    """ENL = mean^2 / variance over the image (no-reference speckle metric).
+
+    Higher means smoother homogeneous regions; useful on speckled sonar data
+    where no clean reference exists. Returns inf for a constant image.
+    """
+    array = _as_float01(image)
+    mean = float(np.mean(array))
+    variance = float(np.var(array))
+    if variance == 0.0:
+        return math.inf
+    return mean * mean / variance
+
+
+def speckle_suppression_index(noisy: Any, filtered: Any) -> float:
+    """SSI = (sigma_f/mu_f) / (sigma_n/mu_n); below 1 means speckle suppression.
+
+    Meaningful when ``noisy`` is the raw input and ``filtered`` is the operator
+    output, which matches the input-as-reference protocol.
+    """
+    noisy_array = _as_float01(noisy)
+    filtered_array = _as_float01(filtered)
+    if noisy_array.shape != filtered_array.shape:
+        raise ValueError(
+            f"noisy and filtered shapes differ: {noisy_array.shape} vs {filtered_array.shape}"
+        )
+    noisy_mean = float(np.mean(noisy_array))
+    filtered_mean = float(np.mean(filtered_array))
+    noisy_cv = float(np.std(noisy_array)) / noisy_mean if noisy_mean > 0 else math.inf
+    filtered_cv = float(np.std(filtered_array)) / filtered_mean if filtered_mean > 0 else math.inf
+    if noisy_cv == 0.0:
+        return math.inf if filtered_cv > 0 else 1.0
+    if math.isinf(noisy_cv):
+        return 0.0 if not math.isinf(filtered_cv) else 1.0
+    return filtered_cv / noisy_cv
+
+
 def compute_image_quality(reference: Any, candidate: Any, data_range: float = 1.0) -> ImageQualityResult:
     ref = _as_float01(reference)
     cand = _as_float01(candidate)
@@ -124,5 +232,7 @@ def compute_image_quality(reference: Any, candidate: Any, data_range: float = 1.
         psnr=peak_signal_noise_ratio(ref, cand, data_range=data_range),
         ssim=structural_similarity_index(ref, cand, data_range=data_range),
         mse=mse,
+        snr=signal_to_noise_ratio(ref, cand),
+        epi=edge_preservation_index(ref, cand),
         data_range=float(data_range),
     )

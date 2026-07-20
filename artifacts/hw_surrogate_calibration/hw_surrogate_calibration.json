@@ -1,0 +1,326 @@
+{
+  "source": "post-route Vivado utilization + COM5 deterministic measurements",
+  "run_root": "hls_lut_builder\\board_harness\\results\\sonar_classifier_rl_best_e2e_board",
+  "num_paired_runs": 10,
+  "pairs": [
+    {
+      "run": "full_rank001_rl_arch_185_d34e207f23",
+      "arch_id": "rl_arch_185",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v3b_lowdsp_prune6\\candidates\\001_rl_arch_185.candidate.json",
+      "estimated": {
+        "latency_ms": 6.851485,
+        "dsp": 900.0,
+        "lut": 92362.0,
+        "bram": 135.0
+      },
+      "measured": {
+        "lut": 15380.0,
+        "dsp": 524.0,
+        "bram": 101.0,
+        "latency_ms": 49.02574
+      },
+      "ratio": {
+        "latency_ms": 7.155491108861801,
+        "dsp": 0.5822222222222222,
+        "lut": 0.1665186981659124,
+        "bram": 0.7481481481481481
+      }
+    },
+    {
+      "run": "full_rank001_rl_arch_60_5ce4a50d25",
+      "arch_id": "rl_arch_60",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\001_rl_arch_60.candidate.json",
+      "estimated": {
+        "latency_ms": 5.3215200000000005,
+        "dsp": 900.0,
+        "lut": 92544.0,
+        "bram": 135.0
+      },
+      "measured": {
+        "lut": 15354.0,
+        "dsp": 524.0,
+        "bram": 101.0,
+        "latency_ms": 24.83615
+      },
+      "ratio": {
+        "latency_ms": 4.667115786467024,
+        "dsp": 0.5822222222222222,
+        "lut": 0.16591026970954356,
+        "bram": 0.7481481481481481
+      }
+    },
+    {
+      "run": "full_rank002_rl_arch_186_b58ae648c3",
+      "arch_id": "rl_arch_186",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v3b_lowdsp_prune6\\candidates\\002_rl_arch_186.candidate.json",
+      "estimated": {
+        "latency_ms": 7.2867750000000004,
+        "dsp": 1172.0,
+        "lut": 128445.0,
+        "bram": 188.0
+      },
+      "measured": {
+        "lut": 18598.0,
+        "dsp": 612.0,
+        "bram": 127.5,
+        "latency_ms": 49.06201
+      },
+      "ratio": {
+        "latency_ms": 6.733021123885395,
+        "dsp": 0.5221843003412969,
+        "lut": 0.14479349137763245,
+        "bram": 0.6781914893617021
+      }
+    },
+    {
+      "run": "full_rank003_rl_arch_135_b58ae648c3",
+      "arch_id": "rl_arch_135",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\003_rl_arch_135.candidate.json",
+      "estimated": {
+        "latency_ms": 7.2867750000000004,
+        "dsp": 1172.0,
+        "lut": 128445.0,
+        "bram": 188.0
+      },
+      "measured": {
+        "lut": 18598.0,
+        "dsp": 612.0,
+        "bram": 127.5,
+        "latency_ms": 49.06201
+      },
+      "ratio": {
+        "latency_ms": 6.733021123885395,
+        "dsp": 0.5221843003412969,
+        "lut": 0.14479349137763245,
+        "bram": 0.6781914893617021
+      }
+    },
+    {
+      "run": "full_rank003_rl_arch_242_f22bc81934",
+      "arch_id": "rl_arch_242",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v3b_lowdsp_prune6\\candidates\\003_rl_arch_242.candidate.json",
+      "estimated": {
+        "latency_ms": 5.75681,
+        "dsp": 1172.0,
+        "lut": 128627.0,
+        "bram": 188.0
+      },
+      "measured": {
+        "lut": 18554.0,
+        "dsp": 612.0,
+        "bram": 127.5,
+        "latency_ms": 24.87291
+      },
+      "ratio": {
+        "latency_ms": 4.320606377490312,
+        "dsp": 0.5221843003412969,
+        "lut": 0.14424654232781609,
+        "bram": 0.6781914893617021
+      }
+    },
+    {
+      "run": "full_rank004_rl_arch_154_0d84539938",
+      "arch_id": "rl_arch_154",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\004_rl_arch_154.candidate.json",
+      "estimated": {
+        "latency_ms": 38.063601048,
+        "dsp": 904.0,
+        "lut": 93177.0,
+        "bram": 138.0
+      },
+      "measured": {
+        "lut": 16368.0,
+        "dsp": 528.0,
+        "bram": 107.5,
+        "latency_ms": 39.01084
+      },
+      "ratio": {
+        "latency_ms": 1.0248856893704168,
+        "dsp": 0.584070796460177,
+        "lut": 0.17566566856627708,
+        "bram": 0.7789855072463768
+      }
+    },
+    {
+      "run": "full_rank004_rl_arch_276_5ce4a50d25",
+      "arch_id": "rl_arch_276",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v3b_lowdsp_prune6\\candidates\\004_rl_arch_276.candidate.json",
+      "estimated": {
+        "latency_ms": 5.3215200000000005,
+        "dsp": 900.0,
+        "lut": 92544.0,
+        "bram": 135.0
+      },
+      "measured": {
+        "lut": 15354.0,
+        "dsp": 524.0,
+        "bram": 101.0,
+        "latency_ms": 24.83615
+      },
+      "ratio": {
+        "latency_ms": 4.667115786467024,
+        "dsp": 0.5822222222222222,
+        "lut": 0.16591026970954356,
+        "bram": 0.7481481481481481
+      }
+    },
+    {
+      "run": "full_rank005_rl_arch_169_0f984469ad",
+      "arch_id": "rl_arch_169",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\005_rl_arch_169.candidate.json",
+      "estimated": {
+        "latency_ms": 39.663358144,
+        "dsp": 904.0,
+        "lut": 92940.0,
+        "bram": 138.0
+      },
+      "measured": {
+        "lut": 16393.0,
+        "dsp": 528.0,
+        "bram": 107.5,
+        "latency_ms": 50.550715
+      },
+      "ratio": {
+        "latency_ms": 1.2744940762825188,
+        "dsp": 0.584070796460177,
+        "lut": 0.17638261243813214,
+        "bram": 0.7789855072463768
+      }
+    },
+    {
+      "run": "full_rank006_rl_arch_175_d34e207f23",
+      "arch_id": "rl_arch_175",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\006_rl_arch_175.candidate.json",
+      "estimated": {
+        "latency_ms": 6.851485,
+        "dsp": 900.0,
+        "lut": 92362.0,
+        "bram": 135.0
+      },
+      "measured": {
+        "lut": 15380.0,
+        "dsp": 524.0,
+        "bram": 101.0,
+        "latency_ms": 49.02574
+      },
+      "ratio": {
+        "latency_ms": 7.155491108861801,
+        "dsp": 0.5822222222222222,
+        "lut": 0.1665186981659124,
+        "bram": 0.7481481481481481
+      }
+    },
+    {
+      "run": "full_rank007_rl_arch_193_f22bc81934",
+      "arch_id": "rl_arch_193",
+      "candidate_source": "hls_lut_builder\\board_harness\\results\\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\\candidates\\007_rl_arch_193.candidate.json",
+      "estimated": {
+        "latency_ms": 5.75681,
+        "dsp": 1172.0,
+        "lut": 128627.0,
+        "bram": 188.0
+      },
+      "measured": {
+        "lut": 18554.0,
+        "dsp": 612.0,
+        "bram": 127.5,
+        "latency_ms": 24.87291
+      },
+      "ratio": {
+        "latency_ms": 4.320606377490312,
+        "dsp": 0.5221843003412969,
+        "lut": 0.14424654232781609,
+        "bram": 0.6781914893617021
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "run": "full_rank001_rl_arch_136_5ce4a50d25",
+      "reason": "no routed report or measurement"
+    },
+    {
+      "run": "full_rank001_rl_arch_76_5ce4a50d25",
+      "reason": "no routed report or measurement"
+    },
+    {
+      "run": "full_rank002_rl_arch_116_078faf793b",
+      "reason": "no routed report or measurement"
+    },
+    {
+      "run": "full_rank002_rl_arch_278_f22bc81934",
+      "reason": "no routed report or measurement"
+    },
+    {
+      "run": "full_rank003_rl_arch_166_6cfc0563d9",
+      "reason": "no routed report or measurement"
+    }
+  ],
+  "summary": {
+    "latency_ms": {
+      "n": 10,
+      "geomean_measured_over_estimated": 4.06527440111001,
+      "min": 1.0248856893704168,
+      "max": 7.155491108861801,
+      "mape_of_estimate": 0.6771679088032827
+    },
+    "dsp": {
+      "n": 10,
+      "geomean_measured_over_estimated": 0.5577738296422039,
+      "min": 0.5221843003412969,
+      "max": 0.584070796460177,
+      "mape_of_estimate": 0.7954602150830261
+    },
+    "lut": {
+      "n": 10,
+      "geomean_measured_over_estimated": 0.15898363117309786,
+      "min": 0.14424654232781609,
+      "max": 0.17638261243813214,
+      "mape_of_estimate": 5.310542304988749
+    },
+    "bram": {
+      "n": 10,
+      "geomean_measured_over_estimated": 0.7251733774191728,
+      "min": 0.6781914893617021,
+      "max": 0.7789855072463768,
+      "mape_of_estimate": 0.3812015729616737
+    }
+  },
+  "post_calibration_residuals": {
+    "latency_ms": {
+      "n": 10,
+      "geomean": 0.5681335270021262,
+      "min": 0.14323065653748562,
+      "max": 1.0,
+      "max_abs_error": 0.8567693434625143
+    },
+    "dsp": {
+      "n": 10,
+      "geomean": 1.0,
+      "min": 0.9361936193318058,
+      "max": 1.0471462901635988,
+      "max_abs_error": 0.06380638066819422
+    },
+    "lut": {
+      "n": 10,
+      "geomean": 1.0,
+      "min": 0.9073043637477599,
+      "max": 1.1094388216991387,
+      "max_abs_error": 0.10943882169913866
+    },
+    "bram": {
+      "n": 10,
+      "geomean": 1.0,
+      "min": 0.9352128890546493,
+      "max": 1.0742058816592477,
+      "max_abs_error": 0.07420588165924769
+    }
+  },
+  "recommended_analytic_calibration": {
+    "latency_scale": 7.155491108861801,
+    "dsp_scale": 0.5577738296422039,
+    "lut_scale": 0.15898363117309786,
+    "bram_scale": 0.7251733774191728
+  },
+  "note": "ratios are measured/estimated; latency_scale uses the worst underestimate, resource scales use geomean (or max when the model also underestimates). Apply only to analytic-fallback layers, never to LUT-measured entries."
+}

@@ -1,0 +1,14 @@
+schema_version: 1
+paper_id: sure_2024
+adapter_class: ExternalCommandAdapter
+checkout_path: reference/_local/SURE
+task: closed_set
+status: S_A_STAGE1_AUTHORIZED_LICENSE_UNVERIFIED
+formal_execution_enabled: true
+method_smoke:
+  fold: 0
+  seed: 42
+  epochs: 1
+  backbone: simplecnn
+  author_components: [FMFP, CRL, RegMixup, cosine_classifier]
+  result_path: results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/sure_author_recipe_1x1x1

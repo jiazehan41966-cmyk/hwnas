@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-07-03
+Last updated: 2026-07-19
 
 Purpose: this file is the persistent local memory index for the HW-NAS FPGA Sonar repository. New tasks in this workspace should read this file first when they need repository context, audit history, archive paths, or workflow boundaries.
 
@@ -29,6 +29,12 @@ Supporting result/archive policy documents:
 - `E:\1\hwnas\hwnas\docs\PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V4_SONAR_OP_PRECHECK.md`
 - `E:\1\hwnas\hwnas\docs\PHASE0_V4_SONAR_RESULTS.md`
+- `E:\1\hwnas\hwnas\docs\EVAL_PROTOCOL.md`
+- `E:\1\hwnas\hwnas\docs\EXTERNAL_SONAR_DATASETS.md`
+- `E:\1\hwnas\hwnas\docs\MEASUREMENT_FIRST_REBUILD.md`
+- `E:\1\hwnas\hwnas\docs\PROXY_RELIABILITY_AUDIT.md`
+- `E:\1\hwnas\hwnas\docs\PROXY_RELIABILITY_AUDIT_V2.md`
+- `E:\1\hwnas\hwnas\docs\benchmark_campaigns\ccf_ab_nksid_av7k325_v1.md`
 
 Concrete local archive outputs:
 
@@ -42,10 +48,17 @@ Concrete local archive outputs:
 - `E:\1\hwnas\hwnas\results\phase0_v4_sonar_ablation_rl300_20260621\`
 - `E:\1\hwnas\hwnas\results\sonar_image_quality_psnr_ssim_20260622\`
 
-Git-tracked compact evidence:
+Compact evidence archives:
 
 - `E:\1\hwnas\hwnas\artifacts\first_principles_audit_20260703\README.md`
 - `E:\1\hwnas\hwnas\artifacts\first_principles_audit_20260703\evidence_summary.json`
+- `E:\1\hwnas\hwnas\artifacts\datasets\roboflow_cylider2_v6_source_index.json`
+- `E:\1\hwnas\hwnas\artifacts\measurement_first_rebuild\status.json`
+- `E:\1\hwnas\hwnas\artifacts\measurement_first_rebuild\status.md`
+- `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\README.md`
+- `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary.json`
+- `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary_v2.json`
+- `E:\1\hwnas\hwnas\artifacts\benchmarks\ccf_ab_nksid_av7k325_v1\`
 
 Current Phase0 v3 board-validation outputs:
 
@@ -79,15 +92,82 @@ Covered:
 - Phase0 v4 sonar-op precheck evidence roots for the local-only stage3 k3 pilot and launch-readiness package.
 - Phase0 v4 retrain150, full-route, five-run COM5, partial-ablation, and
   PSNR/SSIM evidence boundaries, summarized in `docs/PHASE0_V4_SONAR_RESULTS.md`.
+- Frozen evaluation protocol and measurement-first G0--G5 status ledger, with
+  missing training, HLS, route, board, and power evidence left explicitly
+  `PENDING`, `FROZEN`, `PAUSED`, or `NOT_MEASURED`.
+- Traceable external-sonar dataset registration and local manifest boundaries;
+  these detection/mixed-task sources are not merged with NKSID classification
+  metrics.
+- Proxy Reliability Gate 0 v1/v2 manifests, execution invariants, and staged
+  evidence rules.
+- G5 sonar-operator admission tooling, including matched folded candidates,
+  fold-cluster paired comparison, strict INT8 v2 evidence fields, and the
+  resumable G1/G5 queue scripts. These are implementation artifacts only;
+  formal E1/E2 execution evidence is still absent.
+- CCF A/B paper-benchmark campaign scaffolding for HW-PR-NAS, SURE, HARP,
+  ESDA, and DMCL/Sonar-OLTR, including pinned-source/license audit cards,
+  the closed/open-set unified prediction schema, exact three-objective HV,
+  paired inference helpers, and fail-closed T1--T9/F1--F12 archive status.
+  SURE, DMCL, and supplementary PLUD now have non-claimable 1-fold x 1-seed
+  x 1-epoch method smokes. PLUD dynamically loads the author push-logit loss
+  and remains separate from the partially corresponding 2025 DMCL paper.
+  HW-PR-NAS has a 10-evaluator-record paper-spec ListMLE data-flow
+  smoke, but the pinned author repository is runtime-incomplete and the local
+  tabular MLP is not author code. HARP has an author HLS C/LLVM hierarchical
+  GEXF contract smoke; project input must be generated from candidate HLS
+  C/C++, never directly from NAS architecture JSON. ESDA has a class-C
+  author-artifact contract covering training, quantization, HLS/Vivado,
+  archived ZCU102 bitstreams, PYNQ runtime, and archived power arrays. Those
+  artifacts are not AV7K325 measurements; cross-board numerical ranking is
+  rejected and T7/T8 remain `PENDING`. Six paper-specific CUDA adapter
+  environments are now probe- and freeze-verified as
+  `READY_DEDICATED_ENVIRONMENT`; they use Python 3.13.3 and PyTorch
+  2.7.0+cu126 for the unified project protocol and are not represented as
+  byte-identical reconstructions of the authors' legacy environments. SURE,
+  DMCL, and PLUD dedicated-environment smokes bind their run manifests to the
+  environment card and lock SHA. Formal readiness is still `2/9 PASS`; only
+  T1 and the conceptual F1 workflow are currently `AVAILABLE`, and formal
+  numerical comparisons remain `PENDING`. Formal classification now also
+  fails closed unless every run binds and reverifies a source-freeze manifest,
+  its manifest SHA256, and the retained source-snapshot archive SHA256. The G1
+  launcher requires this manifest for non-dry execution. The 2026-07-18 ledger
+  now records G1 `PASS` at `45/45`: scratch evidence is under
+  `results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/`, while the
+  pretrained and legacy-selected NAS baselines are under
+  `results/protocol/g1_clean_20260711/`. G2/G4 and later claim gates remain open.
 
 Known gap:
 
-- No standalone archived HLS/LUT production-chain audit file was found as of 2026-06-22. Treat HLS/LUT conclusions as partial unless a future file such as `docs/audit_hls_lut_production.md` is added.
+- No standalone archived HLS/LUT production-chain audit file was found as of 2026-07-06. Treat HLS/LUT conclusions as partial unless a future file such as `docs/audit_hls_lut_production.md` is added.
 - Acquisition/mission group metadata is absent, so the current image-index
   split cannot be certified as group-safe.
 - `denoise` and `edge` lack PyTorch-to-fixed-point numeric parity and matching
   weight-export evidence. Historical route/COM5 results for their simplified
   HLS templates do not establish deployment of the trained PyTorch blocks.
+- Proxy Reliability Gate 0 infrastructure is implemented, but v2 formal
+  execution remains `0/1200` trajectories. The v2 trajectories expand to the
+  same 48-architecture × 5-seed × 5-outer-fold × 6-budget analysis grid; local
+  CPU one-epoch benchmarks are `formal_eligible=false`. Until the complete
+  crossed grid is collected, the status is `not_ready`; existing strict40
+  proximity does not establish either RL superiority or formal RL/Random
+  equivalence.
+- G5 v2 tooling is implemented, but no formal 60-run four-way ablation, zero-
+  mismatch INT8/HLS parity bundle, or route-feasible E2 evidence is currently
+  present. Keep `denoise` and `edge` `PAUSED`/`not_ready` until the frozen
+  protocol, HLS-consumed spec hashes, and all comparison gates pass.
+- HW-PR-NAS official commit `296c6576...` is not an executable paper release:
+  README-listed `base_surrogate.py` and accuracy/latency/energy predictor files
+  are absent, `valid_loss()` is undefined, and `test.py` calls the search
+  function with an incompatible signature. Keep the author method blocked;
+  treat `results/benchmarks/ccf_ab_nksid_av7k325_v1/smoke/hwpr_paper_spec_10/`
+  as non-claimable contract evidence only.
+- HARP is a pragma-aware LLVM program-graph surrogate, not a network-graph
+  surrogate. The author AES graph contract passes, but no project candidate
+  has a source-linked LLVM 13 GEXF or HARP prediction yet; T6 stays `PENDING`.
+- ESDA is a workflow/evidence-chain reference only. Its pinned checkout has
+  author ZCU102 bitstreams and power arrays, but these do not establish project
+  route, COM5, or external-instrument power evidence. Project power remains
+  `NOT_MEASURED` and no ESDA-vs-AV7K325 numeric ranking is allowed.
 
 Current board-claimable Phase0 v3 result:
 
@@ -137,6 +217,17 @@ For a new repository task:
 9. For Phase0 v3 low-DSP route-aware board results, read `docs/PHASE0_V3_BOARD_RESULTS.md`.
 10. For Phase0 v3 retrained-weight board reinjection results, read `docs/PHASE0_V3_RETRAINED_BOARD_REINJECTION.md`.
 11. For Phase0 v4 sonar search/retrain/route/COM5/image-quality status, read `docs/PHASE0_V4_SONAR_RESULTS.md`.
+12. For frozen evaluation and current measurement gates, read `docs/EVAL_PROTOCOL.md`,
+    `docs/MEASUREMENT_FIRST_REBUILD.md`, and
+    `artifacts/measurement_first_rebuild/status.json`.
+13. For Proxy Reliability Gate 0, read `docs/PROXY_RELIABILITY_AUDIT.md` and
+    `docs/PROXY_RELIABILITY_AUDIT_V2.md`; v2 execution status supersedes the
+    v1 workload estimate without deleting the v1 archive.
+14. For external-sonar source provenance and task-boundary questions, read
+    `docs/EXTERNAL_SONAR_DATASETS.md`.
+15. For the CCF A/B multi-direction benchmark campaign, read
+    `docs/benchmark_campaigns/ccf_ab_nksid_av7k325_v1.md` and
+    `artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/manifests/artifact_status.json`.
 
 Do not use memories, assumptions, datasets, metrics, or conclusions from other projects unless the user explicitly asks to connect them.
 

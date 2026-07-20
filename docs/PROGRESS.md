@@ -1,6 +1,6 @@
 # HW-NAS 项目进展
 
-Last updated: 2026-07-03; latest consolidated evidence snapshot: 2026-06-22.
+Last updated: 2026-07-19; latest measurement-first ledger: 2026-07-18.
 
 ## 当前结论
 
@@ -11,12 +11,19 @@ HLS/Vivado route gate 到 COM5 固定输入板测的闭环。结论必须按证�
 fold-0 验证协议，`denoise`/`edge` 的 PyTorch 与 HLS 实现不具备语义
 一致性，不能据此声明训练算子已经部署。
 
+当前总账中 G1 三个冻结分类基线已通过 45/45 个 fold-seed 单元；这不改变
+其余层级：Gate 0 仍为 `not_ready`（0/1,200）、G2/G4 为 `PENDING`、G3
+为 `FROZEN`、功耗为 `NOT_MEASURED`、G5 为 `PAUSED`。
+
 ## 已完成
 
 | 能力 | 状态 | 主要入口 |
 |---|---|---|
 | 搜索空间与可行性探测 | 已实现 | `run_search_space_probe.py` |
 | Random/RL/Proxyless 搜索 | 已实现 | `run_search.py`、`run_rl_search.py` |
+| 多目标 aging evolution 与 RL 匹配比较 | 已实现、正式运行冻结 | `run_search.py`、`scripts/run_aging_vs_rl_benchmark.py` |
+| G1 冻结分类基线 | `PASS`（45/45） | `run_eval_protocol.py`、`artifacts/measurement_first_rebuild/status.json` |
+| CCF A/B benchmark 适配与 readiness | 已实现，正式 readiness `2/9 PASS` | `src/hwnas_fpga/benchmarks/`、`scripts/audit_benchmark_readiness.py` |
 | 独立重训练 | 已实现 | `run_retrain.py` |
 | LUT/分析混合硬件估计 | 已实现 | `src/hwnas_fpga/hardware/` |
 | ONNX/INT8/HLS stub 导出 | 已实现 | `run_export.py` |

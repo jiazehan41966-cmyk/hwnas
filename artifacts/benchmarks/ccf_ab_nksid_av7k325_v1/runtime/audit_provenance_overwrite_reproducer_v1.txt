@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""独立审计 provenance 覆盖复现、未应用补丁状态和冻结入口一致性。"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
+
+REPO = Path(__file__).resolve().parents[4]
+CAMPAIGN = REPO / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+MANIFESTS = CAMPAIGN / "manifests"
+RESULT = MANIFESTS / "provenance_overwrite_reproducer_20260718.json.txt"
+REPORT = MANIFESTS / "provenance_overwrite_reproducer_20260718.md"
+CONTRACT = MANIFESTS / "provenance_immutable_repair_contract_20260718.md"
+PROPOSAL = CAMPAIGN / "runtime/provenance_immutable_repair_20260718.patch.txt"
+PRODUCTION = REPO / "run_eval_protocol.py"
+FREEZE = CAMPAIGN / "source_freeze/g1_20260715_v2/source_freeze_manifest.json"
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def has_chinese(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def main() -> int:
+    result = json.loads(RESULT.read_text(encoding="utf-8"))
+    checks: list[str] = []
+    if result["status"] != "PASS_BUG_REPRODUCED_PATCH_NOT_APPLIED":
+        raise AssertionError("复现状态错误")
+    if result["formal_entrypoint_modified"] is not False or result["formal_evidence_increment"] != 0:
+        raise AssertionError("复现错误修改正式入口或增加正式证据")
+    checks.append("复现通过，正式入口未修改且正式证据增量为 0")
+
+    for row in result["inputs"]:
+        path = Path(row["path"])
+        if not path.is_file() or path.stat().st_size != row["bytes"] or sha256(path) != row["sha256"]:
+            raise AssertionError(f"复现输入不一致：{path}")
+    checks.append("生产入口、修复合同和未应用 patch 提案的 SHA/大小一致")
+
+    freeze = json.loads(FREEZE.read_text(encoding="utf-8"))
+    frozen = {row["path"]: row for row in freeze["files"]}
+    entry = frozen.get("run_eval_protocol.py")
+    if not entry or entry["sha256"] != sha256(PRODUCTION) or entry["bytes"] != PRODUCTION.stat().st_size:
+        raise AssertionError("正式入口已偏离 G1 冻结源")
+    production_text = PRODUCTION.read_text(encoding="utf-8")
+    if 'patch_path = run_dir / "code_patch.diff"' not in production_text:
+        raise AssertionError("生产缺陷锚点已变化，复现结论需重做")
+    if "code_patch_{patch_sha256}.diff" in production_text:
+        raise AssertionError("提案疑似已被应用，但状态仍称未应用")
+    checks.append("正式入口仍与 556 文件冻结源一致，内容寻址提案尚未应用")
+
+    vulnerable = result["vulnerable_model"]
+    fixed = result["content_addressed_model"]
+    if not (
+        vulnerable["same_path"] is True
+        and vulnerable["overwrite_observed"] is True
+        and vulnerable["first_evidence_survived"] is False
+        and vulnerable["first_sha256"] != vulnerable["second_sha256"]
+    ):
+        raise AssertionError(f"固定路径复现证据不完整：{vulnerable}")
+    if not (
+        fixed["different_paths"] is True
+        and fixed["first_evidence_survived"] is True
+        and fixed["first_sha256"] != fixed["second_sha256"]
+    ):
+        raise AssertionError(f"内容寻址模型证据不完整：{fixed}")
+    checks.append("固定路径会覆盖旧证据，内容寻址模型保留两个不同 patch")
+
+    for path in (REPORT, CONTRACT):
+        text = path.read_text(encoding="utf-8")
+        if not has_chinese(text) or "\ufffd" in text:
+            raise AssertionError(f"中文档案缺中文或含乱码：{path}")
+    proposal = PROPOSAL.read_text(encoding="utf-8")
+    for token in ("PROPOSED_NOT_APPLIED", "code_patch_{patch_sha256}.diff", "tracked_patch_integrity"):
+        if token not in proposal:
+            raise AssertionError(f"patch 提案缺少关键合同：{token}")
+    checks.append("中文报告/合同有效，patch 提案包含内容寻址与总账完整性检查")
+
+    audit = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "status": "PASS",
+        "checks": checks,
+        "formal_entrypoint_modified": False,
+        "training_authorized": False,
+        "formal_evidence_increment": 0,
+        "reproducer": {"path": str(RESULT.resolve()), "sha256": sha256(RESULT)},
+        "source_freeze": {"path": str(FREEZE.resolve()), "sha256": sha256(FREEZE), "verified_file_count": 556},
+        "auditor": {"path": str(Path(__file__).resolve()), "sha256": sha256(Path(__file__))},
+        "boundary_zh": "本审计证明缺陷和提案边界，不授权修改入口、重新冻结或训练。",
+    }
+    json_path = MANIFESTS / "provenance_overwrite_reproducer_20260718_independent.json.txt"
+    json_path.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report_path = MANIFESTS / "provenance_overwrite_reproducer_20260718_independent.md"
+    report_path.write_text("\n".join([
+        "# provenance 覆盖复现独立审计",
+        "",
+        "- 状态：`PASS`。",
+        "- 正式入口修改：否。训练授权：否。正式证据增量：0。",
+        "",
+        "## 已通过检查",
+        "",
+        *[f"- {item}。" for item in checks],
+        "",
+        "用户批准前，修复补丁保持提案状态；scratch-v2 不得启动。",
+        "",
+    ]), encoding="utf-8")
+    print(json.dumps({"status": "PASS", "checks": len(checks), "output": str(report_path)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

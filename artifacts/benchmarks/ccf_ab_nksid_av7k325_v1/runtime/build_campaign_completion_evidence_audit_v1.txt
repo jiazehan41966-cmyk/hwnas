@@ -1,0 +1,379 @@
+#!/usr/bin/env python3
+"""生成全对标计划的中文完成度、证据冲突与用户决策准入审计。"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
+
+REPO = Path(__file__).resolve().parents[4]
+CAMPAIGN = REPO / "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1"
+MANIFESTS = CAMPAIGN / "manifests"
+SOURCE_DATA = CAMPAIGN / "source_data"
+DATE = "20260718"
+
+INPUTS = {
+    "论文源码审计": MANIFESTS / "source_audit.json",
+    "论文源码冒烟": MANIFESTS / "source_smoke.json",
+    "统一接口冒烟": MANIFESTS / "integration_smoke.json",
+    "独立环境索引": CAMPAIGN / "environment/index.json",
+    "正式就绪审计": MANIFESTS / "formal_readiness.json",
+    "正式图表状态": MANIFESTS / "artifact_status.json",
+    "测量优先总账": REPO / "artifacts/measurement_first_rebuild/status.json",
+    "G1_45单元专项审计": MANIFESTS / "g1_45_completion_audit_20260717.json",
+    "G1_scratch独立审计": MANIFESTS / "g1_45audit_scratch_20260717.json",
+    "G1_预训练独立审计": MANIFESTS / "g1_45audit_pretrained_20260717.json",
+    "G1_NAS独立审计": MANIFESTS / "g1_45audit_nas_20260717.json",
+    "T6结构候选池": MANIFESTS / "t6_structural_candidate_pool_v1.json.txt",
+    "T6五家族先导清单": MANIFESTS / "t6_five_family_pilot_manifest_v1.json.txt",
+    "T6映射缺口审计": MANIFESTS / "t6_five_family_mapping_gap_audit_v1.json.txt",
+    "NAS跨层绑定": CAMPAIGN / "diagnostics/rl_arch_135_cross_layer_binding_v1/evidence-manifest.json.txt",
+    "G1源码冻结": CAMPAIGN / "source_freeze/g1_20260715_v2/source_freeze_manifest.json",
+}
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def write_csv(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def main() -> int:
+    missing = [str(path) for path in INPUTS.values() if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(f"缺少审计输入：{missing}")
+
+    source_audit = load(INPUTS["论文源码审计"])
+    source_smoke = load(INPUTS["论文源码冒烟"])
+    integration = load(INPUTS["统一接口冒烟"])
+    environments = load(INPUTS["独立环境索引"])
+    readiness = load(INPUTS["正式就绪审计"])
+    artifact_status = load(INPUTS["正式图表状态"])
+    ledger = load(INPUTS["测量优先总账"])
+    g1_45 = load(INPUTS["G1_45单元专项审计"])
+    scratch_audit = load(INPUTS["G1_scratch独立审计"])
+    pretrained_audit = load(INPUTS["G1_预训练独立审计"])
+    nas_audit = load(INPUTS["G1_NAS独立审计"])
+    t6_pool = load(INPUTS["T6结构候选池"])
+    t6_pilot = load(INPUTS["T6五家族先导清单"])
+    t6_gap = load(INPUTS["T6映射缺口审计"])
+    cross_layer = load(INPUTS["NAS跨层绑定"])
+
+    main_audits = [row for row in source_audit["audits"] if row["paper"]["registry_role"] == "main"]
+    if len(main_audits) != 5:
+        raise AssertionError(f"主论文数量不是 5：{len(main_audits)}")
+    smoke_by_id = {row["paper_id"]: row for row in source_smoke["records"]}
+
+    paper_rows = []
+    for row in main_audits:
+        paper = row["paper"]
+        smoke = smoke_by_id[paper["paper_id"]]
+        blockers = list(row.get("blockers") or [])
+        paper_rows.append({
+            "论文编号": paper["paper_id"],
+            "方向": paper["direction"],
+            "会议或期刊": paper["venue"],
+            "对比类别": paper["comparability_class"],
+            "固定提交": paper["pinned_commit"],
+            "许可证": paper.get("license_spdx") or "缺失/未核验",
+            "源码审计": "通过" if row["source_audit_pass"] else "失败",
+            "源码冒烟": smoke["status"],
+            "论文代码对应": paper["paper_code_correspondence"],
+            "本地统一协议正式结果": "尚无",
+            "当前限制": "；".join(blockers) if blockers else "仍需本地统一协议重评",
+        })
+
+    canonical_g1 = ledger["gates"]["G1_accuracy_baselines"]
+    g1_conflict = (
+        canonical_g1["status"] == "PASS"
+        and scratch_audit["status"] == "FAIL"
+        and "tracked code patch hash mismatch" in scratch_audit["errors"]
+    )
+    if not g1_conflict:
+        raise AssertionError("预期的 G1 provenance 冲突未被观察到，必须人工复核输入变化")
+    g1_effective_status = "G1_CONFLICT_HOLD"
+
+    available_tables = sum(row["status"] == "AVAILABLE" for row in artifact_status["tables"].values())
+    available_figures = sum(row["status"] == "AVAILABLE" for row in artifact_status["figures"].values())
+
+    requirements = [
+        {
+            "编号": "R1",
+            "工作包": "五篇主论文源码、版本、许可证与对应关系",
+            "有效状态": "PASS",
+            "完成度": "5/5 审计卡",
+            "证据强度": "中等",
+            "已证明": "仓库、固定 commit、许可证状态和论文—代码对应边界已记录",
+            "尚未证明": "外部方法在 NKSID 上的效果",
+            "下一准入条件": "保持固定 commit；缺许可证代码继续隔离",
+        },
+        {
+            "编号": "R2",
+            "工作包": "独立环境与依赖锁定",
+            "有效状态": "PASS",
+            "完成度": f"{environments['ready_count']}/{environments['required_count']} 环境卡",
+            "证据强度": "中等",
+            "已证明": "六个注册方法具有独立环境卡与锁文件",
+            "尚未证明": "完整作者训练程序可在本机端到端复现",
+            "下一准入条件": "正式运行前再次核验解释器、CUDA、PyTorch 与锁文件 SHA",
+        },
+        {
+            "编号": "R3",
+            "工作包": "闭集分类、校准与成本",
+            "有效状态": g1_effective_status,
+            "完成度": "45/45 产物；30/45 独立审计通过；SURE 0/15",
+            "证据强度": "冲突，暂不定级",
+            "已证明": "预训练和 NAS 各 15 个 fold-seed 单元通过专项审计",
+            "尚未证明": "scratch provenance 完整；SURE 正式结果；四方法完整 T2",
+            "下一准入条件": "用户批准 provenance 修复、新源码冻结及 scratch-v2；另行批准 SURE 15 单元",
+        },
+        {
+            "编号": "R4",
+            "工作包": "开放集长尾声呐识别",
+            "有效状态": "FORMAL_NOT_STARTED",
+            "完成度": "接口冒烟通过；CE+MSP/DMCL/PLUD 均 0/15",
+            "证据强度": "仅工程可行性",
+            "已证明": "开放集入口、样本 manifest 与预测 schema 可运行",
+            "尚未证明": "NMA、OSFM、OSCRmac、AUROC、FPR95 正式结果",
+            "下一准入条件": "用户批准后按冻结 class-holdout manifest 运行三方法 15 单元",
+        },
+        {
+            "编号": "R5",
+            "工作包": "四种 NAS 方法与 exact HV",
+            "有效状态": "FROZEN",
+            "完成度": "正式 300 评估 × 10 paired seeds：0/40 方法种子单元",
+            "证据强度": "仅实现/契约",
+            "已证明": "Random、RL、Aging 与 HW-PR 适配契约存在；冒烟不计正式结果",
+            "尚未证明": "anytime exact HV、Pareto coverage、NDCG、失败率与成本",
+            "下一准入条件": "Gate0、G2、G4 与 stage-3 用户批准全部闭合",
+        },
+        {
+            "编号": "R6",
+            "工作包": "HLS/route 代理可靠性",
+            "有效状态": "TRUTH_NOT_COLLECTED",
+            "完成度": f"结构池 {t6_pool['selected_candidate_count']}/100；正式真值 0/100；先导 {t6_pilot['pilot_count']}/5 仅冻结输入",
+            "证据强度": "设计阶段",
+            "已证明": "100 个唯一结构候选与五家族先导输入已冻结",
+            "尚未证明": "完整网络语义等价、csynth、route、HARP grouped 5-fold 指标",
+            "下一准入条件": "先补候选特异 operator 映射与完整网络生成器，再批准 HLS 采集",
+        },
+        {
+            "编号": "R7",
+            "工作包": "AV7K325 route、板级延迟与外部功耗",
+            "有效状态": "NOT_MEASURED_FORMAL",
+            "完成度": "正式候选 0/3；外部功率仪器 0/3",
+            "证据强度": "历史描述性证据",
+            "已证明": "同一架构的历史 latency-only harness 可 route 且 COM5 可测",
+            "尚未证明": "formal checkpoint 权重绑定、板级分类准确率、动态能耗",
+            "下一准入条件": "用户批准 checkpoint—INT8—HLS—bitstream 重建及板卡/功率仪器实验",
+        },
+        {
+            "编号": "R8",
+            "工作包": "测量优先门禁",
+            "有效状态": "IN_PROGRESS_WITH_G1_CONFLICT",
+            "完成度": "G0 PASS；G1 总账 PASS 但覆盖审计 HOLD；G2/G4 PENDING；G3 FROZEN；G5 PAUSED；功耗 NOT_MEASURED",
+            "证据强度": "保守门禁",
+            "已证明": "当前不能进入可声明正式搜索或板级联合结论",
+            "尚未证明": "G2、G4、G5 与功耗闭合",
+            "下一准入条件": "先解决 G1 审计冲突，再按 gate 顺序闭合",
+        },
+        {
+            "编号": "R9",
+            "工作包": "正式表格与图片归档",
+            "有效状态": "PARTIAL",
+            "完成度": f"正式表 {available_tables}/9；正式图 {available_figures}/12",
+            "证据强度": "可追溯但不完整",
+            "已证明": "T1 与 F1 的规定格式可用；诊断图不冒充正式编号图",
+            "尚未证明": "T2–T9、F2–F12 的正式源数据与一键重建",
+            "下一准入条件": "各实验族闭合后由原始逐样本/逐候选/时间序列数据生成",
+        },
+    ]
+
+    csv_path = SOURCE_DATA / f"campaign_completion_matrix_{DATE}.csv"
+    write_csv(csv_path, requirements)
+
+    report_path = MANIFESTS / f"campaign_completion_evidence_audit_{DATE}.md"
+    report_lines = [
+        "# 全对标计划完成度与证据冲突审计",
+        "",
+        f"- 生成时间：{datetime.now().astimezone().isoformat(timespec='seconds')}。",
+        "- 有效总状态：`IN_PROGRESS_WITH_G1_CONFLICT_HOLD`。",
+        "- 正式证据增量：`0`；本文件只审计现有证据，不启动训练、HLS、Vivado、板卡或功耗实验。",
+        "",
+        "## 结论",
+        "",
+        "五篇主对标论文及六套环境已经锁定，但五篇外部方法均没有完成本项目统一协议下的正式重评。当前最接近完成的是闭集 G1：45 个软件产物都存在，预训练与 NAS 的 30 个单元通过专项独立审计；scratch 的 15 个单元因 `code_patch.diff` 被后续调用覆盖而出现 provenance 冲突。故即使测量优先总账显示 G1 PASS，本覆盖审计仍按 fail-closed 原则冻结为 `G1_CONFLICT_HOLD`。",
+        "",
+        "```mermaid",
+        "flowchart LR",
+        "  A[\"R1 论文审计 PASS\"] --> B[\"R2 环境锁定 PASS\"]",
+        "  B --> C[\"R3 闭集 G1 冲突 HOLD\"]",
+        "  C --> D[\"R4 开放集 未正式运行\"]",
+        "  C --> E[\"R5 NAS 正式搜索 FROZEN\"]",
+        "  E --> F[\"R6 HLS 真值 0/100\"]",
+        "  F --> G[\"R7 板级与功耗 未正式测量\"]",
+        "  D --> H[\"R9 正式归档 1/9 表、1/12 图\"]",
+        "  G --> H",
+        "```",
+        "",
+        "## 九项工作包矩阵",
+        "",
+        "| 编号 | 工作包 | 有效状态 | 完成度 | 证据强度 | 下一准入条件 |",
+        "|---|---|---|---|---|---|",
+    ]
+    for row in requirements:
+        report_lines.append(
+            f"| {row['编号']} | {row['工作包']} | `{row['有效状态']}` | {row['完成度']} | {row['证据强度']} | {row['下一准入条件']} |"
+        )
+    report_lines.extend([
+        "",
+        "## G1 冲突的精确边界",
+        "",
+        f"- 测量优先总账：`{canonical_g1['status']}`，{canonical_g1['completed_tasks']}/{canonical_g1['required_tasks']}。",
+        f"- 45 单元专项审计：`{g1_45['status']}`；产物 45/45，独立审计通过 {g1_45['unit_accounting']['independent_audit_pass_units']}/45。",
+        f"- scratch：`{scratch_audit['status']}`，错误为 `{'; '.join(scratch_audit['errors'])}`。",
+        f"- 预训练：`{pretrained_audit['status']}`；NAS：`{nas_audit['status']}`。",
+        "- 冲突原因：总账只接受 protocol summary 的自报 claimability；专项审计还验证 manifest 绑定的 patch 文件 SHA。后者更严格，因此用于覆盖声明。",
+        "- 禁止结论：在冲突消除前，不得写成“G1 已完全通过”或把 scratch 纳入正式 T2 显著性比较。",
+        "",
+        "## 五篇主论文现状",
+        "",
+        "| 论文编号 | 方向 | 固定提交 | 许可证 | 源码冒烟 | 论文代码对应 | 本地正式结果 |",
+        "|---|---|---|---|---|---|---|",
+    ])
+    for row in paper_rows:
+        report_lines.append(
+            f"| {row['论文编号']} | {row['方向']} | `{row['固定提交']}` | {row['许可证']} | `{row['源码冒烟']}` | {row['论文代码对应']} | {row['本地统一协议正式结果']} |"
+        )
+    report_lines.extend([
+        "",
+        "## 科学有效性风险",
+        "",
+        "- 选择偏差：NAS 候选来自历史 fold0 选择，不能由 15 单元重评反推搜索策略无偏泛化。",
+        "- 构念混淆：搜索期延迟/功耗代理不得写成板级实测；历史 COM5 latency-only harness 不等于正式分类权重部署。",
+        "- 间接性：HW-PR、HARP 与 ESDA 均为 B/C 类迁移或证据链参考，作者原始数字不能与本项目 AV7K325/NKSID 直接排名。",
+        "- 不完整性：开放集、SNR 鲁棒性、HLS 真值、板级分类准确率和外部功耗尚无正式结果。",
+        "- 多重比较：T2/T3/T5/T6/T9 完整实验族形成后，才执行预先约定的 Holm 校正；当前诊断比较不替代完整实验族分析。",
+        "",
+        "## 无需用户批准即可继续的工作",
+        "",
+        "- 保持论文 commit、许可证卡、环境锁文件和中文档案审计有效。",
+        "- 完善只读审计、schema、图表生成器和不触发训练/硬件的单元测试。",
+        "- 保留 NAS 负结果及历史硬件证据的分层边界。",
+        "",
+        "## 必须由用户批准的关键动作",
+        "",
+        "1. 修改正式评测入口的 provenance 捕获逻辑、建立新源码冻结并决定是否 fresh scratch-v2 15 单元重跑。",
+        "2. 启动 SURE、CE+MSP、DMCL 或 PLUD 的正式 5 folds × 3 seeds 训练。",
+        "3. 启动四种 NAS 方法的 pilot/formal 搜索，或改变当前冻结候选与协议。",
+        "4. 启动完整网络 HLS/route 真值采集、板卡 COM5、bitstream 重建或外部功率仪器测量。",
+        "",
+        "## 当前建议",
+        "",
+        "优先请求用户批准第 1 项：先修复 provenance 覆盖缺陷并重新冻结，再决定是否重跑 scratch-v2。该步骤不改善 NAS 精度，但能消除总账与专项审计的逻辑矛盾；在此之前不建议启动板级正式实验。",
+        "",
+    ])
+    report_path.write_text("\n".join(report_lines), encoding="utf-8")
+
+    checklist_path = MANIFESTS / f"campaign_user_decision_checklist_{DATE}.md"
+    checklist_path.write_text("\n".join([
+        "# 下一阶段用户决策准入检查表",
+        "",
+        "当前没有自动执行授权。请选择后，才可创建一次性、SHA 绑定的执行批准文件。",
+        "",
+        "| 决策项 | 会执行什么 | 预期获得的证据 | 主要风险/代价 | 当前建议 |",
+        "|---|---|---|---|---|",
+        "| A：provenance 修复 + scratch-v2 | 修复 patch 不可变保存、重新冻结、训练 15 单元 | 可独立审计的 scratch 正式基线 | GPU 时间；结果可能与旧 scratch 不同 | 优先 |",
+        "| B：直接做 SURE/开放集 | 启动 SURE 或 CE+MSP/DMCL/PLUD 训练 | T2 或 T3 的外部方法结果 | G1 冲突仍存在，完整表仍不能签署 | 暂缓 |",
+        "| C：启动 HLS 真值采集 | 先补完整网络映射，再运行 csynth/route | T6 的前 5 个先导真值 | 工具链时间长；生成器当前未就绪 | 暂缓 |",
+        "| D：上板与功耗 | 重建权重 bitstream、COM5、功率仪器测量 | T7/T8、F10/F11/F12 | 当前 NAS 精度低且权重未绑定，成本最高 | 不建议现在进行 |",
+        "",
+        "批准文件必须至少绑定：决策项、源码冻结 SHA、输入配置 SHA、候选/checkpoint SHA、允许的实验范围、停止阈值和是否允许进入后续链。",
+        "",
+    ]), encoding="utf-8")
+
+    output_files = [csv_path, report_path, checklist_path]
+    manifest = {
+        "schema_version": 1,
+        "language": "zh-CN",
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "status": "PASS_WITH_G1_CONFLICT_HOLD",
+        "effective_g1_status": g1_effective_status,
+        "formal_evidence_increment": 0,
+        "main_paper_count": len(main_audits),
+        "external_paper_formal_result_count": 0,
+        "requirements": requirements,
+        "paper_rows": paper_rows,
+        "g1_conflict": {
+            "canonical_ledger": canonical_g1["status"],
+            "specialized_45_unit_audit": g1_45["status"],
+            "scratch_independent_audit": scratch_audit["status"],
+            "scratch_errors": scratch_audit["errors"],
+            "pretrained_independent_audit": pretrained_audit["status"],
+            "nas_independent_audit": nas_audit["status"],
+            "rule_zh": "存在冲突时采用更严格的独立 provenance 审计并冻结声明。",
+        },
+        "t6": {
+            "structural_candidates": t6_pool["selected_candidate_count"],
+            "pilot_inputs": t6_pilot["pilot_count"],
+            "formal_truth": t6_pool["formal_hls_route_truth_increment"],
+            "generator_ready": t6_gap["current_generator_ready_for_five_family_truth"],
+        },
+        "hardware_boundary": {
+            "architecture_identity": cross_layer["hardware_summary"]["architecture_identity"],
+            "weight_identity": cross_layer["hardware_summary"]["weight_identity"],
+            "board_accuracy": cross_layer["hardware_summary"]["board_accuracy"],
+            "power": cross_layer["hardware_summary"]["power"],
+        },
+        "archive": {
+            "available_tables": available_tables,
+            "required_tables": len(artifact_status["tables"]),
+            "available_figures": available_figures,
+            "required_figures": len(artifact_status["figures"]),
+        },
+        "readiness_status": readiness["status"],
+        "integration_smoke_formal_eligible": integration["any_smoke_formal_eligible"],
+        "input_files": [
+            {"label_zh": label, "path": str(path.resolve()), "sha256": sha256(path), "bytes": path.stat().st_size}
+            for label, path in INPUTS.items()
+        ],
+        "output_files": [
+            {"path": str(path.resolve()), "sha256": sha256(path), "bytes": path.stat().st_size}
+            for path in output_files
+        ],
+        "generator": {"path": str(Path(__file__).resolve()), "sha256": sha256(Path(__file__))},
+        "boundary_zh": "本审计不改变实验结果；G1 冲突消除和用户批准前不得启动后续正式实验链。",
+    }
+    manifest_path = MANIFESTS / f"campaign_completion_evidence_audit_{DATE}.json.txt"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({
+        "status": manifest["status"],
+        "effective_g1_status": g1_effective_status,
+        "requirements_pass": sum(row["有效状态"] == "PASS" for row in requirements),
+        "requirements_total": len(requirements),
+        "external_formal_results": 0,
+        "output": str(report_path),
+    }, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

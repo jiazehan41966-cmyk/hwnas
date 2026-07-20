@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "campaign_id": "ccf_ab_nksid_av7k325_v1",
+  "user_decision_recorded": true,
+  "recorded_at": "2026-07-17T17:20:03.9371128+08:00",
+  "pause_manifest_sha256": "f4815a65aa48b723abe300dd618d6f8ac8606ba5237ce9215f7e1fabd159db86",
+  "resume_nas_to_15": true,
+  "continue_downstream_closed_set_chain": false,
+  "allow_protocol_or_candidate_change": false,
+  "maximum_scope": {
+    "method_id": "frozen_nas_champion",
+    "run_name": "g1_rl_arch_135_legacy_selected",
+    "only_missing_fold": 4,
+    "only_missing_seed": 44,
+    "target_observed_run_count": 15,
+    "auto_pause_after_independent_audit": true
+  },
+  "user_instruction_zh_cn": "\u5148\u5b8c\u6210\u65b9\u68481",
+  "decision_note": "\u4ec5\u5141\u8bb8 fold4/seed44; \u5b8c\u6210 15/15 \u72ec\u7acb\u5ba1\u8ba1\u540e\u505c\u6b62; \u7981\u6b62\u4e0b\u6e38\u5b9e\u9a8c\u548c\u534f\u8bae\u53d8\u66f4."
+}
