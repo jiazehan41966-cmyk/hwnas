@@ -298,6 +298,30 @@ E3 全程 CPU 可跑，不占训练 GPU，可立即启动。
 
 每个 E4 实验的运行量与 E1 单变体相同（15 runs），统计方法同 E1。
 
+### E5：v2 算子重新设计（2026-07-21，基于 E1 判决）
+
+E1（60 runs，冻结协议）判决 v1 算子：`denoise` Δ=-0.012（无效果／与 mbconv
+冗余）、`edge` Δ=-0.092（明显有害）。两者病因不同，v2 分别对症：
+
+| v2 算子 | op 名 | 修复的病因 | 关键设计 |
+|---|---|---|---|
+| `AdaptiveDenoiseBlock` | `adaptive_denoise` | v1 固定高斯平滑 → 冗余 | Lee 式可学习门控 + 池化聚合边缘证据；门可关死退化回 v1，行为空间含 v1 |
+| `EdgeAugmentBlock` | `edge_v2` | v1 丢弃强度/DC → 有害 | 强度主路 + **加性**边缘旁支，`gamma` 初始 0（起步即普通 dw_pw，**保底不劣**）；2 方向替代 4 方向降 LUT |
+
+实现：`src/hwnas_fpga/models/builder.py`；测试 `tests/test_edge_augment.py`、
+`tests/test_adaptive_denoise.py`（21 项通过，含 gamma=0 等价性、信息保留、
+梯度通路）。配置生成器：`scripts/make_sonar_g5_v2_candidates.py` →
+`configs/ablation/sonar_g5_v2/`（2×2 因子设计，骨干与槽位同 v1）。
+
+容量匹配（v2 算子不可折叠，按可训练参数 + stage-3 MACs 直接匹配）：
+`adaptive_denoise` 参数差 1.98%、MACs 差 0%（**满足 G5 ±5%**）；
+`edge_v2` 比其 mbconv e2 对照**更便宜**（参数 -11%、MACs -29%），
+故其正向结果是保守的，负向结果也不能归因于对照容量劣势。
+
+判据与 E1 一致：5 折 × 3 seed × 4 变体 = 60 runs，配对分层 bootstrap
++ Holm 校正。**在 v2 通过之前，`adaptive_denoise`/`edge_v2` 同样不得进入
+正式搜索空间。**
+
 ### E4d：AdaptiveDenoiseBlock（denoise_v2）设计与证据
 
 实现：`src/hwnas_fpga/models/builder.py` 的 `AdaptiveDenoiseBlock`，

@@ -1,0 +1,44 @@
+{
+  "control": "mbconv_control_v2",
+  "tolerance": 0.05,
+  "matching_basis": "trainable params + stage-3 MACs (v2 ops are not foldable)",
+  "note": "adaptive_denoise matches within the G5 +/-5% band. edge_v2 is cheaper than its mbconv e2 control on both params and MACs, so a positive edge_v2 finding would be conservative; a negative one is not attributable to a capacity disadvantage of the control.",
+  "variants": {
+    "mbconv_control_v2": {
+      "params": 17760,
+      "stage3_macs": 4691456,
+      "path": "configs\\ablation\\sonar_g5_v2\\mbconv_control_v2.candidate.json",
+      "param_error_vs_control": 0.0,
+      "macs_error_vs_control": 0.0,
+      "within_5pct_both": true,
+      "cheaper_than_control": true
+    },
+    "adaptive_denoise": {
+      "params": 18112,
+      "stage3_macs": 4691456,
+      "path": "configs\\ablation\\sonar_g5_v2\\adaptive_denoise.candidate.json",
+      "param_error_vs_control": 0.0198,
+      "macs_error_vs_control": 0.0,
+      "within_5pct_both": true,
+      "cheaper_than_control": false
+    },
+    "edge_v2": {
+      "params": 15809,
+      "stage3_macs": 3311616,
+      "path": "configs\\ablation\\sonar_g5_v2\\edge_v2.candidate.json",
+      "param_error_vs_control": 0.1099,
+      "macs_error_vs_control": 0.2941,
+      "within_5pct_both": false,
+      "cheaper_than_control": true
+    },
+    "adaptive_denoise_edge_v2": {
+      "params": 16161,
+      "stage3_macs": 3311616,
+      "path": "configs\\ablation\\sonar_g5_v2\\adaptive_denoise_edge_v2.candidate.json",
+      "param_error_vs_control": 0.09,
+      "macs_error_vs_control": 0.2941,
+      "within_5pct_both": false,
+      "cheaper_than_control": true
+    }
+  }
+}

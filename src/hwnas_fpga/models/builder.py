@@ -591,6 +591,92 @@ class EdgeAwareBlock(nn.Module):
         return x
 
 
+class EdgeAugmentBlock(nn.Module):
+    """声呐边缘增强块 v2 — 信息保留的加性边缘增强。
+
+    修复 EdgeAwareBlock 的致命缺陷：旧版只输出 4 方向梯度、把强度/DC 信息
+    全丢了，E1 消融显示它拖累分类约 9 个点（Δ macro_f1 = -0.092，CI 全负）。
+
+    重新设计的三个要点：
+    1. **强度主路 + 边缘旁支**：以标准 DW 特征为主路，边缘作为**加性**旁支叠加，
+       绝不替换主路，信息不丢失。
+    2. **小初始化门控 gamma≈0**：初始时边缘旁支权重≈0，块退化为普通 dw_pw
+       （E1 证明其无害），训练只会在边缘确有增益时把 gamma 抬起——**保底不劣**。
+    3. **2 方向替代 4 方向**：只用 Gx/Gy + 幅值，融合输入降到 2C，显著降低 LUT
+       （旧版 4C 融合是它进 HIGH_LUT_OPS 的主因）。
+
+        feat = DW(x)+BN                          # 强度主路
+        gx,gy = SobelDW(x)  (2 方向, Sobel 初始化, 可学习)
+        mag  = sqrt(gx^2 + gy^2 + eps)           # 逐通道边缘幅值
+        out  = PW(feat) + gamma * PW_edge(mag)   # gamma 初始 0
+        → BN → (+residual) → ReLU
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+    ):
+        super().__init__()
+        padding = kernel_size // 2
+
+        # 强度主路
+        self.dw_conv = nn.Conv2d(
+            in_channels, in_channels, kernel_size,
+            stride=stride, padding=padding, groups=in_channels, bias=False,
+        )
+        self.dw_bn = nn.BatchNorm2d(in_channels)
+
+        # 2 方向 Sobel 边缘 DW（可学习，Sobel 初始化）
+        sobel = [
+            torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32),  # Gx
+            torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32),  # Gy
+        ]
+        self.grad_convs = nn.ModuleList()
+        offset = (kernel_size - 3) // 2
+        for direction in range(2):
+            conv = nn.Conv2d(
+                in_channels, in_channels, kernel_size,
+                stride=stride, padding=padding, groups=in_channels, bias=False,
+            )
+            with torch.no_grad():
+                conv.weight.zero_()
+                for c in range(in_channels):
+                    conv.weight[c, 0, offset:offset + 3, offset:offset + 3] = sobel[direction]
+            self.grad_convs.append(conv)
+
+        # 主路 PW 与边缘旁支 PW
+        self.pw_conv = nn.Conv2d(in_channels, out_channels, 1, bias=False)
+        self.edge_pw = nn.Conv2d(in_channels, out_channels, 1, bias=False)
+        # 小初始化门控：初始边缘贡献为 0，保底退化为 dw_pw
+        self.edge_gamma = nn.Parameter(torch.zeros(1))
+
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+        self.use_residual = stride == 1 and in_channels == out_channels
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
+        feat = self.dw_bn(self.dw_conv(x))
+
+        gx = self.grad_convs[0](x)
+        gy = self.grad_convs[1](x)
+        mag = torch.sqrt(gx * gx + gy * gy + 1e-6)
+
+        out = self.pw_conv(feat) + self.edge_gamma * self.edge_pw(mag)
+        out = self.bn(out)
+
+        if self.use_residual:
+            out = out + identity
+
+        out = self.relu(out)
+        return out
+
+
 class StemBlock(nn.Module):
     """Stem: 初始3x3卷积"""
 
@@ -740,6 +826,15 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
             stride=block_spec.stride,
         )
 
+    elif op == "edge_v2":
+        # 声呐边缘增强块 v2（信息保留加性边缘）；G5 准入前不得进入正式搜索
+        return EdgeAugmentBlock(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=block_spec.kernel_size,
+            stride=block_spec.stride,
+        )
+
     else:
         raise ValueError(f"Unsupported op type: {op}")
 
@@ -831,6 +926,8 @@ class HWNASModel(nn.Module):
                     return last_block.pw_conv.out_channels
                 elif isinstance(last_block, EdgeAwareBlock):
                     return last_block.fusion_conv.out_channels
+                elif isinstance(last_block, EdgeAugmentBlock):
+                    return last_block.pw_conv.out_channels
         return self.stem.conv.out_channels
 
 
