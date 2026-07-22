@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "diagnostic": "G1 capacity vs schedule vs overfitting",
+  "method": "read-only over existing run records and launcher logs; no retraining",
+  "recipe_controlled": "identical frozen protocol, recipe, data, folds and seeds across all three methods, so a training-accuracy gap isolates expressive capacity",
+  "methods": {
+    "nas_rl_arch_135": {
+      "records": {
+        "n_runs": 15,
+        "best_epoch_median": 97,
+        "best_epoch_sorted": [
+          75,
+          78,
+          84,
+          86,
+          87,
+          93,
+          94,
+          97,
+          99,
+          109,
+          123,
+          133,
+          138,
+          143,
+          150
+        ],
+        "best_epoch_at_cap": 1,
+        "inner_macro_f1_mean": 0.6446418616060631,
+        "outer_macro_f1_mean": 0.6936187231198493
+      },
+      "training_curve": {
+        "epoch_lines": 2250,
+        "early_ep_1_5": {
+          "train_acc": 0.5499186666666667,
+          "train_loss": 1.3029773333333332,
+          "inner_macro_f1": 0.38587466666666664,
+          "n": 75
+        },
+        "mid_ep_70_80": {
+          "train_acc": 0.6378721212121212,
+          "train_loss": 0.8169278787878789,
+          "inner_macro_f1": 0.5117593939393938,
+          "n": 165
+        },
+        "late_ep_140_plus": {
+          "train_acc": 0.6823957575757575,
+          "train_loss": 0.7588430303030304,
+          "inner_macro_f1": 0.5497000000000001,
+          "n": 165
+        }
+      }
+    },
+    "mnv2_scratch": {
+      "records": {
+        "n_runs": 15,
+        "best_epoch_median": 110,
+        "best_epoch_sorted": [
+          60,
+          75,
+          78,
+          81,
+          83,
+          91,
+          101,
+          110,
+          118,
+          128,
+          132,
+          132,
+          134,
+          142,
+          147
+        ],
+        "best_epoch_at_cap": 1,
+        "inner_macro_f1_mean": 0.8867346713293621,
+        "outer_macro_f1_mean": 0.9099016279896589
+      },
+      "training_curve": {
+        "epoch_lines": 1752,
+        "early_ep_1_5": {
+          "train_acc": 0.28851,
+          "train_loss": 1.3103366666666667,
+          "inner_macro_f1": 0.25834833333333335,
+          "n": 60
+        },
+        "mid_ep_70_80": {
+          "train_acc": 0.8880772727272728,
+          "train_loss": 0.5430431818181819,
+          "inner_macro_f1": 0.7444022727272728,
+          "n": 132
+        },
+        "late_ep_140_plus": {
+          "train_acc": 0.9612595041322314,
+          "train_loss": 0.4885462809917355,
+          "inner_macro_f1": 0.7989884297520661,
+          "n": 121
+        }
+      }
+    },
+    "mnv2_pretrained": {
+      "records": {
+        "n_runs": 15,
+        "best_epoch_median": 73,
+        "best_epoch_sorted": [
+          27,
+          33,
+          52,
+          52,
+          54,
+          62,
+          69,
+          73,
+          76,
+          77,
+          79,
+          80,
+          100,
+          144,
+          149
+        ],
+        "best_epoch_at_cap": 1,
+        "inner_macro_f1_mean": 0.9124540610543236,
+        "outer_macro_f1_mean": 0.9316318800867744
+      },
+      "training_curve": {
+        "epoch_lines": 2121,
+        "early_ep_1_5": {
+          "train_acc": 0.57922,
+          "train_loss": 0.9531573333333334,
+          "inner_macro_f1": 0.530048,
+          "n": 75
+        },
+        "mid_ep_70_80": {
+          "train_acc": 0.987412987012987,
+          "train_loss": 0.48023376623376623,
+          "inner_macro_f1": 0.8143292207792208,
+          "n": 154
+        },
+        "late_ep_140_plus": {
+          "train_acc": 0.9985201298701298,
+          "train_loss": 0.46963116883116884,
+          "inner_macro_f1": 0.8396461038961038,
+          "n": 154
+        }
+      }
+    }
+  },
+  "verdict": {
+    "nas_final_train_acc": 0.6823957575757575,
+    "scratch_final_train_acc": 0.9612595041322314,
+    "conclusion": "UNDERFIT / CAPACITY-LIMITED: the frozen NAS candidate plateaus at train_acc=0.6824 while MobileNetV2 reaches 0.9613 under an identical recipe. It cannot fit its own training set, so the scratch-minus-NAS gap (+0.2163) is primarily an expressive-capacity gap, not an initialisation or schedule gap.",
+    "epoch_budget_exhausted": "1/15 runs peaked at the 150-epoch cap (median best_epoch=97); more epochs is NOT the fix.",
+    "implications": [
+      "Knowledge distillation has limited headroom against a capacity bottleneck: a student that cannot reach 70% train accuracy is not primarily supervision-limited.",
+      "The 18.8K-parameter candidate was selected under the leaky fold-0 protocol with a 3-epoch proxy of no demonstrated discriminative power, so it is not evidence of the best achievable accuracy at that budget.",
+      "The informative next experiment is a capacity sweep under the frozen protocol: where does accuracy saturate as parameters grow from 18.8K toward MobileNetV2 scale? That quantifies what the FPGA budget actually costs in accuracy."
+    ]
+  }
+}
