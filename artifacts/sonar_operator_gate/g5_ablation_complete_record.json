@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "record": "G5 sonar operator ablations (complete)",
+  "protocol": "nksid_outer5fold_inner_contiguous_v1",
+  "design": "2x2 factorial on stage-3 slots A/B of sonar_ablation_backbone_v1 (rl_arch_135 encoding, stage-3 depth 2)",
+  "statistics": "paired per (fold,seed); fold-cluster sign-flip permutation (20000 iters, seed 42); Holm across the 3 comparisons",
+  "campaigns": {
+    "v1_original_operators": {
+      "note": "v1 operators: DenoiseBlock (fixed Gaussian smoothing prior) and EdgeAwareBlock (4-direction Sobel, discards intensity/DC).",
+      "control_run": "g5_ablation_mbconv_control",
+      "control": {
+        "n": 15,
+        "outer_macro_f1_mean": 0.7341363751066249,
+        "outer_macro_f1_std": 0.027621170233081613,
+        "per_run": {
+          "fold0_seed42": 0.740692,
+          "fold0_seed43": 0.706381,
+          "fold0_seed44": 0.713358,
+          "fold1_seed42": 0.681718,
+          "fold1_seed43": 0.679814,
+          "fold1_seed44": 0.721206,
+          "fold2_seed42": 0.75869,
+          "fold2_seed43": 0.763801,
+          "fold2_seed44": 0.740759,
+          "fold3_seed42": 0.761648,
+          "fold3_seed43": 0.756253,
+          "fold3_seed44": 0.742868,
+          "fold4_seed42": 0.740093,
+          "fold4_seed43": 0.755542,
+          "fold4_seed44": 0.749221
+        }
+      },
+      "comparisons": {
+        "denoise": {
+          "run": "g5_ablation_denoise",
+          "n_paired": 15,
+          "outer_macro_f1_mean": 0.722304354839195,
+          "outer_macro_f1_std": 0.03780170706116444,
+          "paired_delta_mean": -0.011832020267430021,
+          "paired_delta_std": 0.03410471492596561,
+          "wins": 7,
+          "per_fold_mean_delta": {
+            "fold0": -0.035662,
+            "fold1": 0.005881,
+            "fold2": -0.040929,
+            "fold3": 0.000117,
+            "fold4": 0.011433
+          },
+          "p_value_sign_flip": 0.49887505624718764,
+          "per_run": {
+            "fold0_seed42": 0.650078,
+            "fold0_seed43": 0.718104,
+            "fold0_seed44": 0.685263,
+            "fold1_seed42": 0.692943,
+            "fold1_seed43": 0.674492,
+            "fold1_seed44": 0.732949,
+            "fold2_seed42": 0.678592,
+            "fold2_seed43": 0.730433,
+            "fold2_seed44": 0.731437,
+            "fold3_seed42": 0.758061,
+            "fold3_seed43": 0.758313,
+            "fold3_seed44": 0.744746,
+            "fold4_seed42": 0.769288,
+            "fold4_seed43": 0.773128,
+            "fold4_seed44": 0.73674
+          },
+          "p_value_holm": 0.49887505624718764,
+          "holm_significant": false,
+          "passes_g5_gain_gate": false
+        },
+        "edge": {
+          "run": "g5_ablation_edge",
+          "n_paired": 15,
+          "outer_macro_f1_mean": 0.6424298119152047,
+          "outer_macro_f1_std": 0.02695014771763019,
+          "paired_delta_mean": -0.09170656319142033,
+          "paired_delta_std": 0.031187139357258174,
+          "wins": 0,
+          "per_fold_mean_delta": {
+            "fold0": -0.091113,
+            "fold1": -0.052978,
+            "fold2": -0.113101,
+            "fold3": -0.081759,
+            "fold4": -0.119582
+          },
+          "p_value_sign_flip": 0.06354682265886706,
+          "per_run": {
+            "fold0_seed42": 0.648604,
+            "fold0_seed43": 0.609669,
+            "fold0_seed44": 0.628819,
+            "fold1_seed42": 0.627364,
+            "fold1_seed43": 0.632898,
+            "fold1_seed44": 0.663544,
+            "fold2_seed42": 0.610229,
+            "fold2_seed43": 0.678147,
+            "fold2_seed44": 0.635572,
+            "fold3_seed42": 0.666103,
+            "fold3_seed43": 0.690256,
+            "fold3_seed44": 0.659131,
+            "fold4_seed42": 0.624259,
+            "fold4_seed43": 0.599092,
+            "fold4_seed44": 0.66276
+          },
+          "p_value_holm": 0.19064046797660117,
+          "holm_significant": false,
+          "passes_g5_gain_gate": false
+        },
+        "denoise_edge": {
+          "run": "g5_ablation_denoise_edge",
+          "n_paired": 15,
+          "outer_macro_f1_mean": 0.6367553024046687,
+          "outer_macro_f1_std": 0.030146888615216114,
+          "paired_delta_mean": -0.0973810727019563,
+          "paired_delta_std": 0.022515230913356853,
+          "wins": 0,
+          "per_fold_mean_delta": {
+            "fold0": -0.113597,
+            "fold1": -0.075191,
+            "fold2": -0.1117,
+            "fold3": -0.084062,
+            "fold4": -0.102355
+          },
+          "p_value_sign_flip": 0.06354682265886706,
+          "per_run": {
+            "fold0_seed42": 0.62629,
+            "fold0_seed43": 0.598338,
+            "fold0_seed44": 0.595011,
+            "fold1_seed42": 0.643642,
+            "fold1_seed43": 0.57285,
+            "fold1_seed44": 0.640673,
+            "fold2_seed42": 0.650404,
+            "fold2_seed43": 0.646902,
+            "fold2_seed44": 0.630843,
+            "fold3_seed42": 0.692772,
+            "fold3_seed43": 0.669629,
+            "fold3_seed44": 0.646183,
+            "fold4_seed42": 0.647821,
+            "fold4_seed43": 0.631578,
+            "fold4_seed44": 0.658393
+          },
+          "p_value_holm": 0.19064046797660117,
+          "holm_significant": false,
+          "passes_g5_gain_gate": false
+        }
+      }
+    },
+    "v2_redesigned_operators": {
+      "note": "v2 redesign: AdaptiveDenoiseBlock (Lee-style learnable gate on pooled edge evidence) and EdgeAugmentBlock (intensity main path plus additive edge branch, gamma initialised to 0).",
+      "control_run": "g5v2_mbconv_control_v2",
+      "control": {
+        "n": 15,
+        "outer_macro_f1_mean": 0.7174749085431774,
+        "outer_macro_f1_std": 0.031922279921865894,
+        "per_run": {
+          "fold0_seed42": 0.710776,
+          "fold0_seed43": 0.69314,
+          "fold0_seed44": 0.706564,
+          "fold1_seed42": 0.693963,
+          "fold1_seed43": 0.693102,
+          "fold1_seed44": 0.723508,
+          "fold2_seed42": 0.651219,
+          "fold2_seed43": 0.724871,
+          "fold2_seed44": 0.724079,
+          "fold3_seed42": 0.77877,
+          "fold3_seed43": 0.7507,
+          "fold3_seed44": 0.718064,
+          "fold4_seed42": 0.756074,
+          "fold4_seed43": 0.691399,
+          "fold4_seed44": 0.745896
+        }
+      },
+      "comparisons": {
+        "adaptive_denoise": {
+          "run": "g5v2_adaptive_denoise",
+          "n_paired": 15,
+          "outer_macro_f1_mean": 0.7189184546483787,
+          "outer_macro_f1_std": 0.028885781803123674,
+          "paired_delta_mean": 0.0014435461052014025,
+          "paired_delta_std": 0.020814576326917987,
+          "wins": 8,
+          "per_fold_mean_delta": {
+            "fold0": -0.005503,
+            "fold1": -0.009483,
+            "fold2": 0.019937,
+            "fold3": -0.007354,
+            "fold4": 0.009621
+          },
+          "p_value_sign_flip": 0.8136593170341483,
+          "per_run": {
+            "fold0_seed42": 0.697832,
+            "fold0_seed43": 0.686157,
+            "fold0_seed44": 0.709981,
+            "fold1_seed42": 0.674371,
+            "fold1_seed43": 0.698499,
+            "fold1_seed44": 0.709256,
+            "fold2_seed42": 0.689035,
+            "fold2_seed43": 0.741837,
+            "fold2_seed44": 0.729108,
+            "fold3_seed42": 0.778182,
+            "fold3_seed43": 0.726312,
+            "fold3_seed44": 0.720977,
+            "fold4_seed42": 0.725029,
+            "fold4_seed43": 0.729943,
+            "fold4_seed44": 0.767258
+          },
+          "p_value_holm": 0.8136593170341483,
+          "holm_significant": false,
+          "passes_g5_gain_gate": false
+        },
+        "edge_v2": {
+          "run": "g5v2_edge_v2",
+          "n_paired": 15,
+          "outer_macro_f1_mean": 0.6770927795415512,
+          "outer_macro_f1_std": 0.02032377846466844,
+          "paired_delta_mean": -0.040382129001626105,
+          "paired_delta_std": 0.030883491941688997,
+          "wins": 1,
+          "per_fold_mean_delta": {
+            "fold0": -0.054444,
+            "fold1": -0.030466,
+            "fold2": -0.007969,
+            "fold3": -0.05915,
+            "fold4": -0.049882
+          },
+          "p_value_sign_flip": 0.06354682265886706,
+          "per_run": {
+            "fold0_seed42": 0.669137,
+            "fold0_seed43": 0.638355,
+            "fold0_seed44": 0.639655,
+            "fold1_seed42": 0.662155,
+            "fold1_seed43": 0.676953,
+            "fold1_seed44": 0.680069,
+            "fold2_seed42": 0.695828,
+            "fold2_seed43": 0.694611,
+            "fold2_seed44": 0.685824,
+            "fold3_seed42": 0.687536,
+            "fold3_seed43": 0.689606,
+            "fold3_seed44": 0.69294,
+            "fold4_seed42": 0.709654,
+            "fold4_seed43": 0.66104,
+            "fold4_seed44": 0.673029
+          },
+          "p_value_holm": 0.19064046797660117,
+          "holm_significant": false,
+          "passes_g5_gain_gate": false
+        },
+        "adaptive_denoise_edge_v2": {
+          "run": "g5v2_adaptive_denoise_edge_v2",
+          "n_paired": 15,
+          "outer_macro_f1_mean": 0.66637111150504,
+          "outer_macro_f1_std": 0.03627526207023965,
+          "paired_delta_mean": -0.051103797038137305,
+          "paired_delta_std": 0.04598322759777329,
+          "wins": 1,
+          "per_fold_mean_delta": {
+            "fold0": -0.073285,
+            "fold1": -0.050896,
+            "fold2": -0.00778,
+            "fold3": -0.055999,
+            "fold4": -0.067558
+          },
+          "p_value_sign_flip": 0.06354682265886706,
+          "per_run": {
+            "fold0_seed42": 0.599026,
+            "fold0_seed43": 0.64997,
+            "fold0_seed44": 0.641627,
+            "fold1_seed42": 0.65147,
+            "fold1_seed43": 0.638782,
+            "fold1_seed44": 0.667634,
+            "fold2_seed42": 0.675315,
+            "fold2_seed43": 0.722024,
+            "fold2_seed44": 0.679489,
+            "fold3_seed42": 0.644986,
+            "fold3_seed43": 0.733744,
+            "fold3_seed44": 0.700805,
+            "fold4_seed42": 0.62317,
+            "fold4_seed43": 0.680719,
+            "fold4_seed44": 0.686803
+          },
+          "p_value_holm": 0.19064046797660117,
+          "holm_significant": false,
+          "passes_g5_gain_gate": false
+        }
+      }
+    }
+  },
+  "verdict": {
+    "denoise_family": "No classification benefit. v1 -0.012 (slight harm) -> v2 +0.0014 (exactly neutral, p=0.81, 8/15 wins). The redesign removed the harm, confirming the fixed-Gaussian diagnosis, but the prior is redundant with what mbconv already learns.",
+    "edge_family": "No classification benefit. v1 -0.092 (clearly harmful) -> v2 -0.040 (harm halved, 1/15 wins, all 5 folds negative, Holm p=0.19). The additive intensity-preserving redesign fixed the DC-loss mechanism but did not turn the operator positive. Confounded: edge_v2 also has 29% fewer stage-3 MACs than its control.",
+    "gate_status": "Neither operator meets the G5 admission bar (Holm-significant AND delta>0). Both remain excluded from the formal search space.",
+    "dataset_context": "NKSID chips are pre-cropped and resampled 0.78x-4.88x per class, so real speckle is largely destroyed (ENL 5.25). This explains why an image-domain denoise/edge prior cannot help here, and means the null result must NOT be extrapolated to full-scene side-scan data (Figshare ENL 3.51, Roboflow 0.35)."
+  }
+}
