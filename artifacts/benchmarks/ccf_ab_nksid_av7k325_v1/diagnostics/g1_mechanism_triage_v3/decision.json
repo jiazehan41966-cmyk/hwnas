@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "decision": {
+    "status": "CAPACITY_SWEEP_HOLD__RECIPE_FACTOR_VALIDATION_NEXT",
+    "reason": "单折诊断中，历史架构在至少一种修改配方下可以充分拟合完整 clean 训练索引；因此通用表达容量尚未被隔离为一阶机制",
+    "next_gate": "在 fold0 的 seed43、44 上重复最小配方因子对照；然后再决定是否值得投入正式 15-run 协议比较",
+    "distillation": "HOLD，等待配方因子验证",
+    "capacity_sweep": "HOLD",
+    "preprocessing_four_arm": "HOLD，等待源图/采集场次分组 split 合约"
+  },
+  "source_artifacts": {
+    "curves": {
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_capacity_diagnostic.json",
+      "sha256": "a97d68f5cd6b1f0702909f1103356419e45e5d767044bea4fe58fe52d5209fae"
+    },
+    "clean_fit": {
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_checkpoint_clean_train_fit_v1.json",
+      "sha256": "ced71471d704b8fb016c322150a93c6602c61b49873ff33f01134be65f68fde0"
+    },
+    "micro": {
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_micro_overfit_v1.json",
+      "sha256": "2ab9f715cbee595ec8ff20ff51bb70ccc1bf2a2d4267f70964963f983c49781c"
+    },
+    "full": {
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_full_train_recipe_triage_fold0_seed42_v1.json",
+      "sha256": "82584a6eb7086117900ee92592d56ac7a58f6c0eaa547dff7cf429a2962bff08"
+    },
+    "record": {
+      "path": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold0_seed42.json",
+      "sha256": "93e7c81faebb35882e932b22fcf5ace5bd909734c8a1d66159c678107a1d12ab"
+    }
+  },
+  "generators": [
+    {
+      "path": "scripts/diagnose_g1_capacity.py",
+      "sha256": "b32a7a64d5f436700b02618b04a2290823ccc31a2eb1fb85e0159f241a176733"
+    },
+    {
+      "path": "scripts/evaluate_g1_checkpoint_train_fit.py",
+      "sha256": "fcad54a5d61150121041cdf9cf17b60d19e55d50980ff4a9958333385060b7f8"
+    },
+    {
+      "path": "scripts/diagnose_g1_micro_overfit.py",
+      "sha256": "6f7f73030daf0fe2eb127cb6c513fd07d2f69a329054086f5a808a2611b5a19d"
+    },
+    {
+      "path": "scripts/diagnose_g1_full_train_recipe.py",
+      "sha256": "b8b01ad0e8bba7b9ae2b1338c7c346b11d2e44be4078178a438b69f99895648d"
+    },
+    {
+      "path": "scripts/consolidate_g1_mechanism_triage.py",
+      "sha256": "7a03fbee41af588e2b458c8f917602a190917d65ab791b55ced706ec805f5520"
+    }
+  ],
+  "figures": [
+    {
+      "id": "Figure 1",
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_mechanism_triage_v3/figures/figure-01-clean-train-fit-paired.png",
+      "caption": "Paired deterministic clean-training fit across all 15 fold/seed runs."
+    },
+    {
+      "id": "Figure 2",
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_mechanism_triage_v3/figures/figure-02-micro-overfit-dynamics.png",
+      "caption": "Fresh-model micro-overfit dynamics on the fixed 96-sample balanced subset."
+    },
+    {
+      "id": "Figure 3",
+      "path": "artifacts/benchmarks/ccf_ab_nksid_av7k325_v1/diagnostics/g1_mechanism_triage_v3/figures/figure-03-full-train-recipe-triage.png",
+      "caption": "Single-fold full-training recipe triage. Outer validation was never consumed; inner-validation curves are diagnostic only."
+    }
+  ]
+}

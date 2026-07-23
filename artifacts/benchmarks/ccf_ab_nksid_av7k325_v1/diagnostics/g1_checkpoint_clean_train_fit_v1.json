@@ -1,0 +1,3226 @@
+{
+  "schema_version": 1,
+  "diagnostic": "deterministic eval-mode clean training-index checkpoint fit",
+  "protocol_guards": {
+    "dataset_view": "eval_dataset (no random augmentation)",
+    "allowed_indices": "split.train_indices only",
+    "forbidden_indices": [
+      "split.inner_val_indices",
+      "split.outer_val_indices"
+    ],
+    "model_mode": "eval",
+    "checkpoint": "saved best checkpoint selected by inner validation during original run",
+    "formal_pair_count": 15
+  },
+  "runtime": {
+    "device": "cuda",
+    "torch_version": "2.7.0+cu126",
+    "elapsed_seconds": 521.1033511999995
+  },
+  "dataset_provenance": {
+    "train_abs.txt": {
+      "path": "data/NKSID/train_abs.txt",
+      "sha256": "1c49f931c9c50766dbea2fbb2a286679ff27b8169a9ac87ab8e97c5c9e9810a9",
+      "expected_from_records": "1c49f931c9c50766dbea2fbb2a286679ff27b8169a9ac87ab8e97c5c9e9810a9"
+    },
+    "kfold_train.txt": {
+      "path": "data/NKSID/kfold_train.txt",
+      "sha256": "35611877ee38b05156a7b98757164b0ff7b8c1afe987b3f9a39dfb666b3c7912",
+      "expected_from_records": "35611877ee38b05156a7b98757164b0ff7b8c1afe987b3f9a39dfb666b3c7912"
+    },
+    "kfold_val.txt": {
+      "path": "data/NKSID/kfold_val.txt",
+      "sha256": "15d2050f18896de474da53ac09f9716ef0ed677c49df621d4dad5169c4f79007",
+      "expected_from_records": "15d2050f18896de474da53ac09f9716ef0ed677c49df621d4dad5169c4f79007"
+    }
+  },
+  "selected_fold_seed_pairs": [
+    "fold0_seed42",
+    "fold0_seed43",
+    "fold0_seed44",
+    "fold1_seed42",
+    "fold1_seed43",
+    "fold1_seed44",
+    "fold2_seed42",
+    "fold2_seed43",
+    "fold2_seed44",
+    "fold3_seed42",
+    "fold3_seed43",
+    "fold3_seed44",
+    "fold4_seed42",
+    "fold4_seed43",
+    "fold4_seed44"
+  ],
+  "methods": {
+    "nas_rl_arch_135": {
+      "fold0_seed42": {
+        "fold": 0,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold0_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold0_seed42.pt",
+        "checkpoint_sha256": "b864ced54858d83a880e68cb6e7c2256c45e6c260a4dfe88e897c71ec94d0014",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7476153509139392,
+          "weighted_f1": 0.8669923205057544,
+          "top1": 0.8227706113292205,
+          "loss": 0.6046456477980365,
+          "top5": 0.9983174425126192,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              124,
+              0,
+              0,
+              0,
+              0,
+              15,
+              0,
+              0
+            ],
+            [
+              16,
+              159,
+              1,
+              0,
+              0,
+              18,
+              2,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              6,
+              1,
+              53,
+              562,
+              3,
+              12,
+              10,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              74,
+              0,
+              2,
+              0
+            ],
+            [
+              3,
+              7,
+              1,
+              0,
+              0,
+              51,
+              3,
+              0
+            ],
+            [
+              1,
+              0,
+              6,
+              0,
+              1,
+              0,
+              70,
+              0
+            ],
+            [
+              0,
+              0,
+              138,
+              0,
+              8,
+              0,
+              9,
+              413
+            ]
+          ]
+        }
+      },
+      "fold0_seed43": {
+        "fold": 0,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold0_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold0_seed43.pt",
+        "checkpoint_sha256": "8fc0eb8cedd3ac79ccf0ee99a56eb1b7dc4348b7774bd79dd9cef60d83317c1b",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7596748479054142,
+          "weighted_f1": 0.8773671842592123,
+          "top1": 0.8351093662366798,
+          "loss": 0.5833852355625946,
+          "top5": 0.9983174425126192,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              124,
+              1,
+              0,
+              0,
+              1,
+              13,
+              0,
+              0
+            ],
+            [
+              13,
+              162,
+              5,
+              0,
+              0,
+              15,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              7,
+              3,
+              36,
+              584,
+              3,
+              11,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              0,
+              73,
+              0,
+              1,
+              0
+            ],
+            [
+              10,
+              4,
+              0,
+              1,
+              0,
+              48,
+              2,
+              0
+            ],
+            [
+              0,
+              3,
+              5,
+              0,
+              1,
+              0,
+              69,
+              0
+            ],
+            [
+              0,
+              0,
+              146,
+              0,
+              6,
+              0,
+              1,
+              415
+            ]
+          ]
+        }
+      },
+      "fold0_seed44": {
+        "fold": 0,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold0_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold0_seed44.pt",
+        "checkpoint_sha256": "764ba93194e27651de2375828dfea78e977dc72eb252bf1b19fa9b8c35829213",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.6939971008678568,
+          "weighted_f1": 0.8430778213502905,
+          "top1": 0.8008973639932697,
+          "loss": 0.6581730362878244,
+          "top5": 0.9966348850252383,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              114,
+              1,
+              0,
+              0,
+              4,
+              20,
+              0,
+              0
+            ],
+            [
+              5,
+              171,
+              0,
+              1,
+              0,
+              19,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              17,
+              3,
+              60,
+              535,
+              13,
+              14,
+              5,
+              0
+            ],
+            [
+              1,
+              0,
+              1,
+              0,
+              72,
+              0,
+              2,
+              0
+            ],
+            [
+              23,
+              14,
+              0,
+              0,
+              0,
+              26,
+              2,
+              0
+            ],
+            [
+              0,
+              1,
+              4,
+              0,
+              2,
+              0,
+              70,
+              1
+            ],
+            [
+              0,
+              0,
+              118,
+              1,
+              23,
+              0,
+              0,
+              426
+            ]
+          ]
+        }
+      },
+      "fold1_seed42": {
+        "fold": 1,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold1_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold1_seed42.pt",
+        "checkpoint_sha256": "e8b4282b9bc563403e2687e0d562cf046ede6acbbf286dec736725ae429355dc",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7447513417195519,
+          "weighted_f1": 0.8826152509400231,
+          "top1": 0.8513740886146943,
+          "loss": 0.5724092275322119,
+          "top5": 0.9977565900168256,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              103,
+              1,
+              1,
+              0,
+              2,
+              31,
+              1,
+              0
+            ],
+            [
+              12,
+              145,
+              3,
+              1,
+              0,
+              32,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              2,
+              37,
+              589,
+              0,
+              10,
+              5,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              75,
+              0,
+              1,
+              0
+            ],
+            [
+              4,
+              2,
+              0,
+              0,
+              0,
+              54,
+              5,
+              0
+            ],
+            [
+              0,
+              0,
+              4,
+              0,
+              1,
+              0,
+              72,
+              1
+            ],
+            [
+              1,
+              0,
+              81,
+              0,
+              8,
+              0,
+              12,
+              466
+            ]
+          ]
+        }
+      },
+      "fold1_seed43": {
+        "fold": 1,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold1_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold1_seed43.pt",
+        "checkpoint_sha256": "7f8e1fd3027c6d1445e3238e6161e37e0b76046e0ff1b181f915159dd3123b96",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7575161625884512,
+          "weighted_f1": 0.8922800556537173,
+          "top1": 0.8738081884464386,
+          "loss": 0.5459423360701565,
+          "top5": 0.9983174425126192,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              125,
+              1,
+              0,
+              0,
+              1,
+              9,
+              3,
+              0
+            ],
+            [
+              34,
+              145,
+              1,
+              1,
+              0,
+              12,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              12,
+              1,
+              19,
+              592,
+              7,
+              6,
+              10,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              74,
+              0,
+              1,
+              0
+            ],
+            [
+              13,
+              3,
+              0,
+              1,
+              0,
+              44,
+              4,
+              0
+            ],
+            [
+              0,
+              1,
+              3,
+              0,
+              4,
+              0,
+              70,
+              0
+            ],
+            [
+              0,
+              0,
+              59,
+              0,
+              7,
+              0,
+              8,
+              494
+            ]
+          ]
+        }
+      },
+      "fold1_seed44": {
+        "fold": 1,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold1_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold1_seed44.pt",
+        "checkpoint_sha256": "bc59006de570c63995b1dce1023853c3c9a05f86d972f43c4cbd0ad58f476f52",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7233845188648182,
+          "weighted_f1": 0.8461966282267246,
+          "top1": 0.7913628715647785,
+          "loss": 0.642162047272242,
+          "top5": 0.9977565900168256,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              116,
+              3,
+              0,
+              0,
+              0,
+              19,
+              1,
+              0
+            ],
+            [
+              11,
+              168,
+              1,
+              0,
+              0,
+              14,
+              2,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              3,
+              1,
+              64,
+              555,
+              5,
+              10,
+              9,
+              0
+            ],
+            [
+              0,
+              0,
+              4,
+              0,
+              71,
+              0,
+              1,
+              0
+            ],
+            [
+              11,
+              9,
+              0,
+              0,
+              0,
+              40,
+              5,
+              0
+            ],
+            [
+              0,
+              1,
+              6,
+              0,
+              2,
+              0,
+              69,
+              0
+            ],
+            [
+              0,
+              0,
+              181,
+              0,
+              8,
+              0,
+              1,
+              378
+            ]
+          ]
+        }
+      },
+      "fold2_seed42": {
+        "fold": 2,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold2_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold2_seed42.pt",
+        "checkpoint_sha256": "b28db80cc811c6e26231c5ebf3f4e7197e922a52c46359ffebfab76cdd8904a5",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.715624529005561,
+          "weighted_f1": 0.8555202450652809,
+          "top1": 0.8126752664049355,
+          "loss": 0.6486328275967232,
+          "top5": 0.9977565900168256,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              115,
+              0,
+              1,
+              0,
+              5,
+              18,
+              0,
+              0
+            ],
+            [
+              12,
+              154,
+              4,
+              0,
+              0,
+              23,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              5,
+              2,
+              64,
+              532,
+              15,
+              14,
+              15,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              75,
+              0,
+              1,
+              0
+            ],
+            [
+              9,
+              5,
+              0,
+              0,
+              0,
+              43,
+              8,
+              0
+            ],
+            [
+              0,
+              2,
+              2,
+              0,
+              4,
+              0,
+              70,
+              0
+            ],
+            [
+              0,
+              0,
+              110,
+              0,
+              11,
+              0,
+              1,
+              446
+            ]
+          ]
+        }
+      },
+      "fold2_seed43": {
+        "fold": 2,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold2_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold2_seed43.pt",
+        "checkpoint_sha256": "63157d1bad642e18989a2147a2538ad5ab9adbc2555c0dbd86b6acfb1cc8b852",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7379217413985957,
+          "weighted_f1": 0.8850244819513285,
+          "top1": 0.8648345485137409,
+          "loss": 0.5897825670188822,
+          "top5": 0.997195737521032,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              118,
+              1,
+              0,
+              0,
+              1,
+              16,
+              3,
+              0
+            ],
+            [
+              23,
+              144,
+              2,
+              3,
+              0,
+              23,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              4,
+              21,
+              588,
+              12,
+              8,
+              10,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              75,
+              0,
+              0,
+              0
+            ],
+            [
+              16,
+              7,
+              1,
+              0,
+              0,
+              38,
+              3,
+              0
+            ],
+            [
+              0,
+              4,
+              4,
+              0,
+              2,
+              0,
+              68,
+              0
+            ],
+            [
+              0,
+              0,
+              59,
+              0,
+              9,
+              0,
+              3,
+              497
+            ]
+          ]
+        }
+      },
+      "fold2_seed44": {
+        "fold": 2,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold2_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold2_seed44.pt",
+        "checkpoint_sha256": "55e604e1c06ecd93950d7dd0111611c9956265c4ee567084137890803dfa1b7f",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7277921085141892,
+          "weighted_f1": 0.8648502854985943,
+          "top1": 0.8317442512619181,
+          "loss": 0.6438465787999361,
+          "top5": 0.9977565900168256,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              117,
+              5,
+              0,
+              0,
+              1,
+              15,
+              1,
+              0
+            ],
+            [
+              6,
+              175,
+              0,
+              0,
+              0,
+              14,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              19,
+              7,
+              48,
+              545,
+              11,
+              12,
+              5,
+              0
+            ],
+            [
+              1,
+              0,
+              1,
+              0,
+              73,
+              0,
+              1,
+              0
+            ],
+            [
+              15,
+              13,
+              2,
+              0,
+              0,
+              35,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              0,
+              3,
+              0,
+              71,
+              1
+            ],
+            [
+              5,
+              0,
+              92,
+              0,
+              17,
+              0,
+              1,
+              453
+            ]
+          ]
+        }
+      },
+      "fold3_seed42": {
+        "fold": 3,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold3_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold3_seed42.pt",
+        "checkpoint_sha256": "0e0ce0c819827ca738b3fc9356cb8e859bec9d48647700b9a7f5b7f80bf79baf",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7176591302224484,
+          "weighted_f1": 0.8563412935911707,
+          "top1": 0.8199663488502524,
+          "loss": 0.6658356951584123,
+          "top5": 0.9983174425126192,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              123,
+              3,
+              0,
+              0,
+              1,
+              8,
+              4,
+              0
+            ],
+            [
+              13,
+              146,
+              0,
+              0,
+              0,
+              30,
+              7,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              3,
+              24,
+              583,
+              13,
+              10,
+              10,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              73,
+              0,
+              2,
+              0
+            ],
+            [
+              12,
+              5,
+              0,
+              0,
+              0,
+              41,
+              7,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              76,
+              0
+            ],
+            [
+              1,
+              0,
+              139,
+              0,
+              13,
+              0,
+              9,
+              406
+            ]
+          ]
+        }
+      },
+      "fold3_seed43": {
+        "fold": 3,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold3_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold3_seed43.pt",
+        "checkpoint_sha256": "7a7f8138e2a08bf389f210676b503f420be9486bbc68e8470b8de3eebb284dc3",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7526330209328027,
+          "weighted_f1": 0.8766028592932041,
+          "top1": 0.836231071228267,
+          "loss": 0.5923920866818623,
+          "top5": 0.9988782950084127,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              106,
+              3,
+              0,
+              0,
+              1,
+              28,
+              1,
+              0
+            ],
+            [
+              16,
+              163,
+              0,
+              0,
+              0,
+              17,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              7,
+              5,
+              54,
+              557,
+              4,
+              17,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              0,
+              73,
+              0,
+              0,
+              0
+            ],
+            [
+              10,
+              1,
+              1,
+              0,
+              0,
+              52,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              0,
+              1,
+              0,
+              74,
+              0
+            ],
+            [
+              0,
+              0,
+              108,
+              0,
+              7,
+              0,
+              1,
+              452
+            ]
+          ]
+        }
+      },
+      "fold3_seed44": {
+        "fold": 3,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold3_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold3_seed44.pt",
+        "checkpoint_sha256": "7d182cfe783cfcb2604692f121057e21cd6c8a876b27b5893f8cbe243d08f736",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.7152135031613064,
+          "weighted_f1": 0.863764453155534,
+          "top1": 0.8328659562535053,
+          "loss": 0.6065576981608947,
+          "top5": 0.9966348850252383,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              113,
+              1,
+              0,
+              0,
+              2,
+              19,
+              4,
+              0
+            ],
+            [
+              7,
+              178,
+              0,
+              0,
+              0,
+              10,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              28,
+              6,
+              77,
+              515,
+              9,
+              5,
+              7,
+              0
+            ],
+            [
+              1,
+              0,
+              2,
+              0,
+              71,
+              0,
+              2,
+              0
+            ],
+            [
+              22,
+              15,
+              2,
+              0,
+              0,
+              26,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              3,
+              5,
+              1,
+              0,
+              67,
+              1
+            ],
+            [
+              0,
+              0,
+              60,
+              0,
+              6,
+              0,
+              1,
+              501
+            ]
+          ]
+        }
+      },
+      "fold4_seed42": {
+        "fold": 4,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold4_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold4_seed42.pt",
+        "checkpoint_sha256": "1084308856992c8eb11f657b844ef163d54fe3fe4a378c4cc8b50373ecdee21a",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1768,
+        "metrics": {
+          "macro_f1": 0.7201758857356557,
+          "weighted_f1": 0.8543339341623961,
+          "top1": 0.8116515837104072,
+          "loss": 0.655528995785778,
+          "top5": 0.998868778280543,
+          "num_samples": 1768.0,
+          "confusion_matrix": [
+            [
+              111,
+              8,
+              0,
+              0,
+              0,
+              16,
+              1,
+              0
+            ],
+            [
+              10,
+              158,
+              0,
+              0,
+              0,
+              23,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              3,
+              43,
+              560,
+              9,
+              11,
+              16,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              73,
+              0,
+              2,
+              0
+            ],
+            [
+              3,
+              6,
+              0,
+              0,
+              0,
+              47,
+              5,
+              0
+            ],
+            [
+              2,
+              6,
+              4,
+              0,
+              2,
+              1,
+              63,
+              0
+            ],
+            [
+              1,
+              0,
+              140,
+              0,
+              10,
+              0,
+              4,
+              409
+            ]
+          ]
+        }
+      },
+      "fold4_seed43": {
+        "fold": 4,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold4_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold4_seed43.pt",
+        "checkpoint_sha256": "f2493868d56a7680186c0525501f4c0c97ab1c0b224c8a197ca61a82a4fbaa7d",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1768,
+        "metrics": {
+          "macro_f1": 0.7716920586435656,
+          "weighted_f1": 0.9006017778064761,
+          "top1": 0.8733031674208145,
+          "loss": 0.5237254443751201,
+          "top5": 0.998868778280543,
+          "num_samples": 1768.0,
+          "confusion_matrix": [
+            [
+              113,
+              6,
+              0,
+              0,
+              0,
+              16,
+              1,
+              0
+            ],
+            [
+              12,
+              162,
+              0,
+              1,
+              0,
+              19,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              5,
+              3,
+              31,
+              591,
+              3,
+              10,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              0,
+              70,
+              0,
+              2,
+              0
+            ],
+            [
+              6,
+              4,
+              1,
+              1,
+              0,
+              47,
+              2,
+              0
+            ],
+            [
+              0,
+              1,
+              3,
+              0,
+              1,
+              1,
+              71,
+              1
+            ],
+            [
+              0,
+              0,
+              80,
+              0,
+              6,
+              0,
+              2,
+              476
+            ]
+          ]
+        }
+      },
+      "fold4_seed44": {
+        "fold": 4,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/run_fold4_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260711/g1_rl_arch_135_legacy_selected/best_fold4_seed44.pt",
+        "checkpoint_sha256": "2b52ef8a8390e623dcc1dad1a9cea0e145734dafb6f7e2ce45d5a68abeb14f9b",
+        "model": {
+          "source": "candidate",
+          "candidate_path": "hls_lut_builder/board_harness/results/pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp/candidates/003_rl_arch_135.candidate.json",
+          "candidate_sha256": "3e0f0d943ca31f659ee545a04d47bac985e6eebe508a3a1ba2d41460c818543a"
+        },
+        "split_train_count": 1768,
+        "metrics": {
+          "macro_f1": 0.7678921575897368,
+          "weighted_f1": 0.9009795039794309,
+          "top1": 0.8766968325791855,
+          "loss": 0.5271993752788094,
+          "top5": 0.998868778280543,
+          "num_samples": 1768.0,
+          "confusion_matrix": [
+            [
+              110,
+              5,
+              0,
+              0,
+              0,
+              17,
+              4,
+              0
+            ],
+            [
+              7,
+              170,
+              0,
+              1,
+              0,
+              16,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              8,
+              32,
+              583,
+              3,
+              7,
+              9,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              72,
+              0,
+              2,
+              0
+            ],
+            [
+              8,
+              9,
+              2,
+              0,
+              0,
+              39,
+              3,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              2,
+              0,
+              75,
+              0
+            ],
+            [
+              0,
+              0,
+              72,
+              0,
+              5,
+              0,
+              0,
+              487
+            ]
+          ]
+        }
+      }
+    },
+    "mnv2_scratch": {
+      "fold0_seed42": {
+        "fold": 0,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold0_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold0_seed42.pt",
+        "checkpoint_sha256": "f521870e6fe489ea76e383795383b1935f50415fa4621036bf09a0a5fbbf019e",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9805222355469132,
+          "weighted_f1": 0.9974040011460327,
+          "top1": 0.997195737521032,
+          "loss": 0.5232983095152487,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              646,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              4,
+              0,
+              0,
+              0,
+              0,
+              564
+            ]
+          ]
+        }
+      },
+      "fold0_seed43": {
+        "fold": 0,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold0_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold0_seed43.pt",
+        "checkpoint_sha256": "9746db7df4ba259c4016f3e3c56ad39f923c2818fe678ec4ab080f8c1503b323",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.987586092852041,
+          "weighted_f1": 0.9983976505464328,
+          "top1": 0.9983174425126192,
+          "loss": 0.5111184058333808,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              646,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              566
+            ]
+          ]
+        }
+      },
+      "fold0_seed44": {
+        "fold": 0,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold0_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold0_seed44.pt",
+        "checkpoint_sha256": "6faa8364275bc2354e4555e0f5b1601d5656499e32c4bcf2bda2a4ac463428ed",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9839610429941956,
+          "weighted_f1": 0.9978949457902152,
+          "top1": 0.9977565900168256,
+          "loss": 0.5040797440108461,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              645,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              566
+            ]
+          ]
+        }
+      },
+      "fold1_seed42": {
+        "fold": 1,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold1_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold1_seed42.pt",
+        "checkpoint_sha256": "1c07a20bcaf797df13aca9483eb01ce4924f1a5e641f4e3f9369c76fa7a135b9",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9805496750048777,
+          "weighted_f1": 0.9974052375436535,
+          "top1": 0.997195737521032,
+          "loss": 0.5310976651031785,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              644,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              566
+            ]
+          ]
+        }
+      },
+      "fold1_seed43": {
+        "fold": 1,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold1_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold1_seed43.pt",
+        "checkpoint_sha256": "62730eb24e9aa518a85c162a06e28a815e31b0c979e2687796c2939ef7d5880f",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.977736391413293,
+          "weighted_f1": 0.9962878145109997,
+          "top1": 0.9960740325294447,
+          "loss": 0.46640220543539934,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              137,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              645,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              0,
+              0,
+              0,
+              0,
+              565
+            ]
+          ]
+        }
+      },
+      "fold1_seed44": {
+        "fold": 1,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold1_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold1_seed44.pt",
+        "checkpoint_sha256": "3ce514c3e6f9ece57e02b137a0d0c87e4dd958621910c68269b06e0d25418c6c",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9914462081128748,
+          "weighted_f1": 0.9989146960169581,
+          "top1": 0.9988782950084127,
+          "loss": 0.5396416806064827,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              647,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              566
+            ]
+          ]
+        }
+      },
+      "fold2_seed42": {
+        "fold": 2,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold2_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold2_seed42.pt",
+        "checkpoint_sha256": "998ad8943921b6846b8908dfd2e77b2fdfe329ffdfdf145744d866e7a0633cf0",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9939560779368679,
+          "weighted_f1": 0.99888774145714,
+          "top1": 0.9988782950084127,
+          "loss": 0.41202202103342556,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              647,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              77,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              567
+            ]
+          ]
+        }
+      },
+      "fold2_seed43": {
+        "fold": 2,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold2_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold2_seed43.pt",
+        "checkpoint_sha256": "e216ca196e0fc4258b58c3054d1b3c74f4b72a94e3a14011c2d6f8aceb22ab68",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9509877777639767,
+          "weighted_f1": 0.9922308859331003,
+          "top1": 0.9904655075715086,
+          "loss": 0.5156885886620218,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              7,
+              640,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              10,
+              0,
+              0,
+              0,
+              0,
+              558
+            ]
+          ]
+        }
+      },
+      "fold2_seed44": {
+        "fold": 2,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold2_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold2_seed44.pt",
+        "checkpoint_sha256": "dcdb40ceee412d774a7812f84c156ef37e9a686acabb113156867e08257a2625",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9839743953394732,
+          "weighted_f1": 0.9978946011224579,
+          "top1": 0.9977565900168256,
+          "loss": 0.5463457417100317,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              644,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              567
+            ]
+          ]
+        }
+      },
+      "fold3_seed42": {
+        "fold": 3,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold3_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold3_seed42.pt",
+        "checkpoint_sha256": "eab97fe23294819add88b77bb9ec8a9bfe54bbe34b1122c789e9e27a597d08c1",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9660539494445106,
+          "weighted_f1": 0.9951170267637447,
+          "top1": 0.9943914750420639,
+          "loss": 0.4758718889948363,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              4,
+              643,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              6,
+              0,
+              0,
+              0,
+              0,
+              562
+            ]
+          ]
+        }
+      },
+      "fold3_seed43": {
+        "fold": 3,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold3_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold3_seed43.pt",
+        "checkpoint_sha256": "de2dbfaa2c9a775558940049ab7daa53043af6d9a424f4fdc0a1d7a04a0afafc",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9839333038869258,
+          "weighted_f1": 0.9978928395188956,
+          "top1": 0.9977565900168256,
+          "loss": 0.5282628478725774,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              647,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              4,
+              0,
+              0,
+              0,
+              0,
+              564
+            ]
+          ]
+        }
+      },
+      "fold3_seed44": {
+        "fold": 3,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold3_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold3_seed44.pt",
+        "checkpoint_sha256": "954c9414a771241fd046538aa620e80681e97742ecba989bf759a04fe7725a7e",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1783,
+        "metrics": {
+          "macro_f1": 0.9955795230138235,
+          "weighted_f1": 0.9994485703032393,
+          "top1": 0.9994391475042064,
+          "loss": 0.5485169359023693,
+          "top5": 1.0,
+          "num_samples": 1783.0,
+          "confusion_matrix": [
+            [
+              139,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              196,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              647,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              65,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              567
+            ]
+          ]
+        }
+      },
+      "fold4_seed42": {
+        "fold": 4,
+        "seed": 42,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold4_seed42.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold4_seed42.pt",
+        "checkpoint_sha256": "4bcd7e4289d1ef5c51a0c1273600f6b8d03d0b152249041570f7c2a26209f496",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1768,
+        "metrics": {
+          "macro_f1": 0.9668285357744486,
+          "weighted_f1": 0.9943864198617172,
+          "top1": 0.9937782805429864,
+          "loss": 0.47115890546891487,
+          "top5": 1.0,
+          "num_samples": 1768.0,
+          "confusion_matrix": [
+            [
+              136,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              194,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              3,
+              643,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              75,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              61,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              6,
+              0,
+              0,
+              0,
+              2,
+              556
+            ]
+          ]
+        }
+      },
+      "fold4_seed43": {
+        "fold": 4,
+        "seed": 43,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold4_seed43.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold4_seed43.pt",
+        "checkpoint_sha256": "7d6a9e1a280610ac879c09d83757b936b36aea7e04574919f321908ecc14cf9b",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1768,
+        "metrics": {
+          "macro_f1": 0.958924943469719,
+          "weighted_f1": 0.9937760589276327,
+          "top1": 0.9926470588235294,
+          "loss": 0.5505371598096994,
+          "top5": 1.0,
+          "num_samples": 1768.0,
+          "confusion_matrix": [
+            [
+              136,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              194,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              645,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              75,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              61,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              12,
+              0,
+              0,
+              0,
+              0,
+              552
+            ]
+          ]
+        }
+      },
+      "fold4_seed44": {
+        "fold": 4,
+        "seed": 44,
+        "record": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/run_fold4_seed44.json",
+        "checkpoint": "results/protocol/g1_clean_20260718/g1_mobilenet_v2_scratch_v2/best_fold4_seed44.pt",
+        "checkpoint_sha256": "a1a58e412819f9ea27b3e034f0d92c71da88214e52e5cb09d6b14835d21f755f",
+        "model": {
+          "source": "backbone",
+          "name": "mobilenet_v2",
+          "num_classes": 8,
+          "input_channels": 1,
+          "pretrained_requested": false,
+          "pretrained_loaded": false
+        },
+        "split_train_count": 1768,
+        "metrics": {
+          "macro_f1": 0.9955787412416242,
+          "weighted_f1": 0.9994438901151511,
+          "top1": 0.9994343891402715,
+          "loss": 0.528028770000147,
+          "top5": 1.0,
+          "num_samples": 1768.0,
+          "confusion_matrix": [
+            [
+              136,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              194,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              14,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              646,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              75,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              61,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              78,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              563
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "paired_summaries": {
+    "top1": {
+      "n_pairs": 15,
+      "nas_mean": 0.8356861010938739,
+      "scratch_mean": 0.9966643445850665,
+      "delta_scratch_minus_nas_mean": 0.1609782434911926,
+      "bootstrap_95_ci": [
+        0.14707127986877913,
+        0.17461345166221284
+      ],
+      "paired_cohens_dz": 5.708328484635922,
+      "exact_two_sided_sign_flip_p": 6.103515625e-05
+    },
+    "macro_f1": {
+      "n_pairs": 15,
+      "nas_mean": 0.7369028972042596,
+      "scratch_mean": 0.979841259586371,
+      "delta_scratch_minus_nas_mean": 0.24293836238211142,
+      "bootstrap_95_ci": [
+        0.22937914395730943,
+        0.2564391085932616
+      ],
+      "paired_cohens_dz": 8.677903859746209,
+      "exact_two_sided_sign_flip_p": 6.103515625e-05
+    }
+  },
+  "decision": {
+    "status": "CLEAN_TRAIN_FIT_GAP_CONFIRMED__MECHANISM_UNRESOLVED",
+    "reason": "NAS clean training top1 is below 0.90 or trails scratch by at least 0.10; these are predeclared triage thresholds, not a capacity proof",
+    "next": "run one fixed-subset micro-overfit and LR/regularisation triage before capacity sweep"
+  }
+}
