@@ -10,6 +10,7 @@ search_policy:
     - denoise
     - edge
     - mixconv
+    - mixconv_v2
   dropped_current_target_ops:
     - fused_mbconv
 
@@ -44,6 +45,12 @@ operator_status:
     search_enabled: false
     deployment_status: paused
     semantic_parity_verified: false
+  mixconv_v2:
+    search_enabled: false
+    deployment_status: paused
+    screening_status: awaiting_accuracy_int8_hls_route_gates
+    semantic_parity_verified: false
+    reason: Versioned 3x3/5x5 candidate is not admitted until all preregistered gates pass.
   fused_mbconv:
     search_enabled: false
     deployment_status: dropped_current_target

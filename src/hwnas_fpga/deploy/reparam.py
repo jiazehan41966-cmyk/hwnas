@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from hwnas_fpga.models.builder import DenoiseBlock, EdgeAwareBlock
+from hwnas_fpga.models.builder import DenoiseBlock, EdgeAwareBlock, MixConvV2Block
 
 
 def _bn_scale_bias(bn: nn.BatchNorm2d) -> tuple[torch.Tensor, torch.Tensor]:
@@ -94,6 +94,54 @@ class FoldedEdgeBlock(nn.Module):
             x = x + identity
         x = self.relu(x)
         return x
+
+
+class FoldedMixConvV2Block(nn.Module):
+    """BN-folded deployment form of the versioned mixed-depthwise block."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int,
+        use_residual: bool,
+    ) -> None:
+        super().__init__()
+        first = int(in_channels) // 2
+        self.group_sizes = [first, int(in_channels) - first]
+        self.kernel_sizes = (3, 5)
+        self.dw_convs = nn.ModuleList(
+            [
+                nn.Conv2d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    stride=stride,
+                    padding=kernel_size // 2,
+                    groups=channels,
+                    bias=True,
+                )
+                for channels, kernel_size in zip(
+                    self.group_sizes, self.kernel_sizes
+                )
+            ]
+        )
+        self.dw_relu = nn.ReLU6(inplace=False)
+        self.pw_conv = nn.Conv2d(in_channels, out_channels, 1, bias=True)
+        self.use_residual = bool(use_residual)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        branches = [
+            self.dw_relu(conv(branch))
+            for branch, conv in zip(
+                torch.split(x, self.group_sizes, dim=1), self.dw_convs
+            )
+        ]
+        output = self.pw_conv(torch.cat(branches, dim=1))
+        if self.use_residual:
+            output = output + identity
+        return output
 
 
 @torch.no_grad()
@@ -182,6 +230,38 @@ def fold_edge_block(block: EdgeAwareBlock) -> FoldedEdgeBlock:
     return folded
 
 
+@torch.no_grad()
+def fold_mixconv_v2_block(block: MixConvV2Block) -> FoldedMixConvV2Block:
+    """Fold both branch BNs and the linear projection BN in eval mode."""
+    if block.training:
+        raise RuntimeError(
+            "fold_mixconv_v2_block requires eval mode with frozen BN statistics"
+        )
+    in_channels = int(sum(block.group_sizes))
+    folded = FoldedMixConvV2Block(
+        in_channels=in_channels,
+        out_channels=int(block.pw_conv.out_channels),
+        stride=int(block.dw_convs[0].stride[0]),
+        use_residual=block.use_residual,
+    )
+    for source_conv, source_bn, target_conv in zip(
+        block.dw_convs, block.dw_bns, folded.dw_convs
+    ):
+        scale, bias = _bn_scale_bias(source_bn)
+        target_conv.weight.copy_(
+            source_conv.weight * scale.view(-1, 1, 1, 1)
+        )
+        target_conv.bias.copy_(bias)
+
+    pw_scale, pw_bias = _bn_scale_bias(block.pw_bn)
+    folded.pw_conv.weight.copy_(
+        block.pw_conv.weight * pw_scale.view(-1, 1, 1, 1)
+    )
+    folded.pw_conv.bias.copy_(pw_bias)
+    folded.eval()
+    return folded
+
+
 def fold_sonar_blocks(module: nn.Module) -> int:
     """递归把模型中的 DenoiseBlock/EdgeAwareBlock 原位替换为折叠形式。
 
@@ -191,7 +271,10 @@ def fold_sonar_blocks(module: nn.Module) -> int:
         raise RuntimeError("fold_sonar_blocks requires the complete module to be in eval mode")
     replaced = 0
     for name, child in module.named_children():
-        if isinstance(child, DenoiseBlock):
+        if isinstance(child, MixConvV2Block):
+            setattr(module, name, fold_mixconv_v2_block(child))
+            replaced += 1
+        elif isinstance(child, DenoiseBlock):
             setattr(module, name, fold_denoise_block(child))
             replaced += 1
         elif isinstance(child, EdgeAwareBlock):

@@ -36,11 +36,21 @@ from .int8_reference import (
     run_integer_reference,
 )
 from .ptq_eval import prepare_integer_ptq
+from .mixconv_v2 import (
+    MIXCONV_V2_BIAS_LAYOUT,
+    MIXCONV_V2_INTEGER_SCHEMA,
+    MIXCONV_V2_WEIGHT_LAYOUT,
+    build_mixconv_v2_integer_package,
+    quantize_mixconv_v2_input,
+    simulate_mixconv_v2_int8,
+)
 from .reparam import (
     FoldedDenoiseBlock,
     FoldedEdgeBlock,
+    FoldedMixConvV2Block,
     fold_denoise_block,
     fold_edge_block,
+    fold_mixconv_v2_block,
     fold_sonar_blocks,
 )
 from .report_parser import parse_backend_report, parse_backend_report_text
@@ -48,7 +58,11 @@ from .report_parser import parse_backend_report, parse_backend_report_text
 __all__ = [
     "FoldedDenoiseBlock",
     "FoldedEdgeBlock",
+    "FoldedMixConvV2Block",
     "HLSProjectConfig",
+    "MIXCONV_V2_BIAS_LAYOUT",
+    "MIXCONV_V2_INTEGER_SCHEMA",
+    "MIXCONV_V2_WEIGHT_LAYOUT",
     "QuantizationConfig",
     "FixedPointContract",
     "IntegerReferenceResult",
@@ -56,9 +70,11 @@ __all__ = [
     "UnsupportedIntegerOperatorError",
     "fold_denoise_block",
     "fold_edge_block",
+    "fold_mixconv_v2_block",
     "fold_sonar_blocks",
     "attach_hls_report",
     "build_quantized_weight_package",
+    "build_mixconv_v2_integer_package",
     "avg_pool2d_int_reference",
     "compare_integer_tensors",
     "conv2d_int_reference",
@@ -77,11 +93,13 @@ __all__ = [
     "preprocess_image",
     "prepare_integer_ptq",
     "quantize_tensor_symmetric",
+    "quantize_mixconv_v2_input",
     "quantize_bias_int32",
     "relu_int_reference",
     "requantize_per_output_int8",
     "residual_add_int_reference",
     "run_integer_reference",
+    "simulate_mixconv_v2_int8",
     "resolve_class_names",
     "resolve_inference_settings",
 ]

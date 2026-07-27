@@ -45,6 +45,7 @@ from hwnas_fpga.data.dataset import (
     NKSID_CLASSES,
     create_protocol_dataloaders,
     protocol_normalization,
+    sonar_preprocessing_contract,
 )
 from hwnas_fpga.benchmarks.metrics import calibration_summary
 from hwnas_fpga.benchmarks.open_set import (
@@ -679,6 +680,29 @@ def main() -> int:
         help="enable CUDA automatic mixed precision (ignored on CPU)",
     )
     parser.add_argument("--image-size", type=int, default=224)
+    parser.add_argument(
+        "--augmentation-profile",
+        choices=("frozen_strong", "sonar_light", "none"),
+        default="frozen_strong",
+        help="explicit NKSID training augmentation contract",
+    )
+    parser.add_argument(
+        "--geometry-mode",
+        choices=("stretch_224", "letterbox_224", "fixed_scale_pad_224"),
+        default="stretch_224",
+        help="explicit NKSID image geometry contract",
+    )
+    parser.add_argument(
+        "--group-policy",
+        choices=("none", "provided", "inferred_stress"),
+        default="none",
+        help="group split evidence level; inferred_stress is never acquisition-claimable",
+    )
+    parser.add_argument(
+        "--group-manifest-path",
+        default=None,
+        help="complete nksid_group_manifest_v1 JSON required by non-none group policy",
+    )
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--warmup-epochs", type=int, default=5)
@@ -883,6 +907,15 @@ def main() -> int:
         if plud_recipe
         else recipe.to_dict()
     )
+    if args.task != "closed_set" and args.group_policy != "none":
+        raise ValueError("group_policy is currently supported only for NKSID closed_set")
+    preprocessing_contract = sonar_preprocessing_contract(
+        image_size=args.image_size,
+        augmentation_profile=args.augmentation_profile,
+        geometry_mode=args.geometry_mode,
+    )
+    group_split_requested = args.group_policy != "none"
+    group_claim_requested = args.group_policy == "provided"
 
     data_provenance = dataset_provenance(args.data_dir)
     candidate_provenance = None
@@ -927,9 +960,16 @@ def main() -> int:
         "recipe": active_recipe,
         "batch_size": args.batch_size,
         "image_size": args.image_size,
+        "preprocessing": preprocessing_contract,
         "normalization": protocol_normalization(output_channels=1),
-        "group_split_available": False,
-        "group_generalization_claimable": False,
+        "group_policy": args.group_policy,
+        "group_manifest_path": (
+            None
+            if args.group_manifest_path is None
+            else str(Path(args.group_manifest_path).expanduser().resolve())
+        ),
+        "group_split_available": group_split_requested,
+        "group_generalization_claimable": group_claim_requested,
         "inner_val_fraction": args.inner_val_fraction,
         "arch": args.arch,
         "pretrained": args.pretrained,
@@ -971,9 +1011,11 @@ def main() -> int:
         "code_provenance": code_provenance,
         "immutable_config": immutable_config,
         "data_protocol": {
-            "group_split_available": False,
-            "group_generalization_claimable": False,
-            "group_metadata_source": None,
+            "group_policy": args.group_policy,
+            "group_split_available": group_split_requested,
+            "group_generalization_claimable": group_claim_requested,
+            "group_metadata_source": immutable_config["group_manifest_path"],
+            "preprocessing": preprocessing_contract,
             "normalization": immutable_config["normalization"],
         },
         "planned_pairs": [
@@ -1021,7 +1063,14 @@ def main() -> int:
                 "num_workers": args.num_workers,
             }
             if args.task == "closed_set":
-                bundle = create_protocol_dataloaders(args.data_dir, **loader_kwargs)
+                bundle = create_protocol_dataloaders(
+                    args.data_dir,
+                    augmentation_profile=args.augmentation_profile,
+                    geometry_mode=args.geometry_mode,
+                    group_manifest_path=args.group_manifest_path,
+                    group_policy=args.group_policy,
+                    **loader_kwargs,
+                )
             else:
                 bundle = create_open_set_protocol_dataloaders(
                     args.data_dir,
@@ -1136,6 +1185,13 @@ def main() -> int:
 
             split_payload = bundle["split"].to_dict()
             split_sha256 = canonical_sha256(split_payload)
+            split_metadata = split_payload.get("metadata", {})
+            unit_group_split_available = bool(
+                split_metadata.get("group_split_available", False)
+            )
+            unit_group_claimable = bool(
+                split_metadata.get("group_generalization_claimable", False)
+            )
             record = {
                 "task": args.task,
                 "fold": fold,
@@ -1178,11 +1234,13 @@ def main() -> int:
                 "open_set_threshold": threshold_metadata,
                 "split": split_payload,
                 "model": model_meta,
+                "recipe": active_recipe,
+                "preprocessing": bundle.get("preprocessing", preprocessing_contract),
                 "adapter_source": immutable_config["adapter_source"],
                 "selection_provenance": selection_provenance,
                 "normalization": immutable_config["normalization"],
-                "group_split_available": False,
-                "group_generalization_claimable": False,
+                "group_split_available": unit_group_split_available,
+                "group_generalization_claimable": unit_group_claimable,
                 "runtime_measurement": finish_unit_runtime_measurement(
                     unit_started_at, device
                 ),
@@ -1214,9 +1272,13 @@ def main() -> int:
                     "run_fingerprint": run_fingerprint,
                     "protocol_context_sha256": protocol_context_sha256,
                     "split_sha256": record["split_sha256"],
+                    "recipe": active_recipe,
+                    "preprocessing": record["preprocessing"],
                     "normalization": immutable_config["normalization"],
-                    "group_split_available": False,
-                    "group_generalization_claimable": False,
+                    "group_split_available": record["group_split_available"],
+                    "group_generalization_claimable": record[
+                        "group_generalization_claimable"
+                    ],
                     "source_freeze": source_freeze,
                 }
                 torch.save(checkpoint_payload, checkpoint_path)
@@ -1296,7 +1358,8 @@ def main() -> int:
                 )
             ),
             provenance_fingerprints=[str(r.get("run_fingerprint", "")) for r in runs],
-            group_split_available=False,
+            group_split_available=group_split_requested,
+            group_generalization_claimable=group_claim_requested,
             protocol_context_sha256=protocol_context_sha256,
             provenance_contexts=[str(r.get("protocol_context_sha256", "")) for r in runs],
             source_freeze_verified=bool(
@@ -1325,7 +1388,8 @@ def main() -> int:
                 )
             ),
             provenance_fingerprints=[str(r.get("run_fingerprint", "")) for r in runs],
-            group_split_available=False,
+            group_split_available=group_split_requested,
+            group_generalization_claimable=group_claim_requested,
             protocol_context_sha256=protocol_context_sha256,
             provenance_contexts=[str(r.get("protocol_context_sha256", "")) for r in runs],
             source_freeze_verified=bool(
@@ -1366,9 +1430,13 @@ def main() -> int:
         "execution_control": manifest["execution_control"],
         "run_fingerprint": run_fingerprint,
         "protocol_context_sha256": protocol_context_sha256,
+        "recipe": active_recipe,
+        "preprocessing": preprocessing_contract,
         "normalization": immutable_config["normalization"],
-        "group_split_available": False,
-        "group_generalization_claimable": False,
+        "group_split_available": claimability["group_split_available"],
+        "group_generalization_claimable": claimability[
+            "group_generalization_claimable"
+        ],
         "run_fingerprints": sorted({str(r.get("run_fingerprint", "")) for r in runs}),
         "claimability": claimability,
         "provenance": {
@@ -1443,8 +1511,10 @@ def main() -> int:
         f"- claimable: `{claimability['claimable']}`",
         f"- claim_scope: `{claimability['claim_scope']}`",
         f"- nas_generalization_claimable: `{claimability['nas_generalization_claimable']}`",
-        f"- group_split_available: `False`",
-        f"- group_generalization_claimable: `False`",
+        f"- group_split_available: `{claimability['group_split_available']}`",
+        f"- group_generalization_claimable: `{claimability['group_generalization_claimable']}`",
+        f"- augmentation_profile: `{args.augmentation_profile}`",
+        f"- geometry_mode: `{args.geometry_mode}`",
         f"- normalization: `grayscale mean=0.5 std=0.5`",
         f"- model: {aggregate['model']}",
         "",

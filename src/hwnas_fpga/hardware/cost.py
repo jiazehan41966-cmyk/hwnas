@@ -1068,6 +1068,39 @@ class FPGACostEstimator:
             )
             return dw_params + pw_params, dw_macs + pw_macs, raw_dsp
 
+        if block.op == "mixconv_v2":
+            branch_channels = (
+                block.in_channels // 2,
+                block.in_channels - (block.in_channels // 2),
+            )
+            kernel_sizes = (3, 5)
+            dw_params = sum(
+                channels * kernel * kernel
+                for channels, kernel in zip(branch_channels, kernel_sizes)
+            )
+            spatial = block.output_resolution * block.output_resolution
+            dw_macs = spatial * dw_params
+            pw_params = block.in_channels * block.out_channels
+            pw_macs = spatial * pw_params
+            raw_dsp = max(
+                *(
+                    self._conv_dsp(
+                        in_channels=channels,
+                        out_channels=channels,
+                        kernel_size=kernel,
+                        depthwise=True,
+                    )
+                    for channels, kernel in zip(branch_channels, kernel_sizes)
+                ),
+                self._conv_dsp(
+                    in_channels=block.in_channels,
+                    out_channels=block.out_channels,
+                    kernel_size=1,
+                    depthwise=False,
+                ),
+            )
+            return dw_params + pw_params, dw_macs + pw_macs, raw_dsp
+
         # 声呐专用去噪块 (DenoiseBlock)
         if block.op == "denoise":
             # DW + PW（类似 dw_pw_conv 但带平滑分支）
@@ -1174,6 +1207,7 @@ class FPGACostEstimator:
             "fused_mbconv": 170,
             "skip": 32,
             "mixconv": 200,
+            "mixconv_v2": 190,
             "denoise": 150,
             "edge": 180,
         }.get(block.op, 120)
@@ -1223,13 +1257,14 @@ class FPGACostEstimator:
             "fused_mbconv": "fused_mbconv",
             "skip": "skip",
             "mixconv": "mixconv",
+            "mixconv_v2": "mixconv_v2",
             "denoise": "denoise",
             "edge": "edge",
         }
 
         # 确定分组数
         groups = 1
-        if block.op in {"dw_pw_conv", "mixconv", "denoise", "edge"}:
+        if block.op in {"dw_pw_conv", "mixconv", "mixconv_v2", "denoise", "edge"}:
             groups = block.in_channels  # depthwise
 
         return OpSpec(

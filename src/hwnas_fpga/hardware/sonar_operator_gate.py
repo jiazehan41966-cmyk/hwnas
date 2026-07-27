@@ -164,6 +164,27 @@ def audit_sonar_operator_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]
         meaningful_delta_contract = (
             abs(meaningful_delta - 0.01) <= 1e-12 if strict else True
         )
+        bootstrap_lower = comparison.get(
+            "stratified_bootstrap_ci95_lower",
+            comparison.get("bootstrap_ci95_lower"),
+        )
+        positive_fold_count = comparison.get("positive_fold_count")
+        bootstrap_ci_positive = (
+            bootstrap_lower is not None and float(bootstrap_lower) > 0.0
+        )
+        fold_direction = (
+            positive_fold_count is not None and int(positive_fold_count) >= 4
+        )
+        if not strict:
+            # Legacy synthetic fixtures predate the revised statistical
+            # contract. Real on-disk manifests carry a schema version and
+            # therefore must provide both fields.
+            bootstrap_ci_positive = (
+                True if bootstrap_lower is None else bootstrap_ci_positive
+            )
+            fold_direction = (
+                True if positive_fold_count is None else fold_direction
+            )
         gates = {
             "single_quantization_spec": single_quantization_spec,
             "weight_export_complete": (
@@ -191,12 +212,13 @@ def audit_sonar_operator_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]
             "four_way_ablation_complete": all(variant_protocol.values())
             and protocol_context_consistent,
             "paired_stratified_bootstrap": comparison_protocol,
-            "holm_significant": adjusted[operator] < 0.05,
             "macro_f1_actual_gain": float(
                 comparison.get("macro_f1_mean_delta", 0.0)
             ) >= 0.01
             and comparison.get("actual_gain") is True
             and meaningful_delta_contract,
+            "stratified_bootstrap_ci_positive": bootstrap_ci_positive,
+            "fold_direction_at_least_4_of_5": fold_direction,
             "hls_evidence_complete": hls.get("evidence_complete") is True,
             "hls_feasible": hls.get("route_feasible") is True,
         }
@@ -206,13 +228,17 @@ def audit_sonar_operator_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]
             "may_reenter_search_space": passed,
             "gates": gates,
             "holm_adjusted_p_value": adjusted[operator],
+            "p_value_role": (
+                "reported_descriptive_only_not_an_admission_gate; with five folds "
+                "the minimum two-sided exact sign-flip p-value is 0.0625"
+            ),
         }
 
     overall = all(
         result["may_reenter_search_space"] for result in operator_results.values()
     )
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "gate": "G5_sonar_operator_admission",
         "status": "PASS" if overall else "BLOCKED",
         "overall_pass": overall,
@@ -228,7 +254,9 @@ def audit_sonar_operator_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]
             "Route/COM5 evidence for the historical simplified sonar kernels "
             "does not satisfy this gate. Re-entry requires matched INT8 semantics, "
             "zero-mismatch parity, a matched MBConv control, claimable ablation, "
-            "and HLS feasibility."
+            "a preregistered effect threshold, positive stratified CI, at least "
+            "four positive folds, and HLS feasibility. Holm-adjusted p-values "
+            "remain reported but are not a hard admission gate."
         ),
     }
 

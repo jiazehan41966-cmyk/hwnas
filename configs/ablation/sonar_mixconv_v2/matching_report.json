@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "screen": "mbconv_k3_vs_mbconv_k5_vs_mixconv_v2",
+  "primary_metric": "inner_macro_f1",
+  "selection_thresholds": {
+    "mixconv_v2_delta_vs_k3": 0.01,
+    "mixconv_v2_delta_vs_k5": 0.005,
+    "mixconv_v2_noninferiority_vs_k5": -0.005,
+    "positive_seed_count_minimum": 2,
+    "total_parameter_increase_maximum": 0.05
+  },
+  "variants": {
+    "mbconv_k3_control": {
+      "total_trainable_params": 17760,
+      "target_slot_trainable_params": 1440,
+      "target_slot_macs": 1028608,
+      "path": "E:\\1\\hwnas\\hwnas-sonar-mixconv-v2\\configs\\ablation\\sonar_mixconv_v2\\mbconv_k3_control.candidate.json",
+      "total_param_delta_fraction_vs_k3": 0.0,
+      "target_slot_mac_delta_fraction_vs_k3": 0.0,
+      "within_total_param_5pct": true
+    },
+    "mbconv_k5_control": {
+      "total_trainable_params": 18272,
+      "target_slot_trainable_params": 1952,
+      "target_slot_macs": 1430016,
+      "path": "E:\\1\\hwnas\\hwnas-sonar-mixconv-v2\\configs\\ablation\\sonar_mixconv_v2\\mbconv_k5_control.candidate.json",
+      "total_param_delta_fraction_vs_k3": 0.02882882882882883,
+      "target_slot_mac_delta_fraction_vs_k3": 0.3902439024390244,
+      "within_total_param_5pct": true
+    },
+    "mixconv_v2": {
+      "total_trainable_params": 18016,
+      "target_slot_trainable_params": 1696,
+      "target_slot_macs": 1229312,
+      "path": "E:\\1\\hwnas\\hwnas-sonar-mixconv-v2\\configs\\ablation\\sonar_mixconv_v2\\mixconv_v2.candidate.json",
+      "total_param_delta_fraction_vs_k3": 0.014414414414414415,
+      "target_slot_mac_delta_fraction_vs_k3": 0.1951219512195122,
+      "within_total_param_5pct": true
+    }
+  }
+}

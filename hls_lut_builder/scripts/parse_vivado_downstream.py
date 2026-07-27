@@ -183,7 +183,11 @@ def main() -> None:
             "target_part": case.part,
             "target_clock_ns": float(case.clock_period_ns),
             "target_clock_mhz": float(case.target_clock_mhz),
-            "deployable_at_200mhz": bool(float(case.target_clock_mhz) >= 199.9),
+            "deployable_at_200mhz": bool(
+                downstream_status == "success"
+                and float(post_route["timing"].get("setup_wns_ns") or -1.0) >= 0.0
+                and float(post_route["timing"].get("fmax_est_mhz") or 0.0) >= 199.9
+            ),
             "post_synth_LUT": int(post_synth["utilization"]["lut"]),
             "post_synth_FF": int(post_synth["utilization"]["ff"]),
             "post_synth_BRAM_TILE": float(post_synth["utilization"]["block_ram_tile"]),

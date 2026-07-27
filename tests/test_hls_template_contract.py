@@ -81,6 +81,40 @@ class HlsTemplateContractTests(unittest.TestCase):
                 self.assertNotIn("read_stream_tensor<", text)
                 self.assertNotIn("write_stream_tensor<", text)
 
+    def test_mixconv_v2_template_has_versioned_integer_contract(self) -> None:
+        template = (
+            REPO_ROOT / "hls_lut_builder" / "templates" / "mixconv_v2.cpp.tmpl"
+        ).read_text(encoding="utf-8")
+        self.assertIn("static constexpr int BRANCH3_CH = IN_CH / 2;", template)
+        self.assertIn("DW3_WEIGHT_SIZE +", template)
+        self.assertIn("requantize_nearest_even", template)
+        self.assertIn("dw_multiplier_numerators", template)
+        self.assertIn("pw_multiplier_numerators", template)
+        self.assertIn("value += static_cast<acc_t>(residual_channels", template)
+        self.assertNotIn("relu6_quant(acc_tile", template)
+        project_requant = template.index("requantize_nearest_even(", template.index("project_stage"))
+        residual_add = template.index("value += static_cast<acc_t>(residual_channels")
+        self.assertLess(project_requant, residual_add)
+
+        config_path = (
+            REPO_ROOT
+            / "hls_lut_builder"
+            / "configs"
+            / "candidate_kernels_mixconv_v2_stage32.yaml"
+        )
+        cases = build_cases(load_config(config_path))
+        self.assertEqual(len(cases), 1)
+        case = cases[0]
+        self.assertEqual(case.parameters["in_channels"], 32)
+        self.assertEqual(case.parameters["out_channels"], 32)
+        self.assertEqual(case.parameters["feature_h"], 28)
+        source = render_template(
+            load_template(case.template_path),
+            {"top_function": case.top_function, **case.parameters},
+        )
+        self.assertNotIn("__", source)
+        self.assertIn("static constexpr int BRANCH3_CH = IN_CH / 2;", source)
+
     def test_docs_and_headers_state_same_packed_stream_policy(self) -> None:
         latency_scope = LATENCY_SCOPE_PATH.read_text(encoding="utf-8")
         kernel_spec = KERNEL_SPEC_PATH.read_text(encoding="utf-8")

@@ -18,9 +18,21 @@ from .dataset import (
     create_protocol_dataloaders,
     # 工具函数
     get_sonar_transforms,
+    sonar_preprocessing_contract,
     download_nksid_dataset,
     # 常量
+    FROZEN_NKSID_MAX_SIDE,
     NKSID_CLASSES,
+    SONAR_AUGMENTATION_PROFILES,
+    SONAR_GEOMETRY_MODES,
+)
+from .grouping import (
+    GROUP_MANIFEST_SCHEMA,
+    GROUP_POLICIES,
+    build_group_protocol_split,
+    build_inferred_group_manifest,
+    load_group_manifest,
+    write_group_manifest,
 )
 from .protocol import (
     OuterFold,
@@ -50,7 +62,17 @@ __all__ = [
     "load_outer_folds",
     # 工具函数
     "get_sonar_transforms",
+    "sonar_preprocessing_contract",
     "download_nksid_dataset",
+    "build_group_protocol_split",
+    "build_inferred_group_manifest",
+    "load_group_manifest",
+    "write_group_manifest",
     # 常量
+    "FROZEN_NKSID_MAX_SIDE",
+    "GROUP_MANIFEST_SCHEMA",
+    "GROUP_POLICIES",
     "NKSID_CLASSES",
+    "SONAR_AUGMENTATION_PROFILES",
+    "SONAR_GEOMETRY_MODES",
 ]

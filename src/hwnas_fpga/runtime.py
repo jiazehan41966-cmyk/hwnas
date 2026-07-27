@@ -27,17 +27,13 @@ from hwnas_fpga.interfaces import HardwareSpec, SearchConstraints
 from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
 
 
-# Full implementation-level capability set retained for legacy and lightweight
-# profiles. The formal MobileNetV2 mainline now excludes fused_mbconv and
-# mixconv from the default search space; denoise and edge remain research
-# operators that can stay searchable while still being deployment-conditional.
+# Formal defaults contain only the currently admitted operator families.
+# Historical and research operators remain constructible through explicit
+# candidate/config declarations, but are never enabled implicitly.
 DEFAULT_OP_CHOICES = (
     "conv",
-    "dw_pw_conv",
     "mbconv",
     "skip",
-    "denoise",
-    "edge",
 )
 
 
@@ -208,6 +204,8 @@ def _canonicalize_operator_policy_key(op: str) -> str:
     normalized = str(op).strip()
     if normalized.startswith("fused_mbconv"):
         return "fused_mbconv"
+    if normalized.startswith("mixconv_v2"):
+        return "mixconv_v2"
     if normalized.startswith("mixconv"):
         return "mixconv"
     if normalized.startswith("denoise"):

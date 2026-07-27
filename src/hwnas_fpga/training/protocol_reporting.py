@@ -45,6 +45,7 @@ def protocol_claimability(
     provenance_complete: bool = True,
     provenance_fingerprints: Sequence[str] | None = None,
     group_split_available: bool = False,
+    group_generalization_claimable: bool | None = None,
     protocol_context_sha256: str | None = None,
     provenance_contexts: Sequence[str] | None = None,
     source_freeze_verified: bool = True,
@@ -144,7 +145,15 @@ def protocol_claimability(
         "duplicate_pairs": duplicate_pairs,
         "nas_generalization_claimable": protocol_complete and not legacy_selected,
         "group_split_available": bool(group_split_available),
-        "group_generalization_claimable": bool(protocol_complete and group_split_available),
+        "group_generalization_claimable": bool(
+            protocol_complete
+            and group_split_available
+            and (
+                group_split_available
+                if group_generalization_claimable is None
+                else group_generalization_claimable
+            )
+        ),
         "required_folds": list(REQUIRED_FOLDS),
         "required_seeds": list(REQUIRED_SEEDS),
         "expected_run_count": len(expected_pairs),

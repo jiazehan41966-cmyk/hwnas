@@ -1,0 +1,338 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int STRIDE = __STRIDE__;
+static constexpr int OUT_H = __OUT_H__;
+static constexpr int OUT_W = __OUT_W__;
+static constexpr int K3 = 3;
+static constexpr int K5 = 5;
+static constexpr int PAD = 2;
+static constexpr int PADDED_H = IN_H + (2 * PAD);
+static constexpr int PADDED_W = IN_W + (2 * PAD);
+static constexpr int BRANCH3_CH = IN_CH / 2;
+static constexpr int BRANCH5_CH = IN_CH - BRANCH3_CH;
+static constexpr int CH_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+static constexpr int ACC_TILE = (CH_TILE > OUT_TILE) ? CH_TILE : OUT_TILE;
+static constexpr bool USE_RESIDUAL = (STRIDE == 1) && (IN_CH == OUT_CH);
+static constexpr int DW3_WEIGHT_SIZE = BRANCH3_CH * K3 * K3;
+static constexpr int DW5_WEIGHT_SIZE = BRANCH5_CH * K5 * K5;
+static constexpr int DW_WEIGHT_SIZE = DW3_WEIGHT_SIZE + DW5_WEIGHT_SIZE;
+static constexpr int PW_WEIGHT_SIZE = OUT_CH * IN_CH;
+static constexpr int WEIGHT_SIZE = DW_WEIGHT_SIZE + PW_WEIGHT_SIZE;
+static constexpr int BIAS_SIZE = IN_CH + OUT_CH;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+typedef ap_uint<IN_CH * 8> input_word_t;
+
+static data_t requantize_nearest_even(
+    acc_t accumulator,
+    ap_int<64> numerator,
+    ap_int<64> denominator
+) {
+    ap_int<64> product = static_cast<ap_int<64>>(accumulator) * numerator;
+    const bool negative = product < 0;
+    ap_uint<64> magnitude = negative
+        ? static_cast<ap_uint<64>>(-product)
+        : static_cast<ap_uint<64>>(product);
+    ap_uint<64> divisor = static_cast<ap_uint<64>>(denominator);
+    ap_uint<64> quotient = magnitude / divisor;
+    ap_uint<64> remainder = magnitude % divisor;
+    const ap_uint<65> doubled = static_cast<ap_uint<65>>(remainder) << 1;
+    const bool increment =
+        doubled > divisor || (doubled == divisor && quotient[0] == 1);
+    if (increment) {
+        quotient += 1;
+    }
+    ap_int<65> signed_value = static_cast<ap_int<65>>(quotient);
+    if (negative) {
+        signed_value = -signed_value;
+    }
+    if (signed_value > 127) {
+        return static_cast<data_t>(127);
+    }
+    if (signed_value < -127) {
+        return static_cast<data_t>(-127);
+    }
+    return static_cast<data_t>(signed_value);
+}
+
+static inline int mixed_dw_weight_index(int channel, int kh, int kw) {
+    if (channel < BRANCH3_CH) {
+        return (channel * K3 * K3) + (kh * K3) + kw;
+    }
+    const int local_channel = channel - BRANCH3_CH;
+    return DW3_WEIGHT_SIZE + (local_channel * K5 * K5) + (kh * K5) + kw;
+}
+
+static void input_copy_stage(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<input_word_t> &depthwise_input_stream,
+    hls::stream<input_word_t> &residual_stream
+) {
+    for (int ih = 0; ih < IN_H; ++ih) {
+        for (int iw = 0; iw < IN_W; ++iw) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+            input_axis_t packet = input_stream.read();
+            depthwise_input_stream.write(packet.data);
+            if (USE_RESIDUAL) {
+                residual_stream.write(packet.data);
+            }
+        }
+    }
+}
+
+static void mixed_depthwise_stage(
+    hls::stream<input_word_t> &input_stream,
+    hls::stream<input_word_t> &output_stream,
+    const weight_t depthwise_weights[DW_WEIGHT_SIZE],
+    const acc_t depthwise_bias[IN_CH],
+    const ap_int<64> multiplier_numerators[IN_CH],
+    const ap_int<64> multiplier_denominators[IN_CH],
+    const int relu6_limit
+) {
+    data_t line_buffer[IN_CH][K5][PADDED_W];
+    data_t incoming_channels[IN_CH];
+    data_t mixed_channels[IN_CH];
+    acc_t acc_tile[ACC_TILE];
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=line_buffer dim=2 complete
+#pragma HLS ARRAY_PARTITION variable=incoming_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=mixed_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int channel = 0; channel < IN_CH; ++channel) {
+        for (int kh = 0; kh < K5; ++kh) {
+            for (int column = 0; column < PADDED_W; ++column) {
+                line_buffer[channel][kh][column] = 0;
+            }
+        }
+    }
+
+    for (int padded_row = 0; padded_row < PADDED_H; ++padded_row) {
+        for (int padded_column = 0; padded_column < PADDED_W; ++padded_column) {
+            const bool input_valid =
+                padded_row >= PAD && padded_row < PAD + IN_H &&
+                padded_column >= PAD && padded_column < PAD + IN_W;
+            if (input_valid) {
+                input_word_t packet = input_stream.read();
+                unpack_packed_channels<IN_CH>(packet, incoming_channels);
+            } else {
+                for (int channel = 0; channel < IN_CH; ++channel) {
+                    incoming_channels[channel] = 0;
+                }
+            }
+
+            for (int channel = 0; channel < IN_CH; ++channel) {
+                for (int kh = 0; kh < K5 - 1; ++kh) {
+                    line_buffer[channel][kh][padded_column] =
+                        line_buffer[channel][kh + 1][padded_column];
+                }
+                line_buffer[channel][K5 - 1][padded_column] = incoming_channels[channel];
+            }
+
+            if (padded_row < K5 - 1 || padded_column < K5 - 1) {
+                continue;
+            }
+            const int conv_row = padded_row - (K5 - 1);
+            const int conv_column = padded_column - (K5 - 1);
+            if ((conv_row % STRIDE) != 0 || (conv_column % STRIDE) != 0) {
+                continue;
+            }
+            const int output_row = conv_row / STRIDE;
+            const int output_column = conv_column / STRIDE;
+            if (output_row >= OUT_H || output_column >= OUT_W) {
+                continue;
+            }
+
+            for (int channel_base = 0; channel_base < IN_CH; channel_base += CH_TILE) {
+                for (int lane = 0; lane < CH_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int channel = channel_base + lane;
+                    acc_tile[lane] = channel < IN_CH
+                        ? depthwise_bias[channel]
+                        : static_cast<acc_t>(0);
+                }
+                for (int lane = 0; lane < CH_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int channel = channel_base + lane;
+                    if (channel < IN_CH) {
+                        const bool branch3 = channel < BRANCH3_CH;
+                        const int kernel = branch3 ? K3 : K5;
+                        const int offset = branch3 ? 1 : 0;
+                        for (int kh = 0; kh < kernel; ++kh) {
+                            for (int kw = 0; kw < kernel; ++kw) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                                acc_tile[lane] +=
+                                    static_cast<acc_t>(line_buffer[channel][kh + offset][conv_column + kw + offset]) *
+                                    static_cast<acc_t>(depthwise_weights[mixed_dw_weight_index(channel, kh, kw)]);
+                            }
+                        }
+                        data_t requantized = requantize_nearest_even(
+                            acc_tile[lane],
+                            multiplier_numerators[channel],
+                            multiplier_denominators[channel]
+                        );
+                        if (requantized < 0) {
+                            requantized = 0;
+                        } else if (requantized > relu6_limit) {
+                            requantized = static_cast<data_t>(relu6_limit);
+                        }
+                        mixed_channels[channel] = requantized;
+                    }
+                }
+            }
+            output_stream.write(pack_channels<IN_CH>(mixed_channels));
+        }
+    }
+}
+
+static void project_stage(
+    hls::stream<input_word_t> &mixed_stream,
+    hls::stream<input_word_t> &residual_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t project_weights[OUT_CH][IN_CH],
+    const acc_t project_bias[OUT_CH],
+    const ap_int<64> multiplier_numerators[OUT_CH],
+    const ap_int<64> multiplier_denominators[OUT_CH]
+) {
+    data_t mixed_channels[IN_CH];
+    data_t residual_channels[IN_CH];
+    data_t output_channels[OUT_CH];
+    acc_t acc_tile[ACC_TILE];
+#pragma HLS ARRAY_PARTITION variable=mixed_channels cyclic factor=CH_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=residual_channels cyclic factor=OUT_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=output_channels cyclic factor=OUT_TILE dim=1
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int oh = 0; oh < OUT_H; ++oh) {
+        for (int ow = 0; ow < OUT_W; ++ow) {
+            unpack_packed_channels<IN_CH>(mixed_stream.read(), mixed_channels);
+            if (USE_RESIDUAL) {
+                unpack_packed_channels<IN_CH>(residual_stream.read(), residual_channels);
+            }
+            for (int output_base = 0; output_base < OUT_CH; output_base += OUT_TILE) {
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int output_channel = output_base + lane;
+                    acc_tile[lane] = output_channel < OUT_CH
+                        ? project_bias[output_channel]
+                        : static_cast<acc_t>(0);
+                }
+                for (int input_channel = 0; input_channel < IN_CH; ++input_channel) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int output_channel = output_base + lane;
+                        if (output_channel < OUT_CH) {
+                            acc_tile[lane] +=
+                                static_cast<acc_t>(mixed_channels[input_channel]) *
+                                static_cast<acc_t>(project_weights[output_channel][input_channel]);
+                        }
+                    }
+                }
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int output_channel = output_base + lane;
+                    if (output_channel < OUT_CH) {
+                        acc_t value = static_cast<acc_t>(requantize_nearest_even(
+                            acc_tile[lane],
+                            multiplier_numerators[output_channel],
+                            multiplier_denominators[output_channel]
+                        ));
+                        if (USE_RESIDUAL) {
+                            value += static_cast<acc_t>(residual_channels[output_channel]);
+                        }
+                        if (value > 127) {
+                            output_channels[output_channel] = static_cast<data_t>(127);
+                        } else if (value < -127) {
+                            output_channels[output_channel] = static_cast<data_t>(-127);
+                        } else {
+                            output_channels[output_channel] = static_cast<data_t>(value);
+                        }
+                    }
+                }
+            }
+            output_stream.write(make_axis_packet<output_axis_t, OUT_CH>(
+                output_channels,
+                oh == OUT_H - 1 && ow == OUT_W - 1
+            ));
+        }
+    }
+}
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[WEIGHT_SIZE],
+    const acc_t biases[BIAS_SIZE],
+    const ap_int<64> dw_multiplier_numerators[IN_CH],
+    const ap_int<64> dw_multiplier_denominators[IN_CH],
+    const ap_int<64> pw_multiplier_numerators[OUT_CH],
+    const ap_int<64> pw_multiplier_denominators[OUT_CH],
+    const int relu6_limit
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+#pragma HLS INTERFACE bram port=dw_multiplier_numerators
+#pragma HLS INTERFACE bram port=dw_multiplier_denominators
+#pragma HLS INTERFACE bram port=pw_multiplier_numerators
+#pragma HLS INTERFACE bram port=pw_multiplier_denominators
+#pragma HLS INTERFACE s_axilite port=relu6_limit bundle=control
+
+    weight_t depthwise_weights[DW_WEIGHT_SIZE];
+    weight_t project_weights[OUT_CH][IN_CH];
+    acc_t depthwise_bias[IN_CH];
+    acc_t project_bias[OUT_CH];
+    hls::stream<input_word_t> depthwise_input_stream("depthwise_input_stream");
+    hls::stream<input_word_t> mixed_stream("mixed_stream");
+    hls::stream<input_word_t> residual_stream("residual_stream");
+#pragma HLS ARRAY_PARTITION variable=depthwise_weights cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=project_weights dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=project_weights dim=2 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=depthwise_bias cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=project_bias cyclic factor=OUT_TILE
+#pragma HLS STREAM variable=depthwise_input_stream depth=4
+#pragma HLS STREAM variable=mixed_stream depth=4
+#pragma HLS STREAM variable=residual_stream depth=__RESIDUAL_STREAM_DEPTH__
+
+    for (int index = 0; index < DW_WEIGHT_SIZE; ++index) {
+        depthwise_weights[index] = weights[index];
+    }
+    for (int channel = 0; channel < IN_CH; ++channel) {
+        depthwise_bias[channel] = biases[channel];
+    }
+    for (int output_channel = 0; output_channel < OUT_CH; ++output_channel) {
+        project_bias[output_channel] = biases[IN_CH + output_channel];
+        for (int input_channel = 0; input_channel < IN_CH; ++input_channel) {
+            project_weights[output_channel][input_channel] =
+                weights[DW_WEIGHT_SIZE + output_channel * IN_CH + input_channel];
+        }
+    }
+
+#pragma HLS DATAFLOW
+    input_copy_stage(input_stream, depthwise_input_stream, residual_stream);
+    mixed_depthwise_stage(
+        depthwise_input_stream,
+        mixed_stream,
+        depthwise_weights,
+        depthwise_bias,
+        dw_multiplier_numerators,
+        dw_multiplier_denominators,
+        relu6_limit
+    );
+    project_stage(
+        mixed_stream,
+        residual_stream,
+        output_stream,
+        project_weights,
+        project_bias,
+        pw_multiplier_numerators,
+        pw_multiplier_denominators
+    );
+}

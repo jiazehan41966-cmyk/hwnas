@@ -41,6 +41,11 @@ from .power_measurement import (
     audit_power_manifest,
     load_and_audit_power_manifest,
 )
+from .mixconv_v2_gate import (
+    audit_mixconv_v2_admission,
+    exact_fold_sign_flip_p_value,
+    paired_hierarchical_comparison,
+)
 
 __all__ = [
     "BOARD_PROFILES",
@@ -61,10 +66,12 @@ __all__ = [
     "build_final_hardware_validation_report",
     "audit_power_campaign",
     "audit_power_manifest",
+    "audit_mixconv_v2_admission",
     "classify_route_gate_result",
     "create_dummy_fpga_lut",
     "dedupe_candidates_by_signature",
     "encoding_signature",
+    "exact_fold_sign_flip_p_value",
     "get_board_profile",
     "load_lut_manifest",
     "load_and_audit_power_manifest",
@@ -72,6 +79,7 @@ __all__ = [
     "lut_entry_from_report",
     "normalize_candidate_payload",
     "pareto_topk_candidates",
+    "paired_hierarchical_comparison",
     "approximate_fmax_from_wns",
     "parse_hls_report",
     "parse_hls_report_text",

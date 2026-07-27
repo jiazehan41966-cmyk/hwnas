@@ -1,0 +1,94 @@
+toolchain:
+  part: xc7k325t-ffg676-2
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: F:/vivado/Vitis_HLS/2023.2/bin/vitis_hls.bat
+  vivado_bin: F:/vivado/Vivado/2023.2/bin/vivado.bat
+
+workspace:
+  project_root: ../results/m2/p
+  report_archive: ../results/sonar_mixconv_v2_stage32/r
+  csv_path: ../results/sonar_mixconv_v2_stage32/hls.csv
+  manifest_path: ../results/sonar_mixconv_v2_stage32/hls_manifest.yaml
+  synthesis_summary_json: ../results/sonar_mixconv_v2_stage32/hls_synth_summary.json
+  parse_summary_json: ../results/sonar_mixconv_v2_stage32/hls_parse_summary.json
+  downstream_csv_path: ../results/sonar_mixconv_v2_stage32/vivado_downstream.csv
+  downstream_manifest_path: ../results/sonar_mixconv_v2_stage32/vivado_downstream_manifest.yaml
+  downstream_parse_summary_json: ../results/sonar_mixconv_v2_stage32/vivado_downstream_parse_summary.json
+  downstream_summary_json: ../results/sonar_mixconv_v2_stage32/vivado_downstream_summary.json
+  formal_lut_status_json: ../results/sonar_mixconv_v2_stage32/formal_lut_status.json
+  case_dir_names:
+    mixconv_v2_rl_arch_135_last_28_32_32_s1_baseline_pi1_po1_u1_main_5ns: m2
+
+measurement_contract:
+  contract_id: mixconv_v2_integer_v1_stage32
+  declaration: >-
+    Isolated 32-to-32 stride-1 operator evidence for the final rl_arch_135
+    slot. This is not full-network route evidence. Requantization parameters,
+    branch order, pointwise projection, and residual order follow
+    mixconv_v2_integer_v1.
+  io_style: packed_stream
+  input_axis_rule: packed input channels * 8 bits
+  output_axis_rule: packed output channels * 8 bits
+  control_interface: AXI-Lite
+  parameter_storage: BRAM
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+  rounding: nearest_even
+  symmetric_activation_range: [-127, 127]
+
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  pipeline_ii: 8
+  input_parallelism: 1
+  output_parallelism: 1
+  unroll_factor: 1
+  array_partition_factor: 1
+
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+    target_clock_mhz: 200.0
+
+implementation_profiles:
+  baseline_pi1_po1_u1:
+    input_parallelism: 1
+    output_parallelism: 1
+    unroll_factor: 1
+    array_partition_factor: 1
+    pipeline_ii: 8
+
+representative_shapes:
+  rl_arch_135_last_28_32_32_s1:
+    feature_h: 28
+    feature_w: 28
+    in_channels: 32
+    out_channels: 32
+    stride: 1
+    expand_ratio: 1
+    op_spec:
+      groups: 32
+
+operators:
+  mixconv_v2:
+    enabled: true
+    template: ../templates/mixconv_v2.cpp.tmpl
+    top_function: mixconv_v2_kernel
+    op_type: mixconv_v2
+    shape_refs:
+      - rl_arch_135_last_28_32_32_s1
+    implementation_refs:
+      - baseline_pi1_po1_u1
+    clock_profile_refs:
+      - main_5ns
+    parameters:
+      kernel_size: 5
+      padding: 2
+    op_spec_defaults:
+      op: mixconv_v2
+      groups: 32
+      expand_ratio: 1

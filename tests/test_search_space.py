@@ -81,7 +81,7 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.expand_choices, (1, 2))
         self.assertEqual(
             config.op_choices,
-            ("mbconv", "denoise", "edge", "skip"),
+            ("conv", "mbconv", "skip"),
         )
         self.assertEqual(config.head_conv_channels, 320)
 
@@ -130,9 +130,7 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.width_multipliers, (1.0, 1.25))
         self.assertEqual(config.depth_choices_for_stage(3), (4, 5))
         self.assertEqual(config.expand_choices, (3, 6))
-        self.assertNotIn("conv", config.op_choices)
-        self.assertIn("edge", config.op_choices)
-        self.assertIn("denoise", config.op_choices)
+        self.assertEqual(config.op_choices, ("conv", "mbconv", "skip"))
         self.assertEqual(config.head_conv_channels, 1280)
 
     def test_lightweight_sonar_profile_resolves_expected_choices(self) -> None:
@@ -147,7 +145,8 @@ class FamilyProfileTests(unittest.TestCase):
         self.assertEqual(config.kernel_choices, (3,))
         self.assertNotIn("conv", config.op_choices)
         self.assertNotIn("mixconv", config.op_choices)
-        self.assertIn("denoise", config.op_choices)
+        self.assertNotIn("denoise", config.op_choices)
+        self.assertEqual(config.op_choices, ("dw_pw_conv", "skip"))
         self.assertEqual(config.head_conv_channels, 1024)
 
     def test_explicit_config_overrides_profile_defaults(self) -> None:
@@ -206,11 +205,12 @@ class SonarOpsSearchSpaceTests(unittest.TestCase):
         # 包含全部8个算子（含3个声呐专用）的搜索空间
         self.space = SearchSpace(SearchSpaceConfig())
 
-    def test_sonar_ops_in_default_choices(self) -> None:
+    def test_research_sonar_ops_are_not_in_default_choices(self) -> None:
         """主线默认搜索空间保留 denoise/edge，默认关闭 mixconv"""
-        self.assertIn("denoise", self.space.config.op_choices)
-        self.assertIn("edge", self.space.config.op_choices)
+        self.assertNotIn("denoise", self.space.config.op_choices)
+        self.assertNotIn("edge", self.space.config.op_choices)
         self.assertNotIn("mixconv", self.space.config.op_choices)
+        self.assertNotIn("mixconv_v2", self.space.config.op_choices)
 
     def test_sample_with_sonar_ops_is_valid(self) -> None:
         """含声呐算子的采样架构应能通过验证"""

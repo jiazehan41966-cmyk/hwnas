@@ -79,6 +79,9 @@ NKSID_CLASSES = [
 ]
 
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")
+SONAR_AUGMENTATION_PROFILES = {"frozen_strong", "sonar_light", "none"}
+SONAR_GEOMETRY_MODES = {"stretch_224", "letterbox_224", "fixed_scale_pad_224"}
+FROZEN_NKSID_MAX_SIDE = 714
 
 
 def _is_image_file(path: Path) -> bool:
@@ -130,11 +133,95 @@ class AddSpeckleNoise(object):
             return torch.clamp(noisy_tensor, 0.0, 1.0)
         return tensor
 
+
+class _CanvasResize:
+    """Resize a PIL image onto a square canvas under an explicit scale rule."""
+
+    def __init__(self, image_size: int, *, fixed_source_side: int | None = None) -> None:
+        self.image_size = int(image_size)
+        self.fixed_source_side = (
+            None if fixed_source_side is None else int(fixed_source_side)
+        )
+        if self.image_size <= 0:
+            raise ValueError("image_size must be positive")
+        if self.fixed_source_side is not None and self.fixed_source_side <= 0:
+            raise ValueError("fixed_source_side must be positive")
+
+    def __call__(self, image):
+        width, height = image.size
+        denominator = self.fixed_source_side or max(width, height)
+        scale = self.image_size / float(denominator)
+        resized_width = max(1, int(round(width * scale)))
+        resized_height = max(1, int(round(height * scale)))
+        if resized_width > self.image_size or resized_height > self.image_size:
+            raise ValueError(
+                "fixed-scale geometry exceeds the frozen canvas; "
+                f"source={width}x{height}, canvas={self.image_size}, "
+                f"fixed_source_side={self.fixed_source_side}"
+            )
+        resized = image.resize(
+            (resized_width, resized_height), Image.Resampling.BILINEAR
+        )
+        fill = 0 if image.mode == "L" else tuple(0 for _ in image.getbands())
+        canvas = Image.new(image.mode, (self.image_size, self.image_size), fill)
+        left = (self.image_size - resized_width) // 2
+        top = (self.image_size - resized_height) // 2
+        canvas.paste(resized, (left, top))
+        return canvas
+
+
+def sonar_preprocessing_contract(
+    *,
+    image_size: int,
+    augmentation_profile: str,
+    geometry_mode: str,
+) -> dict[str, Any]:
+    """Return the serialisable preprocessing contract used by a run."""
+    profile = str(augmentation_profile).strip().lower()
+    geometry = str(geometry_mode).strip().lower()
+    if profile not in SONAR_AUGMENTATION_PROFILES:
+        raise ValueError(f"unsupported augmentation_profile: {augmentation_profile!r}")
+    if geometry not in SONAR_GEOMETRY_MODES:
+        raise ValueError(f"unsupported geometry_mode: {geometry_mode!r}")
+    return {
+        "schema_version": 1,
+        "augmentation_profile": profile,
+        "geometry_mode": geometry,
+        "image_size": int(image_size),
+        "fixed_source_side": (
+            FROZEN_NKSID_MAX_SIDE if geometry == "fixed_scale_pad_224" else None
+        ),
+        "claim_boundary": {
+            "stretch_224": "Historical per-image anisotropic resize.",
+            "letterbox_224": (
+                "Aspect ratio is retained, but each image still receives its own scale; "
+                "native inter-sample pixel scale is not retained."
+            ),
+            "fixed_scale_pad_224": (
+                "All frozen NKSID samples use scale=image_size/714, retaining relative "
+                "inter-sample pixel scale while reducing small-target resolution."
+            ),
+        }[geometry],
+    }
+
+
+def _geometry_transform(image_size: int, geometry_mode: str):
+    geometry = str(geometry_mode).strip().lower()
+    if geometry == "stretch_224":
+        return T.Resize((image_size, image_size))
+    if geometry == "letterbox_224":
+        return _CanvasResize(image_size)
+    if geometry == "fixed_scale_pad_224":
+        return _CanvasResize(image_size, fixed_source_side=FROZEN_NKSID_MAX_SIDE)
+    raise ValueError(f"unsupported geometry_mode: {geometry_mode!r}")
+
 def get_sonar_transforms(
     image_size: int = 224,
     is_training: bool = True,
     normalize: bool = True,
     output_channels: int = 1,
+    augmentation_profile: str = "frozen_strong",
+    geometry_mode: str = "stretch_224",
 ) -> Callable:
     """
     获取声呐图像专用的数据变换。
@@ -160,12 +247,19 @@ def get_sonar_transforms(
             "the silent resize-only fallback is disabled for formal experiments."
         )
     
+    profile = str(augmentation_profile).strip().lower()
+    geometry = str(geometry_mode).strip().lower()
+    if profile not in SONAR_AUGMENTATION_PROFILES:
+        raise ValueError(f"unsupported augmentation_profile: {augmentation_profile!r}")
+    if geometry not in SONAR_GEOMETRY_MODES:
+        raise ValueError(f"unsupported geometry_mode: {geometry_mode!r}")
+
     transforms_list = []
     
     # 调整大小
-    transforms_list.append(T.Resize((image_size, image_size)))
+    transforms_list.append(_geometry_transform(image_size, geometry))
     
-    if is_training:
+    if is_training and profile == "frozen_strong":
         # 训练时的数据增强
         transforms_list.extend([
             T.RandomHorizontalFlip(p=0.5),
@@ -179,11 +273,18 @@ def get_sonar_transforms(
             # 亮度和对比度调整（模拟不同水下条件）
             T.ColorJitter(brightness=0.2, contrast=0.2),
         ])
+    elif is_training and profile == "sonar_light":
+        transforms_list.extend(
+            [
+                T.RandomHorizontalFlip(p=0.5),
+                T.ColorJitter(brightness=0.1, contrast=0.1),
+            ]
+        )
     
     # 转换为Tensor
     transforms_list.append(T.ToTensor())
     
-    if is_training:
+    if is_training and profile == "frozen_strong":
         # 添加物理仿真的散斑噪声
         transforms_list.append(AddSpeckleNoise(prob=0.3, variance=0.04))
     
@@ -271,6 +372,8 @@ class NKSIDDataset(Dataset):
         output_channels: int = 1, # 1 为灰度图, 3 为 RGB (适配预训练模型)
         image_error_policy: str = "raise",
         split_file_policy: str = "raise",
+        augmentation_profile: str = "frozen_strong",
+        geometry_mode: str = "stretch_224",
     ):
         """
         初始化NKSID数据集。
@@ -296,6 +399,13 @@ class NKSIDDataset(Dataset):
         self.use_kfold = use_kfold
         self.split = split
         self.output_channels = output_channels
+        self.augmentation_profile = str(augmentation_profile).strip().lower()
+        self.geometry_mode = str(geometry_mode).strip().lower()
+        self.preprocessing_contract = sonar_preprocessing_contract(
+            image_size=image_size,
+            augmentation_profile=self.augmentation_profile,
+            geometry_mode=self.geometry_mode,
+        )
         self.image_error_policy = str(image_error_policy).strip().lower()
         if self.image_error_policy not in {"raise", "blank"}:
             raise ValueError(
@@ -319,6 +429,8 @@ class NKSIDDataset(Dataset):
                 image_size=image_size,
                 is_training=is_training,
                 output_channels=output_channels,
+                augmentation_profile=self.augmentation_profile,
+                geometry_mode=self.geometry_mode,
             )
         
         # 加载数据列表
@@ -851,6 +963,10 @@ def create_protocol_dataloaders(
     num_workers: int = 4,
     pin_memory: bool = True,
     output_channels: int = 1,
+    augmentation_profile: str = "frozen_strong",
+    geometry_mode: str = "stretch_224",
+    group_manifest_path: str | None = None,
+    group_policy: str = "none",
 ):
     """Create dataloaders under the frozen NKSID evaluation protocol.
 
@@ -870,6 +986,8 @@ def create_protocol_dataloaders(
         split="full",
         output_channels=output_channels,
         image_error_policy="raise",
+        augmentation_profile=augmentation_profile,
+        geometry_mode=geometry_mode,
     )
     eval_view = NKSIDDataset(
         data_dir=data_dir,
@@ -880,18 +998,55 @@ def create_protocol_dataloaders(
         split="full",
         output_channels=output_channels,
         image_error_policy="raise",
+        augmentation_profile="none",
+        geometry_mode=geometry_mode,
     )
     if len(train_view) != len(eval_view):
         raise RuntimeError("train/eval dataset views disagree on sample count")
 
     num_classes = len(train_view.classes)
-    split = build_protocol_split(
-        train_view.samples,
-        data_dir,
-        fold_index=fold,
-        seed=seed,
-        inner_val_fraction=inner_val_fraction,
-        num_classes=num_classes,
+    normalized_group_policy = str(group_policy).strip().lower()
+    if normalized_group_policy == "none":
+        split = build_protocol_split(
+            train_view.samples,
+            data_dir,
+            fold_index=fold,
+            seed=seed,
+            inner_val_fraction=inner_val_fraction,
+            num_classes=num_classes,
+        )
+    else:
+        if group_manifest_path is None:
+            raise ValueError(
+                f"group_policy={normalized_group_policy!r} requires group_manifest_path"
+            )
+        from hwnas_fpga.data.grouping import (
+            GROUP_POLICIES,
+            build_group_protocol_split,
+            load_group_manifest,
+        )
+
+        if normalized_group_policy not in GROUP_POLICIES - {"none"}:
+            raise ValueError(f"unsupported group_policy: {group_policy!r}")
+        resolved_groups = load_group_manifest(
+            group_manifest_path,
+            train_view.samples,
+            data_dir,
+            policy=normalized_group_policy,
+        )
+        split = build_group_protocol_split(
+            train_view.samples,
+            resolved_groups,
+            fold_index=fold,
+            seed=seed,
+            inner_val_fraction=inner_val_fraction,
+            num_classes=num_classes,
+        )
+
+    split.metadata["preprocessing"] = sonar_preprocessing_contract(
+        image_size=image_size,
+        augmentation_profile=augmentation_profile,
+        geometry_mode=geometry_mode,
     )
 
     train_loader = create_dataloader(
@@ -933,6 +1088,7 @@ def create_protocol_dataloaders(
         "num_classes": num_classes,
         "classes": list(train_view.classes),
         "train_class_counts": train_class_counts,
+        "preprocessing": dict(split.metadata["preprocessing"]),
     }
 
 

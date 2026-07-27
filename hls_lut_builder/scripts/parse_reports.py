@@ -59,6 +59,7 @@ CSV_FIELDS = [
     "target_part",
     "target_clock_ns",
     "target_clock_mhz",
+    "hls_estimated_meets_target_clock",
     "deployable_at_200mhz",
     "estimated_clock_period_ns",
     "Fmax_est",
@@ -173,7 +174,17 @@ def main() -> None:
             "target_part": case.part,
             "target_clock_ns": float(case.clock_period_ns),
             "target_clock_mhz": float(case.target_clock_mhz),
-            "deployable_at_200mhz": bool(float(case.target_clock_mhz) >= 199.9),
+            "hls_estimated_meets_target_clock": (
+                metrics.get("estimated_clock_period_ns") is not None
+                and float(metrics["estimated_clock_period_ns"])
+                <= float(case.clock_period_ns)
+            ),
+            # A requested clock is not deployment evidence.  This field is
+            # true only when a post-route result exists and meets 200 MHz.
+            "deployable_at_200mhz": bool(
+                vivado_actual is not None
+                and float(post_route_metrics.get("fmax_est_mhz") or 0.0) >= 199.9
+            ),
             "estimated_clock_period_ns": metrics.get("estimated_clock_period_ns"),
             "Fmax_est": metrics.get("fmax_est_mhz"),
             "latency_cycles": cycles,

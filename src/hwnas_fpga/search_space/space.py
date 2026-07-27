@@ -17,18 +17,15 @@ DEFAULT_STAGE_STRIDES = (1, 2, 2, 2)
 # which now excludes fused_mbconv and mixconv from the default operator set.
 DEFAULT_OP_CHOICES = (
     "conv",
-    "dw_pw_conv",
     "mbconv",
     "skip",
-    "denoise",
-    "edge",
 )
 
-SONAR_OPS = {"mixconv", "denoise", "edge"}
+SONAR_OPS = {"mixconv", "mixconv_v2", "denoise", "edge"}
 
 # v1 mainline search keeps mbconv as the primary block operator and
 # preferentially removes irregular sonar-heavy operators first.
-HIGH_LUT_OPS = {"mixconv", "edge"}
+HIGH_LUT_OPS = {"mixconv", "mixconv_v2", "edge"}
 HIGH_DSP_OPS = {"conv"}
 # dw_pw_conv remains available for historical lightweight profiles, but is no
 # longer part of the formal MobileNetV2 mainline after operator screening.
@@ -53,7 +50,7 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
         "stage_depth_choices": ((1,), (1, 2), (1, 2), (2,), (1, 2), (1, 2), (1,)),
         "kernel_choices": (3, 5),
         "expand_choices": (1, 2),
-        "op_choices": ("mbconv", "denoise", "edge", "skip"),
+        "op_choices": ("conv", "mbconv", "skip"),
         "head_conv_channels": 320,
     },
     "accuracy_biased": {
@@ -65,7 +62,7 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
         "stage_depth_choices": ((1, 2), (2, 3, 4), (3, 4), (4, 5), (3, 4), (3, 4), (1, 2)),
         "kernel_choices": (3, 5),
         "expand_choices": (3, 6),
-        "op_choices": ("mbconv", "denoise", "edge", "skip"),
+        "op_choices": ("conv", "mbconv", "skip"),
         "head_conv_channels": 1280,
     },
     "lightweight_sonar": {
@@ -77,7 +74,7 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
         "stage_depth_choices": ((1, 2, 3), (2, 3, 4), (1, 2, 3)),
         "kernel_choices": (3,),
         "expand_choices": (1, 2, 4),
-        "op_choices": ("dw_pw_conv", "skip", "denoise"),
+        "op_choices": ("dw_pw_conv", "skip"),
         "head_conv_channels": 1024,
     },
 }
@@ -599,13 +596,26 @@ class SearchSpace:
         if ultra_tight_board:
             new_channels = tuple(c for c in new_channels if c <= 24) or (min(new_channels),)
             new_depths = tuple(d for d in new_depths if d <= 2) or (min(new_depths),)
-            new_ops = tuple(op for op in new_ops if op in LIGHTWEIGHT_OPS) or ("dw_pw_conv", "skip")
+            lightweight_ops = tuple(op for op in new_ops if op in LIGHTWEIGHT_OPS)
+            if any(op != "skip" for op in lightweight_ops):
+                new_ops = lightweight_ops
+            else:
+                # Do not manufacture an operator the caller did not authorize.
+                # A skip-only result is illegal at stride/channel transitions,
+                # so retain the first original compute family as a legal
+                # fallback even if its hardware estimate remains infeasible.
+                compute_fallback = tuple(
+                    op for op in self.config.op_choices if op != "skip"
+                )
+                new_ops = compute_fallback[:1] + (
+                    ("skip",) if "skip" in self.config.op_choices else ()
+                )
             new_kernels = tuple(kernel for kernel in new_kernels if kernel == 3) or (min(new_kernels),)
             new_expands = tuple(expand for expand in new_expands if expand == 1) or (1,)
 
         # 3. 兜底保证非空
         if not new_ops:
-            new_ops = ("dw_pw_conv", "skip")
+            new_ops = self.config.op_choices
         if not new_channels:
             new_channels = (min(self.config.channel_choices),)
         if not new_depths:

@@ -324,6 +324,70 @@ class MixConvBlock(nn.Module):
         return x
 
 
+class MixConvV2Block(nn.Module):
+    """Versioned 3x3/5x5 mixed-depthwise block with MBConv semantics.
+
+    The first ``floor(C/2)`` channels use a 3x3 depthwise kernel and the
+    remaining channels use a 5x5 depthwise kernel.  Projection is linear and
+    the optional residual is applied after projection, matching the project's
+    MBConv block and the HLS contract for ``mixconv_v2``.
+    """
+
+    KERNEL_SIZES = (3, 5)
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+    ) -> None:
+        super().__init__()
+        if int(in_channels) < 2:
+            raise ValueError("mixconv_v2 requires at least two input channels")
+        first = int(in_channels) // 2
+        self.group_sizes = [first, int(in_channels) - first]
+        self.kernel_sizes = self.KERNEL_SIZES
+        self.dw_convs = nn.ModuleList(
+            [
+                nn.Conv2d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    stride=stride,
+                    padding=kernel_size // 2,
+                    groups=channels,
+                    bias=False,
+                )
+                for channels, kernel_size in zip(
+                    self.group_sizes, self.kernel_sizes
+                )
+            ]
+        )
+        self.dw_bns = nn.ModuleList(
+            [nn.BatchNorm2d(channels) for channels in self.group_sizes]
+        )
+        self.dw_relu = nn.ReLU6(inplace=True)
+        self.pw_conv = nn.Conv2d(in_channels, out_channels, 1, bias=False)
+        self.pw_bn = nn.BatchNorm2d(out_channels)
+        self.use_residual = stride == 1 and in_channels == out_channels
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        branch_outputs = []
+        for branch, batch_norm in zip(
+            torch.split(x, self.group_sizes, dim=1), self.dw_bns
+        ):
+            index = len(branch_outputs)
+            branch_outputs.append(
+                self.dw_relu(batch_norm(self.dw_convs[index](branch)))
+            )
+        x = torch.cat(branch_outputs, dim=1)
+        x = self.pw_bn(self.pw_conv(x))
+        if self.use_residual:
+            x = x + identity
+        return x
+
+
 class DenoiseBlock(nn.Module):
     """声呐专用去噪/平滑先验块
 
@@ -794,6 +858,13 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_sizes=(3, 5, 7),
+            stride=block_spec.stride,
+        )
+
+    elif op == "mixconv_v2":
+        return MixConvV2Block(
+            in_channels=in_channels,
+            out_channels=out_channels,
             stride=block_spec.stride,
         )
 

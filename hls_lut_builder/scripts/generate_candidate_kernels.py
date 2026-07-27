@@ -481,6 +481,18 @@ def build_operator_entries(shapes: dict[str, Any], representative_shapes: dict[s
             op_spec_defaults=OrderedDict(op=name, groups=1, expand_ratio=1),
         )
 
+    operator_entries["mixconv_v2"] = OrderedDict(
+        enabled=False,
+        template="../templates/mixconv_v2.cpp.tmpl",
+        top_function="mixconv_v2_kernel",
+        op_type="mixconv_v2",
+        shape_refs=ext_shape_refs,
+        implementation_refs=["baseline_pi1_po1_u1"],
+        clock_profile_refs=["main_5ns"],
+        parameters=OrderedDict(kernel_size=5, padding=2),
+        op_spec_defaults=OrderedDict(op="mixconv_v2", groups=1, expand_ratio=1),
+    )
+
     return operator_entries
 
 

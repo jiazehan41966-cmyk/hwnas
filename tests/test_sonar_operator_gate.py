@@ -104,7 +104,15 @@ class SonarOperatorGateTests(unittest.TestCase):
             row["run_fingerprints"] = ["a" * 64]
             row["protocol_context_sha256"] = context
         for comparison in manifest["comparisons_vs_control"].values():
-            comparison.update({"fold_count": 5, "folds": [0, 1, 2, 3, 4], "seeds": [42, 43, 44]})
+            comparison.update(
+                {
+                    "fold_count": 5,
+                    "folds": [0, 1, 2, 3, 4],
+                    "seeds": [42, 43, 44],
+                    "stratified_bootstrap_ci95_lower": 0.002,
+                    "positive_fold_count": 5,
+                }
+            )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -138,6 +146,18 @@ class SonarOperatorGateTests(unittest.TestCase):
             manifest["operators"]["edge"]["hls"]["consumed_spec_actual_sha256"] = "d" * 64
             blocked = audit_sonar_operator_manifest(manifest)
             self.assertFalse(blocked["overall_pass"])
+
+    def test_holm_p_value_is_reported_but_not_a_hard_gate(self) -> None:
+        manifest = _passing_manifest()
+        for comparison in manifest["comparisons_vs_control"].values():
+            comparison["p_value"] = 1.0
+        result = audit_sonar_operator_manifest(manifest)
+        self.assertTrue(result["overall_pass"])
+        self.assertNotIn(
+            "holm_significant",
+            result["operators"]["denoise"]["gates"],
+        )
+        self.assertEqual(result["operators"]["denoise"]["holm_adjusted_p_value"], 1.0)
 
 
 if __name__ == "__main__":

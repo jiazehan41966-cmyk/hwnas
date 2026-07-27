@@ -118,7 +118,7 @@ class SearchSpaceRuntimeTests(unittest.TestCase):
         self.assertEqual(search_space.config.width_multipliers, (0.75, 1.0))
         self.assertEqual(
             search_space.config.op_choices,
-            ("mbconv", "denoise", "edge", "skip"),
+            ("conv", "mbconv", "skip"),
         )
         self.assertEqual(search_space.config.head_conv_channels, 320)
 
