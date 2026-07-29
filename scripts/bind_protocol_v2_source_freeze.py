@@ -73,7 +73,14 @@ def main() -> int:
     ):
         path_key = f"{name}_path"
         sha_key = f"{name}_sha256"
-        path = Path(selection[path_key]).resolve()
+        # The frozen config keeps ``*_path`` for decision files and the
+        # shorter manifest field names for the two data manifests.
+        configured_path = selection.get(path_key, selection.get(name))
+        if configured_path is None:
+            raise KeyError(
+                f"selection_evidence requires {path_key!r} or {name!r}"
+            )
+        path = Path(configured_path).resolve()
         evidence_checks[name] = {
             "path": str(path),
             "expected_sha256": str(selection[sha_key]),
