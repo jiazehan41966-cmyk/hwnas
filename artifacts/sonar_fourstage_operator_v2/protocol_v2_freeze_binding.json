@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-29T21:08:50.177714+00:00",
+  "status": "PASS",
+  "protocol": "nksid_outer5fold_inner_only_v2",
+  "contract": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\configs\\evaluation\\nksid_frozen_protocol_v2.yaml",
+    "sha256": "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358",
+    "present_in_source_snapshot": true,
+    "snapshot_sha256": "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358",
+    "matches_snapshot": true
+  },
+  "source_freeze": {
+    "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_freeze_manifest.json",
+    "manifest_sha256": "c0925b5ee2d4cbf508970ca4bbdaa1d652fd39fbde3e3a472bb9350ee711be56",
+    "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_snapshot.zip",
+    "archive_sha256": "3075bd37d46be1082a4b9fba308388adf6113a26870b4f1a403a40a23bc3a1bd",
+    "verification": {
+      "status": "PASS",
+      "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_freeze_manifest.json",
+      "expected_file_count": 582,
+      "missing": [],
+      "unexpected": [],
+      "changed": []
+    },
+    "frozen_git": {
+      "head": "b2bab94342a2ca83ee10a30f9f44f70a7585523c",
+      "branch": "codex/sonar-fourstage-operator-closure",
+      "status_porcelain": [
+        "?? artifacts/sonar_fourstage_operator_v2/source_freeze/"
+      ]
+    }
+  },
+  "selection_evidence_checks": {
+    "preregistration": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\configs\\evaluation\\nksid_protocol_v2_selection_preregistered.yaml",
+      "expected_sha256": "a673af223f661f024015cbe0e87cec769a8cc940b986b0f6aa3662df51eb2c4f",
+      "actual_sha256": "a673af223f661f024015cbe0e87cec769a8cc940b986b0f6aa3662df51eb2c4f",
+      "matches": true
+    },
+    "bundle_decision": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\bundle_decision.json",
+      "expected_sha256": "73c0458cdc213720783eaee072f514ce8ef079c5493eb94f374e10e85259d513",
+      "actual_sha256": "73c0458cdc213720783eaee072f514ce8ef079c5493eb94f374e10e85259d513",
+      "matches": true
+    },
+    "geometry_decision": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\geometry_decision.json",
+      "expected_sha256": "e57d72957ff28f3af431ff81d2d1c5c3236c7edb9021e0f186e68781302fb978",
+      "actual_sha256": "e57d72957ff28f3af431ff81d2d1c5c3236c7edb9021e0f186e68781302fb978",
+      "matches": true
+    },
+    "group_manifest": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\manifests\\inferred_hash_group_manifest.json",
+      "expected_sha256": "f3e93fb352bb16c4abed7895fd4c63f34a784b951ba06214205f2c3639e1888b",
+      "actual_sha256": "f3e93fb352bb16c4abed7895fd4c63f34a784b951ba06214205f2c3639e1888b",
+      "matches": true
+    },
+    "dataset_manifest": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\manifests\\dataset_manifest.json",
+      "expected_sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
+      "actual_sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
+      "matches": true
+    }
+  },
+  "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
+  "claim_boundary": "This binds Protocol V2 preprocessing, training recipe, data/group manifests, and source snapshot. It contains no outer-validation metric.",
+  "payload_sha256": "f1bf1a9a23ceaa39fa5574e84d3d7db0e4c9a33e7d932c3ed5ecbbd3659eb5d3"
+}
