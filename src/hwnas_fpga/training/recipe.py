@@ -40,7 +40,10 @@ class RecipeConfig:
     warmup_epochs: int = 5
     min_lr_ratio: float = 0.01
     label_smoothing: float = 0.1
-    logit_adjust_tau: float = 1.0
+    # The NKSID sonar closure (5 folds x 3 seeds, outer evaluated once)
+    # validated plain smoothed CE. The former tau=1 recipe remains available
+    # as an explicit historical-reproduction setting.
+    logit_adjust_tau: float = 0.0
     selection_metric: str = "macro_f1"
     early_stopping_patience: Optional[int] = None
     topk: int = 5

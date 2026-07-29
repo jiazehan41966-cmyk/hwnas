@@ -668,6 +668,15 @@ def main() -> int:
                         help="use grayscale-adapted ImageNet weights (backbones only)")
     parser.add_argument("--candidate-path", default=None,
                         help="ArchitectureSpec candidate artifact; overrides --arch")
+    parser.add_argument(
+        "--evaluation-scope",
+        choices=("formal_outer", "inner_only"),
+        default="formal_outer",
+        help=(
+            "formal_outer evaluates outer validation once after inner checkpoint "
+            "selection; inner_only never iterates the outer loader and is diagnostic-only"
+        ),
+    )
     parser.add_argument("--folds", default="0,1,2,3,4")
     parser.add_argument("--seeds", default="42,43,44")
     parser.add_argument("--epochs", type=int, default=150)
@@ -707,8 +716,15 @@ def main() -> int:
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--warmup-epochs", type=int, default=5)
     parser.add_argument("--label-smoothing", type=float, default=0.1)
-    parser.add_argument("--logit-adjust-tau", type=float, default=1.0,
-                        help="0 disables logit adjustment (plain smoothed CE)")
+    parser.add_argument(
+        "--logit-adjust-tau",
+        type=float,
+        default=0.0,
+        help=(
+            "0 uses the validated plain smoothed-CE sonar recipe; pass 1 explicitly "
+            "to reproduce the historical logit-adjusted recipe"
+        ),
+    )
     parser.add_argument("--inner-val-fraction", type=float, default=0.15)
     parser.add_argument("--early-stopping-patience", type=int, default=None)
     parser.add_argument("--num-workers", type=int, default=4)
@@ -974,6 +990,7 @@ def main() -> int:
         "arch": args.arch,
         "pretrained": args.pretrained,
         "candidate": candidate_provenance,
+        "evaluation_scope": args.evaluation_scope,
         "selection_provenance": selection_provenance,
         "dataset": data_provenance,
         "runtime": runtime_provenance(),
@@ -1004,6 +1021,7 @@ def main() -> int:
     manifest = {
         "protocol": protocol_name,
         "run_name": run_name,
+        "invocation": [sys.executable, *sys.argv],
         "run_fingerprint": run_fingerprint,
         "protocol_context_sha256": protocol_context_sha256,
         "created_or_checked": datetime.now().isoformat(timespec="seconds"),
@@ -1142,7 +1160,11 @@ def main() -> int:
             model.load_state_dict(result.best_state)
             model = model.to(device)
             threshold_metadata = None
-            if args.task == "closed_set":
+            outer_summary: dict[str, object] | None = None
+            outer_prediction_rows: list[dict] = []
+            if args.evaluation_scope == "inner_only":
+                pass
+            elif args.task == "closed_set":
                 outer_summary, outer_prediction_rows = evaluate_outer_classifier_with_predictions(
                     model,
                     bundle["outer_val_loader"],
@@ -1202,13 +1224,16 @@ def main() -> int:
                     for key in ("macro_f1", "top1", "weighted_f1", "loss")
                 },
                 "outer_val": (
+                    None
+                    if args.evaluation_scope == "inner_only"
+                    else
                     {
-                        key: outer_summary[key]
+                        key: outer_summary[key]  # type: ignore[index]
                         for key in ("macro_f1", "top1", "weighted_f1", "top5", "loss")
                     }
                     if args.task == "closed_set"
                     else {
-                        key: outer_summary[key]
+                        key: outer_summary[key]  # type: ignore[index]
                         for key in (
                             "known_macro_f1",
                             "nma",
@@ -1219,11 +1244,17 @@ def main() -> int:
                         )
                     }
                 ),
-                "outer_calibration": outer_summary.get("calibration"),
-                "outer_confusion_matrix": outer_summary.get("confusion_matrix"),
+                "evaluation_scope": args.evaluation_scope,
+                "outer_validation_consumed": args.evaluation_scope == "formal_outer",
+                "outer_calibration": (
+                    None if outer_summary is None else outer_summary.get("calibration")
+                ),
+                "outer_confusion_matrix": (
+                    None if outer_summary is None else outer_summary.get("confusion_matrix")
+                ),
                 "outer_per_class_f1": (
-                    per_class_f1(outer_summary["confusion_matrix"])
-                    if "confusion_matrix" in outer_summary
+                    per_class_f1(outer_summary["confusion_matrix"])  # type: ignore[arg-type,index]
+                    if outer_summary is not None and "confusion_matrix" in outer_summary
                     else None
                 ),
                 "open_set_spec": (
@@ -1266,7 +1297,11 @@ def main() -> int:
                     "architecture": model_meta.get("architecture"),
                     "source_candidate": candidate_provenance,
                     "model": model_meta,
-                    "metrics": record["outer_val"],
+                    "metrics": (
+                        record["outer_val"]
+                        if args.evaluation_scope == "formal_outer"
+                        else record["inner_val"]
+                    ),
                     "best_epoch": result.best_epoch,
                     "selection_provenance": selection_provenance,
                     "run_fingerprint": run_fingerprint,
@@ -1314,18 +1349,29 @@ def main() -> int:
                         "claimability_status": "PENDING",
                     }
                 )
-            prediction_path = run_dir / f"outer_predictions_{run_tag}.jsonl"
-            write_jsonl(prediction_path, outer_prediction_rows)
-            record["outer_predictions"] = {
-                "path": str(prediction_path.resolve()),
-                "sha256": sha256_file(prediction_path),
-                "num_samples": len(outer_prediction_rows),
-                "schema_version": 2 if args.save_checkpoints else "2-incomplete-no-checkpoint",
-            }
+            if args.evaluation_scope == "formal_outer":
+                prediction_path = run_dir / f"outer_predictions_{run_tag}.jsonl"
+                write_jsonl(prediction_path, outer_prediction_rows)
+                record["outer_predictions"] = {
+                    "path": str(prediction_path.resolve()),
+                    "sha256": sha256_file(prediction_path),
+                    "num_samples": len(outer_prediction_rows),
+                    "schema_version": (
+                        2 if args.save_checkpoints else "2-incomplete-no-checkpoint"
+                    ),
+                }
+            else:
+                record["outer_predictions"] = None
             record_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
             runs.append(record)
             new_units_completed += 1
-            if args.task == "closed_set":
+            if args.evaluation_scope == "inner_only":
+                print(
+                    f"fold {fold} seed {seed}: inner macro_f1="
+                    f"{float(record['inner_val']['macro_f1']):.4f} "
+                    f"(best epoch {result.best_epoch}; outer not consumed)"
+                )
+            elif args.task == "closed_set":
                 print(
                     f"fold {fold} seed {seed}: outer macro_f1={outer_summary['macro_f1']:.4f} "
                     f"top1={outer_summary['top1']:.4f} (best epoch {result.best_epoch})"
@@ -1340,7 +1386,19 @@ def main() -> int:
             break
 
     class_names = class_names or list(NKSID_CLASSES)
-    if args.task == "closed_set":
+    if args.evaluation_scope == "inner_only":
+        claimability = {
+            "claimable": False,
+            "claim_scope": "inner_only_mechanism_diagnostic",
+            "nas_generalization_claimable": False,
+            "group_split_available": group_split_requested,
+            "group_generalization_claimable": False,
+            "warnings": [
+                "Outer validation was intentionally not consumed; this run may select "
+                "a recipe/operator for later formal evaluation but is not outer evidence."
+            ],
+        }
+    elif args.task == "closed_set":
         claimability = protocol_claimability(
             folds=folds,
             seeds=seeds,
@@ -1431,6 +1489,7 @@ def main() -> int:
         "run_fingerprint": run_fingerprint,
         "protocol_context_sha256": protocol_context_sha256,
         "recipe": active_recipe,
+        "evaluation_scope": args.evaluation_scope,
         "preprocessing": preprocessing_contract,
         "normalization": immutable_config["normalization"],
         "group_split_available": claimability["group_split_available"],
@@ -1451,22 +1510,28 @@ def main() -> int:
         "model": runs[0]["model"] if runs else None,
         "folds": folds,
         "seeds": seeds,
+        "inner_macro_f1": summarize(
+            [float(r["inner_val"]["macro_f1"]) for r in runs]
+        ),
         "outer_macro_f1": summarize(
             [
                 r["outer_val"][
                     "macro_f1" if args.task == "closed_set" else "known_macro_f1"
                 ]
                 for r in runs
+                if r["outer_val"] is not None
             ]
         ),
         "outer_top1": (
-            summarize([r["outer_val"]["top1"] for r in runs])
-            if args.task == "closed_set"
+            summarize([r["outer_val"]["top1"] for r in runs if r["outer_val"] is not None])
+            if args.task == "closed_set" and args.evaluation_scope == "formal_outer"
             else None
         ),
         "outer_weighted_f1": (
-            summarize([r["outer_val"]["weighted_f1"] for r in runs])
-            if args.task == "closed_set"
+            summarize(
+                [r["outer_val"]["weighted_f1"] for r in runs if r["outer_val"] is not None]
+            )
+            if args.task == "closed_set" and args.evaluation_scope == "formal_outer"
             else None
         ),
         "open_set_metrics": (
@@ -1481,7 +1546,7 @@ def main() -> int:
                     "unknown_fpr95",
                 )
             }
-            if args.task == "open_long_tail"
+            if args.task == "open_long_tail" and args.evaluation_scope == "formal_outer"
             else None
         ),
         "per_class_f1_mean": (
@@ -1489,7 +1554,7 @@ def main() -> int:
                 statistics.fmean(r["outer_per_class_f1"][idx] for r in runs)
                 for idx in range(len(class_names))
             ]
-            if runs and args.task == "closed_set"
+            if runs and args.task == "closed_set" and args.evaluation_scope == "formal_outer"
             else []
         ),
         "class_names": class_names,
@@ -1508,6 +1573,7 @@ def main() -> int:
         f"- task: `{args.task}`",
         f"- adapter: `{args.adapter_id}`; paper: `{args.paper_id}`; method: `{method_id}`",
         f"- folds: {folds}, seeds: {seeds}, epochs: {recipe.epochs}, device: {device}",
+        f"- evaluation_scope: `{args.evaluation_scope}`",
         f"- claimable: `{claimability['claimable']}`",
         f"- claim_scope: `{claimability['claim_scope']}`",
         f"- nas_generalization_claimable: `{claimability['nas_generalization_claimable']}`",
@@ -1522,6 +1588,9 @@ def main() -> int:
         "|---|---:|---:|---:|",
     ]
     metric_keys = (
+        ("inner_macro_f1",)
+        if args.evaluation_scope == "inner_only"
+        else
         ("outer_macro_f1", "outer_top1", "outer_weighted_f1")
         if args.task == "closed_set"
         else tuple((aggregate["open_set_metrics"] or {}).keys())
@@ -1534,7 +1603,7 @@ def main() -> int:
         )
         if stats and stats["mean"] is not None:
             lines.append(f"| {key} | {stats['mean']:.4f} | {stats['std']:.4f} | {stats['n']} |")
-    if args.task == "closed_set":
+    if args.task == "closed_set" and args.evaluation_scope == "formal_outer":
         lines += ["", "| class | mean outer F1 |", "|---|---:|"]
         for name, value in zip(class_names, aggregate["per_class_f1_mean"]):
             lines.append(f"| {name} | {value:.4f} |")

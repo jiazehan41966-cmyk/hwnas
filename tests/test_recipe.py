@@ -47,6 +47,9 @@ class SchedulerTests(unittest.TestCase):
 
 
 class LogitAdjustmentTests(unittest.TestCase):
+    def test_validated_sonar_default_is_plain_smoothed_ce(self) -> None:
+        self.assertEqual(RecipeConfig().logit_adjust_tau, 0.0)
+
     def test_adjustment_shifts_loss_toward_rare_classes(self) -> None:
         counts = [900.0, 100.0]
         criterion = LogitAdjustedCrossEntropy(counts, tau=1.0)

@@ -27,7 +27,9 @@ training_recipe:
   warmup_epochs: 5
   label_smoothing: 0.1
   imbalance: logit_adjustment
-  logit_adjust_tau: 1.0
+  # Validated by the sonar closure outer 5-fold x 3-seed comparison.
+  # Use 1.0 explicitly only for historical-recipe reproduction.
+  logit_adjust_tau: 0.0
   amp: true
   batch_size: 8
   gradient_accumulation_steps: 4

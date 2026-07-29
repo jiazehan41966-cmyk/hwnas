@@ -36,8 +36,10 @@
 
 - AdamW + cosine 衰减 + 5 epoch 线性 warmup（`min_lr_ratio=0.01`）；
 - label smoothing 0.1；
-- 长尾处理：logit adjustment（`tau=1.0`，Menon et al., ICLR 2021），
-  取代逆频率类权重；`--logit-adjust-tau 0` 可关闭；
+- 长尾处理：当前默认采用经声呐闭环 outer 5-fold × 3-seed 验证的
+  plain smoothed CE（`--logit-adjust-tau 0`）；历史配方须显式传入
+  `--logit-adjust-tau 1`，才会启用 logit adjustment
+  （Menon et al., ICLR 2021）；
 - 评估 loss 始终用未调整的交叉熵，argmax 用原始 logits。
 
 ## 基线三连（阶段 1 命令）

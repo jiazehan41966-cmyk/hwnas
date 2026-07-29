@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-29T11:22:22",
+  "final_status": "NO_OPERATOR_GAIN",
+  "files": [
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/complete_record.json",
+      "sha256": "f5b40223c1f04e480934266abb3ed0eb839d8796e3323c0362e9deb9ceef8375",
+      "bytes": 109143
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/analysis-report.md",
+      "sha256": "53aff2df74b0eb8ecec90c1dc97ad8c2cbe211bed2aa87ac853cd8ce29103e6a",
+      "bytes": 2469
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/stats-appendix.md",
+      "sha256": "536e73188fd02b730e8b565553cfa6059a75bd0a83ed31e4061b78386968876c",
+      "bytes": 1256
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figure-catalog.md",
+      "sha256": "17e96a3cc5f6f6e103eb6985459fcc1ecc19273499999e7fc76aaae493401d02",
+      "bytes": 1142
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/source_freeze_final/source_freeze_manifest.json",
+      "sha256": "0059b02101390eb5bb17ace4d1ca07ab24800b554d1c68dc966f69bd53fef20e",
+      "bytes": 109520
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/source_freeze_final/source_snapshot.zip",
+      "sha256": "e52271aa298c6ee92793faac2ea362cd8a2622b490a3fdbc228286c764fba3a6",
+      "bytes": 1564498
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/formal_operator_paired_deltas.pdf",
+      "sha256": "a5054a7374d2858147da852fed0217ad499d1ab089a5bff007d241b3452271b0",
+      "bytes": 15292
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/formal_operator_paired_deltas.png",
+      "sha256": "350b59ba6271d616db6a4c8e61ec8db91d5394db66a745715ddf3ce9c51b31b5",
+      "bytes": 91656
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/formal_recipe_paired_deltas.pdf",
+      "sha256": "77953377a3921a75e45159dd97f5e8b08d7497c3e35dae164d6b4279d7bf16a7",
+      "bytes": 15736
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/formal_recipe_paired_deltas.png",
+      "sha256": "bbaaff154eef1482a9d7dead43454eba693465d99585434720768f12e6be5cca",
+      "bytes": 88721
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/geometry_diagnostic.pdf",
+      "sha256": "b48264c1ed0532fac2b74267976c1d3c902025be77a723e7c350ae3865f2f16a",
+      "bytes": 14727
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/geometry_diagnostic.png",
+      "sha256": "cf6f5192fe9c91f891e518f648ca45d244e529cd4a9273cf61203f93642d18c8",
+      "bytes": 90013
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/robustness_condition_deltas.pdf",
+      "sha256": "beb37ae171fd0630081f547c02a60cff1bd6051ceff65b614f87e7f42b9f126c",
+      "bytes": 13314
+    },
+    {
+      "path": "artifacts/sonar_mixconv_v2_closure/final/figures/robustness_condition_deltas.png",
+      "sha256": "c7b33accda0bfe8bd92bd0fee564b678b04a2307456da14efc85d4a6a5efa5ef",
+      "bytes": 109815
+    }
+  ]
+}
