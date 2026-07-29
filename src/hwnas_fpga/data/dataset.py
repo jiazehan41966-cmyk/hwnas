@@ -803,6 +803,10 @@ def create_dataloader(
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        # On Windows, spawning fresh workers at every epoch re-imports PyTorch
+        # and can dominate tiny-model training. Keep the seeded workers alive
+        # for the lifetime of the loader; the generator still fixes sample order.
+        persistent_workers=num_workers > 0,
         generator=generator,
         worker_init_fn=_seed_dataloader_worker if num_workers > 0 else None,
     )
