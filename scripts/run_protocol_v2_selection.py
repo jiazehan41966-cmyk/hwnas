@@ -369,6 +369,7 @@ def dataloaders(
         use_kfold=False,
         split="full",
         augmentation_profile=augmentation,
+        cache_decoded_images=True,
         **geometry_values,
     )
     eval_view = NKSIDDataset(
@@ -378,6 +379,7 @@ def dataloaders(
         use_kfold=False,
         split="full",
         augmentation_profile="none",
+        cache_decoded_images=True,
         **geometry_values,
     )
     samples = list(eval_view.samples)
@@ -420,6 +422,7 @@ def dataloaders(
             "geometry_mode": geometry,
             "augmentation_profile": augmentation,
             "eval_augmentation_profile": "none",
+            "decoded_image_cache": "per_worker_lossless_PIL_copy",
             "image_size": 224,
         },
     }

@@ -388,6 +388,7 @@ class NKSIDDataset(Dataset):
         fixed_scale_factor: float | None = None,
         geometry_padding_value: int = 0,
         augmentation_profile: str = "frozen_strong",
+        cache_decoded_images: bool = False,
     ):
         """
         初始化NKSID数据集。
@@ -419,6 +420,8 @@ class NKSIDDataset(Dataset):
         )
         self.geometry_padding_value = int(geometry_padding_value)
         self.augmentation_profile = str(augmentation_profile).strip().lower()
+        self.cache_decoded_images = bool(cache_decoded_images)
+        self._decoded_image_cache: dict[str, Image.Image] = {}
         self.image_error_policy = str(image_error_policy).strip().lower()
         if self.image_error_policy not in {"raise", "blank"}:
             raise ValueError(
@@ -628,8 +631,14 @@ class NKSIDDataset(Dataset):
         # 加载图像
         try:
             target_mode = 'RGB' if self.output_channels == 3 else 'L'
-            with Image.open(img_path) as source:
-                image = source.convert(target_mode)
+            cached = self._decoded_image_cache.get(img_path)
+            if cached is None:
+                with Image.open(img_path) as source:
+                    image = source.convert(target_mode)
+                if self.cache_decoded_images:
+                    self._decoded_image_cache[img_path] = image.copy()
+            else:
+                image = cached.copy()
             
             # 应用变换
             if self.transform:
@@ -1029,6 +1038,7 @@ def create_protocol_dataloaders(
         fixed_scale_factor=fixed_scale_factor,
         geometry_padding_value=geometry_padding_value,
         augmentation_profile=augmentation_profile,
+        cache_decoded_images=True,
     )
     eval_view = NKSIDDataset(
         data_dir=data_dir,
@@ -1043,6 +1053,7 @@ def create_protocol_dataloaders(
         fixed_scale_factor=fixed_scale_factor,
         geometry_padding_value=geometry_padding_value,
         augmentation_profile=augmentation_profile,
+        cache_decoded_images=True,
     )
     if len(train_view) != len(eval_view):
         raise RuntimeError("train/eval dataset views disagree on sample count")
@@ -1104,6 +1115,7 @@ def create_protocol_dataloaders(
                 padding_value=geometry_padding_value,
             ).to_dict(),
             "augmentation_profile": augmentation_profile,
+            "decoded_image_cache": "per_worker_lossless_PIL_copy",
             "normalization": protocol_normalization(
                 output_channels=output_channels
             ),
