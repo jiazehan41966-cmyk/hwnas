@@ -5,7 +5,7 @@ from PIL import Image
 import pytest
 import torch
 
-from hwnas_fpga.data.dataset import FrozenGeometryTransform
+from hwnas_fpga.data.dataset import FrozenGeometryTransform, get_sonar_transforms
 from hwnas_fpga.experiment_contract import validate_formal_values_against_contract
 from hwnas_fpga.fourstage_operator import (
     architecture_sha256,
@@ -73,6 +73,29 @@ def test_frozen_geometry_contracts_are_deterministic_and_bounded():
     assert np.asarray(fixed(image)).shape == (224, 224)
     with pytest.raises(ValueError, match="overflows target canvas"):
         fixed(Image.new("L", (716, 714)))
+
+
+def test_cached_geometry_path_is_tensor_identical_without_augmentation():
+    image = Image.fromarray(np.arange(120 * 80, dtype=np.uint8).reshape(80, 120))
+    geometry = FrozenGeometryTransform(
+        image_size=224,
+        mode="letterbox_224",
+        padding_value=0,
+    )
+    full = get_sonar_transforms(
+        image_size=224,
+        is_training=False,
+        geometry_mode="letterbox_224",
+        augmentation_profile="none",
+    )
+    post_geometry = get_sonar_transforms(
+        image_size=224,
+        is_training=False,
+        geometry_mode="letterbox_224",
+        augmentation_profile="none",
+        geometry_already_applied=True,
+    )
+    assert torch.equal(full(image), post_geometry(geometry(image)))
 
 
 def test_inferred_groups_never_cross_stress_split():

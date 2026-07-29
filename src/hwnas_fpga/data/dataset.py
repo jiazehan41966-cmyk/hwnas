@@ -235,6 +235,7 @@ def get_sonar_transforms(
     fixed_scale_factor: float | None = None,
     geometry_padding_value: int = 0,
     augmentation_profile: str = "frozen_strong",
+    geometry_already_applied: bool = False,
 ) -> Callable:
     """
     获取声呐图像专用的数据变换。
@@ -269,14 +270,15 @@ def get_sonar_transforms(
     transforms_list = []
     
     # 调整大小
-    transforms_list.append(
-        FrozenGeometryTransform(
-            image_size=image_size,
-            mode=geometry_mode,
-            fixed_scale_factor=fixed_scale_factor,
-            padding_value=geometry_padding_value,
+    if not geometry_already_applied:
+        transforms_list.append(
+            FrozenGeometryTransform(
+                image_size=image_size,
+                mode=geometry_mode,
+                fixed_scale_factor=fixed_scale_factor,
+                padding_value=geometry_padding_value,
+            )
         )
-    )
     
     if is_training and augmentation_profile == "frozen_strong":
         # 训练时的数据增强
@@ -389,6 +391,7 @@ class NKSIDDataset(Dataset):
         geometry_padding_value: int = 0,
         augmentation_profile: str = "frozen_strong",
         cache_decoded_images: bool = False,
+        cache_geometry_images: bool = False,
     ):
         """
         初始化NKSID数据集。
@@ -422,6 +425,9 @@ class NKSIDDataset(Dataset):
         self.augmentation_profile = str(augmentation_profile).strip().lower()
         self.cache_decoded_images = bool(cache_decoded_images)
         self._decoded_image_cache: dict[str, Image.Image] = {}
+        self.cache_geometry_images = bool(cache_geometry_images)
+        self._geometry_image_cache: dict[str, Image.Image] = {}
+        self._geometry_transform: FrozenGeometryTransform | None = None
         self.image_error_policy = str(image_error_policy).strip().lower()
         if self.image_error_policy not in {"raise", "blank"}:
             raise ValueError(
@@ -439,8 +445,19 @@ class NKSIDDataset(Dataset):
         
         # 设置变换
         if transform is not None:
+            if self.cache_geometry_images:
+                raise ValueError(
+                    "cache_geometry_images is incompatible with a custom transform"
+                )
             self.transform = transform
         else:
+            if self.cache_geometry_images:
+                self._geometry_transform = FrozenGeometryTransform(
+                    image_size=image_size,
+                    mode=self.geometry_mode,
+                    fixed_scale_factor=self.fixed_scale_factor,
+                    padding_value=self.geometry_padding_value,
+                )
             self.transform = get_sonar_transforms(
                 image_size=image_size,
                 is_training=is_training,
@@ -449,6 +466,7 @@ class NKSIDDataset(Dataset):
                 fixed_scale_factor=self.fixed_scale_factor,
                 geometry_padding_value=self.geometry_padding_value,
                 augmentation_profile=self.augmentation_profile,
+                geometry_already_applied=self.cache_geometry_images,
             )
         
         # 加载数据列表
@@ -639,6 +657,13 @@ class NKSIDDataset(Dataset):
                     self._decoded_image_cache[img_path] = image.copy()
             else:
                 image = cached.copy()
+            if self._geometry_transform is not None:
+                cached_geometry = self._geometry_image_cache.get(img_path)
+                if cached_geometry is None:
+                    image = self._geometry_transform(image)
+                    self._geometry_image_cache[img_path] = image.copy()
+                else:
+                    image = cached_geometry.copy()
             
             # 应用变换
             if self.transform:
@@ -1039,6 +1064,7 @@ def create_protocol_dataloaders(
         geometry_padding_value=geometry_padding_value,
         augmentation_profile=augmentation_profile,
         cache_decoded_images=True,
+        cache_geometry_images=True,
     )
     eval_view = NKSIDDataset(
         data_dir=data_dir,
@@ -1054,6 +1080,7 @@ def create_protocol_dataloaders(
         geometry_padding_value=geometry_padding_value,
         augmentation_profile=augmentation_profile,
         cache_decoded_images=True,
+        cache_geometry_images=True,
     )
     if len(train_view) != len(eval_view):
         raise RuntimeError("train/eval dataset views disagree on sample count")
@@ -1116,6 +1143,7 @@ def create_protocol_dataloaders(
             ).to_dict(),
             "augmentation_profile": augmentation_profile,
             "decoded_image_cache": "per_worker_lossless_PIL_copy",
+            "geometry_image_cache": "per_worker_frozen_geometry_PIL_copy",
             "normalization": protocol_normalization(
                 output_channels=output_channels
             ),
