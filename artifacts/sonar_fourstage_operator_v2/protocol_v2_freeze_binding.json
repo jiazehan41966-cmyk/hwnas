@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T21:08:50.177714+00:00",
+  "generated_at": "2026-07-29T21:09:55.300755+00:00",
   "status": "PASS",
   "protocol": "nksid_outer5fold_inner_only_v2",
   "contract": {
@@ -12,7 +12,7 @@
   },
   "source_freeze": {
     "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_freeze_manifest.json",
-    "manifest_sha256": "c0925b5ee2d4cbf508970ca4bbdaa1d652fd39fbde3e3a472bb9350ee711be56",
+    "manifest_sha256": "9517c40fe166ea68b03865980ada9fde34c2768b13b67e023ee7d4b188cb308f",
     "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_snapshot.zip",
     "archive_sha256": "3075bd37d46be1082a4b9fba308388adf6113a26870b4f1a403a40a23bc3a1bd",
     "verification": {
@@ -24,11 +24,9 @@
       "changed": []
     },
     "frozen_git": {
-      "head": "b2bab94342a2ca83ee10a30f9f44f70a7585523c",
+      "head": "3a3c3d2fc84d94e6c7f79fbe5adf5bd077ef9b94",
       "branch": "codex/sonar-fourstage-operator-closure",
-      "status_porcelain": [
-        "?? artifacts/sonar_fourstage_operator_v2/source_freeze/"
-      ]
+      "status_porcelain": []
     }
   },
   "selection_evidence_checks": {
@@ -65,5 +63,5 @@
   },
   "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
   "claim_boundary": "This binds Protocol V2 preprocessing, training recipe, data/group manifests, and source snapshot. It contains no outer-validation metric.",
-  "payload_sha256": "f1bf1a9a23ceaa39fa5574e84d3d7db0e4c9a33e7d932c3ed5ecbbd3659eb5d3"
+  "payload_sha256": "e46ac242266d62208610624cc2b1d06acafd227bd137a057729f264e91c32a00"
 }
