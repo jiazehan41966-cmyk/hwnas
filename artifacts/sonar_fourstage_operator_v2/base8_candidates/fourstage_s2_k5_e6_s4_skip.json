@@ -1,0 +1,192 @@
+{
+  "candidate": {
+    "arch_id": "fourstage_s2_k5_e6_s4_skip",
+    "backbone": "nksid_fourstage_operator_v2",
+    "factorial_design": {
+      "kernel": "K5",
+      "expansion": "e6",
+      "stage4": "Skip"
+    },
+    "encoding": {
+      "input_channels": 1,
+      "stem_channels": 32,
+      "stem_stride": 2,
+      "post_stem_downsample_stride": 1,
+      "head_conv_channels": null,
+      "head_channels": null,
+      "num_classes": 8,
+      "stages": [
+        {
+          "channels": 16,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "conv",
+              "kernel_size": 1,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        },
+        {
+          "channels": 24,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 5,
+              "expand_ratio": 6,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 32,
+          "depth": 1,
+          "stride": 2,
+          "blocks": [
+            {
+              "op": "mbconv",
+              "kernel_size": 3,
+              "expand_ratio": 3,
+              "stride": 2
+            }
+          ]
+        },
+        {
+          "channels": 32,
+          "depth": 1,
+          "stride": 1,
+          "blocks": [
+            {
+              "op": "skip",
+              "kernel_size": 1,
+              "expand_ratio": 1,
+              "stride": 1
+            }
+          ]
+        }
+      ]
+    },
+    "architecture_sha256": "1fb67b177b483b8aabce6717ddc5109ea9d331e797ca0f4f6463d43ee409bfcd"
+  },
+  "claim_boundary": "Architecture encoding only. Training, INT8, HLS, route, board, and power evidence are separate.",
+  "software_cost": {
+    "parameter_count": 12864,
+    "trainable_parameter_count": 12864,
+    "macs": 51788160,
+    "input_shape": [
+      1,
+      1,
+      224,
+      224
+    ],
+    "output_shape": [
+      1,
+      8
+    ],
+    "layers": [
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 3612672,
+        "output_shape": [
+          1,
+          32,
+          112,
+          112
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 6422528,
+        "output_shape": [
+          1,
+          16,
+          112,
+          112
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 19267584,
+        "output_shape": [
+          1,
+          96,
+          112,
+          112
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 7526400,
+        "output_shape": [
+          1,
+          96,
+          56,
+          56
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 7225344,
+        "output_shape": [
+          1,
+          24,
+          56,
+          56
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 5419008,
+        "output_shape": [
+          1,
+          72,
+          56,
+          56
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 508032,
+        "output_shape": [
+          1,
+          72,
+          28,
+          28
+        ]
+      },
+      {
+        "kind": "conv2d",
+        "module": "Conv2d",
+        "macs": 1806336,
+        "output_shape": [
+          1,
+          32,
+          28,
+          28
+        ]
+      },
+      {
+        "kind": "linear",
+        "module": "Linear",
+        "macs": 256,
+        "output_shape": [
+          1,
+          8
+        ]
+      }
+    ]
+  },
+  "status": "READY_FOR_PROTOCOL_V2_FORMAL_EVALUATION",
+  "payload_sha256": "3200ffa82f71e561e2f92fae5fd1f5dcb7427c93b3222aa35be4d66ca00f7b80"
+}

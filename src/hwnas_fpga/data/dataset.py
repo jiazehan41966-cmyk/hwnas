@@ -11,6 +11,7 @@ import torch
 import numpy as np
 from pathlib import Path
 from typing import Any, Optional, Tuple, List, Callable, Union
+import math
 import os
 import re
 import random
@@ -79,6 +80,101 @@ NKSID_CLASSES = [
 ]
 
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")
+SUPPORTED_GEOMETRY_MODES = (
+    "stretch_224",
+    "letterbox_224",
+    "fixed_scale_pad_224",
+)
+SUPPORTED_AUGMENTATION_PROFILES = ("frozen_strong", "none")
+
+
+class FrozenGeometryTransform:
+    """Deterministic PIL geometry with an explicit, serializable contract."""
+
+    def __init__(
+        self,
+        *,
+        image_size: int,
+        mode: str,
+        fixed_scale_factor: float | None = None,
+        padding_value: int = 0,
+    ) -> None:
+        self.image_size = int(image_size)
+        self.mode = str(mode).strip().lower()
+        self.fixed_scale_factor = (
+            None if fixed_scale_factor is None else float(fixed_scale_factor)
+        )
+        self.padding_value = int(padding_value)
+        if self.image_size <= 0:
+            raise ValueError("image_size must be positive")
+        if self.mode not in SUPPORTED_GEOMETRY_MODES:
+            raise ValueError(
+                f"unsupported geometry mode {self.mode!r}; "
+                f"supported={SUPPORTED_GEOMETRY_MODES}"
+            )
+        if self.mode == "fixed_scale_pad_224":
+            if self.fixed_scale_factor is None or self.fixed_scale_factor <= 0:
+                raise ValueError(
+                    "fixed_scale_pad_224 requires a positive fixed_scale_factor"
+                )
+        elif self.fixed_scale_factor is not None:
+            raise ValueError(
+                "fixed_scale_factor is only valid for fixed_scale_pad_224"
+            )
+        if not 0 <= self.padding_value <= 255:
+            raise ValueError("padding_value must be in [0, 255]")
+
+    @staticmethod
+    def _round_half_up(value: float) -> int:
+        return max(1, int(math.floor(float(value) + 0.5)))
+
+    def __call__(self, image):
+        if self.mode == "stretch_224":
+            return image.resize(
+                (self.image_size, self.image_size),
+                resample=Image.Resampling.BILINEAR,
+            )
+        width, height = image.size
+        if width <= 0 or height <= 0:
+            raise ValueError(f"invalid source image size: {(width, height)}")
+        scale = (
+            min(self.image_size / width, self.image_size / height)
+            if self.mode == "letterbox_224"
+            else float(self.fixed_scale_factor)
+        )
+        resized_width = self._round_half_up(width * scale)
+        resized_height = self._round_half_up(height * scale)
+        if resized_width > self.image_size or resized_height > self.image_size:
+            raise ValueError(
+                f"{self.mode} overflows target canvas: source={(width, height)}, "
+                f"scale={scale}, resized={(resized_width, resized_height)}, "
+                f"target={self.image_size}"
+            )
+        resized = image.resize(
+            (resized_width, resized_height),
+            resample=Image.Resampling.BILINEAR,
+        )
+        canvas = Image.new(
+            image.mode,
+            (self.image_size, self.image_size),
+            color=self.padding_value,
+        )
+        left = (self.image_size - resized_width) // 2
+        top = (self.image_size - resized_height) // 2
+        canvas.paste(resized, (left, top))
+        return canvas
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode,
+            "image_size": self.image_size,
+            "fixed_scale_factor": self.fixed_scale_factor,
+            "interpolation": "PIL_bilinear",
+            "padding_value_uint8": self.padding_value,
+            "rounding": "floor(value+0.5)",
+            "alignment": "center_with_floor_top_left",
+            "overflow_policy": "fail_closed",
+        }
 
 
 def _is_image_file(path: Path) -> bool:
@@ -135,6 +231,10 @@ def get_sonar_transforms(
     is_training: bool = True,
     normalize: bool = True,
     output_channels: int = 1,
+    geometry_mode: str = "stretch_224",
+    fixed_scale_factor: float | None = None,
+    geometry_padding_value: int = 0,
+    augmentation_profile: str = "frozen_strong",
 ) -> Callable:
     """
     获取声呐图像专用的数据变换。
@@ -160,12 +260,25 @@ def get_sonar_transforms(
             "the silent resize-only fallback is disabled for formal experiments."
         )
     
+    augmentation_profile = str(augmentation_profile).strip().lower()
+    if augmentation_profile not in SUPPORTED_AUGMENTATION_PROFILES:
+        raise ValueError(
+            f"unsupported augmentation_profile={augmentation_profile!r}; "
+            f"supported={SUPPORTED_AUGMENTATION_PROFILES}"
+        )
     transforms_list = []
     
     # 调整大小
-    transforms_list.append(T.Resize((image_size, image_size)))
+    transforms_list.append(
+        FrozenGeometryTransform(
+            image_size=image_size,
+            mode=geometry_mode,
+            fixed_scale_factor=fixed_scale_factor,
+            padding_value=geometry_padding_value,
+        )
+    )
     
-    if is_training:
+    if is_training and augmentation_profile == "frozen_strong":
         # 训练时的数据增强
         transforms_list.extend([
             T.RandomHorizontalFlip(p=0.5),
@@ -183,7 +296,7 @@ def get_sonar_transforms(
     # 转换为Tensor
     transforms_list.append(T.ToTensor())
     
-    if is_training:
+    if is_training and augmentation_profile == "frozen_strong":
         # 添加物理仿真的散斑噪声
         transforms_list.append(AddSpeckleNoise(prob=0.3, variance=0.04))
     
@@ -271,6 +384,10 @@ class NKSIDDataset(Dataset):
         output_channels: int = 1, # 1 为灰度图, 3 为 RGB (适配预训练模型)
         image_error_policy: str = "raise",
         split_file_policy: str = "raise",
+        geometry_mode: str = "stretch_224",
+        fixed_scale_factor: float | None = None,
+        geometry_padding_value: int = 0,
+        augmentation_profile: str = "frozen_strong",
     ):
         """
         初始化NKSID数据集。
@@ -296,6 +413,12 @@ class NKSIDDataset(Dataset):
         self.use_kfold = use_kfold
         self.split = split
         self.output_channels = output_channels
+        self.geometry_mode = str(geometry_mode).strip().lower()
+        self.fixed_scale_factor = (
+            None if fixed_scale_factor is None else float(fixed_scale_factor)
+        )
+        self.geometry_padding_value = int(geometry_padding_value)
+        self.augmentation_profile = str(augmentation_profile).strip().lower()
         self.image_error_policy = str(image_error_policy).strip().lower()
         if self.image_error_policy not in {"raise", "blank"}:
             raise ValueError(
@@ -319,6 +442,10 @@ class NKSIDDataset(Dataset):
                 image_size=image_size,
                 is_training=is_training,
                 output_channels=output_channels,
+                geometry_mode=self.geometry_mode,
+                fixed_scale_factor=self.fixed_scale_factor,
+                geometry_padding_value=self.geometry_padding_value,
+                augmentation_profile=self.augmentation_profile,
             )
         
         # 加载数据列表
@@ -722,6 +849,10 @@ def create_nksid_dataloaders(
     valid_size: Optional[Union[int, float]] = None,
     split_seed: int = 42,
     image_error_policy: str = "raise",
+    geometry_mode: str = "stretch_224",
+    fixed_scale_factor: float | None = None,
+    geometry_padding_value: int = 0,
+    augmentation_profile: str = "frozen_strong",
 ) -> Tuple[DataLoader, DataLoader, torch.Tensor]:
     """
     创建NKSID数据集的数据加载器。
@@ -751,6 +882,10 @@ def create_nksid_dataloaders(
             use_kfold=False,
             split="full",
             image_error_policy=image_error_policy,
+            geometry_mode=geometry_mode,
+            fixed_scale_factor=fixed_scale_factor,
+            geometry_padding_value=geometry_padding_value,
+            augmentation_profile=augmentation_profile,
         )
         val_full = NKSIDDataset(
             data_dir=data_dir,
@@ -760,6 +895,10 @@ def create_nksid_dataloaders(
             use_kfold=False,
             split="full",
             image_error_policy=image_error_policy,
+            geometry_mode=geometry_mode,
+            fixed_scale_factor=fixed_scale_factor,
+            geometry_padding_value=geometry_padding_value,
+            augmentation_profile=augmentation_profile,
         )
         total = len(train_full)
         if total <= 1:
@@ -803,6 +942,10 @@ def create_nksid_dataloaders(
             use_kfold=use_kfold,
             split="train",
             image_error_policy=image_error_policy,
+            geometry_mode=geometry_mode,
+            fixed_scale_factor=fixed_scale_factor,
+            geometry_padding_value=geometry_padding_value,
+            augmentation_profile=augmentation_profile,
         )
 
         # 创建验证集
@@ -814,6 +957,10 @@ def create_nksid_dataloaders(
             use_kfold=use_kfold,
             split="val",
             image_error_policy=image_error_policy,
+            geometry_mode=geometry_mode,
+            fixed_scale_factor=fixed_scale_factor,
+            geometry_padding_value=geometry_padding_value,
+            augmentation_profile=augmentation_profile,
         )
 
         # 获取类别权重
@@ -851,6 +998,10 @@ def create_protocol_dataloaders(
     num_workers: int = 4,
     pin_memory: bool = True,
     output_channels: int = 1,
+    geometry_mode: str = "stretch_224",
+    fixed_scale_factor: float | None = None,
+    geometry_padding_value: int = 0,
+    augmentation_profile: str = "frozen_strong",
 ):
     """Create dataloaders under the frozen NKSID evaluation protocol.
 
@@ -870,6 +1021,10 @@ def create_protocol_dataloaders(
         split="full",
         output_channels=output_channels,
         image_error_policy="raise",
+        geometry_mode=geometry_mode,
+        fixed_scale_factor=fixed_scale_factor,
+        geometry_padding_value=geometry_padding_value,
+        augmentation_profile=augmentation_profile,
     )
     eval_view = NKSIDDataset(
         data_dir=data_dir,
@@ -880,6 +1035,10 @@ def create_protocol_dataloaders(
         split="full",
         output_channels=output_channels,
         image_error_policy="raise",
+        geometry_mode=geometry_mode,
+        fixed_scale_factor=fixed_scale_factor,
+        geometry_padding_value=geometry_padding_value,
+        augmentation_profile=augmentation_profile,
     )
     if len(train_view) != len(eval_view):
         raise RuntimeError("train/eval dataset views disagree on sample count")
@@ -933,6 +1092,19 @@ def create_protocol_dataloaders(
         "num_classes": num_classes,
         "classes": list(train_view.classes),
         "train_class_counts": train_class_counts,
+        "transform_contract": {
+            **FrozenGeometryTransform(
+                image_size=image_size,
+                mode=geometry_mode,
+                fixed_scale_factor=fixed_scale_factor,
+                padding_value=geometry_padding_value,
+            ).to_dict(),
+            "augmentation_profile": augmentation_profile,
+            "normalization": protocol_normalization(
+                output_channels=output_channels
+            ),
+            "output_channels": int(output_channels),
+        },
     }
 
 

@@ -23,6 +23,7 @@ vivado*.log
 vivado*.jou
 clockInfo.txt
 results-launch/*.nohup.log
+results-launch/*.log
 !artifacts/**/results/
 !artifacts/**/results/**
 artifacts/**/*.pkl

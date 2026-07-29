@@ -1,0 +1,143 @@
+schema_version: 2
+protocol: nksid_outer5fold_inner_only_protocol_v2_selection
+status: PREREGISTERED
+outer_validation_access: FORBIDDEN
+selection_anchor:
+  architecture_id: fourstage_s2_k3_e3_s4_mbconv_k3_e3
+  encoding_source: ArchitectureSpec_StageSpec_BlockSpec
+selection_units:
+  outer_folds: [0, 1, 2, 3, 4]
+  seeds: [42, 43, 44]
+  historical_inner:
+    source: outer_train_only
+    method: per_class_contiguous_filename_block
+    fraction: 0.15
+  inferred_stress_inner:
+    source: outer_train_only
+    method: same_class_dhash64_connected_components
+    hamming_threshold: 4
+    fraction: 0.15
+    claim_boundary: inferred perceptual-hash clusters are not acquisition or mission groups
+bundle_gate:
+  split: historical_inner
+  complete_bundle_only: true
+  candidates:
+    v1:
+      augmentation_profile: frozen_strong
+      optimizer: adamw
+      weight_decay: 0.0001
+      label_smoothing: 0.1
+      logit_adjust_tau: 1.0
+      lr: 0.001
+      scheduler: cosine_with_warmup
+      warmup_epochs: 5
+      min_lr_ratio: 0.01
+    plain_ce:
+      augmentation_profile: none
+      optimizer: adamw
+      weight_decay: 0.0
+      label_smoothing: 0.0
+      logit_adjust_tau: 0.0
+      lr: 0.001
+      scheduler: cosine_with_warmup
+      warmup_epochs: 0
+      min_lr_ratio: 0.01
+  decision:
+    primary_metric: inner_macro_f1
+    paired_unit: [fold, seed]
+    select_plain_ce_if:
+      mean_delta_plain_minus_v1_gt: 0.0
+      positive_fold_means_at_least: 4
+    otherwise: v1
+geometry_gate:
+  bundle: selected_by_bundle_gate
+  compare_on_splits: [historical_inner, inferred_stress_inner]
+  candidates:
+    stretch_224:
+      interpolation: PIL_bilinear
+    letterbox_224:
+      interpolation: PIL_bilinear
+      padding_value_uint8: 0
+      rounding: floor(value+0.5)
+      alignment: center_with_floor_top_left
+    fixed_scale_pad_224:
+      fixed_scale_factor: 0.3137254901960784
+      scale_derivation: 224 / global_max_source_dimension_714
+      interpolation: PIL_bilinear
+      padding_value_uint8: 0
+      rounding: floor(value+0.5)
+      alignment: center_with_floor_top_left
+      overflow_policy: fail_closed
+  decision:
+    primary_metric: inner_macro_f1
+    require_pairwise_direction_consistency_across_splits: true
+    rank_by: maximum_of_the_minimum_split_mean
+    inconsistent_fallback: stretch_224
+training:
+  epochs: 150
+  batch_size: 8
+  gradient_accumulation_steps: 4
+  effective_batch_size: 32
+  amp: true
+  checkpoint_selection: inner_macro_f1
+  early_stopping_patience: null
+formal_outer_evaluation:
+  enabled_only_after_protocol_v2_freeze: true
+  folds: [0, 1, 2, 3, 4]
+  seeds: [42, 43, 44]
+  checkpoint_selection: inner_only
+  outer_evaluations_per_run: 1
+  primary_metric: macro_f1
+  supporting_metrics:
+    - top1
+    - weighted_f1
+    - per_class_f1
+    - per_class_recall
+direction_gate:
+  inputs: outer_train_only
+  geometries: [stretch_224, letterbox_224, fixed_scale_pad_224]
+  rotations_degrees: [15, 45, 90]
+  rotation_order: frozen_geometry_then_center_rotation
+  rotation_interpolation: PIL_bilinear
+  rotation_fill_uint8: 0
+  sobel_definition:
+    Gx: horizontal_intensity_derivative_vertical_edge_response
+    Gy: vertical_intensity_derivative_horizontal_edge_response
+    Eh: mean_abs_Gx
+    Ev: mean_abs_Gy
+  tests:
+    unsigned_anisotropy_ci95_low_gt: 0.05
+    axial_resultant_length_gt: 0.10
+    consistent_fold_direction_at_least: 4
+    rotation90_macro_f1_mean_drop_gt: 0.01
+    rotation90_negative_fold_means_at_least: 4
+    anisotropy_loss_association_holm_alpha: 0.05
+    anisotropy_loss_association_direction: positive
+  multiple_comparison_families:
+    signed_direction_across_three_geometries: Holm
+    between_class_across_three_geometries: Holm
+    anisotropy_loss_across_three_rotation_angles: Holm
+  failure_status: NO_DIRECTIONAL_BASIS
+robustness:
+  perturbation_order: [speckle, blur, contrast]
+  speckle_variance: [0.01, 0.04, 0.09]
+  gaussian_blur_radius: [0.5, 1.0, 1.5]
+  contrast_factor: [0.75, 0.5, 0.25]
+  aggregation: mean_over_perturbation_and_severity
+  clean_noninferiority_robust_drop_max: 0.01
+dir_admission:
+  comparisons: [dir_vs_mbconv_k3_e3, dir_vs_mbconv_k5_e3]
+  paired_runs_per_comparison: 15
+  delta_vs_k3_mean_min: 0.01
+  bootstrap_ci95_low_gt: 0.0
+  positive_fold_means_at_least: 4
+  k5_noninferiority_margin: -0.005
+  multiple_comparison_correction: Holm
+  p_value_is_sole_gate: false
+hardware:
+  target_board: alinx_av7k325
+  target_part: xc7k325t
+  clock_period_ns: 5.0
+  route_wns_min_ns: 0.0
+  route_dsp_max: 700
+  power_status_without_external_meter: NOT_MEASURED

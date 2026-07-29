@@ -70,6 +70,11 @@ from hwnas_fpga.benchmarks.plud import (
 )
 from hwnas_fpga.models import build_model
 from hwnas_fpga.models.backbones import build_backbone
+from hwnas_fpga.experiment_contract import (
+    experiment_contract_provenance,
+    load_experiment_contract,
+    validate_formal_values_against_contract,
+)
 from hwnas_fpga.training import load_architecture_from_artifact
 from hwnas_fpga.training.recipe import RecipeConfig, train_with_recipe
 from hwnas_fpga.training.protocol_reporting import (
@@ -679,9 +684,27 @@ def main() -> int:
         help="enable CUDA automatic mixed precision (ignored on CPU)",
     )
     parser.add_argument("--image-size", type=int, default=224)
+    parser.add_argument(
+        "--geometry-mode",
+        choices=("stretch_224", "letterbox_224", "fixed_scale_pad_224"),
+        default="stretch_224",
+    )
+    parser.add_argument("--fixed-scale-factor", type=float, default=None)
+    parser.add_argument("--geometry-padding-value", type=int, default=0)
+    parser.add_argument(
+        "--augmentation-profile",
+        choices=("frozen_strong", "none"),
+        default="frozen_strong",
+    )
+    parser.add_argument(
+        "--experiment-contract",
+        default=None,
+        help="frozen protocol YAML whose preprocessing and recipe fields are enforced",
+    )
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--warmup-epochs", type=int, default=5)
+    parser.add_argument("--min-lr-ratio", type=float, default=0.01)
     parser.add_argument("--label-smoothing", type=float, default=0.1)
     parser.add_argument("--logit-adjust-tau", type=float, default=1.0,
                         help="0 disables logit adjustment (plain smoothed CE)")
@@ -770,12 +793,48 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     environment_card = environment_card_provenance(args)
     source_freeze = source_freeze_provenance(args.source_freeze_manifest)
+    experiment_contract = None
+    experiment_contract_ref = None
+    if args.experiment_contract:
+        contract_path, experiment_contract = load_experiment_contract(
+            args.experiment_contract
+        )
+        if experiment_contract.get("status") != "FROZEN":
+            raise ValueError("formal evaluation requires a FROZEN experiment contract")
+        binding_path = Path(
+            experiment_contract["source_freeze_binding"]["binding_summary_path"]
+        )
+        if not binding_path.is_absolute():
+            binding_path = (Path.cwd() / binding_path).resolve()
+        binding = json.loads(binding_path.read_text(encoding="utf-8"))
+        if binding.get("status") != "PASS":
+            raise ValueError("Protocol V2 source-freeze binding is not PASS")
+        if binding.get("contract", {}).get("sha256") != sha256_file(contract_path):
+            raise ValueError("Protocol V2 contract hash conflicts with freeze binding")
+        if source_freeze is None or source_freeze.get("verification_status") != "PASS":
+            raise ValueError("formal Protocol V2 evaluation requires verified source freeze")
+        if (
+            binding.get("source_freeze", {}).get("manifest_sha256")
+            != source_freeze.get("manifest_sha256")
+        ):
+            raise ValueError(
+                "runtime source-freeze manifest conflicts with Protocol V2 binding"
+            )
+        experiment_contract_ref = experiment_contract_provenance(
+            contract_path, experiment_contract
+        )
+        experiment_contract_ref["source_freeze_binding"] = {
+            "path": str(binding_path),
+            "sha256": sha256_file(binding_path),
+            "status": binding["status"],
+        }
 
     recipe = RecipeConfig(
         epochs=args.epochs,
         lr=args.lr,
         weight_decay=args.weight_decay,
         warmup_epochs=args.warmup_epochs,
+        min_lr_ratio=args.min_lr_ratio,
         label_smoothing=args.label_smoothing,
         logit_adjust_tau=args.logit_adjust_tau,
         early_stopping_patience=args.early_stopping_patience,
@@ -883,6 +942,29 @@ def main() -> int:
         if plud_recipe
         else recipe.to_dict()
     )
+    if experiment_contract is not None:
+        if args.task != "closed_set" or args.adapter_id != "builtin":
+            raise ValueError(
+                "the frozen NKSID experiment contract is only supported for "
+                "builtin closed-set evaluation"
+            )
+        validate_formal_values_against_contract(
+            contract=experiment_contract,
+            observed_dataset={
+                "image_size": args.image_size,
+                "input_channels": 1,
+                "geometry_mode": args.geometry_mode,
+                "fixed_scale_factor": args.fixed_scale_factor,
+                "geometry_padding_value": args.geometry_padding_value,
+                "augmentation_profile": args.augmentation_profile,
+                "inner_val_fraction": args.inner_val_fraction,
+            },
+            observed_recipe={
+                **active_recipe,
+                "scheduler": "cosine_with_warmup",
+                "batch_size": args.batch_size,
+            },
+        )
 
     data_provenance = dataset_provenance(args.data_dir)
     candidate_provenance = None
@@ -894,7 +976,9 @@ def main() -> int:
         }
     code_provenance = git_code_provenance(run_dir)
     protocol_name = (
-        "nksid_outer5fold_inner_contiguous_v1"
+        str(experiment_contract["protocol"])
+        if experiment_contract is not None
+        else "nksid_outer5fold_inner_contiguous_v1"
         if args.task == "closed_set"
         else "nksid_open_long_tail_5known_3unknown_v1"
     )
@@ -927,6 +1011,15 @@ def main() -> int:
         "recipe": active_recipe,
         "batch_size": args.batch_size,
         "image_size": args.image_size,
+        "geometry": {
+            "mode": args.geometry_mode,
+            "fixed_scale_factor": args.fixed_scale_factor,
+            "padding_value": args.geometry_padding_value,
+            "rounding": "round_half_up",
+            "alignment": "center_floor_top_left",
+        },
+        "augmentation_profile": args.augmentation_profile,
+        "experiment_contract": experiment_contract_ref,
         "normalization": protocol_normalization(output_channels=1),
         "group_split_available": False,
         "group_generalization_claimable": False,
@@ -975,6 +1068,9 @@ def main() -> int:
             "group_generalization_claimable": False,
             "group_metadata_source": None,
             "normalization": immutable_config["normalization"],
+            "geometry": immutable_config["geometry"],
+            "augmentation_profile": args.augmentation_profile,
+            "experiment_contract": experiment_contract_ref,
         },
         "planned_pairs": [
             {"fold": fold, "seed": seed} for fold in folds for seed in seeds
@@ -1021,6 +1117,14 @@ def main() -> int:
                 "num_workers": args.num_workers,
             }
             if args.task == "closed_set":
+                loader_kwargs.update(
+                    {
+                        "geometry_mode": args.geometry_mode,
+                        "fixed_scale_factor": args.fixed_scale_factor,
+                        "geometry_padding_value": args.geometry_padding_value,
+                        "augmentation_profile": args.augmentation_profile,
+                    }
+                )
                 bundle = create_protocol_dataloaders(args.data_dir, **loader_kwargs)
             else:
                 bundle = create_open_set_protocol_dataloaders(
@@ -1181,6 +1285,9 @@ def main() -> int:
                 "adapter_source": immutable_config["adapter_source"],
                 "selection_provenance": selection_provenance,
                 "normalization": immutable_config["normalization"],
+                "geometry": immutable_config["geometry"],
+                "augmentation_profile": args.augmentation_profile,
+                "experiment_contract": experiment_contract_ref,
                 "group_split_available": False,
                 "group_generalization_claimable": False,
                 "runtime_measurement": finish_unit_runtime_measurement(
@@ -1215,6 +1322,9 @@ def main() -> int:
                     "protocol_context_sha256": protocol_context_sha256,
                     "split_sha256": record["split_sha256"],
                     "normalization": immutable_config["normalization"],
+                    "geometry": immutable_config["geometry"],
+                    "augmentation_profile": args.augmentation_profile,
+                    "experiment_contract": experiment_contract_ref,
                     "group_split_available": False,
                     "group_generalization_claimable": False,
                     "source_freeze": source_freeze,
@@ -1377,6 +1487,7 @@ def main() -> int:
             "dataset": data_provenance,
             "candidate": candidate_provenance,
             "source_freeze": source_freeze,
+            "experiment_contract": experiment_contract_ref,
             "manifest": str(manifest_path.resolve()),
         },
         "recipe": active_recipe,

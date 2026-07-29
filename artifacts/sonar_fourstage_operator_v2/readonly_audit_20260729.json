@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "audit": "sonar_fourstage_operator_v2_readonly_preflight",
+  "observed_at": "2026-07-29T19:00:00+08:00",
+  "authoritative_original_worktree": {
+    "path": "E:\\1\\hwnas\\hwnas",
+    "branch": "codex/g5-sonar-complete-experiment",
+    "head": "89b403118ee801daa56d92606ee304abf6534e42",
+    "upstream_head": "89b403118ee801daa56d92606ee304abf6534e42",
+    "dirty_porcelain_entry_count": 89,
+    "protection_action": "No original dirty file was edited or removed. Implementation moved to an independent worktree.",
+    "relevant_active_python_or_vivado_processes": []
+  },
+  "independent_worktree": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "base_head": "89b403118ee801daa56d92606ee304abf6534e42"
+  },
+  "completed_and_reusable": [
+    {
+      "evidence": "E:\\1\\hwnas\\hwnas\\configs\\evaluation\\nksid_frozen_protocol_v1.yaml",
+      "sha256": "79a93cee893bf0c5db363cb61ea46cfa092ff6df6fbeca8b4ea8884623da68c5",
+      "reuse": "Protocol V1 provenance and split boundary only; not Protocol V2 evidence."
+    },
+    {
+      "evidence": "E:\\1\\hwnas\\hwnas\\configs\\search\\nas_board_lut_strict_current84_arch84_nksid_full_rl300_eval10_cuda_av7k325.yaml",
+      "sha256": "f02232089d29c05b585fde34028b48ba94b2aca2496cfde2fbb33cca364088fe",
+      "reuse": "Frozen four-stage declared space and unified V1 search-proxy recipe contract."
+    },
+    {
+      "evidence": "E:\\1\\hwnas\\hwnas\\artifacts\\search_runtime_contract\\current84_contract_audit.json",
+      "sha256": "faa961d788c574da53fa24cc01caea9e1dc0a2219124e5bb1c5910fcd7a57c5e",
+      "status": "PASS",
+      "records": 3,
+      "declared_equals_effective_for_all_records": true,
+      "k5_declared_and_sampled_for_all_records": true,
+      "sample_probe_per_record": 128,
+      "shared_contract_content_sha256": "4f564fc657a9d95644c6b60f14c8e47e41274be6daa3cc7a71410c03779cdad5",
+      "boundary": "Configuration/runtime contract only; no classification, HLS, route, board, or power claim."
+    },
+    {
+      "evidence": "E:\\1\\hwnas\\hwnas\\artifacts\\benchmarks\\ccf_ab_nksid_av7k325_v1\\diagnostics\\g1_recipe_factor_seed43_44_v1.json",
+      "sha256": "da94bd156f7f2a954e6227d037ab3f075fabfaf179d81c1ed1c560d1c5bd6bbd",
+      "status": "RECIPE_FACTOR_REPLICATED_ON_SEEDS_43_44",
+      "plain_ce_minus_frozen_inner_macro_f1": [
+        0.2013702302305317,
+        0.21482078210074806
+      ],
+      "boundary": "Fold 0 seeds 43/44 inner-only mechanism diagnostic; not a complete Bundle selection."
+    },
+    {
+      "evidence": "E:\\1\\hwnas\\hwnas\\artifacts\\sonar_operator_gate\\g5_ablation_complete_record.json",
+      "sha256": "2ce72fbf9b25142e0abee5f5fdd542a2cae9e16b88b477b0f3791604cb4fc308",
+      "boundary": "Completed historical G5 evidence uses Protocol V1 and a different architecture skeleton; it cannot be relabeled as this experiment."
+    }
+  ],
+  "missing_before_implementation": [
+    "configs/evaluation/nksid_frozen_protocol_v2.yaml",
+    "complete inner-only Bundle comparison across folds 0-4 and seeds 42/43/44",
+    "three-way geometry comparison on historical and inferred-stress inner splits",
+    "complete base8 Protocol V2 outer evaluation",
+    "NKSID direction diagnostic",
+    "dir_mbconv3_split11_e3_v1 implementation and mechanism control",
+    "Dir INT8/HLS/RTL/full-network route evidence",
+    "external-meter power CSV evidence"
+  ],
+  "conflicts_with_requested_plan": [
+    "Existing G5 operator conclusions are Protocol V1 and cannot be reused as Protocol V2 admission.",
+    "Existing eval10 and short-budget records are exploratory and cannot establish factorial effects.",
+    "Strict LUT and HLS estimates are not full-network route evidence.",
+    "COM5 identifies a CP210x UART bridge and is not a power-monitor measurement path.",
+    "NKSID contains no real acquisition or mission group metadata; perceptual-hash clusters remain inferred stress groups only."
+  ],
+  "resources": {
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, CUDA available through E:\\1\\hwnas\\hwnas\\.venv_cuda\\Scripts\\python.exe",
+    "vivado": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+    "vitis_hls": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "board_uart": "COM5 CP210x present",
+    "external_power_meter_evidence": "NOT_MEASURED"
+  }
+}

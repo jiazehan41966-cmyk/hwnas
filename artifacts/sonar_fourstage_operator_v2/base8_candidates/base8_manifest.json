@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "design": "2x2x2_full_factorial",
+  "factors": {
+    "kernel": [
+      "K3",
+      "K5"
+    ],
+    "expansion": [
+      "e3",
+      "e6"
+    ],
+    "stage4": [
+      "MBConv",
+      "Skip"
+    ]
+  },
+  "candidate_count": 8,
+  "encoding": "ArchitectureSpec_StageSpec_BlockSpec",
+  "macroarchitecture_frozen": true,
+  "rows": [
+    {
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k3_e3_s4_mbconv_k3_e3.json",
+      "factors": {
+        "kernel": "K3",
+        "expansion": "e3",
+        "stage4": "MBConv"
+      },
+      "architecture_sha256": "f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98",
+      "parameter_count": 16240,
+      "macs": 37864320
+    },
+    {
+      "arch_id": "fourstage_s2_k3_e3_s4_skip",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k3_e3_s4_skip.json",
+      "factors": {
+        "kernel": "K3",
+        "expansion": "e3",
+        "stage4": "Skip"
+      },
+      "architecture_sha256": "d900357ca51bcc483213b2b0e0868728ad93e8e70600c94e06f81d1d8a5762b4",
+      "parameter_count": 8784,
+      "macs": 32370048
+    },
+    {
+      "arch_id": "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k3_e6_s4_mbconv_k3_e3.json",
+      "factors": {
+        "kernel": "K3",
+        "expansion": "e6",
+        "stage4": "MBConv"
+      },
+      "architecture_sha256": "cad054d5706c8e30a32b655981b5fea4446af428010b498cb07aadc1d4a23a7a",
+      "parameter_count": 18784,
+      "macs": 52465536
+    },
+    {
+      "arch_id": "fourstage_s2_k3_e6_s4_skip",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k3_e6_s4_skip.json",
+      "factors": {
+        "kernel": "K3",
+        "expansion": "e6",
+        "stage4": "Skip"
+      },
+      "architecture_sha256": "11ef7c5193b0f31f3a58f5a277698a23cfccb65c12110c46cb4dc8f1a6818df0",
+      "parameter_count": 11328,
+      "macs": 46971264
+    },
+    {
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k5_e3_s4_mbconv_k3_e3.json",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e3",
+        "stage4": "MBConv"
+      },
+      "architecture_sha256": "6e01d4ef53a838ed82d0f61d59c5e8f9f52bb2e1f82ab337d1f05248f7c7bc8f",
+      "parameter_count": 17008,
+      "macs": 40272768
+    },
+    {
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k5_e3_s4_skip.json",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e3",
+        "stage4": "Skip"
+      },
+      "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9",
+      "parameter_count": 9552,
+      "macs": 34778496
+    },
+    {
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k5_e6_s4_mbconv_k3_e3.json",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e6",
+        "stage4": "MBConv"
+      },
+      "architecture_sha256": "9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d",
+      "parameter_count": 20320,
+      "macs": 57282432
+    },
+    {
+      "arch_id": "fourstage_s2_k5_e6_s4_skip",
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_candidates\\fourstage_s2_k5_e6_s4_skip.json",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e6",
+        "stage4": "Skip"
+      },
+      "architecture_sha256": "1fb67b177b483b8aabce6717ddc5109ea9d331e797ca0f4f6463d43ee409bfcd",
+      "parameter_count": 12864,
+      "macs": 51788160
+    }
+  ],
+  "claim_boundary": "Parameter and MAC counts are exact software graph counts. They are not LUT, HLS, route, board, latency, or power measurements.",
+  "payload_sha256": "85a1a6601671981a5ff8055f777294c1f57ceb95e96572dcd48a77be419508ee"
+}
