@@ -1,11 +1,13 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-31T19:40:07.712955+00:00",
+  "generated_at": "2026-07-31T19:42:27.252239+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure",
   "git": {
-    "head": "ff220568990b9d805867e0fd427d2cb705491295",
+    "head": "7c40f87e4d2dcbdb65bddde63ceb731450cb3e42",
     "branch": "codex/sonar-fourstage-operator-closure",
-    "status_porcelain": []
+    "status_porcelain": [
+      "M artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip"
+    ]
   },
   "excluded_prefixes": [
     ".git/",
@@ -34,7 +36,7 @@
     "artifacts/sonar_fourstage_operator_v2/extended_candidates/fourstage_s2_k5_e3_s4_mbconv_k5_e3.json",
     "artifacts/sonar_fourstage_operator_v2/extended_candidates/fourstage_s2_k5_e6_s4_mbconv_k5_e3.json"
   ],
-  "file_count": 602,
+  "file_count": 603,
   "files": [
     {
       "path": ".gitignore",
@@ -2047,6 +2049,11 @@
       "sha256": "d8e2e6552107cfc4582f1e9a3651afa2f1fb91af3809b2d3c207b607aefcc6a2"
     },
     {
+      "path": "scripts/run_fourstage_extended_formal.py",
+      "bytes": 11178,
+      "sha256": "71f516f1a8cc44bb4273baa822c6d49d9277a8e9ca6695ccf9f5b6d948d8a540"
+    },
+    {
       "path": "scripts/run_g1_baseline_trio.ps1",
       "bytes": 2266,
       "sha256": "b6dff6c02a3ffa57e350a80a1a62a545cba7ea3120b93aca9741e6eb88ff24cf"
@@ -3049,7 +3056,7 @@
   ],
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_snapshot.zip",
-    "bytes": 1601881,
-    "sha256": "bea25e76d68ba212f5e8991cbc574dff48d871cd463baa761a9a7a5081ebd2b1"
+    "bytes": 1605175,
+    "sha256": "2e87165ceb451a5bdfc00e877ead5129a4b092ea59d133bb882a663ed7b81af6"
   }
 }
