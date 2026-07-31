@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-31T12:22:21.546497+00:00",
+  "generated_at": "2026-07-31T19:40:20.899462+00:00",
   "status": "PASS",
   "protocol": "nksid_outer5fold_inner_only_v2",
   "contract": {
@@ -11,20 +11,20 @@
     "matches_snapshot": true
   },
   "source_freeze": {
-    "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\dir_v1_source_freeze\\source_freeze_manifest.json",
-    "manifest_sha256": "3df06bbb347cf5736284569cf54a98a571c4000bcbd177fd5aa928e592ccdee7",
-    "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\dir_v1_source_freeze\\source_snapshot.zip",
-    "archive_sha256": "2af5b090961a6fb0917dcbc59160f8d4e0dfd105fc7e5debac610387a039c03b",
+    "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_freeze_manifest.json",
+    "manifest_sha256": "d77e6e5ed8a0597594972b20e3afecd7fb602c515eda2b4571648e66904b2168",
+    "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_snapshot.zip",
+    "archive_sha256": "bea25e76d68ba212f5e8991cbc574dff48d871cd463baa761a9a7a5081ebd2b1",
     "verification": {
       "status": "PASS",
-      "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\dir_v1_source_freeze\\source_freeze_manifest.json",
-      "expected_file_count": 592,
+      "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_freeze_manifest.json",
+      "expected_file_count": 602,
       "missing": [],
       "unexpected": [],
       "changed": []
     },
     "frozen_git": {
-      "head": "9b71abade1e4933004caf8216924af8fd4885c63",
+      "head": "ff220568990b9d805867e0fd427d2cb705491295",
       "branch": "codex/sonar-fourstage-operator-closure",
       "status_porcelain": []
     }
@@ -63,5 +63,5 @@
   },
   "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
   "claim_boundary": "This binds Protocol V2 preprocessing, training recipe, data/group manifests, and source snapshot. It contains no outer-validation metric.",
-  "payload_sha256": "b2bc44d2da9cfbc66451092d9f0c85c81167834b9e5c32920ccd45968f642fcd"
+  "payload_sha256": "a05c3fbf0b0cfd81bce6d60a27b88ef6f1ea3a4f19be0c8d66313ae16ff4fbbf"
 }
