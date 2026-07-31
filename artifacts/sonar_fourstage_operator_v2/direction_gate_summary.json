@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-31T12:08:19.396845+00:00",
+  "status": "DIRECTIONAL_BASIS_PASS",
+  "outer_validation_accessed": false,
+  "selected_bundle": "plain_ce",
+  "selected_geometry": "stretch_224",
+  "sobel_definition": {
+    "Gx": "horizontal_intensity_derivative_vertical_edge_response",
+    "Gy": "vertical_intensity_derivative_horizontal_edge_response",
+    "Eh": "mean_abs_Gx",
+    "Ev": "mean_abs_Gy"
+  },
+  "image_only_analysis": {
+    "stretch_224": {
+      "folds": {
+        "0": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.3676417914831251,
+          "unsigned_anisotropy_mean": 0.375694039063644,
+          "structure_tensor_axial_resultant_length": 0.9180886503431704
+        },
+        "1": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.36856614341650884,
+          "unsigned_anisotropy_mean": 0.3774355966484343,
+          "structure_tensor_axial_resultant_length": 0.9129093176209879
+        },
+        "2": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.3675681214639493,
+          "unsigned_anisotropy_mean": 0.3765524881643997,
+          "structure_tensor_axial_resultant_length": 0.9163055773296609
+        },
+        "3": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.363908697515688,
+          "unsigned_anisotropy_mean": 0.372062471635101,
+          "structure_tensor_axial_resultant_length": 0.9136421299762831
+        },
+        "4": {
+          "sample_count": 2080,
+          "signed_direction_ratio_mean": -0.36937102984383874,
+          "unsigned_anisotropy_mean": 0.3788482298988173,
+          "structure_tensor_axial_resultant_length": 0.9165091813335092
+        }
+      },
+      "signed_direction_ratio_fold_mean": -0.367411156744622,
+      "signed_direction_exact_fold_sign_flip_p": 0.0625,
+      "dominant_sign": -1,
+      "consistent_fold_direction_count": 5,
+      "unsigned_anisotropy_fold_mean": 0.37611856508207925,
+      "unsigned_anisotropy_fold_bootstrap_ci95": [
+        0.37386341012347624,
+        0.37792993320505025
+      ],
+      "structure_tensor_axial_resultant_length": 0.9154865594180261,
+      "per_class_signed_direction": {
+        "0": {
+          "n": 203,
+          "mean": -0.18379574464209167,
+          "std": 0.16443893410045704
+        },
+        "1": {
+          "n": 288,
+          "mean": -0.2618088520264773,
+          "std": 0.1819377091590268
+        },
+        "2": {
+          "n": 20,
+          "mean": -0.47290808199990053,
+          "std": 0.2557024974449107
+        },
+        "3": {
+          "n": 951,
+          "mean": -0.40707406735812945,
+          "std": 0.14434052160408087
+        },
+        "4": {
+          "n": 112,
+          "mean": -0.061726019504193506,
+          "std": 0.1527391791099007
+        },
+        "5": {
+          "n": 94,
+          "mean": -0.1655230919326397,
+          "std": 0.14295967081284883
+        },
+        "6": {
+          "n": 115,
+          "mean": -0.28214906051793,
+          "std": 0.2673656184224627
+        },
+        "7": {
+          "n": 834,
+          "mean": -0.47636685337020995,
+          "std": 0.13225906106470192
+        }
+      },
+      "within_class_mean_std": 0.1802178989647987,
+      "between_class": {
+        "eta_squared": 0.3680234116210729,
+        "permutation_p": 9.999000099990002e-05,
+        "iterations": 10000,
+        "holm_p": 0.00029997000299970003
+      },
+      "signed_direction_holm_p": 0.1875
+    },
+    "letterbox_224": {
+      "folds": {
+        "0": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.21505918512961236,
+          "unsigned_anisotropy_mean": 0.21864541762050224,
+          "structure_tensor_axial_resultant_length": 0.7891364117643491
+        },
+        "1": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.2160340641365986,
+          "unsigned_anisotropy_mean": 0.2192041743608631,
+          "structure_tensor_axial_resultant_length": 0.7954097001308037
+        },
+        "2": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.2137750195431748,
+          "unsigned_anisotropy_mean": 0.21758966846898603,
+          "structure_tensor_axial_resultant_length": 0.7891984351949759
+        },
+        "3": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.21456212563323795,
+          "unsigned_anisotropy_mean": 0.21833564956975096,
+          "structure_tensor_axial_resultant_length": 0.7871793547804739
+        },
+        "4": {
+          "sample_count": 2080,
+          "signed_direction_ratio_mean": -0.2159955930792683,
+          "unsigned_anisotropy_mean": 0.21963143939057897,
+          "structure_tensor_axial_resultant_length": 0.78158891168278
+        }
+      },
+      "signed_direction_ratio_fold_mean": -0.21508519750437838,
+      "signed_direction_exact_fold_sign_flip_p": 0.0625,
+      "dominant_sign": -1,
+      "consistent_fold_direction_count": 5,
+      "unsigned_anisotropy_fold_mean": 0.21868126988213626,
+      "unsigned_anisotropy_fold_bootstrap_ci95": [
+        0.2180617658675144,
+        0.21928682842047018
+      ],
+      "structure_tensor_axial_resultant_length": 0.7884941909249936,
+      "per_class_signed_direction": {
+        "0": {
+          "n": 203,
+          "mean": -0.2637503611050101,
+          "std": 0.17794607559811254
+        },
+        "1": {
+          "n": 288,
+          "mean": -0.22425477872850783,
+          "std": 0.1311338849184953
+        },
+        "2": {
+          "n": 20,
+          "mean": -0.09496445421456925,
+          "std": 0.0783276602681224
+        },
+        "3": {
+          "n": 951,
+          "mean": -0.25204724069521955,
+          "std": 0.13218142469636227
+        },
+        "4": {
+          "n": 112,
+          "mean": -0.16720375785816696,
+          "std": 0.08699167420136814
+        },
+        "5": {
+          "n": 94,
+          "mean": -0.19693552533575595,
+          "std": 0.15636853038523105
+        },
+        "6": {
+          "n": 115,
+          "mean": -0.13959432412299277,
+          "std": 0.1371369987945684
+        },
+        "7": {
+          "n": 834,
+          "mean": -0.17968713499804867,
+          "std": 0.08532105989817786
+        }
+      },
+      "within_class_mean_std": 0.12317591359505474,
+      "between_class": {
+        "eta_squared": 0.09392420290240723,
+        "permutation_p": 9.999000099990002e-05,
+        "iterations": 10000,
+        "holm_p": 0.00029997000299970003
+      },
+      "signed_direction_holm_p": 0.1875
+    },
+    "fixed_scale_pad_224": {
+      "folds": {
+        "0": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.017695451638060595,
+          "unsigned_anisotropy_mean": 0.09580719496672815,
+          "structure_tensor_axial_resultant_length": 0.17833675256641549
+        },
+        "1": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.017134683398991556,
+          "unsigned_anisotropy_mean": 0.09669886186503993,
+          "structure_tensor_axial_resultant_length": 0.16844852865682233
+        },
+        "2": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.015552087365861727,
+          "unsigned_anisotropy_mean": 0.09513381606632038,
+          "structure_tensor_axial_resultant_length": 0.17821973502486796
+        },
+        "3": {
+          "sample_count": 2097,
+          "signed_direction_ratio_mean": -0.01780116286313545,
+          "unsigned_anisotropy_mean": 0.09546405352111938,
+          "structure_tensor_axial_resultant_length": 0.17624805974002672
+        },
+        "4": {
+          "sample_count": 2080,
+          "signed_direction_ratio_mean": -0.016618881813954114,
+          "unsigned_anisotropy_mean": 0.09505530122932405,
+          "structure_tensor_axial_resultant_length": 0.17541521734929819
+        }
+      },
+      "signed_direction_ratio_fold_mean": -0.01696045341600069,
+      "signed_direction_exact_fold_sign_flip_p": 0.0625,
+      "dominant_sign": -1,
+      "consistent_fold_direction_count": 5,
+      "unsigned_anisotropy_fold_mean": 0.09563184552970638,
+      "unsigned_anisotropy_fold_bootstrap_ci95": [
+        0.09516845762248163,
+        0.0962049385274717
+      ],
+      "structure_tensor_axial_resultant_length": 0.1752917194574597,
+      "per_class_signed_direction": {
+        "0": {
+          "n": 203,
+          "mean": -0.11601013976713374,
+          "std": 0.14108607670757553
+        },
+        "1": {
+          "n": 288,
+          "mean": -0.034979574603850046,
+          "std": 0.10495932886792754
+        },
+        "2": {
+          "n": 20,
+          "mean": 0.01925097201499109,
+          "std": 0.11258178598742348
+        },
+        "3": {
+          "n": 951,
+          "mean": -0.014466565871000668,
+          "std": 0.09236956905134489
+        },
+        "4": {
+          "n": 112,
+          "mean": -0.12274097663437114,
+          "std": 0.1008744124374907
+        },
+        "5": {
+          "n": 94,
+          "mean": -0.0677164714784033,
+          "std": 0.12408195580901454
+        },
+        "6": {
+          "n": 115,
+          "mean": 0.06197827190449959,
+          "std": 0.22334757072622324
+        },
+        "7": {
+          "n": 834,
+          "mean": 0.018698727488822904,
+          "std": 0.11755295947047713
+        }
+      },
+      "within_class_mean_std": 0.12710670738218463,
+      "between_class": {
+        "eta_squared": 0.13249819752081995,
+        "permutation_p": 9.999000099990002e-05,
+        "iterations": 10000,
+        "holm_p": 0.00029997000299970003
+      },
+      "signed_direction_holm_p": 0.1875
+    }
+  },
+  "rotation_inner_only_analysis": {
+    "15": {
+      "rotated_minus_clean_macro_f1_mean": -0.23137931371046502,
+      "per_fold_mean": {
+        "0": -0.18699921462061506,
+        "1": -0.27344921799317773,
+        "2": -0.23282270442680505,
+        "3": -0.2163565207883925,
+        "4": -0.24726891072333487
+      },
+      "negative_fold_means": 5,
+      "anisotropy_vs_correctness_loss": {
+        "r": -0.06641010479226415,
+        "permutation_p_two_sided": 0.021897810218978103,
+        "iterations": 10000,
+        "holm_p": 0.021897810218978103
+      }
+    },
+    "45": {
+      "rotated_minus_clean_macro_f1_mean": -0.5408062282941621,
+      "per_fold_mean": {
+        "0": -0.557399415919713,
+        "1": -0.5706079279425526,
+        "2": -0.48859854725565294,
+        "3": -0.5172518756247549,
+        "4": -0.5701733747281376
+      },
+      "negative_fold_means": 5,
+      "anisotropy_vs_correctness_loss": {
+        "r": 0.3616126046307059,
+        "permutation_p_two_sided": 9.999000099990002e-05,
+        "iterations": 10000,
+        "holm_p": 0.00029997000299970003
+      }
+    },
+    "90": {
+      "rotated_minus_clean_macro_f1_mean": -0.5920623611463355,
+      "per_fold_mean": {
+        "0": -0.5860191127926085,
+        "1": -0.6561559684238546,
+        "2": -0.5409160774423486,
+        "3": -0.5892392113148074,
+        "4": -0.5879814357580577
+      },
+      "negative_fold_means": 5,
+      "anisotropy_vs_correctness_loss": {
+        "r": 0.42081147812994063,
+        "permutation_p_two_sided": 9.999000099990002e-05,
+        "iterations": 10000,
+        "holm_p": 0.00029997000299970003
+      }
+    }
+  },
+  "gate_components": {
+    "image_direction_consistency": true,
+    "rotation90_performance_relation": true,
+    "anisotropy_loss_association": true
+  },
+  "preregistration": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\configs\\evaluation\\nksid_protocol_v2_selection_preregistered.yaml",
+    "sha256": "a673af223f661f024015cbe0e87cec769a8cc940b986b0f6aa3662df51eb2c4f"
+  },
+  "raw_evidence": {
+    "direction_features": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\direction_gate\\direction_features.jsonl",
+      "sha256": "6bea2b946f22ee830a3c502193e14583b91a89893f388e46e345b1d451b2b518",
+      "rows": 7851
+    },
+    "rotation_units": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\direction_gate\\rotation_inner_only_units.json",
+      "sha256": "13742f5b245dcfa96631c6b7fb0c33f4a28045183774201b8a06aaf9af553932",
+      "units": 15
+    }
+  },
+  "claim_boundary": "All diagnostic images and checkpoint evaluations come from each fold's outer-train/inner split. Inferred hash clusters are not real acquisition groups. A failed gate terminates Dir development.",
+  "payload_sha256": "eb8342f1c26c9e0854ae5acc7a29a155200759a763a61c80eb34e9c8372976e6"
+}

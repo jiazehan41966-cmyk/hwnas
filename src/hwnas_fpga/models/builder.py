@@ -156,6 +156,159 @@ class MBConvBlock(nn.Module):
         return x
 
 
+class DirMBConv3Split11E3V1Block(nn.Module):
+    """Fixed Stage4 directional MBConv with a 1:1 (1x3, 3x1) DW split.
+
+    This operator is deliberately placement-specific: the experiment contract
+    only admits 32->32, stride-1 use at the 28x28 Stage4 slot.  Branch order is
+    horizontal-kernel ``1x3`` first and vertical-kernel ``3x1`` second.
+    """
+
+    operator_name = "dir_mbconv3_split11_e3_v1"
+    branch_order = ("dw_1x3", "dw_3x1")
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+        expand_ratio: int = 3,
+    ):
+        super().__init__()
+        if (in_channels, out_channels, stride, expand_ratio) != (32, 32, 1, 3):
+            raise ValueError(
+                f"{self.operator_name} is frozen to 32->32, stride=1, e3"
+            )
+        hidden_channels = in_channels * expand_ratio
+        if hidden_channels % 2:
+            raise ValueError("directional split requires an even hidden width")
+        branch_channels = hidden_channels // 2
+        self.hidden_channels = hidden_channels
+        self.branch_channels = branch_channels
+        self.use_residual = True
+
+        self.expand_conv = nn.Conv2d(
+            in_channels, hidden_channels, kernel_size=1, bias=False
+        )
+        self.expand_bn = nn.BatchNorm2d(hidden_channels)
+        self.expand_relu = nn.ReLU6(inplace=True)
+        self.dw_1x3 = nn.Conv2d(
+            branch_channels,
+            branch_channels,
+            kernel_size=(1, 3),
+            stride=1,
+            padding=(0, 1),
+            groups=branch_channels,
+            bias=False,
+        )
+        self.dw_3x1 = nn.Conv2d(
+            branch_channels,
+            branch_channels,
+            kernel_size=(3, 1),
+            stride=1,
+            padding=(1, 0),
+            groups=branch_channels,
+            bias=False,
+        )
+        self.dw_bn = nn.BatchNorm2d(hidden_channels)
+        self.dw_relu = nn.ReLU6(inplace=True)
+        self.project_conv = nn.Conv2d(
+            hidden_channels, out_channels, kernel_size=1, bias=False
+        )
+        self.project_bn = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        expanded = self.expand_relu(self.expand_bn(self.expand_conv(x)))
+        first, second = torch.split(
+            expanded, self.branch_channels, dim=1
+        )
+        directional = torch.cat(
+            (self.dw_1x3(first), self.dw_3x1(second)), dim=1
+        )
+        directional = self.dw_relu(self.dw_bn(directional))
+        projected = self.project_bn(self.project_conv(directional))
+        return projected + identity
+
+
+class SplitDW3ControlBlock(nn.Module):
+    """Matched split-topology control using two 3x3 DW branches.
+
+    The hidden width, split, normalization, activation, projection and residual
+    graph match :class:`DirMBConv3Split11E3V1Block`.  Its two 3x3 branches have
+    the same depthwise parameter/MAC count as the conventional MBConv-k3-e3
+    depthwise layer, isolating anisotropic kernels from split topology.
+    """
+
+    operator_name = "split_dw3_control"
+    branch_order = ("dw_3x3_first", "dw_3x3_second")
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+        expand_ratio: int = 3,
+    ):
+        super().__init__()
+        if (in_channels, out_channels, stride, expand_ratio) != (32, 32, 1, 3):
+            raise ValueError(
+                f"{self.operator_name} is frozen to 32->32, stride=1, e3"
+            )
+        hidden_channels = in_channels * expand_ratio
+        branch_channels = hidden_channels // 2
+        self.hidden_channels = hidden_channels
+        self.branch_channels = branch_channels
+        self.use_residual = True
+
+        self.expand_conv = nn.Conv2d(
+            in_channels, hidden_channels, kernel_size=1, bias=False
+        )
+        self.expand_bn = nn.BatchNorm2d(hidden_channels)
+        self.expand_relu = nn.ReLU6(inplace=True)
+        self.dw_3x3_first = nn.Conv2d(
+            branch_channels,
+            branch_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=branch_channels,
+            bias=False,
+        )
+        self.dw_3x3_second = nn.Conv2d(
+            branch_channels,
+            branch_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=branch_channels,
+            bias=False,
+        )
+        self.dw_bn = nn.BatchNorm2d(hidden_channels)
+        self.dw_relu = nn.ReLU6(inplace=True)
+        self.project_conv = nn.Conv2d(
+            hidden_channels, out_channels, kernel_size=1, bias=False
+        )
+        self.project_bn = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        expanded = self.expand_relu(self.expand_bn(self.expand_conv(x)))
+        first, second = torch.split(
+            expanded, self.branch_channels, dim=1
+        )
+        controlled = torch.cat(
+            (
+                self.dw_3x3_first(first),
+                self.dw_3x3_second(second),
+            ),
+            dim=1,
+        )
+        controlled = self.dw_relu(self.dw_bn(controlled))
+        projected = self.project_bn(self.project_conv(controlled))
+        return projected + identity
+
+
 class FusedMBConvBlock(nn.Module):
     """Fused MBConv: 直接在DW上做expand，省略一个PW"""
 
@@ -769,6 +922,22 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=block_spec.kernel_size,
+            stride=block_spec.stride,
+            expand_ratio=block_spec.expand_ratio,
+        )
+
+    elif op == "dir_mbconv3_split11_e3_v1":
+        return DirMBConv3Split11E3V1Block(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            stride=block_spec.stride,
+            expand_ratio=block_spec.expand_ratio,
+        )
+
+    elif op == "split_dw3_control":
+        return SplitDW3ControlBlock(
+            in_channels=in_channels,
+            out_channels=out_channels,
             stride=block_spec.stride,
             expand_ratio=block_spec.expand_ratio,
         )

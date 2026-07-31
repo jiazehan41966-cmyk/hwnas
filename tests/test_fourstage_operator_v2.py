@@ -6,14 +6,26 @@ import pytest
 import torch
 
 from hwnas_fpga.data.dataset import FrozenGeometryTransform, get_sonar_transforms
+from hwnas_fpga.dir_int8_reference import (
+    deterministic_weights,
+    dir_mbconv3_split11_e3_v1_int8,
+    round_shift_signed,
+)
 from hwnas_fpga.experiment_contract import validate_formal_values_against_contract
 from hwnas_fpga.fourstage_operator import (
     architecture_sha256,
     build_fourstage_architecture,
     enumerate_base8,
+    enumerate_extended,
     parameter_and_mac_count,
     validate_frozen_fourstage,
 )
+from hwnas_fpga.models import (
+    DirMBConv3Split11E3V1Block,
+    SplitDW3ControlBlock,
+    build_model,
+)
+from hwnas_fpga.search_space import ArchitectureSpec
 from hwnas_fpga.fourstage_selection import (
     group_stress_split,
     infer_hash_groups,
@@ -49,6 +61,106 @@ def test_frozen_fourstage_has_expected_shape_gradient_params_and_macs():
     assert counts["output_shape"] == [1, 8]
     assert counts["parameter_count"] > 0
     assert counts["macs"] > 0
+
+
+def test_dir_v1_and_split_control_have_frozen_stage4_graphs():
+    dir_arch = build_fourstage_architecture(
+        stage2_kernel=3,
+        stage2_expansion=3,
+        stage4_op="dir_mbconv3_split11_e3_v1",
+    )
+    control_arch = build_fourstage_architecture(
+        stage2_kernel=3,
+        stage2_expansion=3,
+        stage4_op="split_dw3_control",
+    )
+    dir_model = build_model(dir_arch, num_classes=8)
+    control_model = build_model(control_arch, num_classes=8)
+    dir_block = dir_model.stages[3][0]
+    control_block = control_model.stages[3][0]
+    assert isinstance(dir_block, DirMBConv3Split11E3V1Block)
+    assert isinstance(control_block, SplitDW3ControlBlock)
+    assert dir_block.branch_order == ("dw_1x3", "dw_3x1")
+    assert dir_block.dw_1x3.kernel_size == (1, 3)
+    assert dir_block.dw_3x1.kernel_size == (3, 1)
+    assert dir_block.branch_channels == 48
+    assert control_block.dw_3x3_first.kernel_size == (3, 3)
+    assert control_block.dw_3x3_second.kernel_size == (3, 3)
+
+    x = torch.randn(2, 1, 224, 224, requires_grad=True)
+    output = dir_model(x)
+    assert output.shape == (2, 8)
+    output.sum().backward()
+    assert x.grad is not None
+    assert torch.isfinite(x.grad).all()
+
+
+def test_dir_v1_serialization_hash_and_matched_control_costs(tmp_path):
+    dir_arch = build_fourstage_architecture(
+        stage2_kernel=5,
+        stage2_expansion=3,
+        stage4_op="dir_mbconv3_split11_e3_v1",
+    )
+    restored = ArchitectureSpec.from_dict(dir_arch.to_dict())
+    assert restored == dir_arch
+    assert architecture_sha256(restored) == architecture_sha256(dir_arch)
+
+    model = build_model(dir_arch, num_classes=8).eval()
+    checkpoint = tmp_path / "dir_v1.pt"
+    torch.save(model.state_dict(), checkpoint)
+    reloaded = build_model(restored, num_classes=8).eval()
+    reloaded.load_state_dict(torch.load(checkpoint, weights_only=True))
+    probe = torch.randn(1, 1, 224, 224)
+    with torch.no_grad():
+        assert torch.equal(model(probe), reloaded(probe))
+
+    dir_counts = parameter_and_mac_count(dir_arch)
+    control_counts = parameter_and_mac_count(
+        build_fourstage_architecture(
+            stage2_kernel=5,
+            stage2_expansion=3,
+            stage4_op="split_dw3_control",
+        )
+    )
+    k3_counts = parameter_and_mac_count(
+        build_fourstage_architecture(
+            stage2_kernel=5,
+            stage2_expansion=3,
+            stage4_op="mbconv_k3_e3",
+        )
+    )
+    assert control_counts["parameter_count"] == k3_counts["parameter_count"]
+    assert control_counts["macs"] == k3_counts["macs"]
+    assert dir_counts["parameter_count"] < control_counts["parameter_count"]
+    assert dir_counts["macs"] < control_counts["macs"]
+
+
+def test_extended_space_is_12_until_stage4_k5_hardware_gate_opens():
+    rows12 = enumerate_extended(include_stage4_k5=False)
+    assert len(rows12) == 12
+    assert sum(row.stage4 == "Dir-MBConv3-e3" for row in rows12) == 4
+    assert all(row.stage4 != "MBConv-k5-e3" for row in rows12)
+    rows16 = enumerate_extended(include_stage4_k5=True)
+    assert len(rows16) == 16
+    assert sum(row.stage4 == "MBConv-k5-e3" for row in rows16) == 4
+
+
+def test_dir_v1_rejects_non_frozen_placement():
+    with pytest.raises(ValueError, match="frozen to 32->32"):
+        DirMBConv3Split11E3V1Block(24, 32, stride=2, expand_ratio=3)
+
+
+def test_dir_v1_integer_reference_is_deterministic_and_saturating():
+    values = np.asarray([-1536, -512, 512, 1536], dtype=np.int32)
+    assert round_shift_signed(values, 10).tolist() == [-2, -1, 1, 2]
+    weights = deterministic_weights()
+    for value in (-128, 0, 127):
+        inputs = np.full((32, 28, 28), value, dtype=np.int8)
+        first = dir_mbconv3_split11_e3_v1_int8(inputs, weights)
+        second = dir_mbconv3_split11_e3_v1_int8(inputs, weights)
+        assert first.shape == (32, 28, 28)
+        assert first.dtype == np.int8
+        assert np.array_equal(first, second)
 
 
 def test_frozen_geometry_contracts_are_deterministic_and_bounded():

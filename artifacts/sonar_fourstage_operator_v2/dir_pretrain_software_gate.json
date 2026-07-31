@@ -1,0 +1,545 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "operator": "dir_mbconv3_split11_e3_v1",
+  "mechanism_control": "split_dw3_control",
+  "placement": {
+    "stage": 4,
+    "resolution": 28,
+    "in_channels": 32,
+    "out_channels": 32,
+    "stride": 1,
+    "expand_ratio": 3,
+    "split": [
+      48,
+      48
+    ],
+    "branch_order": [
+      "dw_1x3",
+      "dw_3x1"
+    ]
+  },
+  "components": {
+    "shape_32x28x28_preserved": true,
+    "forward_backward_finite": true,
+    "residual_exact_with_zero_main_path": true,
+    "branch_order_fixed": true,
+    "branch_widths_48_48": true,
+    "dir_kernels_fixed": true,
+    "control_kernels_fixed": true,
+    "architecture_roundtrip_exact": true,
+    "architecture_hash_roundtrip_exact": true,
+    "checkpoint_reload_exact": true,
+    "control_matches_k3_params": true,
+    "control_matches_k3_macs": true,
+    "dir_has_lower_params_than_control": true,
+    "dir_has_lower_macs_than_control": true,
+    "boundary_tensors_finite": true
+  },
+  "boundary_rows": {
+    "zeros": {
+      "finite": true,
+      "shape": [
+        1,
+        32,
+        28,
+        28
+      ],
+      "sha256": "bf577d505f6a6395e5c34c6c439223490ac27ec3501f41c0035560f109513218"
+    },
+    "negative_full_scale": {
+      "finite": true,
+      "shape": [
+        1,
+        32,
+        28,
+        28
+      ],
+      "sha256": "3f493298149d40d6537b249ed33ba06059f8fe388902fd9cbe9f5e5c7dd83266"
+    },
+    "positive_full_scale": {
+      "finite": true,
+      "shape": [
+        1,
+        32,
+        28,
+        28
+      ],
+      "sha256": "65c8a28d596bf5d61315462fa85ef4526c3da689ea9b1b8b712cdfa699cb5748"
+    }
+  },
+  "architecture_sha256": "208349bf3b641f16d18132bc531c2924a6b40a67a861975d588661f84866146b",
+  "checkpoint_roundtrip_sha256": "1353f7e427bf09bc4bafbac7c3c054bb2934d58bd2678a6687d0d9c66e99738c",
+  "software_cost": {
+    "dir": {
+      "parameter_count": 19744,
+      "trainable_parameter_count": 19744,
+      "macs": 56830848,
+      "input_shape": [
+        1,
+        1,
+        224,
+        224
+      ],
+      "output_shape": [
+        1,
+        8
+      ],
+      "layers": [
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 3612672,
+          "output_shape": [
+            1,
+            32,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 6422528,
+          "output_shape": [
+            1,
+            16,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 19267584,
+          "output_shape": [
+            1,
+            96,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 7526400,
+          "output_shape": [
+            1,
+            96,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 7225344,
+          "output_shape": [
+            1,
+            24,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 5419008,
+          "output_shape": [
+            1,
+            72,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 508032,
+          "output_shape": [
+            1,
+            72,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 1806336,
+          "output_shape": [
+            1,
+            32,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 2408448,
+          "output_shape": [
+            1,
+            96,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 112896,
+          "output_shape": [
+            1,
+            48,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 112896,
+          "output_shape": [
+            1,
+            48,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 2408448,
+          "output_shape": [
+            1,
+            32,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "linear",
+          "module": "Linear",
+          "macs": 256,
+          "output_shape": [
+            1,
+            8
+          ]
+        }
+      ]
+    },
+    "split_dw3_control": {
+      "parameter_count": 20320,
+      "trainable_parameter_count": 20320,
+      "macs": 57282432,
+      "input_shape": [
+        1,
+        1,
+        224,
+        224
+      ],
+      "output_shape": [
+        1,
+        8
+      ],
+      "layers": [
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 3612672,
+          "output_shape": [
+            1,
+            32,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 6422528,
+          "output_shape": [
+            1,
+            16,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 19267584,
+          "output_shape": [
+            1,
+            96,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 7526400,
+          "output_shape": [
+            1,
+            96,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 7225344,
+          "output_shape": [
+            1,
+            24,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 5419008,
+          "output_shape": [
+            1,
+            72,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 508032,
+          "output_shape": [
+            1,
+            72,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 1806336,
+          "output_shape": [
+            1,
+            32,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 2408448,
+          "output_shape": [
+            1,
+            96,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 338688,
+          "output_shape": [
+            1,
+            48,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 338688,
+          "output_shape": [
+            1,
+            48,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 2408448,
+          "output_shape": [
+            1,
+            32,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "linear",
+          "module": "Linear",
+          "macs": 256,
+          "output_shape": [
+            1,
+            8
+          ]
+        }
+      ]
+    },
+    "mbconv_k3_e3": {
+      "parameter_count": 20320,
+      "trainable_parameter_count": 20320,
+      "macs": 57282432,
+      "input_shape": [
+        1,
+        1,
+        224,
+        224
+      ],
+      "output_shape": [
+        1,
+        8
+      ],
+      "layers": [
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 3612672,
+          "output_shape": [
+            1,
+            32,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 6422528,
+          "output_shape": [
+            1,
+            16,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 19267584,
+          "output_shape": [
+            1,
+            96,
+            112,
+            112
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 7526400,
+          "output_shape": [
+            1,
+            96,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 7225344,
+          "output_shape": [
+            1,
+            24,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 5419008,
+          "output_shape": [
+            1,
+            72,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 508032,
+          "output_shape": [
+            1,
+            72,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 1806336,
+          "output_shape": [
+            1,
+            32,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 2408448,
+          "output_shape": [
+            1,
+            96,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 677376,
+          "output_shape": [
+            1,
+            96,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "conv2d",
+          "module": "Conv2d",
+          "macs": 2408448,
+          "output_shape": [
+            1,
+            32,
+            28,
+            28
+          ]
+        },
+        {
+          "kind": "linear",
+          "module": "Linear",
+          "macs": 256,
+          "output_shape": [
+            1,
+            8
+          ]
+        }
+      ]
+    }
+  },
+  "direction_gate": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\direction_gate_summary.json",
+    "status": "DIRECTIONAL_BASIS_PASS",
+    "payload_sha256": "eb8342f1c26c9e0854ae5acc7a29a155200759a763a61c80eb34e9c8372976e6"
+  },
+  "claim_boundary": "This is an executed FP32 graph/serialization/software-cost gate. It is not INT8 parity, HLS, route, accuracy, robustness, board, or power evidence.",
+  "payload_sha256": "4fd8bc6bbfac98faa15244dc36bd596b01569b9c7578082b65f9a00c149a5133"
+}

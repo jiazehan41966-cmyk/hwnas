@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-31T12:20:29.187623+00:00",
+  "status": "PASS",
+  "operator": "dir_mbconv3_split11_e3_v1",
+  "shape": {
+    "input_resolution": 28,
+    "in_channels": 32,
+    "expanded_channels": 96,
+    "out_channels": 32,
+    "stride": 1
+  },
+  "integer_contract": {
+    "layout": "CHW",
+    "input_shape": [
+      32,
+      28,
+      28
+    ],
+    "expanded_shape": [
+      96,
+      28,
+      28
+    ],
+    "split": [
+      48,
+      48
+    ],
+    "branch_order": [
+      "dw_1x3",
+      "dw_3x1"
+    ],
+    "accumulator": "signed_int32",
+    "rounding": "round_to_nearest_ties_away_from_zero",
+    "saturation": "signed_int8_-128_127",
+    "expand_shift": 10,
+    "depthwise_shift": 8,
+    "project_shift": 12,
+    "relu6_quantized_max": 96,
+    "padding": "explicit_zero",
+    "residual_order": "saturate(project_requant_plus_input)"
+  },
+  "random_and_boundary_vectors": {
+    "random": {
+      "input": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\random\\input.bin",
+        "bytes": 25088,
+        "sha256": "0125c75d0c0a51013b92dbe335e6586a99478dc1ab8a70659d01f4873f5db011"
+      },
+      "expand_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\random\\expand_w.bin",
+        "bytes": 3072,
+        "sha256": "2d95879c7b6eba8ec579cc0227356df98b22a29b9ae30e6d6e7b7a5f6ded7005"
+      },
+      "dw_1x3_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\random\\dw_1x3_w.bin",
+        "bytes": 144,
+        "sha256": "ee72e2cd7c8a5bb0c88ea67020c16e747d9e51d127ce9ed590c8f6f01116c80c"
+      },
+      "dw_3x1_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\random\\dw_3x1_w.bin",
+        "bytes": 144,
+        "sha256": "c28b1209661f7dfed80c388adf8d0c9eee54d1957d044020261ac96325216eab"
+      },
+      "project_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\random\\project_w.bin",
+        "bytes": 3072,
+        "sha256": "33bc71767b3e91eccfe45b0f7793c4967f74cafb870c62b0780a436d8e1a65b8"
+      },
+      "expected": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\random\\expected.bin",
+        "bytes": 25088,
+        "sha256": "0125c75d0c0a51013b92dbe335e6586a99478dc1ab8a70659d01f4873f5db011"
+      }
+    },
+    "negative_full_scale": {
+      "input": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\negative_full_scale\\input.bin",
+        "bytes": 25088,
+        "sha256": "c62e6be4efcaf89b95bf00e74f8fbf286233996bb96f443c12b76c45ac702d39"
+      },
+      "expand_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\negative_full_scale\\expand_w.bin",
+        "bytes": 3072,
+        "sha256": "2d95879c7b6eba8ec579cc0227356df98b22a29b9ae30e6d6e7b7a5f6ded7005"
+      },
+      "dw_1x3_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\negative_full_scale\\dw_1x3_w.bin",
+        "bytes": 144,
+        "sha256": "ee72e2cd7c8a5bb0c88ea67020c16e747d9e51d127ce9ed590c8f6f01116c80c"
+      },
+      "dw_3x1_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\negative_full_scale\\dw_3x1_w.bin",
+        "bytes": 144,
+        "sha256": "c28b1209661f7dfed80c388adf8d0c9eee54d1957d044020261ac96325216eab"
+      },
+      "project_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\negative_full_scale\\project_w.bin",
+        "bytes": 3072,
+        "sha256": "33bc71767b3e91eccfe45b0f7793c4967f74cafb870c62b0780a436d8e1a65b8"
+      },
+      "expected": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\negative_full_scale\\expected.bin",
+        "bytes": 25088,
+        "sha256": "c62e6be4efcaf89b95bf00e74f8fbf286233996bb96f443c12b76c45ac702d39"
+      }
+    },
+    "positive_full_scale": {
+      "input": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\positive_full_scale\\input.bin",
+        "bytes": 25088,
+        "sha256": "5d65a8786a796e1998bcb9f73c4e7150005f647405ed38731e7e4f32c219fe03"
+      },
+      "expand_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\positive_full_scale\\expand_w.bin",
+        "bytes": 3072,
+        "sha256": "2d95879c7b6eba8ec579cc0227356df98b22a29b9ae30e6d6e7b7a5f6ded7005"
+      },
+      "dw_1x3_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\positive_full_scale\\dw_1x3_w.bin",
+        "bytes": 144,
+        "sha256": "ee72e2cd7c8a5bb0c88ea67020c16e747d9e51d127ce9ed590c8f6f01116c80c"
+      },
+      "dw_3x1_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\positive_full_scale\\dw_3x1_w.bin",
+        "bytes": 144,
+        "sha256": "c28b1209661f7dfed80c388adf8d0c9eee54d1957d044020261ac96325216eab"
+      },
+      "project_w": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\positive_full_scale\\project_w.bin",
+        "bytes": 3072,
+        "sha256": "33bc71767b3e91eccfe45b0f7793c4967f74cafb870c62b0780a436d8e1a65b8"
+      },
+      "expected": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vectors\\positive_full_scale\\expected.bin",
+        "bytes": 25088,
+        "sha256": "5d65a8786a796e1998bcb9f73c4e7150005f647405ed38731e7e4f32c219fe03"
+      }
+    }
+  },
+  "hls_csim": {
+    "status": "PASS",
+    "mismatches": {
+      "random": 0,
+      "negative_full_scale": 0,
+      "positive_full_scale": 0
+    }
+  },
+  "hls_synthesis": {
+    "status": "PASS",
+    "report": {
+      "report_path": "E:\\1\\d1\\solution1\\syn\\report\\dir_mbconv3_split11_e3_v1_int8_csynth.xml",
+      "report_sha256": "8d50c649f2903877daf452b465b3cf50526fe996152a43e47e992fe4735a28bf",
+      "part": "xc7k325t-ffg676-2",
+      "target_clock_ns": "5.00",
+      "estimated_clock_ns": "4.455",
+      "latency_cycles_best": "5071036",
+      "latency_cycles_worst": "5071036",
+      "resources": {
+        "BRAM_18K": "124",
+        "DSP": "21",
+        "FF": "12669",
+        "LUT": "15418",
+        "URAM": "0"
+      },
+      "available": {
+        "BRAM_18K": "890",
+        "DSP": "840",
+        "FF": "407600",
+        "LUT": "203800",
+        "URAM": "0"
+      }
+    },
+    "transient_project_path": "E:\\1\\d1",
+    "windows_path_limit_workaround": true
+  },
+  "tool": {
+    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "returncode": 0,
+    "command": [
+      "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+      "-f",
+      "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\hls_dir_mbconv3_split11_e3_v1\\run_hls.tcl"
+    ],
+    "stdout": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vitis_hls.stdout.log",
+      "sha256": "c8b3fdf76e241ea32d151425fe295054f628d9ade6ff738881a8883a3f94716f"
+    },
+    "stderr": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate\\vitis_hls.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "claim_boundary": "Synthetic random/boundary integer parity and operator-level HLS synthesis only. This is not checkpoint-calibrated parity, RTL co-sim, micro-route, full-network HLS/route, board, or power.",
+  "payload_sha256": "69fd39f883adaef08aed12a04f1f2a8a4a9e90948ef708aee810553259388884"
+}

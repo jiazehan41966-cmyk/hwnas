@@ -24,6 +24,13 @@ STAGE2_CHOICES = (
     ("k5_e6", 5, 6),
 )
 BASE_STAGE4_CHOICES = ("mbconv_k3_e3", "skip")
+EXTENDED_STAGE4_CHOICES = (
+    "mbconv_k3_e3",
+    "skip",
+    "dir_mbconv3_split11_e3_v1",
+)
+STAGE4_K5_CHOICE = "mbconv_k5_e3"
+MECHANISM_CONTROL = "split_dw3_control"
 
 
 @dataclass(frozen=True)
@@ -53,12 +60,30 @@ def build_fourstage_architecture(
         stage4_block = BlockSpec(
             op="mbconv", kernel_size=3, expand_ratio=3, stride=1
         )
+    elif stage4_key == STAGE4_K5_CHOICE:
+        stage4_block = BlockSpec(
+            op="mbconv", kernel_size=5, expand_ratio=3, stride=1
+        )
+    elif stage4_key == "dir_mbconv3_split11_e3_v1":
+        stage4_block = BlockSpec(
+            op="dir_mbconv3_split11_e3_v1",
+            kernel_size=3,
+            expand_ratio=3,
+            stride=1,
+        )
+    elif stage4_key == MECHANISM_CONTROL:
+        stage4_block = BlockSpec(
+            op="split_dw3_control",
+            kernel_size=3,
+            expand_ratio=3,
+            stride=1,
+        )
     elif stage4_key == "skip":
         stage4_block = BlockSpec(
             op="skip", kernel_size=1, expand_ratio=1, stride=1
         )
     else:
-        raise ValueError(f"unsupported base stage4_op: {stage4_op}")
+        raise ValueError(f"unsupported frozen stage4_op: {stage4_op}")
     architecture = ArchitectureSpec(
         input_channels=1,
         stem_channels=32,
@@ -136,6 +161,43 @@ def enumerate_base8() -> tuple[FourStageFactorRow, ...]:
     return tuple(rows)
 
 
+def enumerate_extended(
+    *,
+    include_stage4_k5: bool = False,
+) -> tuple[FourStageFactorRow, ...]:
+    """Enumerate the preregistered 12- or 16-row fixed-macro experiment."""
+
+    stage4_choices = list(EXTENDED_STAGE4_CHOICES)
+    if include_stage4_k5:
+        stage4_choices.append(STAGE4_K5_CHOICE)
+    labels = {
+        "mbconv_k3_e3": "MBConv-k3-e3",
+        "skip": "Skip",
+        "dir_mbconv3_split11_e3_v1": "Dir-MBConv3-e3",
+        STAGE4_K5_CHOICE: "MBConv-k5-e3",
+    }
+    rows: list[FourStageFactorRow] = []
+    for stage2_name, kernel, expansion in STAGE2_CHOICES:
+        for stage4 in stage4_choices:
+            rows.append(
+                FourStageFactorRow(
+                    arch_id=f"fourstage_s2_{stage2_name}_s4_{stage4}",
+                    kernel=kernel,
+                    expansion=expansion,
+                    stage4=labels[stage4],
+                    architecture=build_fourstage_architecture(
+                        stage2_kernel=kernel,
+                        stage2_expansion=expansion,
+                        stage4_op=stage4,
+                    ),
+                )
+            )
+    expected = 16 if include_stage4_k5 else 12
+    if len(rows) != expected:
+        raise AssertionError(f"extended enumeration must contain {expected} rows")
+    return tuple(rows)
+
+
 def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
     errors: list[str] = []
     if architecture.input_channels != 1:
@@ -168,6 +230,34 @@ def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
             op="mbconv", kernel_size=3, expand_ratio=3, stride=2
         ):
             errors.append("Stage3 must be MBConv-k3-e3 24->32 stride2")
+        stage2 = architecture.stages[1].blocks[0]
+        if (
+            stage2.op != "mbconv"
+            or stage2.kernel_size not in {3, 5}
+            or stage2.expand_ratio not in {3, 6}
+            or stage2.stride != 2
+        ):
+            errors.append("Stage2 must be MBConv K3/K5 e3/e6 stride2")
+        stage4 = architecture.stages[3].blocks[0]
+        allowed_stage4 = {
+            BlockSpec(op="skip", kernel_size=1, expand_ratio=1, stride=1),
+            BlockSpec(op="mbconv", kernel_size=3, expand_ratio=3, stride=1),
+            BlockSpec(op="mbconv", kernel_size=5, expand_ratio=3, stride=1),
+            BlockSpec(
+                op="dir_mbconv3_split11_e3_v1",
+                kernel_size=3,
+                expand_ratio=3,
+                stride=1,
+            ),
+            BlockSpec(
+                op="split_dw3_control",
+                kernel_size=3,
+                expand_ratio=3,
+                stride=1,
+            ),
+        }
+        if stage4 not in allowed_stage4:
+            errors.append("Stage4 operator or frozen parameters changed")
     if errors:
         raise ValueError("; ".join(errors))
 
