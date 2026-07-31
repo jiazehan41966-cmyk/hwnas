@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "preregistration_id": "nksid_protocol_v2_stage4_k5_formal_v1",
+  "generated_at": "2026-07-31T19:46:09.3850156Z",
+  "protocol": "nksid_outer5fold_inner_only_v2",
+  "operator": "MBConv-k5-e3@Stage4",
+  "shape": {
+    "input_resolution": 28,
+    "in_channels": 32,
+    "out_channels": 32,
+    "stride": 1,
+    "kernel_size": 5,
+    "expand_ratio": 3
+  },
+  "formal_design": {
+    "stage2_backgrounds": [
+      "MBConv-k3-e3",
+      "MBConv-k3-e6",
+      "MBConv-k5-e3",
+      "MBConv-k5-e6"
+    ],
+    "paired_comparator": "MBConv-k3-e3@Stage4",
+    "folds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "paired_runs_per_background": 15,
+    "total_new_k5_runs": 60
+  },
+  "primary_gate_per_stage2_background": {
+    "macro_f1_mean_delta_min": 0.01,
+    "paired_hierarchical_bootstrap_ci95_low_gt": 0.0,
+    "positive_fold_means_at_least": 4,
+    "minority_recall_mean_delta_min": -0.02
+  },
+  "multiplicity": {
+    "family": "four_stage2_backgrounds",
+    "correction": "Holm",
+    "alpha": 0.05,
+    "p_value_is_sole_gate": false
+  },
+  "decision_rule": {
+    "stage4_k5_accuracy_state": "READY if at least one Stage2 background passes every primary gate component; otherwise NOT_ADMITTED_NO_STAGE4_GAIN",
+    "overall_operator_state": "The already completed base8 Stage2 kernel factorial remains separate evidence. Stage4 failure cannot erase or relabel the pre-existing Stage2 K5 result.",
+    "dir_state": "Dir-v1 remains NOT_ADMITTED_ACCURACY_GATE_FAILED and is not reopened by K5 results."
+  },
+  "pre_result_check": {
+    "completed_k5_formal_units_at_freeze": 0,
+    "claimable_k5_protocol_summaries_at_freeze": 0,
+    "preregistered_before_first_completed_unit": true
+  },
+  "claim_boundary": "This freezes the Stage4 K5 accuracy decision before any K5 fold-seed unit completed. It does not change Protocol V2, inspect an outer result, claim accuracy, or provide complete-network route, board, bitstream, or power evidence."
+}
