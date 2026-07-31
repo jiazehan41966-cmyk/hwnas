@@ -1,13 +1,11 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-31T19:42:27.252239+00:00",
+  "generated_at": "2026-07-31T19:42:53.487427+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure",
   "git": {
-    "head": "7c40f87e4d2dcbdb65bddde63ceb731450cb3e42",
+    "head": "18134857f3cb3638c3d70c7de7208fa4ce3e3899",
     "branch": "codex/sonar-fourstage-operator-closure",
-    "status_porcelain": [
-      "M artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip"
-    ]
+    "status_porcelain": []
   },
   "excluded_prefixes": [
     ".git/",

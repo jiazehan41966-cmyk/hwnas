@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-31T19:40:20.899462+00:00",
+  "generated_at": "2026-07-31T19:43:04.798765+00:00",
   "status": "PASS",
   "protocol": "nksid_outer5fold_inner_only_v2",
   "contract": {
@@ -12,19 +12,19 @@
   },
   "source_freeze": {
     "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_freeze_manifest.json",
-    "manifest_sha256": "d77e6e5ed8a0597594972b20e3afecd7fb602c515eda2b4571648e66904b2168",
+    "manifest_sha256": "229e3321fc43f10523e29c8014b4cfdf8963a34219340a0f412f61660fe59287",
     "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_snapshot.zip",
-    "archive_sha256": "bea25e76d68ba212f5e8991cbc574dff48d871cd463baa761a9a7a5081ebd2b1",
+    "archive_sha256": "2e87165ceb451a5bdfc00e877ead5129a4b092ea59d133bb882a663ed7b81af6",
     "verification": {
       "status": "PASS",
       "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_freeze_manifest.json",
-      "expected_file_count": 602,
+      "expected_file_count": 603,
       "missing": [],
       "unexpected": [],
       "changed": []
     },
     "frozen_git": {
-      "head": "ff220568990b9d805867e0fd427d2cb705491295",
+      "head": "18134857f3cb3638c3d70c7de7208fa4ce3e3899",
       "branch": "codex/sonar-fourstage-operator-closure",
       "status_porcelain": []
     }
@@ -63,5 +63,5 @@
   },
   "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
   "claim_boundary": "This binds Protocol V2 preprocessing, training recipe, data/group manifests, and source snapshot. It contains no outer-validation metric.",
-  "payload_sha256": "a05c3fbf0b0cfd81bce6d60a27b88ef6f1ea3a4f19be0c8d66313ae16ff4fbbf"
+  "payload_sha256": "26dbb5732d7db68d00640c7c7b5c04ebe09e9bb0efc2e25e2f60c4893d587a55"
 }
