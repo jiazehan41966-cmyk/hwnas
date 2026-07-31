@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "gate_id": "stage4_mbconv_k5_e3_exact_shape_hardware_v1",
+  "status": "PASS",
+  "shape": {
+    "input_resolution": 28,
+    "in_channels": 32,
+    "out_channels": 32,
+    "stride": 1,
+    "kernel_size": 5,
+    "expand_ratio": 3
+  },
+  "hls_synthesis": "PASS",
+  "micro_harness_route": "PASS",
+  "hls": {
+    "target_part": "xc7k325t-ffg900-2",
+    "target_clock_ns": 5.0,
+    "top_function": "mbconv_e3_k5_kernel",
+    "metrics": {
+      "estimated_clock_period_ns": 5.335,
+      "latency_cycles": 2479796,
+      "lut": 18512,
+      "ff": 9571,
+      "bram_18k": 140,
+      "dsp": 9
+    },
+    "report_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\mbconv_e3_k5_kernel_csynth.xml"
+  },
+  "micro_harness": {
+    "target_part": "xc7k325t-ffg676-2",
+    "flow": "out_of_context_operator_micro_harness",
+    "target_clock_ns": 5.0,
+    "post_route": {
+      "wns_ns": 0.239,
+      "tns_ns": 0.0,
+      "lut": 5294,
+      "ff": 6349,
+      "block_ram_tile": 104.0,
+      "dsp": 9
+    },
+    "report_dir": "E:\\1\\k5s4\\mbconv_e3_k5_strict40_stage3_28_32_32_s1_baseline_pi1_po1_u1_main_5ns\\vivado_downstream\\reports"
+  },
+  "av7k325_ffg900_micro_route_attempt": {
+    "status": "failed",
+    "returncode": 3,
+    "failure_class": "VIVADO_RUNTIME_TCL_READ_FAILURE",
+    "contributes_to_gate": false
+  },
+  "power": {
+    "status": "NOT_MEASURED",
+    "reason": "The route flow emitted a vectorless Vivado estimate only; no external-instrument board measurement was executed."
+  },
+  "evidence": [
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\hls_lut_builder\\configs\\candidate_kernels_sonar_stage4_k5_exact_shape_av7k325.yaml",
+      "sha256": "1f8caa2120703531b4fda8df1fea316d9c4e14c08237c8477c67fca96e43a7ae",
+      "size_bytes": 2418
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\hls_lut_builder\\configs\\candidate_kernels_strict40_expansion.yaml",
+      "sha256": "7636c1a19c4a1fb70f21960b89a448791f40bf56216885cf03ee32cd69558c3e",
+      "size_bytes": 4016
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\hls_lut_builder\\scripts\\run_vivado_downstream.tcl",
+      "sha256": "98ecd62bf2cb016cab8db1bd885785b45c55c9e32af503915479f754c9869a32",
+      "size_bytes": 3992
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\mbconv_e3_k5_exact_shape_hls_rtl.zip",
+      "sha256": "7fdb6c5cfd9a28a380ed820613e739bedf260702c9929c604533ecae3aced8f4",
+      "size_bytes": 148664
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\mbconv_e3_k5_kernel.cpp",
+      "sha256": "483e555be459df66dd1a8c9d2d5b75950059b24ecc445eef569893af826ccf03",
+      "size_bytes": 14555
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\mbconv_e3_k5_kernel_csynth.rpt",
+      "sha256": "d5b3370c92f0309dcb680c444eec828a17ce488d0a87c32650e4678e3736fdba",
+      "size_bytes": 83524
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\mbconv_e3_k5_kernel_csynth.xml",
+      "sha256": "9ddec4f30da5e5e3bc360a6220ef1b57eba441be261b1d3cc9c853e46f1ceb80",
+      "size_bytes": 17341
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\metadata.json",
+      "sha256": "d6ab2ebab43976c3a3d15ba6263d76bf7c4d98bca9f7a09984b2db6b3da555b6",
+      "size_bytes": 3028
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_route_clock_utilization.rpt",
+      "sha256": "c1493434a5e3624efc28cee68e891d622cdbd0b345da8b0eb8aee4e3fdd9bad4",
+      "size_bytes": 8901
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_route_power.rpt",
+      "sha256": "fec1dd82aeaedf1546e2640f68aa7627bd5bd2839c15c4ea25be0131866f4400",
+      "size_bytes": 43171
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_route_timing_summary.rpt",
+      "sha256": "ed5fb1ffe8205fc1c185d637ea480c627695a395650c507738a3e936cfaf716f",
+      "size_bytes": 274421
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_route_utilization.rpt",
+      "sha256": "843d364ef2bcd7bcbe1e39f53da9494812f993ad7cc98aab02b35088ca4ab330",
+      "size_bytes": 11588
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_route_utilization_hier.rpt",
+      "sha256": "8be9d420c1baf6364f558f7f2db2802be19b76f7154a5bef6fe314f4cd284431",
+      "size_bytes": 144930
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_synth_timing_summary.rpt",
+      "sha256": "9d6a7846ae2a5b60f6e24e47a3a3cdaf0ca7b286c5cc56473e36606ddf50b5e3",
+      "size_bytes": 280666
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_synth_utilization.rpt",
+      "sha256": "1d341ff526c058e8530770a2c25e056be0511c74347e32bdb91b62c460f2150a",
+      "size_bytes": 9089
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\reports\\post_synth_utilization_hier.rpt",
+      "sha256": "8c403771032c28170f674355ef003825f86193f44847b9c05659323031e5443c",
+      "size_bytes": 144816
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\stage4_k5_exact_shape_hls_summary.json",
+      "sha256": "dbf23c51e5b7230c2a787db3a34eed14bc48b74505f50f72855efcd4b825c983",
+      "size_bytes": 694
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\stage4_k5_exact_shape_route676_summary.json",
+      "sha256": "6f4d2d8b6a54df3a30afcf45c1a9f36b535eaa060eae17c1c86febace9a2f2dc",
+      "size_bytes": 2502
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\stage4_k5_exact_shape_route_summary.json",
+      "sha256": "9ad7396ddb0b28331d1fc11b7b92a35ca7f916d9d9fa5874d0e15275447f9159",
+      "size_bytes": 1104
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\synth.tcl",
+      "sha256": "e4e3fed8e906f3cf75c5993d5490eef1b4ceeaa709b915ba7e6495fd9f8f24e6",
+      "size_bytes": 806
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\synthesis_status.json",
+      "sha256": "c698912b4baf684215cbb0c8d5d74c037d7e0009567cd554fd3aa0454a84011b",
+      "size_bytes": 664
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\vitis_hls.log",
+      "sha256": "2881b81e5aa688a37a6fdbaed5f95ab95cf817bfaeb0f62bb41ac14b2e395e82",
+      "size_bytes": 93759
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\vivado_downstream.log",
+      "sha256": "7dddc7c74e5cd8b39cf4ba1a6f45e4faf07b2c4c3023ffda6db85b5d34ba0822",
+      "size_bytes": 364725
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\vivado_downstream_status.json",
+      "sha256": "1a3f0d3d0cf6ff15e6f2b2d9b17af79c31b85cb9a3060731e58245c084612b95",
+      "size_bytes": 2382
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\vivado_ffg676_success.log",
+      "sha256": "431292b5f717d934d8903246fbc2b39902499695903b8c49099da924cf45be6d",
+      "size_bytes": 362785
+    },
+    {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\vivado_ffg900_failed.log",
+      "sha256": "33789d97b27bf41d011c5e9f6eb6ed12da4a7c7c7214e39573d5743308f64096",
+      "size_bytes": 4800
+    }
+  ],
+  "claim_boundary": "PASS opens MBConv-k5-e3 as a Stage4 accuracy candidate only. The successful route is a 5 ns xc7k325t-ffg676-2 out-of-context operator micro-harness on the same XC7K325T speed grade. It is not the AV7K325 ffg900 complete-network route, RTL co-sim, bitstream, board, or power evidence. The ffg900 micro-route attempt failed in the Vivado runtime Tcl loader and is preserved as non-gating negative environment evidence.",
+  "payload_sha256": "216003e79e0198021d10c7846ce0efacc47408d4bd94c776d88373617077dd93"
+}

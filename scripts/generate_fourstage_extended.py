@@ -105,9 +105,19 @@ def main() -> int:
         ),
         "rows": rows,
         "claim_boundary": (
-            "This is a 12-row enumeration until exact-shape Stage4 K5 HLS "
-            "synthesis and micro-harness route both pass. It contains no new "
-            "accuracy, full-network route, board, or power evidence."
+            (
+                "This is a 16-row enumeration after exact-shape Stage4 K5 "
+                "HLS synthesis and operator micro-harness route passed. "
+            )
+            if include_k5
+            else (
+                "This is a 12-row enumeration until exact-shape Stage4 K5 "
+                "HLS synthesis and operator micro-harness route both pass. "
+            )
+        )
+        + (
+            "Enumeration alone contains no new accuracy, complete-network "
+            "route, board, or external-instrument power evidence."
         ),
     }
     manifest["payload_sha256"] = canonical_sha256(manifest)

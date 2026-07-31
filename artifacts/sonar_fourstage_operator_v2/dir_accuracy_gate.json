@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-31T19:18:26.964601+00:00",
+  "status": "DIR_ACCURACY_GATE_FAIL",
+  "formal_dir_units": 60,
+  "formal_control_units_reused": 60,
+  "comparisons": {
+    "k3_e3": {
+      "control_architecture": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "dir_architecture": "fourstage_s2_k3_e3_s4_dir_mbconv3_split11_e3_v1",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260820,
+        "mean_delta": -0.015090024642715442,
+        "ci95_low": -0.046353363607085134,
+        "ci95_high": 0.010862697494946465,
+        "positive_fold_means": 1,
+        "per_fold_mean_delta": {
+          "0": -0.0016376999384669633,
+          "1": 0.0166687817756254,
+          "2": -0.011847263839198504,
+          "3": -0.05899877645919338,
+          "4": -0.019635164752343764
+        }
+      },
+      "positive_units": 5,
+      "negative_units": 10,
+      "exact_paired_sign_flip_p": 0.2391357421875,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": -0.03048327477675304,
+      "gate_components": {
+        "mean_delta_at_least_0_01": false,
+        "ci95_low_above_zero": false,
+        "positive_fold_means_at_least_4": false
+      },
+      "passes_dir_vs_k3": false,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "048b89b4b63c47fd789babeeca7fad5b6a7102f3d667d806db21f641d290ae51"
+        },
+        "dir_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k3_e3_s4_dir_mbconv3_split11_e3_v1\\protocol_summary.json",
+          "sha256": "694deb186c8953e9d4fc0464755b2d061fb9b64f41c307a76c90fe8a921a5ed0"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.7174072265625
+    },
+    "k3_e6": {
+      "control_architecture": "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+      "dir_architecture": "fourstage_s2_k3_e6_s4_dir_mbconv3_split11_e3_v1",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260821,
+        "mean_delta": -0.0009215538793791777,
+        "ci95_low": -0.015520349103605358,
+        "ci95_high": 0.01961979357082103,
+        "positive_fold_means": 1,
+        "per_fold_mean_delta": {
+          "0": -0.002653680833853237,
+          "1": -0.010907541865485518,
+          "2": -0.006564177586003472,
+          "3": 0.0216217448860944,
+          "4": -0.00610411399764806
+        }
+      },
+      "positive_units": 6,
+      "negative_units": 9,
+      "exact_paired_sign_flip_p": 0.92236328125,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": 0.0010531034987556773,
+      "gate_components": {
+        "mean_delta_at_least_0_01": false,
+        "ci95_low_above_zero": false,
+        "positive_fold_means_at_least_4": false
+      },
+      "passes_dir_vs_k3": false,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e6_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "4583d1a4a58214f24776f846cc20deb1d102c76f564d920eac116beab4bbca78"
+        },
+        "dir_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k3_e6_s4_dir_mbconv3_split11_e3_v1\\protocol_summary.json",
+          "sha256": "292825acb4cf534e7b9ea37ef27e58b18fcbe935e2a5b73641d920c10bed757a"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.92236328125
+    },
+    "k5_e3": {
+      "control_architecture": "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+      "dir_architecture": "fourstage_s2_k5_e3_s4_dir_mbconv3_split11_e3_v1",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260822,
+        "mean_delta": -0.0087971925514796,
+        "ci95_low": -0.03578900020947368,
+        "ci95_high": 0.02530044460992773,
+        "positive_fold_means": 2,
+        "per_fold_mean_delta": {
+          "0": -0.04192548213045736,
+          "1": -0.011434707617011966,
+          "2": -0.04102009801486358,
+          "3": 0.03998975606773655,
+          "4": 0.010404568937198358
+        }
+      },
+      "positive_units": 4,
+      "negative_units": 11,
+      "exact_paired_sign_flip_p": 0.45123291015625,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": -0.018144305372566245,
+      "gate_components": {
+        "mean_delta_at_least_0_01": false,
+        "ci95_low_above_zero": false,
+        "positive_fold_means_at_least_4": false
+      },
+      "passes_dir_vs_k3": false,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "fa2e2a7f375f3d773fbce4ad593bbc6a92129523878c14f65a6eb6755c34c4e9"
+        },
+        "dir_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_dir_mbconv3_split11_e3_v1\\protocol_summary.json",
+          "sha256": "db9212d777efa683070552482a511b76e4a46d3182b6f388dc8eb25f40d40f08"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.9024658203125
+    },
+    "k5_e6": {
+      "control_architecture": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "dir_architecture": "fourstage_s2_k5_e6_s4_dir_mbconv3_split11_e3_v1",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260823,
+        "mean_delta": -0.013610806927434823,
+        "ci95_low": -0.03353446983343589,
+        "ci95_high": 0.010472334045676468,
+        "positive_fold_means": 1,
+        "per_fold_mean_delta": {
+          "0": -0.02183037773736074,
+          "1": -0.03155963267238641,
+          "2": 0.02340522872531729,
+          "3": -0.027098154031054793,
+          "4": -0.01097109892168946
+        }
+      },
+      "positive_units": 5,
+      "negative_units": 10,
+      "exact_paired_sign_flip_p": 0.15447998046875,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": -0.0038235617039964827,
+      "gate_components": {
+        "mean_delta_at_least_0_01": false,
+        "ci95_low_above_zero": false,
+        "positive_fold_means_at_least_4": false
+      },
+      "passes_dir_vs_k3": false,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "622c54bd99f972c5147d412c503a0c4199397168823d72fb8444f061b6d3fa0d"
+        },
+        "dir_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e6_s4_dir_mbconv3_split11_e3_v1\\protocol_summary.json",
+          "sha256": "fc9f5915f9eda72c2f6fa3c74495590a2c0302b6e89a53092d6b70b77aa88a8d"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.617919921875
+    }
+  },
+  "aggregate_dir_minus_k3": {
+    "method": "descriptive_mean_across_4_backgrounds_x_5_folds_x_3_seeds",
+    "mean_delta": -0.00960489450025226,
+    "per_fold_mean_delta": {
+      "0": -0.017011810160034575,
+      "1": -0.009308275094814624,
+      "2": -0.009006577678687067,
+      "3": -0.006121357384104307,
+      "4": -0.006576452183620731
+    },
+    "claim_boundary": "No aggregate CI is used as a gate; preregistered paired 15-run decisions are evaluated separately within each Stage2 background."
+  },
+  "preregistered_thresholds": {
+    "mean_delta_min": 0.01,
+    "bootstrap_ci95_low_gt": 0.0,
+    "positive_fold_means_at_least": 4,
+    "multiple_comparison_correction": "Holm"
+  },
+  "downstream_gate": {
+    "dir_post_training_int8": "NOT_RUN_ACCURACY_GATE_FAILED",
+    "robustness": "NOT_RUN_ACCURACY_GATE_FAILED",
+    "rtl_cosim": "NOT_RUN_ACCURACY_GATE_FAILED",
+    "full_network_hls_route": "NOT_RUN_ACCURACY_GATE_FAILED",
+    "mechanism_control_training": "NOT_RUN_ACCURACY_GATE_FAILED"
+  },
+  "stage4_k5_comparator": "PENDING_HARDWARE",
+  "operator_state": "NOT_ADMITTED_ACCURACY_GATE_FAILED",
+  "claim_boundary": "All comparisons are paired by identical fold/seed under frozen Protocol V2. Dir-v1 failed admission if no Stage2 background passes all three preregistered K3 thresholds. No robustness or post-training hardware conclusion is inferred after that gate.",
+  "payload_sha256": "6cc0448b664af865368d0f68c4febfbfbf0e67c118d038936940f668e8ba61c7"
+}
