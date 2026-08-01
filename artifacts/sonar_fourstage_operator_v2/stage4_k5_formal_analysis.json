@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-01T15:55:12.605578+00:00",
+  "status": "GENERAL_OP_SELECTED",
+  "formal_k5_units": 60,
+  "formal_k3_control_units_reused": 60,
+  "stage4_k5_state": "READY_ACCURACY_SUPPORTED",
+  "comparisons": {
+    "k3_e3": {
+      "control_architecture": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "k5_architecture": "fourstage_s2_k3_e3_s4_mbconv_k5_e3",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260821,
+        "mean_delta": 0.03765145659722952,
+        "ci95_low": 0.016301542761588284,
+        "ci95_high": 0.06612816782455574,
+        "positive_fold_means": 5,
+        "per_fold_mean_delta": {
+          "0": 0.03426130841608995,
+          "1": 0.03916103356746633,
+          "2": 0.07587507259396258,
+          "3": 0.010128205821799038,
+          "4": 0.028831662586829714
+        }
+      },
+      "positive_units": 13,
+      "negative_units": 2,
+      "exact_paired_sign_flip_p": 0.00067138671875,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": 0.04880965451617626,
+      "gate_components": {
+        "mean_delta_at_least_preregistered": true,
+        "ci95_low_above_zero": true,
+        "positive_fold_means_at_least_preregistered": true,
+        "minority_recall_within_boundary": true
+      },
+      "passes_stage4_k5_accuracy_gate": true,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "048b89b4b63c47fd789babeeca7fad5b6a7102f3d667d806db21f641d290ae51"
+        },
+        "k5_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k3_e3_s4_mbconv_k5_e3\\protocol_summary.json",
+          "sha256": "84bcb4520211206f1a9648113ffa2a1bb11d8e88d6f576e437cc667d15aada08"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.002685546875
+    },
+    "k3_e6": {
+      "control_architecture": "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+      "k5_architecture": "fourstage_s2_k3_e6_s4_mbconv_k5_e3",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260822,
+        "mean_delta": 0.023399758813327644,
+        "ci95_low": -0.0033234771474965684,
+        "ci95_high": 0.04860222061357744,
+        "positive_fold_means": 5,
+        "per_fold_mean_delta": {
+          "0": 0.027272681892542987,
+          "1": 0.010378556503409464,
+          "2": 0.0031057119970321345,
+          "3": 0.05962187882823696,
+          "4": 0.016619964845416686
+        }
+      },
+      "positive_units": 11,
+      "negative_units": 4,
+      "exact_paired_sign_flip_p": 0.061279296875,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": 0.03707271995315475,
+      "gate_components": {
+        "mean_delta_at_least_preregistered": true,
+        "ci95_low_above_zero": false,
+        "positive_fold_means_at_least_preregistered": true,
+        "minority_recall_within_boundary": true
+      },
+      "passes_stage4_k5_accuracy_gate": false,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e6_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "4583d1a4a58214f24776f846cc20deb1d102c76f564d920eac116beab4bbca78"
+        },
+        "k5_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k3_e6_s4_mbconv_k5_e3\\protocol_summary.json",
+          "sha256": "40888f05776fd2fc8a95dd592bd394cd4b15da252da75407e43a86ece16c44e1"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.07415771484375
+    },
+    "k5_e3": {
+      "control_architecture": "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+      "k5_architecture": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260823,
+        "mean_delta": 0.030835688548860755,
+        "ci95_low": 0.0008672668619865721,
+        "ci95_high": 0.061264529123161694,
+        "positive_fold_means": 4,
+        "per_fold_mean_delta": {
+          "0": -7.951499881964086e-05,
+          "1": 0.002160988452233522,
+          "2": 0.06462770493802335,
+          "3": 0.059005583092701354,
+          "4": 0.028463681260165186
+        }
+      },
+      "positive_units": 10,
+      "negative_units": 5,
+      "exact_paired_sign_flip_p": 0.02471923828125,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": 0.059746010832967364,
+      "gate_components": {
+        "mean_delta_at_least_preregistered": true,
+        "ci95_low_above_zero": true,
+        "positive_fold_means_at_least_preregistered": true,
+        "minority_recall_within_boundary": true
+      },
+      "passes_stage4_k5_accuracy_gate": true,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "fa2e2a7f375f3d773fbce4ad593bbc6a92129523878c14f65a6eb6755c34c4e9"
+        },
+        "k5_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\protocol_summary.json",
+          "sha256": "f79ba07278e53020da3a389b3e0e1e92de95e66010594fb4a0dda6497db8dc20"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.07415771484375
+    },
+    "k5_e6": {
+      "control_architecture": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "k5_architecture": "fourstage_s2_k5_e6_s4_mbconv_k5_e3",
+      "paired_units": 15,
+      "macro_f1": {
+        "method": "paired_hierarchical_bootstrap_fold_then_seed",
+        "iterations": 20000,
+        "seed": 20260824,
+        "mean_delta": 0.0247305596771076,
+        "ci95_low": 0.0012880362056313926,
+        "ci95_high": 0.048472716375808265,
+        "positive_fold_means": 5,
+        "per_fold_mean_delta": {
+          "0": 0.03452743445783494,
+          "1": 0.013431909981578505,
+          "2": 0.05980810532407813,
+          "3": 0.013551939487875106,
+          "4": 0.0023334091341713123
+        }
+      },
+      "positive_units": 10,
+      "negative_units": 5,
+      "exact_paired_sign_flip_p": 0.02801513671875,
+      "minority_class_indices": [
+        2,
+        5,
+        4,
+        6
+      ],
+      "minority_recall_delta_mean": 0.05126354120919339,
+      "gate_components": {
+        "mean_delta_at_least_preregistered": true,
+        "ci95_low_above_zero": true,
+        "positive_fold_means_at_least_preregistered": true,
+        "minority_recall_within_boundary": true
+      },
+      "passes_stage4_k5_accuracy_gate": true,
+      "source": {
+        "control_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\protocol_summary.json",
+          "sha256": "622c54bd99f972c5147d412c503a0c4199397168823d72fb8444f061b6d3fa0d"
+        },
+        "k5_summary": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e6_s4_mbconv_k5_e3\\protocol_summary.json",
+          "sha256": "88ec2c4ce76a5bae279dc5c3adc3b6a26d323931dd222f82a74a6c97dd26d3db"
+        }
+      },
+      "holm_adjusted_p_across_backgrounds": 0.07415771484375
+    }
+  },
+  "aggregate_stage4_k5_minus_k3": {
+    "method": "descriptive_mean_across_4_backgrounds_x_5_folds_x_3_seeds",
+    "mean_delta": 0.02915436590913138,
+    "per_fold_mean_delta": {
+      "0": 0.02399547744191206,
+      "1": 0.016283122126171955,
+      "2": 0.050854148713274046,
+      "3": 0.03557690180765311,
+      "4": 0.019062179456645723
+    },
+    "claim_boundary": "No aggregate CI is used as a gate; decisions are paired within each Stage2 background."
+  },
+  "pre_existing_stage2_k5_factor_evidence": {
+    "method": "paired_hierarchical_bootstrap_fold_then_seed",
+    "iterations": 20000,
+    "seed": 20260729,
+    "mean_delta": 0.023004077315970657,
+    "ci95_low": 0.00806379140078705,
+    "ci95_high": 0.03543089348923806,
+    "positive_fold_means": 5,
+    "per_fold_mean_delta": {
+      "0": 0.0248302323491895,
+      "1": 0.03552700360069305,
+      "2": 0.01053944568128562,
+      "3": 0.028461583118486195,
+      "4": 0.01566212183019892
+    },
+    "effect_definition": "mean(level_product=+1)-mean(level_product=-1)",
+    "exact_paired_sign_flip_p": 0.00494384765625,
+    "meets_ready_rule": true,
+    "source": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_formal_analysis.json",
+      "sha256": "39e63b36cfcf9ffdc01709d97f499863f4d5055da3d8ee98327270459b573406"
+    }
+  },
+  "preregistration": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\stage4_k5_formal_preregistration.json",
+    "sha256": "36d18db7c064d7eb454adedc4da4d6a6e860622f9672271f5ea455fd3fdb0e9b"
+  },
+  "dir_state": "NOT_ADMITTED_ACCURACY_GATE_FAILED",
+  "hardware_state": {
+    "stage4_k5_exact_shape_micro_gate": "PASS",
+    "stage4_k5_exact_shape_micro_gate_source": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate.json",
+      "sha256": "0cf47253db411a238108f1458928b69e95abf8d3457b062eeba0367e7004fc86"
+    },
+    "complete_network_route": "NOT_RUN",
+    "bitstream": "NOT_GENERATED",
+    "board_measurement": "NOT_RUN",
+    "power": "NOT_MEASURED"
+  },
+  "claim_boundary": "GENERAL_OP_SELECTED selects the mature K5 family from formal accuracy evidence. Stage2 and Stage4 placement states remain separate. This is not ADMITTED Dir evidence or a complete-network AV7K325 route, bitstream, board, or power claim.",
+  "payload_sha256": "32f32255a423b0d53c838fda24d5299b2b427441699484cda2274585736a153b"
+}

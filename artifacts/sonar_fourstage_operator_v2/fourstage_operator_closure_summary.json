@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-01T15:59:36.547177+00:00",
+  "final_status": "GENERAL_OP_SELECTED",
+  "final_status_reason": "Dir-v1 reached the direction basis gate but failed the preregistered accuracy admission gate. Mature MBConv-k5 has formal Protocol V2 accuracy support in Stage2, and Stage4 K5 also passes accuracy on 3 of 4 Stage2 backgrounds after the exact-shape micro-harness hardware gate opened it.",
+  "git": {
+    "head": "39572a92c920d5f26abc5faa8f6eab7d4fa46619",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": [
+      "?? artifacts/sonar_fourstage_operator_v2/closure_source_freeze/",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
+      "?? artifacts/sonar_fourstage_operator_v2/stage4_k5_formal_analysis.json",
+      "?? scripts/analyze_stage4_k5_formal.py",
+      "?? scripts/build_fourstage_operator_closure_summary.py"
+    ]
+  },
+  "closure_source_freeze": {
+    "verification": {
+      "status": "PASS",
+      "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\closure_source_freeze\\source_freeze_manifest.json",
+      "expected_file_count": 595,
+      "missing": [],
+      "unexpected": [],
+      "changed": [],
+      "returncode": 0
+    },
+    "manifest": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\closure_source_freeze\\source_freeze_manifest.json",
+      "sha256": "1dc48e837c256ba121b28298cd679bda0c3fe95375dc51918c69382f44dddebd",
+      "size_bytes": 111435
+    }
+  },
+  "macro_architecture_frozen": {
+    "input": "1x224x224",
+    "stem": "Conv3x3 1->32 stride=2",
+    "stage_channels": [
+      16,
+      24,
+      32,
+      32
+    ],
+    "stage_strides": [
+      1,
+      2,
+      2,
+      1
+    ],
+    "stage_depths": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "head": "GAP->FC8",
+    "not_searched": [
+      "width",
+      "depth",
+      "stage_count",
+      "stride",
+      "stem",
+      "head",
+      "input_resolution",
+      "activation"
+    ]
+  },
+  "protocol_v2": {
+    "status": "FROZEN",
+    "protocol_file": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\configs\\evaluation\\nksid_frozen_protocol_v2.yaml",
+      "sha256": "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358",
+      "size_bytes": 5200
+    },
+    "freeze_binding": {
+      "status": "PASS",
+      "source_manifest_status": "PASS",
+      "path": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\protocol_v2_freeze_binding.json",
+        "sha256": "afc0814992f482b5e7a740a454e97f21ce2fbe463d58db43e75a6234e3e95b69",
+        "size_bytes": 3980
+      }
+    },
+    "selection": {
+      "bundle": "plain_ce",
+      "geometry": "stretch_224",
+      "outer_accessed": false,
+      "bundle_decision_path": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\bundle_decision.json",
+        "sha256": "73c0458cdc213720783eaee072f514ce8ef079c5493eb94f374e10e85259d513",
+        "size_bytes": 6937
+      },
+      "geometry_decision_path": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\geometry_decision.json",
+        "sha256": "e57d72957ff28f3af431ff81d2d1c5c3236c7edb9021e0f186e68781302fb978",
+        "size_bytes": 3976
+      }
+    }
+  },
+  "base8_factorial": {
+    "status": "COMPLETE_FULL_8x5x3",
+    "formal_unit_count": 120,
+    "observed_run_json_count": 120,
+    "design": "2x2x2_full_factorial",
+    "stage2_k5_minus_k3": {
+      "mean_delta": 0.023004077315970657,
+      "ci95_low": 0.00806379140078705,
+      "ci95_high": 0.03543089348923806,
+      "positive_fold_means": 5,
+      "exact_paired_sign_flip_p": 0.00494384765625
+    },
+    "stage4_mbconv_minus_skip": {
+      "mean_delta": 0.04404884199838323,
+      "ci95_low": 0.030861481116226986,
+      "ci95_high": 0.05742616817666377,
+      "positive_fold_means": 5,
+      "exact_paired_sign_flip_p": 6.103515625e-05
+    },
+    "strict_lut_proxy": {
+      "status": "PASS",
+      "candidate_count": 8,
+      "all_candidates_strict_lut_covered": true,
+      "full_network_route_completed": false,
+      "operator_micro_harness_route_completed": false
+    },
+    "analysis_path": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_formal_analysis.json",
+      "sha256": "39e63b36cfcf9ffdc01709d97f499863f4d5055da3d8ee98327270459b573406",
+      "size_bytes": 23714
+    },
+    "strict_lut_proxy_path": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\base8_strict_lut_proxy_audit.json",
+      "sha256": "8886a8f14f3c1d4471544d5d301eade22f53152ce82c169c97e1fee335cc5264",
+      "size_bytes": 53021
+    }
+  },
+  "direction_gate": {
+    "status": "DIRECTIONAL_BASIS_PASS",
+    "outer_accessed": false,
+    "summary_path": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\direction_gate_summary.json",
+      "sha256": "9169ad06bef2ef183315e8e68965ebebeb23c40baabe6ed1404c9cfad3dc8741",
+      "size_bytes": 12967
+    }
+  },
+  "dir_v1": {
+    "operator_state": "NOT_ADMITTED_ACCURACY_GATE_FAILED",
+    "accuracy_status": "DIR_ACCURACY_GATE_FAIL",
+    "formal_dir_units": 60,
+    "formal_control_units_reused": 60,
+    "downstream_gate": {
+      "dir_post_training_int8": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "robustness": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "rtl_cosim": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "full_network_hls_route": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "mechanism_control_training": "NOT_RUN_ACCURACY_GATE_FAILED"
+    },
+    "accuracy_path": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\dir_accuracy_gate.json",
+      "sha256": "607049145fa1006caad52d3408df2b83f986a1e00b7fc9150e41f9c9fb25381f",
+      "size_bytes": 9523
+    },
+    "software_pretrain_gate": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\dir_pretrain_software_gate.json",
+      "sha256": "5e06c33ed40da51e20f20dacc428c263e82a7c6486b931ff6fdbacab27157a89",
+      "size_bytes": 11610
+    },
+    "int8_hls_pretrain_gate": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\dir_int8_hls_pretrain_gate.json",
+      "sha256": "7b243d67205ccbfb3be1457025d35242a030f33b1d2b5ab865fc11867331fd05",
+      "size_bytes": 8966
+    }
+  },
+  "stage4_k5": {
+    "status": "GENERAL_OP_SELECTED",
+    "stage4_k5_state": "READY_ACCURACY_SUPPORTED",
+    "formal_k5_units": 60,
+    "formal_k3_control_units_reused": 60,
+    "observed_extended_run_json_count": 120,
+    "passed_stage2_backgrounds": [
+      "k3_e3",
+      "k5_e3",
+      "k5_e6"
+    ],
+    "aggregate_stage4_k5_minus_k3": {
+      "method": "descriptive_mean_across_4_backgrounds_x_5_folds_x_3_seeds",
+      "mean_delta": 0.02915436590913138,
+      "per_fold_mean_delta": {
+        "0": 0.02399547744191206,
+        "1": 0.016283122126171955,
+        "2": 0.050854148713274046,
+        "3": 0.03557690180765311,
+        "4": 0.019062179456645723
+      },
+      "claim_boundary": "No aggregate CI is used as a gate; decisions are paired within each Stage2 background."
+    },
+    "micro_harness_gate": {
+      "status": "PASS",
+      "shape": {
+        "input_resolution": 28,
+        "in_channels": 32,
+        "out_channels": 32,
+        "stride": 1,
+        "kernel_size": 5,
+        "expand_ratio": 3
+      },
+      "hls_synthesis": "PASS",
+      "micro_harness_route": "PASS",
+      "hls": {
+        "target_part": "xc7k325t-ffg900-2",
+        "target_clock_ns": 5.0,
+        "top_function": "mbconv_e3_k5_kernel",
+        "metrics": {
+          "estimated_clock_period_ns": 5.335,
+          "latency_cycles": 2479796,
+          "lut": 18512,
+          "ff": 9571,
+          "bram_18k": 140,
+          "dsp": 9
+        },
+        "report_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate\\mbconv_e3_k5_kernel_csynth.xml"
+      },
+      "micro_harness": {
+        "target_part": "xc7k325t-ffg676-2",
+        "flow": "out_of_context_operator_micro_harness",
+        "target_clock_ns": 5.0,
+        "post_route": {
+          "wns_ns": 0.239,
+          "tns_ns": 0.0,
+          "lut": 5294,
+          "ff": 6349,
+          "block_ram_tile": 104.0,
+          "dsp": 9
+        },
+        "report_dir": "E:\\1\\k5s4\\mbconv_e3_k5_strict40_stage3_28_32_32_s1_baseline_pi1_po1_u1_main_5ns\\vivado_downstream\\reports"
+      },
+      "av7k325_ffg900_micro_route_attempt": {
+        "status": "failed",
+        "returncode": 3,
+        "failure_class": "VIVADO_RUNTIME_TCL_READ_FAILURE",
+        "contributes_to_gate": false
+      },
+      "power": {
+        "status": "NOT_MEASURED",
+        "reason": "The route flow emitted a vectorless Vivado estimate only; no external-instrument board measurement was executed."
+      }
+    },
+    "formal_analysis_path": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\stage4_k5_formal_analysis.json",
+      "sha256": "1641348ecc5b71e1e8b61229dbcd1b4d3138c33af19fa757f12c86250cd2980e",
+      "size_bytes": 10852
+    },
+    "hardware_gate_path": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\stage4_k5_exact_shape_hardware_gate.json",
+      "sha256": "0cf47253db411a238108f1458928b69e95abf8d3457b062eeba0367e7004fc86",
+      "size_bytes": 10007
+    }
+  },
+  "operator_states": {
+    "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_BOUNDARY",
+    "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_BOUNDARY",
+    "Edge_v1@ProtocolV1": "NOT_ADMITTED",
+    "Edge@ProtocolV2": "NOT_RETESTED",
+    "old_MixConv": "PAUSED",
+    "MixConv-v2": "NOT_TESTED",
+    "dir_mbconv3_split11_e3_v1@Stage4@ProtocolV2@28x28_32to32_s1": "NOT_ADMITTED_ACCURACY_GATE_FAILED"
+  },
+  "evidence_boundaries": {
+    "eval10": "NOT_USED_AS_NEW_FORMAL_CONCLUSION",
+    "strict_lut_proxy": "Kept separate from operator micro-harness route and complete-network route.",
+    "operator_micro_harness_route": "Stage4 K5 exact-shape route evidence only; not a complete-network route.",
+    "complete_network_route": "NOT_RUN",
+    "rtl_cosim": "NOT_RUN",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_run": "NOT_RUN",
+    "power": "NOT_MEASURED"
+  },
+  "payload_sha256": "eeb853d3d6d8638ec34481051c0b26ba31404558b203e2cd4ca9a42217887637"
+}
