@@ -369,12 +369,18 @@ def main() -> int:
                 "fourstage_int8_reference_summary.json"
             )
         ),
+        "csim_zero_mismatch_gate": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_csim_zero_mismatch_summary.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
-                "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_BOUNDARY"
+                "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_CSIM_BOUNDARY"
             ),
             "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": (
-                "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_BOUNDARY"
+                "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_CSIM_BOUNDARY"
             ),
             "Edge_v1@ProtocolV1": "NOT_ADMITTED",
             "Edge@ProtocolV2": "NOT_RETESTED",
@@ -393,6 +399,12 @@ def main() -> int:
             "operator_micro_harness_route": (
                 "Stage4 K5 exact-shape route evidence only; not a "
                 "complete-network route."
+            ),
+            "complete_network_csim": (
+                "Four frozen deployment representatives passed Vitis HLS "
+                "C-sim integer zero-mismatch against the Python INT8 "
+                "reference. This is not RTL co-sim, HLS synthesis, "
+                "full-network route, bitstream, board, or power evidence."
             ),
             "complete_network_route": "NOT_RUN",
             "rtl_cosim": "NOT_RUN",

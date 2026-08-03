@@ -314,6 +314,18 @@ def test_deployment_selection_freezes_k5_queue_and_boundaries():
     assert selected["stage2_k5_representative"].startswith("fourstage_s2_k5_")
     assert selected["stage4_k5_representative"].endswith("s4_mbconv_k5_e3")
     assert selected["low_cost_skip_representative"].endswith("s4_skip")
+    gates = {row["gate"]: row["status"] for row in payload["full_network_gate_sequence"]}
+    assert gates["real_checkpoint_export"] == "PASS"
+    assert gates["int8_calibration"] == "PASS"
+    assert gates["python_integer_reference"] == "PASS"
+    assert gates["full_network_c_sim"] == "PASS"
+    assert gates["pytorch_int8_vs_csim_zero_mismatch"] == "PASS"
+    assert gates["hls_synthesis"] == "PENDING"
+    assert gates["rtl_cosim"] == "PENDING"
+    assert gates["place_and_route_5ns"] == "PENDING"
+    assert gates["bitstream"] == "NOT_GENERATED"
+    assert gates["com5_board_latency"] == "NOT_RUN"
+    assert gates["external_meter_power"] == "NOT_MEASURED"
     for row in payload["selected_candidates"]:
         assert (
             row["deployment_state"]
@@ -386,3 +398,33 @@ def test_int8_reference_gate_keeps_hls_and_board_pending():
         assert row["status"] == "PASS"
         assert row["calibration_samples"] > 0
         assert row["scale_count"] >= 8
+
+
+def test_csim_zero_mismatch_gate_keeps_route_and_board_pending():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "fourstage_csim_zero_mismatch_summary.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "PASS"
+    assert payload["gate"] == "full_network_csim_zero_mismatch"
+    assert payload["candidate_count"] == 4
+    assert payload["formal_candidate_count"] == 4
+    assert payload["formal_scope"] is True
+    assert payload["zero_mismatch"] is True
+    assert payload["downstream_gates"]["rtl_cosim"] == "PENDING"
+    assert payload["downstream_gates"]["full_network_hls"] == "PENDING"
+    assert payload["downstream_gates"]["place_and_route_5ns"] == "PENDING"
+    assert payload["downstream_gates"]["bitstream"] == "NOT_GENERATED"
+    assert payload["downstream_gates"]["com5_board_latency"] == "NOT_RUN"
+    assert payload["downstream_gates"]["external_meter_power"] == "NOT_MEASURED"
+    for row in payload["candidates"]:
+        assert row["status"] == "PASS"
+        assert row["sample_count"] == 8
+        assert row["output_count"] == 64
+        assert row["mismatch_count"] == 0
+        assert row["max_abs_mismatch"] == 0
+        assert row["vitis_returncode"] == 0
+        assert row["csim_result"]["path"].endswith("csim_result.json")

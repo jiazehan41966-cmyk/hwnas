@@ -1,17 +1,20 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T15:23:25.501778+00:00",
+  "generated_at": "2026-08-03T16:11:33.169505+00:00",
   "git": {
-    "head": "d62dd84719569e909470a988eaca6566568729a2",
+    "head": "c197e5df2b5ecc93aa65422c97de0c4e78211b4a",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      "M artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
+      " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
       " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
+      " M scripts/freeze_fourstage_deployment_selection.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
-      "?? scripts/run_fourstage_int8_reference_gate.py",
-      "?? src/hwnas_fpga/fourstage_int8_reference.py"
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_csim_zero_mismatch_summary.json",
+      "?? scripts/run_fourstage_csim_gate.py"
     ]
   },
   "snapshot_policy": {
@@ -119,22 +122,26 @@
       "claim_scope": "Current slim PR code, protocol ledger, and deployment queue source",
       "manifest": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "sha256": "06e4cb98239e668be2a7b3361cfec19ffd8a447ab2056dc54778e3d29bf3bfe4",
-        "size_bytes": 112379
+        "sha256": "fc2dba19f2e6b6ad5b86f25455e558099882e2fa2b42310ee8e9593aac9d839f",
+        "size_bytes": 112929
       },
-      "recorded_git_head": "d62dd84719569e909470a988eaca6566568729a2",
+      "recorded_git_head": "c197e5df2b5ecc93aa65422c97de0c4e78211b4a",
       "recorded_git_status_porcelain": [
-        "M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
+        "M artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+        " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
+        " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+        " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+        " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
         " M scripts/build_fourstage_operator_closure_summary.py",
+        " M scripts/freeze_fourstage_deployment_selection.py",
         " M tests/test_fourstage_operator_v2.py",
-        "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
-        "?? scripts/run_fourstage_int8_reference_gate.py",
-        "?? src/hwnas_fpga/fourstage_int8_reference.py"
+        "?? artifacts/sonar_fourstage_operator_v2/fourstage_csim_zero_mismatch_summary.json",
+        "?? scripts/run_fourstage_csim_gate.py"
       ],
       "verification": {
         "status": "PASS",
         "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "expected_file_count": 600,
+        "expected_file_count": 601,
         "missing": [],
         "unexpected": [],
         "changed": [],
@@ -142,14 +149,14 @@
       },
       "archive": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_snapshot.zip",
-        "recorded_sha256": "ac9e8d88bad7d5802d3391892ca693be3a6532dd725f1db02c0cecf880a0134f",
-        "actual_sha256": "ac9e8d88bad7d5802d3391892ca693be3a6532dd725f1db02c0cecf880a0134f",
-        "recorded_bytes": 1613670,
-        "actual_bytes": 1613670,
+        "recorded_sha256": "2719a8b6739f52d60cc7608456f03ac7c40c22666a07615938c1770183a6df68",
+        "actual_sha256": "2719a8b6739f52d60cc7608456f03ac7c40c22666a07615938c1770183a6df68",
+        "recorded_bytes": 1625323,
+        "actual_bytes": 1625323,
         "git_tracked": false,
         "mainline_policy": "keep_local_or_release_archive_only; mainline tracks manifest path, bytes, and SHA256, not ZIP bytes"
       }
     }
   ],
-  "payload_sha256": "3e6e391c1b5dcfdb1cd53454f54ed46491fa027e6205ae9f33c74990a251a254"
+  "payload_sha256": "ea47c169c00ceec0381f05b3970f844f07dfbfb2111dcf918652748195b3cee8"
 }

@@ -35,6 +35,9 @@ BASELINE_ID = "fourstage_s2_k3_e3_s4_mbconv_k3_e3"
 STAGE2_K5_ALLOWED_STAGE4 = ("s4_mbconv_k3_e3", "s4_skip")
 DEPLOYMENT_OUTPUT = ARTIFACT_ROOT / "fourstage_deployment_candidate_selection.json"
 SOURCE_SNAPSHOT_OUTPUT = ARTIFACT_ROOT / "source_snapshot_archive_index.json"
+CHECKPOINT_EXPORT_SUMMARY = ARTIFACT_ROOT / "fourstage_checkpoint_export_summary.json"
+INT8_REFERENCE_SUMMARY = ARTIFACT_ROOT / "fourstage_int8_reference_summary.json"
+CSIM_ZERO_MISMATCH_SUMMARY = ARTIFACT_ROOT / "fourstage_csim_zero_mismatch_summary.json"
 
 SOURCE_FREEZE_MANIFESTS = [
     {
@@ -227,6 +230,98 @@ def build_source_snapshot_index() -> dict[str, Any]:
     }
     payload["payload_sha256"] = canonical_sha256(payload)
     return payload
+
+
+def full_network_gate_sequence() -> list[dict[str, Any]]:
+    checkpoint = maybe_evidence(CHECKPOINT_EXPORT_SUMMARY)
+    int8 = maybe_evidence(INT8_REFERENCE_SUMMARY)
+    csim = maybe_evidence(CSIM_ZERO_MISMATCH_SUMMARY)
+    checkpoint_status = "PENDING"
+    int8_status = "PENDING"
+    reference_status = "PENDING"
+    csim_status = "PENDING"
+    zero_mismatch_status = "PENDING"
+    if checkpoint is not None:
+        checkpoint_payload = read_json(CHECKPOINT_EXPORT_SUMMARY)
+        if checkpoint_payload.get("status") == "PASS":
+            checkpoint_status = "PASS"
+    if int8 is not None:
+        int8_payload = read_json(INT8_REFERENCE_SUMMARY)
+        if int8_payload.get("status") == "PASS":
+            int8_status = "PASS"
+            reference_status = "PASS"
+    if csim is not None:
+        csim_payload = read_json(CSIM_ZERO_MISMATCH_SUMMARY)
+        if (
+            csim_payload.get("status") == "PASS"
+            and csim_payload.get("formal_scope") is True
+            and csim_payload.get("zero_mismatch") is True
+        ):
+            csim_status = "PASS"
+            zero_mismatch_status = "PASS"
+    return [
+        {
+            "gate": "real_checkpoint_export",
+            "status": checkpoint_status,
+            "required_evidence": "checkpoint path and SHA256 from selected candidate index",
+            "evidence": checkpoint,
+        },
+        {
+            "gate": "int8_calibration",
+            "status": int8_status,
+            "required_evidence": "real activation calibration set, quantization scales, zero-points, hashes",
+            "evidence": int8,
+        },
+        {
+            "gate": "python_integer_reference",
+            "status": reference_status,
+            "required_evidence": "bit-exact full-network INT8 reference outputs",
+            "evidence": int8,
+        },
+        {
+            "gate": "full_network_c_sim",
+            "status": csim_status,
+            "required_evidence": "complete network C simulation transcript and output tensors",
+            "evidence": csim,
+        },
+        {
+            "gate": "pytorch_int8_vs_csim_zero_mismatch",
+            "status": zero_mismatch_status,
+            "required_evidence": "zero mismatch report on integer outputs",
+            "evidence": csim,
+        },
+        {
+            "gate": "hls_synthesis",
+            "status": "PENDING",
+            "required_evidence": "complete-network HLS reports",
+        },
+        {
+            "gate": "rtl_cosim",
+            "status": "PENDING",
+            "required_evidence": "complete-network RTL co-simulation transcript and output tensors",
+        },
+        {
+            "gate": "place_and_route_5ns",
+            "status": "PENDING",
+            "required_evidence": "AV7K325 5ns implementation reports",
+            "acceptance": {"wns_ns": ">=0", "route_dsp": "<=700"},
+        },
+        {
+            "gate": "bitstream",
+            "status": "NOT_GENERATED",
+            "required_evidence": "bitstream path and SHA256",
+        },
+        {
+            "gate": "com5_board_latency",
+            "status": "NOT_RUN",
+            "required_evidence": "COM5 transaction logs and latency JSON",
+        },
+        {
+            "gate": "external_meter_power",
+            "status": "NOT_MEASURED",
+            "required_evidence": "external instrument CSV and acquisition metadata",
+        },
+    ]
 
 
 def load_result_summary(arch_id: str) -> tuple[Path, dict[str, Any]]:
@@ -444,59 +539,7 @@ def build_deployment_selection(
         "selected_candidate_count": len(selected),
         "selected_arch_ids": selected_arch_ids,
         "selected_candidates": selected,
-        "full_network_gate_sequence": [
-            {
-                "gate": "real_checkpoint_export",
-                "status": "PENDING",
-                "required_evidence": "checkpoint path and SHA256 from selected candidate index",
-            },
-            {
-                "gate": "int8_calibration",
-                "status": "PENDING",
-                "required_evidence": "real activation calibration set, quantization scales, zero-points, hashes",
-            },
-            {
-                "gate": "python_integer_reference",
-                "status": "PENDING",
-                "required_evidence": "bit-exact full-network INT8 reference outputs",
-            },
-            {
-                "gate": "full_network_c_sim",
-                "status": "PENDING",
-                "required_evidence": "complete network C simulation transcript and output tensors",
-            },
-            {
-                "gate": "pytorch_int8_vs_csim_zero_mismatch",
-                "status": "PENDING",
-                "required_evidence": "zero mismatch report on integer outputs",
-            },
-            {
-                "gate": "hls_synthesis",
-                "status": "PENDING",
-                "required_evidence": "complete-network HLS reports",
-            },
-            {
-                "gate": "place_and_route_5ns",
-                "status": "PENDING",
-                "required_evidence": "AV7K325 5ns implementation reports",
-                "acceptance": {"wns_ns": ">=0", "route_dsp": "<=700"},
-            },
-            {
-                "gate": "bitstream",
-                "status": "NOT_GENERATED",
-                "required_evidence": "bitstream path and SHA256",
-            },
-            {
-                "gate": "com5_board_latency",
-                "status": "NOT_RUN",
-                "required_evidence": "COM5 transaction logs and latency JSON",
-            },
-            {
-                "gate": "external_meter_power",
-                "status": "NOT_MEASURED",
-                "required_evidence": "external instrument CSV and acquisition metadata",
-            },
-        ],
+        "full_network_gate_sequence": full_network_gate_sequence(),
         "mature_accuracy_space_pending_hardware": mature_stage4_accuracy_space,
         "final_deployable_space_rule": {
             "if_stage4_k5_complete_network_passes": {
