@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-03T14:44:31.487275+00:00",
+  "status": "PASS",
+  "gate": "real_checkpoint_export",
+  "selection": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_deployment_candidate_selection.json",
+    "sha256": "146bbbbbbd5d020a6e6e50bd66755c8b5b4ff644076f0091ee894469b53600ee",
+    "size_bytes": 64729
+  },
+  "git": {
+    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": [
+      "M .gitignore",
+      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
+      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
+      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
+      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
+      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      " M scripts/build_fourstage_operator_closure_summary.py",
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
+      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
+      "?? scripts/export_fourstage_deployment_checkpoints.py",
+      "?? scripts/freeze_fourstage_deployment_selection.py"
+    ]
+  },
+  "checkpoint_selection_rule": {
+    "fold": 0,
+    "seed": 42,
+    "rationale": "Deterministic hardware-proof representative. The choice does not use outer-validation accuracy and does not alter the Protocol V2 accuracy conclusions."
+  },
+  "candidate_count": 4,
+  "candidates": [
+    {
+      "schema_version": 1,
+      "status": "PASS",
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "checkpoint_selection": {
+        "fold": 0,
+        "seed": 42,
+        "rule": "fixed fold/seed hardware-proof checkpoint; not selected by outer-validation accuracy"
+      },
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+        "sha256": "ffd1122a2390a90e0956c7857e038b853209fad8747afe567e801d6a4799020a",
+        "size_bytes": 94459
+      },
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k3_e3_s4_mbconv_k3_e3.json",
+        "sha256": "b2777252564779ad2e1e987faec6c869c71ba93aa85b428bf6e04076b6fbbda0",
+        "size_bytes": 4625
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\protocol_summary.json",
+        "sha256": "048b89b4b63c47fd789babeeca7fad5b6a7102f3d667d806db21f641d290ae51",
+        "size_bytes": 16662
+      },
+      "output_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3\\fold0_seed42\\checkpoint_export",
+      "quantized_weight_package": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.pt",
+        "sha256": "a576fc221e0497e78619df8906f953386355e44714bf85a9b2525a17f00cf43f",
+        "size_bytes": 25753
+      },
+      "quantization_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.json",
+        "sha256": "5ef749d0f239d1a08eec6d7073be9199e0f19e780a76f944c75451ff1d7303e1",
+        "size_bytes": 10750
+      },
+      "quantization_contract": {
+        "status": "WEIGHT_EXPORT_ONLY",
+        "schema_version": 2,
+        "num_quantized_tensors": 13,
+        "layer_count": 12,
+        "parity_ready": false,
+        "activation_calibration": "PENDING_REAL_ACTIVATION_CALIBRATION",
+        "integer_reference": "PENDING_FULL_NETWORK_INT8_REFERENCE"
+      },
+      "claim_boundary": "This passes the real-checkpoint export gate only. It does not establish calibrated INT8 parity, C-sim, HLS, route, bitstream, COM5 latency, or measured power.",
+      "payload_sha256": "b5e1dae2ed9131e5521546ccf91db4dc702bb5aadcae236859743488ef42ad63"
+    },
+    {
+      "schema_version": 1,
+      "status": "PASS",
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "checkpoint_selection": {
+        "fold": 0,
+        "seed": 42,
+        "rule": "fixed fold/seed hardware-proof checkpoint; not selected by outer-validation accuracy"
+      },
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+        "sha256": "923ff4c2492a7b4f4f82943e60707a747a0f1311f276f1e40b85a4361311e547",
+        "size_bytes": 111547
+      },
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e6_s4_mbconv_k3_e3.json",
+        "sha256": "10fbd2f9b60de3e119efa8ef8dcd5f4e35cc3843a838f89fdd6e2ab61076448f",
+        "size_bytes": 4626
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\protocol_summary.json",
+        "sha256": "622c54bd99f972c5147d412c503a0c4199397168823d72fb8444f061b6d3fa0d",
+        "size_bytes": 16655
+      },
+      "output_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3\\fold0_seed42\\checkpoint_export",
+      "quantized_weight_package": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.pt",
+        "sha256": "96c8482cb00d585fcbcf732209115fd220e0b3546606bd499035f2003631e5a5",
+        "size_bytes": 29657
+      },
+      "quantization_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.json",
+        "sha256": "3ff9638010d8970d5f5b3c2ba29abb3eace8002d2c7733d7f3ae034427b7657a",
+        "size_bytes": 10755
+      },
+      "quantization_contract": {
+        "status": "WEIGHT_EXPORT_ONLY",
+        "schema_version": 2,
+        "num_quantized_tensors": 13,
+        "layer_count": 12,
+        "parity_ready": false,
+        "activation_calibration": "PENDING_REAL_ACTIVATION_CALIBRATION",
+        "integer_reference": "PENDING_FULL_NETWORK_INT8_REFERENCE"
+      },
+      "claim_boundary": "This passes the real-checkpoint export gate only. It does not establish calibrated INT8 parity, C-sim, HLS, route, bitstream, COM5 latency, or measured power.",
+      "payload_sha256": "39a82a81549736468fdcf10c850023ea1fab477fae9713098e754c2be63de0d6"
+    },
+    {
+      "schema_version": 1,
+      "status": "PASS",
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "checkpoint_selection": {
+        "fold": 0,
+        "seed": 42,
+        "rule": "fixed fold/seed hardware-proof checkpoint; not selected by outer-validation accuracy"
+      },
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold0_seed42.pt",
+        "sha256": "4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e",
+        "size_bytes": 103675
+      },
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e3_s4_mbconv_k5_e3.json",
+        "sha256": "064fd37b7d28b8830d665abb85ac3515b946e84cc2560421c3651e889d061771",
+        "size_bytes": 4626
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\protocol_summary.json",
+        "sha256": "f79ba07278e53020da3a389b3e0e1e92de95e66010594fb4a0dda6497db8dc20",
+        "size_bytes": 16666
+      },
+      "output_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3\\fold0_seed42\\checkpoint_export",
+      "quantized_weight_package": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.pt",
+        "sha256": "96fb52fcf242f3e587a3dc2c69f53a54cdac13f12db394e2f2609ae0f3d5d4e1",
+        "size_bytes": 28057
+      },
+      "quantization_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.json",
+        "sha256": "0d9c69d654f5f4bdd5f57212bd61b2577e9ca892b00427ff4539d64c54a0c36f",
+        "size_bytes": 10760
+      },
+      "quantization_contract": {
+        "status": "WEIGHT_EXPORT_ONLY",
+        "schema_version": 2,
+        "num_quantized_tensors": 13,
+        "layer_count": 12,
+        "parity_ready": false,
+        "activation_calibration": "PENDING_REAL_ACTIVATION_CALIBRATION",
+        "integer_reference": "PENDING_FULL_NETWORK_INT8_REFERENCE"
+      },
+      "claim_boundary": "This passes the real-checkpoint export gate only. It does not establish calibrated INT8 parity, C-sim, HLS, route, bitstream, COM5 latency, or measured power.",
+      "payload_sha256": "a375fbc98fb8beb2365a1915cb4ba6c5288706e43fc03ff4a37cd7132cb6fefb"
+    },
+    {
+      "schema_version": 1,
+      "status": "PASS",
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "checkpoint_selection": {
+        "fold": 0,
+        "seed": 42,
+        "rule": "fixed fold/seed hardware-proof checkpoint; not selected by outer-validation accuracy"
+      },
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed42.pt",
+        "sha256": "aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8",
+        "size_bytes": 60285
+      },
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e3_s4_skip.json",
+        "sha256": "fd27f5d5576f2e1ec2bc6132387bb232047c0c4da3715a42e5c1016681faa524",
+        "size_bytes": 4015
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\protocol_summary.json",
+        "sha256": "a591b7ec6d59515b03af3d7357ab3009e37c1b22fd7bd139bc4fbda930b3a4c0",
+        "size_bytes": 16641
+      },
+      "output_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip\\fold0_seed42\\checkpoint_export",
+      "quantized_weight_package": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.pt",
+        "sha256": "1c0f0da335fca42d88fe01d532670bb9741deedde3b5bdb5ee1430714a4e89ec",
+        "size_bytes": 17781
+      },
+      "quantization_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip\\fold0_seed42\\checkpoint_export\\quantized_weights_int8.json",
+        "sha256": "b3478673fe8f38577962b74567e0baf655aa12e365e9cf917be2f8879a7475fd",
+        "size_bytes": 8448
+      },
+      "quantization_contract": {
+        "status": "WEIGHT_EXPORT_ONLY",
+        "schema_version": 2,
+        "num_quantized_tensors": 10,
+        "layer_count": 9,
+        "parity_ready": false,
+        "activation_calibration": "PENDING_REAL_ACTIVATION_CALIBRATION",
+        "integer_reference": "PENDING_FULL_NETWORK_INT8_REFERENCE"
+      },
+      "claim_boundary": "This passes the real-checkpoint export gate only. It does not establish calibrated INT8 parity, C-sim, HLS, route, bitstream, COM5 latency, or measured power.",
+      "payload_sha256": "1f20e3b9f3babfe2de4647894c8e84906385a73773fc29304dd420e27ee93b5a"
+    }
+  ],
+  "downstream_gates": {
+    "int8_activation_calibration": "PENDING_REAL_ACTIVATION_CALIBRATION",
+    "python_full_network_int8_reference": "PENDING",
+    "full_network_c_sim": "PENDING",
+    "pytorch_int8_vs_csim_zero_mismatch": "PENDING",
+    "hls_synthesis": "PENDING",
+    "place_and_route_5ns": "PENDING",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "known_blockers_before_next_gate": [
+    {
+      "gate": "int8_activation_calibration",
+      "status": "PENDING_IMPLEMENTATION_OR_ADAPTER",
+      "reason": "Existing export path creates a real-checkpoint INT8 weight package, but does not yet compute real activation calibration scales or a full-network integer reference for four-stage candidates."
+    },
+    {
+      "gate": "full_network_hls_route",
+      "status": "PENDING_IMPLEMENTATION_OR_ADAPTER",
+      "reason": "Existing board harness scripts are bound to fixed sonar_classifier/current84 flows and cannot be reused as four-stage K5 full-network route evidence without a candidate-specific exporter/harness adapter."
+    }
+  ],
+  "claim_boundary": "Real checkpoint export is complete for the frozen four-candidate queue. No calibrated INT8, C-sim, HLS, route, bitstream, COM5, or power claim is made.",
+  "payload_sha256": "2a24680736e386b773e7fd952f1c4260393c00e7e4cee27a609ea0f530bcaffa"
+}

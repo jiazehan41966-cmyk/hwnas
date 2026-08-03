@@ -31,6 +31,13 @@ def evidence(relative: str) -> dict[str, Any]:
     }
 
 
+def maybe_evidence(relative: str) -> dict[str, Any] | None:
+    path = ROOT / relative
+    if not path.is_file():
+        return None
+    return evidence(relative)
+
+
 def git_output(*args: str) -> str:
     completed = subprocess.run(
         ["git", *args],
@@ -65,6 +72,39 @@ def verify_source_freeze(relative_manifest: str) -> dict[str, Any]:
         payload = {"status": "PARSE_FAIL", "stdout": completed.stdout}
     payload["returncode"] = completed.returncode
     return payload
+
+
+def source_freeze_snapshot() -> dict[str, Any]:
+    experiment_manifest = (
+        "artifacts/sonar_fourstage_operator_v2/"
+        "closure_source_freeze/source_freeze_manifest.json"
+    )
+    slim_pr_manifest = (
+        "artifacts/sonar_fourstage_operator_v2/"
+        "slim_pr_source_freeze/source_freeze_manifest.json"
+    )
+    archive_index = (
+        "artifacts/sonar_fourstage_operator_v2/"
+        "source_snapshot_archive_index.json"
+    )
+    return {
+        "experiment_closure_source_freeze": {
+            "manifest": maybe_evidence(experiment_manifest),
+            "current_verification": (
+                "NOT_RECHECKED_AFTER_SLIM_PR_HOUSEKEEPING"
+            ),
+            "reason": (
+                "This manifest binds the source state used for formal "
+                "operator closure before PR housekeeping. Current PR code is "
+                "verified by slim_pr_current_source_freeze."
+            ),
+        },
+        "slim_pr_current_source_freeze": {
+            "verification": verify_source_freeze(slim_pr_manifest),
+            "manifest": maybe_evidence(slim_pr_manifest),
+        },
+        "source_snapshot_archive_index": maybe_evidence(archive_index),
+    }
 
 
 def count_run_units(relative_dir: str) -> int:
@@ -287,24 +327,7 @@ def main() -> int:
                 "status", "--porcelain=v1"
             ).splitlines(),
         },
-        "closure_source_freeze": {
-            "verification": verify_source_freeze(
-                "artifacts/sonar_fourstage_operator_v2/"
-                "closure_source_freeze/source_freeze_manifest.json"
-            ),
-            "manifest": (
-                evidence(
-                    "artifacts/sonar_fourstage_operator_v2/"
-                    "closure_source_freeze/source_freeze_manifest.json"
-                )
-                if (
-                    ROOT
-                    / "artifacts/sonar_fourstage_operator_v2/"
-                    "closure_source_freeze/source_freeze_manifest.json"
-                ).is_file()
-                else None
-            ),
-        },
+        "source_freezes": source_freeze_snapshot(),
         "macro_architecture_frozen": {
             "input": "1x224x224",
             "stem": "Conv3x3 1->32 stride=2",
@@ -328,6 +351,18 @@ def main() -> int:
         "direction_gate": direction,
         "dir_v1": dir_v1,
         "stage4_k5": stage4_k5,
+        "deployment_candidate_selection": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_deployment_candidate_selection.json"
+            )
+        ),
+        "checkpoint_export_gate": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_checkpoint_export_summary.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
                 "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_BOUNDARY"

@@ -29,6 +29,7 @@ results-launch/*.log
 artifacts/**/*.pkl
 artifacts/**/checkpoints/*.pt
 artifacts/server_snapshots/
+artifacts/sonar_fourstage_operator_v2/**/source_snapshot.zip
 HAO_ Hardware-aware Neural Architecture.pdf
 Sonar_FPGA_NAS_对话全记录.md
 __pycache__/

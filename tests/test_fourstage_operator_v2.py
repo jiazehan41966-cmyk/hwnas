@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import numpy as np
 from PIL import Image
@@ -282,3 +283,61 @@ def test_contract_rejects_recipe_or_geometry_drift():
             observed_dataset=dataset,
             observed_recipe=recipe,
         )
+
+
+def test_deployment_selection_freezes_k5_queue_and_boundaries():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "fourstage_deployment_candidate_selection.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "GENERAL_OP_SELECTED"
+    assert payload["stage"] == "FULL_NETWORK_DEPLOYMENT_CLOSURE_QUEUE_FROZEN"
+    assert payload["selected_candidate_count"] == 4
+    assert payload["frozen_experiment_conclusion"]["evaluated_structure_count"] == 16
+    assert (
+        payload["frozen_experiment_conclusion"][
+            "dir_mbconv3_split11_e3_v1"
+        ]
+        == "NOT_ADMITTED_ACCURACY_GATE_FAILED"
+    )
+    assert payload["hardware_claim_boundary"]["complete_network_route"] == "NOT_RUN"
+    assert payload["hardware_claim_boundary"]["power"] == "NOT_MEASURED"
+    selected = {row["role"]: row["arch_id"] for row in payload["selected_candidates"]}
+    assert selected["original_baseline"] == "fourstage_s2_k3_e3_s4_mbconv_k3_e3"
+    assert selected["stage2_k5_representative"].startswith("fourstage_s2_k5_")
+    assert selected["stage4_k5_representative"].endswith("s4_mbconv_k5_e3")
+    assert selected["low_cost_skip_representative"].endswith("s4_skip")
+    for row in payload["selected_candidates"]:
+        assert (
+            row["deployment_state"]
+            == "PENDING_FULL_NETWORK_HARDWARE_CLOSURE"
+        )
+        assert row["formal_protocol_units"]["expected"] == 15
+        assert row["formal_protocol_units"]["checkpoint_count"] == 15
+        assert row["formal_protocol_units"]["outer_prediction_count"] == 15
+
+
+def test_checkpoint_export_gate_does_not_claim_downstream_hardware():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "fourstage_checkpoint_export_summary.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "PASS"
+    assert payload["gate"] == "real_checkpoint_export"
+    assert payload["candidate_count"] == 4
+    assert (
+        payload["downstream_gates"]["int8_activation_calibration"]
+        == "PENDING_REAL_ACTIVATION_CALIBRATION"
+    )
+    assert payload["downstream_gates"]["bitstream"] == "NOT_GENERATED"
+    assert payload["downstream_gates"]["external_meter_power"] == "NOT_MEASURED"
+    for row in payload["candidates"]:
+        assert row["source_checkpoint"]["path"].endswith("best_fold0_seed42.pt")
+        assert row["quantization_contract"]["status"] == "WEIGHT_EXPORT_ONLY"
+        assert row["quantization_contract"]["parity_ready"] is False

@@ -1,33 +1,59 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-01T15:59:36.547177+00:00",
+  "generated_at": "2026-08-03T14:44:48.074646+00:00",
   "final_status": "GENERAL_OP_SELECTED",
   "final_status_reason": "Dir-v1 reached the direction basis gate but failed the preregistered accuracy admission gate. Mature MBConv-k5 has formal Protocol V2 accuracy support in Stage2, and Stage4 K5 also passes accuracy on 3 of 4 Stage2 backgrounds after the exact-shape micro-harness hardware gate opened it.",
   "git": {
-    "head": "39572a92c920d5f26abc5faa8f6eab7d4fa46619",
+    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "?? artifacts/sonar_fourstage_operator_v2/closure_source_freeze/",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-      "?? artifacts/sonar_fourstage_operator_v2/stage4_k5_formal_analysis.json",
-      "?? scripts/analyze_stage4_k5_formal.py",
-      "?? scripts/build_fourstage_operator_closure_summary.py"
+      "M .gitignore",
+      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
+      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
+      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
+      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
+      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      " M scripts/build_fourstage_operator_closure_summary.py",
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_checkpoint_export_summary.json",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
+      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
+      "?? scripts/export_fourstage_deployment_checkpoints.py",
+      "?? scripts/freeze_fourstage_deployment_selection.py"
     ]
   },
-  "closure_source_freeze": {
-    "verification": {
-      "status": "PASS",
-      "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\closure_source_freeze\\source_freeze_manifest.json",
-      "expected_file_count": 595,
-      "missing": [],
-      "unexpected": [],
-      "changed": [],
-      "returncode": 0
+  "source_freezes": {
+    "experiment_closure_source_freeze": {
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\closure_source_freeze\\source_freeze_manifest.json",
+        "sha256": "1dc48e837c256ba121b28298cd679bda0c3fe95375dc51918c69382f44dddebd",
+        "size_bytes": 111435
+      },
+      "current_verification": "NOT_RECHECKED_AFTER_SLIM_PR_HOUSEKEEPING",
+      "reason": "This manifest binds the source state used for formal operator closure before PR housekeeping. Current PR code is verified by slim_pr_current_source_freeze."
     },
-    "manifest": {
-      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\closure_source_freeze\\source_freeze_manifest.json",
-      "sha256": "1dc48e837c256ba121b28298cd679bda0c3fe95375dc51918c69382f44dddebd",
-      "size_bytes": 111435
+    "slim_pr_current_source_freeze": {
+      "verification": {
+        "status": "PASS",
+        "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
+        "expected_file_count": 598,
+        "missing": [],
+        "unexpected": [],
+        "changed": [],
+        "returncode": 0
+      },
+      "manifest": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
+        "sha256": "12023ec74bb641e8fcb9201da6127d4df86d7003d69a4ef5ba7616ebdcb67be5",
+        "size_bytes": 112671
+      }
+    },
+    "source_snapshot_archive_index": {
+      "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
+      "sha256": "8ea75398f27e7dbd33526cf3bc90dff7bb835447d904fa8a9281a2028412beb8",
+      "size_bytes": 10291
     }
   },
   "macro_architecture_frozen": {
@@ -254,6 +280,16 @@
       "size_bytes": 10007
     }
   },
+  "deployment_candidate_selection": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_deployment_candidate_selection.json",
+    "sha256": "146bbbbbbd5d020a6e6e50bd66755c8b5b4ff644076f0091ee894469b53600ee",
+    "size_bytes": 64729
+  },
+  "checkpoint_export_gate": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_checkpoint_export_summary.json",
+    "sha256": "bb49664b7158776c12e96165372f225667b161aaf9475ffdc47c68998e198f66",
+    "size_bytes": 15641
+  },
   "operator_states": {
     "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_BOUNDARY",
     "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_BOUNDARY",
@@ -273,5 +309,5 @@
     "com5_board_run": "NOT_RUN",
     "power": "NOT_MEASURED"
   },
-  "payload_sha256": "eeb853d3d6d8638ec34481051c0b26ba31404558b203e2cd4ca9a42217887637"
+  "payload_sha256": "d081fc5fc0628c266e853ddd4ee94b34f18b74571f6569cfd87fb2e8160aceda"
 }

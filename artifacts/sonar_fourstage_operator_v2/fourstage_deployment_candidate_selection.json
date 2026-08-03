@@ -1,0 +1,1246 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-03T14:44:22.661791+00:00",
+  "status": "GENERAL_OP_SELECTED",
+  "stage": "FULL_NETWORK_DEPLOYMENT_CLOSURE_QUEUE_FROZEN",
+  "selection_protocol": "fixed_rule_from_existing_ProtocolV2_formal_results_no_new_search",
+  "git": {
+    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": [
+      "M .gitignore",
+      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
+      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
+      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
+      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
+      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      " M scripts/build_fourstage_operator_closure_summary.py",
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
+      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
+      "?? scripts/export_fourstage_deployment_checkpoints.py",
+      "?? scripts/freeze_fourstage_deployment_selection.py"
+    ]
+  },
+  "frozen_experiment_conclusion": {
+    "evaluated_structure_count": 16,
+    "formal_protocol_unit_count": 240,
+    "stage2_k5_state": "READY_FORMAL_ACCURACY_SUPPORTED",
+    "stage4_k5_state": "READY_ACCURACY_SUPPORTED",
+    "dir_mbconv3_split11_e3_v1": "NOT_ADMITTED_ACCURACY_GATE_FAILED",
+    "direction_basis": "DIRECTIONAL_BASIS_PASS",
+    "current_stage": "GENERAL_OP_SELECTED",
+    "claim": "Mature MBConv-k5 is selected at the algorithm/accuracy layer. Dir-v1 remains a negative result: the sonar directional basis diagnostic passed, but this directional operator design did not meet the preregistered accuracy admission gate."
+  },
+  "stopped_work": {
+    "dir_v1_downstream": {
+      "robustness": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "real_checkpoint_int8": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "rtl_cosim": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "full_network_route": "NOT_RUN_ACCURACY_GATE_FAILED",
+      "bitstream": "NOT_GENERATED_ACCURACY_GATE_FAILED",
+      "power": "NOT_MEASURED"
+    }
+  },
+  "selected_candidate_count": 4,
+  "selected_arch_ids": [
+    "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e3_s4_skip"
+  ],
+  "selected_candidates": [
+    {
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "role_reason": "Fixed original mature baseline: Stage2 K3-e3 and Stage4 K3-e3.",
+      "factors": {
+        "kernel": "K3",
+        "expansion": "e3",
+        "stage4": "MBConv-k3-e3"
+      },
+      "architecture_sha256": "f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98",
+      "parameter_count": 16240,
+      "macs": 37864320,
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k3_e3_s4_mbconv_k3_e3.json",
+        "sha256": "b2777252564779ad2e1e987faec6c869c71ba93aa85b428bf6e04076b6fbbda0",
+        "size_bytes": 4625
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\protocol_summary.json",
+        "sha256": "048b89b4b63c47fd789babeeca7fad5b6a7102f3d667d806db21f641d290ae51",
+        "size_bytes": 16662
+      },
+      "result_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "formal_protocol_units": {
+        "expected": 15,
+        "observed_run_json_count": 15,
+        "checkpoint_count": 15,
+        "outer_prediction_count": 15
+      },
+      "metrics": {
+        "outer_macro_f1": {
+          "mean": 0.8156488775509967,
+          "std": 0.04614405685822833,
+          "n": 15,
+          "values": [
+            0.8010836051435529,
+            0.7292667450845356,
+            0.8027356577795328,
+            0.856166429896866,
+            0.8446791699900162,
+            0.7862357529536063,
+            0.8237206635075032,
+            0.75926047933364,
+            0.76051672807925,
+            0.8680901670283147,
+            0.8402738769745881,
+            0.7758566998481876,
+            0.8807323434802348,
+            0.8396300089179833,
+            0.8664848352471388
+          ]
+        },
+        "outer_top1": {
+          "mean": 0.912955402759872,
+          "std": 0.015271062688091723,
+          "n": 15,
+          "values": [
+            0.9192307692307692,
+            0.8769230769230769,
+            0.9134615384615384,
+            0.9211538461538461,
+            0.9115384615384615,
+            0.9057692307692308,
+            0.9115384615384615,
+            0.9076923076923077,
+            0.9019230769230769,
+            0.9403846153846154,
+            0.925,
+            0.8980769230769231,
+            0.9292364990689013,
+            0.9050279329608939,
+            0.9273743016759777
+          ]
+        },
+        "outer_weighted_f1": {
+          "mean": 0.9120378622756152,
+          "std": 0.016073936318429887,
+          "n": 15,
+          "values": [
+            0.9214399632360112,
+            0.8734816391918258,
+            0.9148125235691859,
+            0.9208074894410047,
+            0.913186378265534,
+            0.9033872627107714,
+            0.9127067473594578,
+            0.9062988981258819,
+            0.8980621415395948,
+            0.9395375718127021,
+            0.9225082694494352,
+            0.8954501569252751,
+            0.9287846066520086,
+            0.9047294358090381,
+            0.9253748500465019
+          ]
+        },
+        "per_class_f1_mean": [
+          0.7502446632617161,
+          0.7831001192969828,
+          0.756031746031746,
+          0.971759343634626,
+          0.8961048159846202,
+          0.5475049005621719,
+          0.8354037427902651,
+          0.9850416888458452
+        ]
+      },
+      "checkpoint_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+          "sha256": "ffd1122a2390a90e0956c7857e038b853209fad8747afe567e801d6a4799020a",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold0_seed43.pt",
+          "sha256": "285350aa96a3d4b04bc1c0641c876b1bc5c222906f6db2a9723adcd4014479e0",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold0_seed44.pt",
+          "sha256": "27b30e463d9c30770ac278d222375dd52d8d02f6fc72ae4b10f03e1f29346dc8",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold1_seed42.pt",
+          "sha256": "f427237b52f42a999596e67935ebfa88dc8e0b9e504b7fa1bc6e10d232f8b2ba",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold1_seed43.pt",
+          "sha256": "3e68f813e6caced1d0ed2819a68286f7f80e41fef503cac03769ce008fbcc454",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold1_seed44.pt",
+          "sha256": "c081a072739af599ce4165ab201d539864d146e6a579b1aa6f07b72e4ffb0328",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold2_seed42.pt",
+          "sha256": "b89cfdfddbf0b94479c70a05e3981268b293b5049bb4028c2d1c3c2d9c2c1e0e",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold2_seed43.pt",
+          "sha256": "d3cabc37dc186bf1d8cf909d1ab80b8d0ae2f5a1698e16b655ebde0d1ec0d58f",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold2_seed44.pt",
+          "sha256": "93ded5e6218ae0777d73f939f01a5af2905bc88b85b4982b18ed9061c63c440d",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold3_seed42.pt",
+          "sha256": "bf71bdf2cdcee409ab31ed9b9154a0eee598ead48b5245dd5826f03e92741d55",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold3_seed43.pt",
+          "sha256": "4b5319c53e2e20a73a9de6d7b232908f06cd4a460e004919dc930df047a52e83",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold3_seed44.pt",
+          "sha256": "27a77ce48c4b8bc11486b8c59202f470eb9a799cf789ba42021af672808ef951",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold4_seed42.pt",
+          "sha256": "acf6319e42d3a6df6a13ec299d0c92c532949936bd1549fe0beec00c647c5203",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold4_seed43.pt",
+          "sha256": "220048c94df4b6647cddf8055f57b3c6bf6b3450c5d0ef85b2c9d96a585e8834",
+          "size_bytes": 94459
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold4_seed44.pt",
+          "sha256": "92e0d3be5290f823d20b14ef819806b8402c0ebb131a173e47f51c74f37dcec0",
+          "size_bytes": 94459
+        }
+      ],
+      "outer_prediction_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold0_seed42.jsonl",
+          "sha256": "df2ef5382d84e86c103b0812e47f0c5f0f1a025c76f593e371a8f235dfa0e860",
+          "size_bytes": 671903
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold0_seed43.jsonl",
+          "sha256": "83401ce2f6d185cf4d63e2c763330b5ba44b6b51d32d4bb2d815d478b75bfa25",
+          "size_bytes": 672031
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold0_seed44.jsonl",
+          "sha256": "04050d0bd393d3f01222203d486aead550f791ee5ecb6d295e8042b0621f3493",
+          "size_bytes": 671858
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold1_seed42.jsonl",
+          "sha256": "6fd096ef7c6461c6852aa821e68799daab32aba61c250545e0b12b765a6e4241",
+          "size_bytes": 672029
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold1_seed43.jsonl",
+          "sha256": "a1253dfd047eda2f6b237142f3c93b310819c10a1b374d92f416cc16e3a9a30d",
+          "size_bytes": 671933
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold1_seed44.jsonl",
+          "sha256": "ef3962df22485cce80ac2f0e13e5780c25cd965f307807da1fa99094201a67cb",
+          "size_bytes": 671985
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold2_seed42.jsonl",
+          "sha256": "766caa10e2e863e9638045f124c037cf97977a41dc960bce9b03676b741935ea",
+          "size_bytes": 671894
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold2_seed43.jsonl",
+          "sha256": "b19a0ef13ca865f267c2ea92cf7994cfe494d72b27528028e26c11f6c968e694",
+          "size_bytes": 672135
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold2_seed44.jsonl",
+          "sha256": "063c659a0a5797866c005073ff185af3905ac716af2d33be1f87f8f69a416abf",
+          "size_bytes": 671855
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold3_seed42.jsonl",
+          "sha256": "bf287b0890126cb077d6211fabf1f4fee00bf4dcd6ade8b27bc9ec96ba775db7",
+          "size_bytes": 671778
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold3_seed43.jsonl",
+          "sha256": "4fee3d078ebc11651dca896eca59d8051731c69b1570bb8c25d86961c88ec04b",
+          "size_bytes": 672064
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold3_seed44.jsonl",
+          "sha256": "55f5321d3870cb076b6e4d898270ec9c2350485fda923f528191f48dbdc72834",
+          "size_bytes": 672128
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold4_seed42.jsonl",
+          "sha256": "d0f4af0f331158a76b878bed4512bdf435347cabf9381560de618405de155f24",
+          "size_bytes": 693925
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold4_seed43.jsonl",
+          "sha256": "b5c7c3654cbfb7c0e4411956c71fa3f4ad1ce81044b24c2e64308df09817f49c",
+          "size_bytes": 694177
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\outer_predictions_fold4_seed44.jsonl",
+          "sha256": "d7d51638ea678337c1e94b516c7df27c1cb944c0fbe5f94ffea8ad075a4d57e3",
+          "size_bytes": 693787
+        }
+      ],
+      "source_freeze": {
+        "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_freeze_manifest.json",
+        "manifest_sha256": "9517c40fe166ea68b03865980ada9fde34c2768b13b67e023ee7d4b188cb308f",
+        "verification_status": "PASS",
+        "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_snapshot.zip",
+        "archive_sha256": "3075bd37d46be1082a4b9fba308388adf6113a26870b4f1a403a40a23bc3a1bd",
+        "archive_bytes": 1561848
+      },
+      "deployment_state": "PENDING_FULL_NETWORK_HARDWARE_CLOSURE"
+    },
+    {
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "role_reason": "Best existing formal Stage2-K5 candidate among the pre-K5 Stage4 backgrounds K3-e3 and Skip; no new search.",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e6",
+        "stage4": "MBConv-k3-e3"
+      },
+      "architecture_sha256": "9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d",
+      "parameter_count": 20320,
+      "macs": 57282432,
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e6_s4_mbconv_k3_e3.json",
+        "sha256": "10fbd2f9b60de3e119efa8ef8dcd5f4e35cc3843a838f89fdd6e2ab61076448f",
+        "size_bytes": 4626
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\protocol_summary.json",
+        "sha256": "622c54bd99f972c5147d412c503a0c4199397168823d72fb8444f061b6d3fa0d",
+        "size_bytes": 16655
+      },
+      "result_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "formal_protocol_units": {
+        "expected": 15,
+        "observed_run_json_count": 15,
+        "checkpoint_count": 15,
+        "outer_prediction_count": 15
+      },
+      "metrics": {
+        "outer_macro_f1": {
+          "mean": 0.8365942397635453,
+          "std": 0.04746457910237315,
+          "n": 15,
+          "values": [
+            0.8960387761527684,
+            0.7907053522873223,
+            0.7780842302881851,
+            0.8414600139890837,
+            0.8450539694523389,
+            0.8468387379534447,
+            0.7288866633752394,
+            0.7839405005350701,
+            0.8283686600295127,
+            0.84876318652156,
+            0.8631254440779104,
+            0.860098788963332,
+            0.8757065393737224,
+            0.858872098549037,
+            0.9029706349046522
+          ]
+        },
+        "outer_top1": {
+          "mean": 0.9219808527909087,
+          "std": 0.012834881556814236,
+          "n": 15,
+          "values": [
+            0.9423076923076923,
+            0.9038461538461539,
+            0.9096153846153846,
+            0.9230769230769231,
+            0.9230769230769231,
+            0.925,
+            0.9019230769230769,
+            0.9019230769230769,
+            0.9192307692307692,
+            0.925,
+            0.9307692307692308,
+            0.926923076923077,
+            0.9292364990689013,
+            0.925512104283054,
+            0.9422718808193669
+          ]
+        },
+        "outer_weighted_f1": {
+          "mean": 0.9204616587732967,
+          "std": 0.01379845861171246,
+          "n": 15,
+          "values": [
+            0.943561150538592,
+            0.9028944922047972,
+            0.9103058480659332,
+            0.9200259160947892,
+            0.9227672841957775,
+            0.9230106304434188,
+            0.8952751216558883,
+            0.9000975352414593,
+            0.9172945134908488,
+            0.9238767922241065,
+            0.9291376130206929,
+            0.9256092175985441,
+            0.9277181990946894,
+            0.923065296098911,
+            0.9422852716310012
+          ]
+        },
+        "per_class_f1_mean": [
+          0.7698512689351461,
+          0.8236319245718275,
+          0.8425396825396825,
+          0.9745112973762825,
+          0.9175583121320349,
+          0.545264056697497,
+          0.8343331531188304,
+          0.9850642227370617
+        ]
+      },
+      "checkpoint_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+          "sha256": "923ff4c2492a7b4f4f82943e60707a747a0f1311f276f1e40b85a4361311e547",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold0_seed43.pt",
+          "sha256": "3bd8ea09b3c0b80804c1c481fcbeb0e558f734ebc79834eeeba7e42bab1ddafc",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold0_seed44.pt",
+          "sha256": "b28e3752d3fe65ea0fd7dd72643083b2df22145be3e6f871ad7abbfaf0d6f0f5",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold1_seed42.pt",
+          "sha256": "d8837d9b9ec6c75a1d7d9194c8bca785356d8ee3345c5c56bba864ffadd5ac71",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold1_seed43.pt",
+          "sha256": "8be1df2f78e43cedc83d271b37488f940524d436e2667378f054dd06894498a0",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold1_seed44.pt",
+          "sha256": "c8873b1aed3fc9a95ee423373e7866a6320631e4a500db42a23efa76df5e9fa7",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold2_seed42.pt",
+          "sha256": "2c7b065ed977ebbbb5503f1af5f3e991cc8cc2c78d3ca39c3e42fb9ecdd59261",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold2_seed43.pt",
+          "sha256": "e9a889149e4fb706594e80d92aabc10c284cb286cf09add1be99e1d3703a389f",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold2_seed44.pt",
+          "sha256": "6b82876e05791935a7f3b5fab3b2c9aabf47a926838d7c99e16141ce0da2253d",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold3_seed42.pt",
+          "sha256": "23e63fbc4ed9cbff092cd3cd1d4aeead48762ccbbc0c77e26b6e8a25cc11c5c5",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold3_seed43.pt",
+          "sha256": "1815c1bfa697c3ce918cc260249dc5513335339e837c57b1d14cbfc012aba7e4",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold3_seed44.pt",
+          "sha256": "ffc4d0389fc397d1a6f8a4d3e2e96176accbc37bd2b9ace1c5972f87d94c30f6",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold4_seed42.pt",
+          "sha256": "046e9c842f1fd9d528291f3e6bbfeff7b833f749076b1c137178a82bf7757e9e",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold4_seed43.pt",
+          "sha256": "fa521d9949c7305fc00bbeb547c2e6dce6890eab57ba54f2afc2de937c8099de",
+          "size_bytes": 111547
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold4_seed44.pt",
+          "sha256": "20866d0b60f17e169d507612957daeb0208907e013ef3969bf9114c3deef19cd",
+          "size_bytes": 111547
+        }
+      ],
+      "outer_prediction_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold0_seed42.jsonl",
+          "sha256": "0fe1da5bd3bb85e20e591fd91cfb0b4ce80714c058e9fb44019b587d71a90eca",
+          "size_bytes": 671885
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold0_seed43.jsonl",
+          "sha256": "5ff9c7281d567e2a1956c0cc1646c965701b1fbdf0168d4b00230b0e58ea62ec",
+          "size_bytes": 671949
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold0_seed44.jsonl",
+          "sha256": "5c44fd1b0532375b8f032a0c2552fb696e88e232098cf99d1d7857b55d872700",
+          "size_bytes": 672029
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold1_seed42.jsonl",
+          "sha256": "df2a0f13b3c4cbdcf01f836ae802281d3b76a4b15da371652557c2b46c4bece9",
+          "size_bytes": 671793
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold1_seed43.jsonl",
+          "sha256": "5ea15b0a79bbc971f7809f9875e44daf69fd7b1a89edee2265dce05710516f34",
+          "size_bytes": 671947
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold1_seed44.jsonl",
+          "sha256": "c8610c0f7e579a45b50704f075c68a736d84014110963213ff869ff8adfc8e69",
+          "size_bytes": 672093
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold2_seed42.jsonl",
+          "sha256": "f7a879b6edee3da157e7b89255a64afa3789b73b2147a14accbb17b6abdd4870",
+          "size_bytes": 672064
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold2_seed43.jsonl",
+          "sha256": "64c6f85939588d2fb6fe9375e0c6438cca551967d4c166d197d07736599a9a2a",
+          "size_bytes": 672112
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold2_seed44.jsonl",
+          "sha256": "caee0027c6b9c7ebff8c1d4210b047393ab6280dd45bffde7e5ddb4a5a185c43",
+          "size_bytes": 671935
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold3_seed42.jsonl",
+          "sha256": "016757f2b147e5ce8982480658d2fee970dfd2a3ffc78905fbe74ff5cf587576",
+          "size_bytes": 672024
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold3_seed43.jsonl",
+          "sha256": "ca10815bb1e13434b49c2dae501ed9e801398c6489c55493bb5800e6e30317a3",
+          "size_bytes": 671982
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold3_seed44.jsonl",
+          "sha256": "517a51512ce3f3f5557f875409af753b67f5582d81c5de119ba704187bdf3924",
+          "size_bytes": 672297
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold4_seed42.jsonl",
+          "sha256": "6e08c49f4dc59681b8d518104fbea6dd5bfb96000aae251bc5eabcc0fbb9793c",
+          "size_bytes": 693952
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold4_seed43.jsonl",
+          "sha256": "c2efa0bc0fa8bdff5f010062081aa5a13e387631fe6565d94892a1163bed6b05",
+          "size_bytes": 694074
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\outer_predictions_fold4_seed44.jsonl",
+          "sha256": "e1eef59990c28fc31b79b2bf71ea2f6e6f6db72cb547449bffc2b0296c666b56",
+          "size_bytes": 693998
+        }
+      ],
+      "source_freeze": {
+        "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_freeze_manifest.json",
+        "manifest_sha256": "9517c40fe166ea68b03865980ada9fde34c2768b13b67e023ee7d4b188cb308f",
+        "verification_status": "PASS",
+        "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_snapshot.zip",
+        "archive_sha256": "3075bd37d46be1082a4b9fba308388adf6113a26870b4f1a403a40a23bc3a1bd",
+        "archive_bytes": 1561848
+      },
+      "deployment_state": "PENDING_FULL_NETWORK_HARDWARE_CLOSURE"
+    },
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "role_reason": "Best existing formal Stage4-K5 candidate among the preregistered Stage2 backgrounds that passed the Stage4-K5 accuracy gate.",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e3",
+        "stage4": "MBConv-k5-e3"
+      },
+      "architecture_sha256": "ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d",
+      "parameter_count": 18544,
+      "macs": 41476992,
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e3_s4_mbconv_k5_e3.json",
+        "sha256": "064fd37b7d28b8830d665abb85ac3515b946e84cc2560421c3651e889d061771",
+        "size_bytes": 4626
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\protocol_summary.json",
+        "sha256": "f79ba07278e53020da3a389b3e0e1e92de95e66010594fb4a0dda6497db8dc20",
+        "size_bytes": 16666
+      },
+      "result_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "formal_protocol_units": {
+        "expected": 15,
+        "observed_run_json_count": 15,
+        "checkpoint_count": 15,
+        "outer_prediction_count": 15
+      },
+      "metrics": {
+        "outer_macro_f1": {
+          "mean": 0.8635629331399135,
+          "std": 0.028405586842897807,
+          "n": 15,
+          "values": [
+            0.8539487455677369,
+            0.8159757543877113,
+            0.8333546652695588,
+            0.8166035938318938,
+            0.8637840564711705,
+            0.8792049920409254,
+            0.8696433527636499,
+            0.8550973978696017,
+            0.88847745772086,
+            0.9025475907900938,
+            0.8936692948768669,
+            0.8306457183328892,
+            0.8875321651158995,
+            0.8892648706532256,
+            0.8736943414066185
+          ]
+        },
+        "outer_top1": {
+          "mean": 0.9339996657594423,
+          "std": 0.01693911115868299,
+          "n": 15,
+          "values": [
+            0.9403846153846154,
+            0.925,
+            0.9326923076923077,
+            0.8807692307692307,
+            0.9346153846153846,
+            0.9346153846153846,
+            0.95,
+            0.9326923076923077,
+            0.948076923076923,
+            0.9519230769230769,
+            0.9423076923076923,
+            0.925,
+            0.9422718808193669,
+            0.9404096834264432,
+            0.9292364990689013
+          ]
+        },
+        "outer_weighted_f1": {
+          "mean": 0.9340314567673084,
+          "std": 0.015238019671437057,
+          "n": 15,
+          "values": [
+            0.9399376528565428,
+            0.9259340783564157,
+            0.9312197066902467,
+            0.8881601367766727,
+            0.936101321035489,
+            0.9366472488126071,
+            0.9505081219470701,
+            0.9317113795744454,
+            0.9476538149863536,
+            0.9505948536812309,
+            0.942285759084815,
+            0.9237185501872222,
+            0.9405256285432784,
+            0.93866579485706,
+            0.9268078041201762
+          ]
+        },
+        "per_class_f1_mean": [
+          0.7894450449689825,
+          0.8545975276657897,
+          0.8629629629629629,
+          0.9802826730844318,
+          0.916400800257648,
+          0.6232343102654817,
+          0.8927855281721021,
+          0.9887946177419088
+        ]
+      },
+      "checkpoint_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold0_seed42.pt",
+          "sha256": "4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold0_seed43.pt",
+          "sha256": "72744cf289c341f6623a54127ffee618139028e5db1dfec370db50fce6ee1673",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold0_seed44.pt",
+          "sha256": "ec84a6f3732e393e7b315efa98d053c32e5154762ea5c708aeec1c0a72777ca7",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold1_seed42.pt",
+          "sha256": "639f8f422338e20f18c34e9428c3be08c6e0ed5413c11b3cfb98535d9949c7db",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold1_seed43.pt",
+          "sha256": "cd984026fc4a0ea632c81fd28029871388f255a7506c2e340c96f33388a17627",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold1_seed44.pt",
+          "sha256": "0e250c53fd87c079355a62a6769266ef3903bedc24089c3456b5dfc423bb6c75",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold2_seed42.pt",
+          "sha256": "b13dd71afc80e920541a97163146041721cf76e489c7341c07bfc34bf359f52f",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold2_seed43.pt",
+          "sha256": "dfe1a0b4c865df84385f79f76285d4e04e694f14341d365a7d299e2f847f2986",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold2_seed44.pt",
+          "sha256": "91cdab60b216bf81418e31827e628a1dd99d5b79668dcd6b1eae6812243aec41",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold3_seed42.pt",
+          "sha256": "d6c9faef5d69963e17f81c132174baa2bcef621a21f34c2c1565eb30220e231d",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold3_seed43.pt",
+          "sha256": "716f1808ecf864da20e1bdbe8b8cb1451c61a5dad2f3acbc7dbe3e42e26f88ff",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold3_seed44.pt",
+          "sha256": "de158a7e11ec32aa28af06b4ca4b2b5215fc86aa4d1973ba1d4daf79619dafc8",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold4_seed42.pt",
+          "sha256": "96e322a4bf749caa5cb076ac6d22e9f0b1711d1a69628d07af4843b76a9fa63f",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold4_seed43.pt",
+          "sha256": "4c2064d05fcdfef3f5bb3fcea72d4e9a3c1b9a3d3801bb3b37eba32fcd0fbddb",
+          "size_bytes": 103675
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold4_seed44.pt",
+          "sha256": "a8f3effcc6ea419fadaa8fbad6587dd38926a1d007c0f25ddbeb190f6e7e9493",
+          "size_bytes": 103675
+        }
+      ],
+      "outer_prediction_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold0_seed42.jsonl",
+          "sha256": "21a01d5e4d022d037db1cc466c1462b388ffff02ffb4e45fef9a43db31ad1e81",
+          "size_bytes": 676512
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold0_seed43.jsonl",
+          "sha256": "d0611f31771e79eff4870f6652c499c8b65eec4309baab58c63529e0604b71db",
+          "size_bytes": 676878
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold0_seed44.jsonl",
+          "sha256": "136190197636f63a117d8e72a8013f377c47022db00cfe4a7ebd3c30441eb354",
+          "size_bytes": 676681
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold1_seed42.jsonl",
+          "sha256": "8f6663bd167efb754db24fb72e80e10aef6bd6f1dd4cffa87e023ecd8c2523b2",
+          "size_bytes": 676494
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold1_seed43.jsonl",
+          "sha256": "b1b7d7d84868c9d6f8055d19c1162a2e05e887aec4e9f5cef66a4834fac291fd",
+          "size_bytes": 676772
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold1_seed44.jsonl",
+          "sha256": "bdb178107ed80e020b957cf539316ff0d72ce462c257298aae9c47e94618cc9c",
+          "size_bytes": 676541
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold2_seed42.jsonl",
+          "sha256": "eef7a33a186b178a608cb1c5df3fd1a8b3a3a68300bf5b71db7c0e759a8d462b",
+          "size_bytes": 676469
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold2_seed43.jsonl",
+          "sha256": "ae89de210dba40ba34a4cb09222c3b15f2cce856fdb829958bffef5a20aa65cf",
+          "size_bytes": 676827
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold2_seed44.jsonl",
+          "sha256": "e13b3c1a3d5ff595f4152ae62752733f2184dcd31f91a7347a17495c59a2be4c",
+          "size_bytes": 676778
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold3_seed42.jsonl",
+          "sha256": "c3b49e7cfde309fc74d7ed4e14015bc60ee0712ffd98d6f7ca987fe4daf5ce8c",
+          "size_bytes": 676697
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold3_seed43.jsonl",
+          "sha256": "5dbd7b6875e691cfe66a1fc3c2d0f2d6f6981916ca9c9a011ca47eaf6ea5472a",
+          "size_bytes": 676745
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold3_seed44.jsonl",
+          "sha256": "094c72583acf16647cd0937f5e7f793c78c9fcc301e0d2c6866c4a231ef78c02",
+          "size_bytes": 676674
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold4_seed42.jsonl",
+          "sha256": "32ac0999fbff3549dd5b476054df1b7e42a8c48505c67b16a305f603cfcad7fb",
+          "size_bytes": 698701
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold4_seed43.jsonl",
+          "sha256": "e019b31ff2afc177b95ea1b59fec4dbabea6322987ef6218c4d6e6efcdfbb0ba",
+          "size_bytes": 698930
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\outer_predictions_fold4_seed44.jsonl",
+          "sha256": "8e84982d5bc747fbc1d52563f511e7d553fa7dacbd19e3916e945010a5d92242",
+          "size_bytes": 699064
+        }
+      ],
+      "source_freeze": {
+        "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_freeze_manifest.json",
+        "manifest_sha256": "229e3321fc43f10523e29c8014b4cfdf8963a34219340a0f412f61660fe59287",
+        "verification_status": "PASS",
+        "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\k5_formal_source_freeze\\source_snapshot.zip",
+        "archive_sha256": "2e87165ceb451a5bdfc00e877ead5129a4b092ea59d133bb882a663ed7b81af6",
+        "archive_bytes": 1605175
+      },
+      "deployment_state": "PENDING_FULL_NETWORK_HARDWARE_CLOSURE"
+    },
+    {
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "role_reason": "Best existing formal Skip candidate by Protocol V2 mean macro_f1.",
+      "factors": {
+        "kernel": "K5",
+        "expansion": "e3",
+        "stage4": "Skip"
+      },
+      "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9",
+      "parameter_count": 9552,
+      "macs": 34778496,
+      "candidate_json": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e3_s4_skip.json",
+        "sha256": "fd27f5d5576f2e1ec2bc6132387bb232047c0c4da3715a42e5c1016681faa524",
+        "size_bytes": 4015
+      },
+      "protocol_summary": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\protocol_summary.json",
+        "sha256": "a591b7ec6d59515b03af3d7357ab3009e37c1b22fd7bd139bc4fbda930b3a4c0",
+        "size_bytes": 16641
+      },
+      "result_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip",
+      "formal_protocol_units": {
+        "expected": 15,
+        "observed_run_json_count": 15,
+        "checkpoint_count": 15,
+        "outer_prediction_count": 15
+      },
+      "metrics": {
+        "outer_macro_f1": {
+          "mean": 0.7989780714589909,
+          "std": 0.041038141060959224,
+          "n": 15,
+          "values": [
+            0.8349642006944588,
+            0.7453435369371076,
+            0.7768368746655772,
+            0.8161716960662744,
+            0.8170689694249904,
+            0.8597384692288251,
+            0.7304898088412695,
+            0.7632001481347267,
+            0.7554495632442612,
+            0.7928104555194169,
+            0.7729879791908437,
+            0.8096282473533107,
+            0.869437044762789,
+            0.8159439287144161,
+            0.824600149106595
+          ]
+        },
+        "outer_top1": {
+          "mean": 0.9082483407343742,
+          "std": 0.015147581200372321,
+          "n": 15,
+          "values": [
+            0.9307692307692308,
+            0.9057692307692308,
+            0.9057692307692308,
+            0.9211538461538461,
+            0.9134615384615384,
+            0.925,
+            0.875,
+            0.8923076923076924,
+            0.8884615384615384,
+            0.9134615384615384,
+            0.9057692307692308,
+            0.9019230769230769,
+            0.9273743016759777,
+            0.9050279329608939,
+            0.9124767225325885
+          ]
+        },
+        "outer_weighted_f1": {
+          "mean": 0.9068595551434174,
+          "std": 0.015650603462564326,
+          "n": 15,
+          "values": [
+            0.9302642647953187,
+            0.9020384083686414,
+            0.9073616186691631,
+            0.9213332218603303,
+            0.9114675453255298,
+            0.9228480854464456,
+            0.8743612458942487,
+            0.8920814277448209,
+            0.8839870514010227,
+            0.9111468197288196,
+            0.9040593770604738,
+            0.8994110556151672,
+            0.928374581644065,
+            0.903260249797089,
+            0.9108983738001254
+          ]
+        },
+        "per_class_f1_mean": [
+          0.7278104245427894,
+          0.792634785518218,
+          0.716031746031746,
+          0.9717681946312414,
+          0.8819342998560357,
+          0.48969421733760243,
+          0.8307416533821624,
+          0.9812092503721315
+        ]
+      },
+      "checkpoint_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed42.pt",
+          "sha256": "aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed43.pt",
+          "sha256": "105f8dcaf873c1f86adba7c4e828898a0b1e981216db4f324307589e45258d62",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed44.pt",
+          "sha256": "e782a83a972f242dd8c325211a9ac04ad8c6818fe88fe879b7e110d49cbf1d31",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold1_seed42.pt",
+          "sha256": "75479ac1ad813c6bd7367ba389a67cb2ca30cd7204d23382286da20b735c36db",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold1_seed43.pt",
+          "sha256": "4b101981d09bd3d6fc1c4eca6d389e42eefc16ba7baeaef2eb09339ddfb8cc3a",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold1_seed44.pt",
+          "sha256": "1450d1ed5713cd8349768af5329660062a64ffdce48bdd00338cbe88fe639a38",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold2_seed42.pt",
+          "sha256": "d66e594fdcd5c2790d5fd1b8ce06488095273cf867a7ea04435f4386acf99831",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold2_seed43.pt",
+          "sha256": "170654a8f9c4acaf74457a276311194175bdc4b0e04bfc38536078d80790e80c",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold2_seed44.pt",
+          "sha256": "580098dcdf4bcea1ba2bf05b77ff2c09be0b1c5a3f255ea288c74c12b0c3616a",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold3_seed42.pt",
+          "sha256": "e092cb7da532ecce455d723c9b5b1032bed290965bee93de59afc1eaa10d729c",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold3_seed43.pt",
+          "sha256": "87d8e55738960fd7a9b8095077da33fe797fb8a84fc69ede0a80a520398c0580",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold3_seed44.pt",
+          "sha256": "82198ac94008ec02c3ff08f3be46f3e92ecd2aaa73d6290b432f6efef44afb01",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold4_seed42.pt",
+          "sha256": "055c4e9053c4ccab38ccb92b6c033edd3843c31f6d380fbd0d898b37d8c14cde",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold4_seed43.pt",
+          "sha256": "40c2b2732443a484282d32d8f4196a8f9fe298b026eeab99914d9dbf61f78c26",
+          "size_bytes": 60285
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold4_seed44.pt",
+          "sha256": "f02c767c0f26ad996a8992a25a7b7a127995ced17dc5654dc3ef70de4b9abca9",
+          "size_bytes": 60285
+        }
+      ],
+      "outer_prediction_index": [
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold0_seed42.jsonl",
+          "sha256": "c62106f8f1dff62d8904463eba0b5c72eefa660b8bcc473cac428b0b3c26d842",
+          "size_bytes": 667691
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold0_seed43.jsonl",
+          "sha256": "8f6f9069398c31c3f3c9995b2a849f554e84260e59a715a316090f1b5118905c",
+          "size_bytes": 667829
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold0_seed44.jsonl",
+          "sha256": "6ffbef1b2544409e871ed74de6bb14a9e2c267f10c2c8448a2c6d398273a3191",
+          "size_bytes": 667751
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold1_seed42.jsonl",
+          "sha256": "95577398e05309a6190429ae829d4e9c5f9f0dbaa7428cc189abab522a9829e2",
+          "size_bytes": 667503
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold1_seed43.jsonl",
+          "sha256": "8ab5afda78c2ab77d11b74fc62a33b4ae0ec98f3fadf92413f232fdd19341a5a",
+          "size_bytes": 667672
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold1_seed44.jsonl",
+          "sha256": "64d12d8d1323d35b5c277fa75dbfa123996ae68f15d28ad92a19cd919d842c54",
+          "size_bytes": 667439
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold2_seed42.jsonl",
+          "sha256": "62e2580b8964570fba4a13d6c1ee1f86fa5686755600e3ff90c079c95c2c552d",
+          "size_bytes": 667681
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold2_seed43.jsonl",
+          "sha256": "6a690f51a1710db9afd80ce995f9ec9aaf98928f9ceb5e3de4fdbde31d07cc3c",
+          "size_bytes": 667991
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold2_seed44.jsonl",
+          "sha256": "3c1f7a1ee24a8a0796d2c065020783448afc20b07d63a95d818d29d2632e2971",
+          "size_bytes": 668024
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold3_seed42.jsonl",
+          "sha256": "5ac86ddf4dc9b5c7aee7cbcc8347b2e3f72a96a1d845144365deb3200556ae81",
+          "size_bytes": 667863
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold3_seed43.jsonl",
+          "sha256": "3e9b4540448950d976c368c61e402d3798dc8d873e19e07a394b312a425a8aa2",
+          "size_bytes": 667635
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold3_seed44.jsonl",
+          "sha256": "37e6c69cf7bd6f73084080addc983048d79be66a3d22ecd43d0259ab9f5fd921",
+          "size_bytes": 667546
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold4_seed42.jsonl",
+          "sha256": "991a1e392f89c472f2ff27ac4a60c3994a9117f131208e3636bef5c4de9d2346",
+          "size_bytes": 689707
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold4_seed43.jsonl",
+          "sha256": "e560ff6fa0c51500317aef7d8ca3a58a877459777f718c9f280be5ad536c7a87",
+          "size_bytes": 689465
+        },
+        {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\outer_predictions_fold4_seed44.jsonl",
+          "sha256": "e7283aa62452b7e624c5d49b1ac4ee0c959eed076430d2d087e90c68f8263499",
+          "size_bytes": 689409
+        }
+      ],
+      "source_freeze": {
+        "manifest_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_freeze_manifest.json",
+        "manifest_sha256": "9517c40fe166ea68b03865980ada9fde34c2768b13b67e023ee7d4b188cb308f",
+        "verification_status": "PASS",
+        "archive_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_freeze\\source_snapshot.zip",
+        "archive_sha256": "3075bd37d46be1082a4b9fba308388adf6113a26870b4f1a403a40a23bc3a1bd",
+        "archive_bytes": 1561848
+      },
+      "deployment_state": "PENDING_FULL_NETWORK_HARDWARE_CLOSURE"
+    }
+  ],
+  "full_network_gate_sequence": [
+    {
+      "gate": "real_checkpoint_export",
+      "status": "PENDING",
+      "required_evidence": "checkpoint path and SHA256 from selected candidate index"
+    },
+    {
+      "gate": "int8_calibration",
+      "status": "PENDING",
+      "required_evidence": "real activation calibration set, quantization scales, zero-points, hashes"
+    },
+    {
+      "gate": "python_integer_reference",
+      "status": "PENDING",
+      "required_evidence": "bit-exact full-network INT8 reference outputs"
+    },
+    {
+      "gate": "full_network_c_sim",
+      "status": "PENDING",
+      "required_evidence": "complete network C simulation transcript and output tensors"
+    },
+    {
+      "gate": "pytorch_int8_vs_csim_zero_mismatch",
+      "status": "PENDING",
+      "required_evidence": "zero mismatch report on integer outputs"
+    },
+    {
+      "gate": "hls_synthesis",
+      "status": "PENDING",
+      "required_evidence": "complete-network HLS reports"
+    },
+    {
+      "gate": "place_and_route_5ns",
+      "status": "PENDING",
+      "required_evidence": "AV7K325 5ns implementation reports",
+      "acceptance": {
+        "wns_ns": ">=0",
+        "route_dsp": "<=700"
+      }
+    },
+    {
+      "gate": "bitstream",
+      "status": "NOT_GENERATED",
+      "required_evidence": "bitstream path and SHA256"
+    },
+    {
+      "gate": "com5_board_latency",
+      "status": "NOT_RUN",
+      "required_evidence": "COM5 transaction logs and latency JSON"
+    },
+    {
+      "gate": "external_meter_power",
+      "status": "NOT_MEASURED",
+      "required_evidence": "external instrument CSV and acquisition metadata"
+    }
+  ],
+  "mature_accuracy_space_pending_hardware": {
+    "status": "ACCURACY_LEVEL_SUPPORTED_PENDING_FULL_NETWORK_HARDWARE",
+    "stage2_candidates": [
+      "MBConv-k3-e3",
+      "MBConv-k3-e6",
+      "MBConv-k5-e3",
+      "MBConv-k5-e6"
+    ],
+    "stage4_candidates": [
+      "Skip",
+      "MBConv-k3-e3",
+      "MBConv-k5-e3"
+    ],
+    "structure_count": 12,
+    "boundary": "This is not the final deployable space until complete-network INT8/HLS/route/bitstream/COM5 gates pass for Stage4-K5."
+  },
+  "final_deployable_space_rule": {
+    "if_stage4_k5_complete_network_passes": {
+      "status": "DEPLOYABLE_SPACE_12",
+      "stage2_x_stage4": "4x3",
+      "structure_count": 12,
+      "stage4_candidates": [
+        "K3-e3",
+        "K5-e3",
+        "Skip"
+      ]
+    },
+    "if_stage4_k5_complete_network_fails": {
+      "status": "DEPLOYABLE_SPACE_8",
+      "stage2_x_stage4": "4x2",
+      "structure_count": 8,
+      "stage4_candidates": [
+        "K3-e3",
+        "Skip"
+      ]
+    }
+  },
+  "hardware_claim_boundary": {
+    "stage4_k5_exact_shape_micro_harness_route": "PASS, operator-slot evidence only",
+    "complete_network_route": "NOT_RUN",
+    "bitstream": "NOT_GENERATED",
+    "com5": "NOT_RUN",
+    "power": "NOT_MEASURED",
+    "strict_lut_proxy": "NOT_A_ROUTE_RESULT"
+  },
+  "source_snapshot_archive_index": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
+    "sha256": "7e377d2425a06876b39f5dc09b285d298af1d1f96d5d6b3734851c2628c59086"
+  },
+  "payload_sha256": "fae8579af5eab1b3e681e9f9879473eb6fdef041a905693977886e3d774e79ec"
+}
