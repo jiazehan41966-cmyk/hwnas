@@ -1,23 +1,21 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T16:11:33.624746+00:00",
+  "generated_at": "2026-08-03T17:21:08.881492+00:00",
   "status": "GENERAL_OP_SELECTED",
   "stage": "FULL_NETWORK_DEPLOYMENT_CLOSURE_QUEUE_FROZEN",
   "selection_protocol": "fixed_rule_from_existing_ProtocolV2_formal_results_no_new_search",
   "git": {
-    "head": "c197e5df2b5ecc93aa65422c97de0c4e78211b4a",
+    "head": "ed6cce5690188db9798967df4665d0e0564f3877",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-      " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
       " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
       " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M scripts/freeze_fourstage_deployment_selection.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_csim_zero_mismatch_summary.json",
-      "?? scripts/run_fourstage_csim_gate.py"
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_hls_synthesis_summary.json",
+      "?? scripts/run_fourstage_hls_synthesis_gate.py"
     ]
   },
   "frozen_experiment_conclusion": {
@@ -1186,17 +1184,22 @@
     },
     {
       "gate": "hls_synthesis",
-      "status": "PENDING",
-      "required_evidence": "complete-network HLS reports"
+      "status": "TIMEOUT",
+      "required_evidence": "complete-network HLS reports",
+      "evidence": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_hls_synthesis_summary.json",
+        "sha256": "d0176fa5e1adf60fda26fdc9284a99bc2099e50eed8bdc8dc4c8ec635f3e1032",
+        "size_bytes": 4695
+      }
     },
     {
       "gate": "rtl_cosim",
-      "status": "PENDING",
+      "status": "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED",
       "required_evidence": "complete-network RTL co-simulation transcript and output tensors"
     },
     {
       "gate": "place_and_route_5ns",
-      "status": "PENDING",
+      "status": "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED",
       "required_evidence": "AV7K325 5ns implementation reports",
       "acceptance": {
         "wns_ns": ">=0",
@@ -1266,7 +1269,7 @@
   },
   "source_snapshot_archive_index": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
-    "sha256": "ea47c169c00ceec0381f05b3970f844f07dfbfb2111dcf918652748195b3cee8"
+    "sha256": "189ea1c145ccd9429475242eefbc8d1450bf6f9f062568e8ec9e0757efe36c80"
   },
-  "payload_sha256": "74e024fab860b8449f3dbb2b0d0aae9615dc4dd16616705684d47b4ac0e18e0d"
+  "payload_sha256": "57e2c2453817d569057b52bb2f347dffb8a3b3ced24a777dedbeba01ba1fc6f0"
 }

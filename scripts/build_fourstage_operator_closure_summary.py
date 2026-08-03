@@ -375,6 +375,12 @@ def main() -> int:
                 "fourstage_csim_zero_mismatch_summary.json"
             )
         ),
+        "hls_synthesis_gate": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_hls_synthesis_summary.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
                 "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_CSIM_BOUNDARY"
@@ -405,6 +411,11 @@ def main() -> int:
                 "C-sim integer zero-mismatch against the Python INT8 "
                 "reference. This is not RTL co-sim, HLS synthesis, "
                 "full-network route, bitstream, board, or power evidence."
+            ),
+            "complete_network_hls_synthesis": (
+                "Static full-buffer HLS probe attempted after C-sim. The "
+                "gate summary, if present, records PASS/FAIL/TIMEOUT and "
+                "must pass before RTL co-sim or route can start."
             ),
             "complete_network_route": "NOT_RUN",
             "rtl_cosim": "NOT_RUN",

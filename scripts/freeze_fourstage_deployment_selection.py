@@ -38,6 +38,7 @@ SOURCE_SNAPSHOT_OUTPUT = ARTIFACT_ROOT / "source_snapshot_archive_index.json"
 CHECKPOINT_EXPORT_SUMMARY = ARTIFACT_ROOT / "fourstage_checkpoint_export_summary.json"
 INT8_REFERENCE_SUMMARY = ARTIFACT_ROOT / "fourstage_int8_reference_summary.json"
 CSIM_ZERO_MISMATCH_SUMMARY = ARTIFACT_ROOT / "fourstage_csim_zero_mismatch_summary.json"
+HLS_SYNTHESIS_SUMMARY = ARTIFACT_ROOT / "fourstage_hls_synthesis_summary.json"
 
 SOURCE_FREEZE_MANIFESTS = [
     {
@@ -236,11 +237,14 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
     checkpoint = maybe_evidence(CHECKPOINT_EXPORT_SUMMARY)
     int8 = maybe_evidence(INT8_REFERENCE_SUMMARY)
     csim = maybe_evidence(CSIM_ZERO_MISMATCH_SUMMARY)
+    hls = maybe_evidence(HLS_SYNTHESIS_SUMMARY)
     checkpoint_status = "PENDING"
     int8_status = "PENDING"
     reference_status = "PENDING"
     csim_status = "PENDING"
     zero_mismatch_status = "PENDING"
+    hls_status = "PENDING"
+    post_hls_not_run = "PENDING"
     if checkpoint is not None:
         checkpoint_payload = read_json(CHECKPOINT_EXPORT_SUMMARY)
         if checkpoint_payload.get("status") == "PASS":
@@ -259,6 +263,11 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
         ):
             csim_status = "PASS"
             zero_mismatch_status = "PASS"
+    if hls is not None:
+        hls_payload = read_json(HLS_SYNTHESIS_SUMMARY)
+        hls_status = str(hls_payload.get("status") or "PENDING")
+        if hls_status != "PASS":
+            post_hls_not_run = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
     return [
         {
             "gate": "real_checkpoint_export",
@@ -292,17 +301,18 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
         },
         {
             "gate": "hls_synthesis",
-            "status": "PENDING",
+            "status": hls_status,
             "required_evidence": "complete-network HLS reports",
+            "evidence": hls,
         },
         {
             "gate": "rtl_cosim",
-            "status": "PENDING",
+            "status": post_hls_not_run,
             "required_evidence": "complete-network RTL co-simulation transcript and output tensors",
         },
         {
             "gate": "place_and_route_5ns",
-            "status": "PENDING",
+            "status": post_hls_not_run,
             "required_evidence": "AV7K325 5ns implementation reports",
             "acceptance": {"wns_ns": ">=0", "route_dsp": "<=700"},
         },

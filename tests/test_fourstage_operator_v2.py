@@ -320,9 +320,9 @@ def test_deployment_selection_freezes_k5_queue_and_boundaries():
     assert gates["python_integer_reference"] == "PASS"
     assert gates["full_network_c_sim"] == "PASS"
     assert gates["pytorch_int8_vs_csim_zero_mismatch"] == "PASS"
-    assert gates["hls_synthesis"] == "PENDING"
-    assert gates["rtl_cosim"] == "PENDING"
-    assert gates["place_and_route_5ns"] == "PENDING"
+    assert gates["hls_synthesis"] == "TIMEOUT"
+    assert gates["rtl_cosim"] == "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+    assert gates["place_and_route_5ns"] == "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
     assert gates["bitstream"] == "NOT_GENERATED"
     assert gates["com5_board_latency"] == "NOT_RUN"
     assert gates["external_meter_power"] == "NOT_MEASURED"
@@ -428,3 +428,32 @@ def test_csim_zero_mismatch_gate_keeps_route_and_board_pending():
         assert row["max_abs_mismatch"] == 0
         assert row["vitis_returncode"] == 0
         assert row["csim_result"]["path"].endswith("csim_result.json")
+
+
+def test_hls_synthesis_timeout_blocks_route_and_board():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "fourstage_hls_synthesis_summary.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "TIMEOUT"
+    assert payload["gate"] == "full_network_hls_synthesis"
+    assert payload["implementation_style"] == "static_full_buffer_hls_probe"
+    assert payload["candidate_count"] == 1
+    assert payload["formal_candidate_count"] == 4
+    assert payload["formal_scope"] is False
+    row = payload["candidates"][0]
+    assert row["status"] == "TIMEOUT"
+    assert row["failure_category"] == "STATIC_FULL_BUFFER_HLS_SYNTHESIS_TIMEOUT"
+    assert row["preflight"]["bram18_lower_bound_for_activation_buffers"] > 0
+    assert payload["downstream_gates"]["rtl_cosim"] == (
+        "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+    )
+    assert payload["downstream_gates"]["place_and_route_5ns"] == (
+        "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+    )
+    assert payload["downstream_gates"]["bitstream"] == "NOT_GENERATED"
+    assert payload["downstream_gates"]["com5_board_latency"] == "NOT_RUN"
+    assert payload["downstream_gates"]["external_meter_power"] == "NOT_MEASURED"
