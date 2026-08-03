@@ -363,6 +363,12 @@ def main() -> int:
                 "fourstage_checkpoint_export_summary.json"
             )
         ),
+        "int8_reference_gate": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_int8_reference_summary.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
                 "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_BOUNDARY"

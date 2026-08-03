@@ -13,6 +13,10 @@ from hwnas_fpga.dir_int8_reference import (
     round_shift_signed,
 )
 from hwnas_fpga.experiment_contract import validate_formal_values_against_contract
+from hwnas_fpga.fourstage_int8_reference import (
+    collect_activation_stats,
+    full_network_int8_reference,
+)
 from hwnas_fpga.fourstage_operator import (
     architecture_sha256,
     build_fourstage_architecture,
@@ -341,3 +345,44 @@ def test_checkpoint_export_gate_does_not_claim_downstream_hardware():
         assert row["source_checkpoint"]["path"].endswith("best_fold0_seed42.pt")
         assert row["quantization_contract"]["status"] == "WEIGHT_EXPORT_ONLY"
         assert row["quantization_contract"]["parity_ready"] is False
+
+
+def test_fourstage_int8_reference_runs_on_supported_mature_candidate():
+    architecture = build_fourstage_architecture(
+        stage2_kernel=5,
+        stage2_expansion=3,
+        stage4_op="mbconv_k5_e3",
+    )
+    model = build_model(architecture, num_classes=8).eval()
+    inputs = torch.linspace(-1.0, 1.0, steps=1 * 1 * 64 * 64).reshape(1, 1, 64, 64)
+    calibration = collect_activation_stats(
+        model,
+        [(inputs, torch.tensor([0]))],
+        max_samples=1,
+    )
+    result = full_network_int8_reference(model, inputs, calibration)
+    assert result["logits_int8"].shape == (1, 8)
+    assert result["logits_int8"].dtype == torch.int8
+    assert result["argmax_match"].shape == (1,)
+
+
+def test_int8_reference_gate_keeps_hls_and_board_pending():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "fourstage_int8_reference_summary.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "PASS"
+    assert payload["gate"] == "activation_calibrated_python_int8_reference"
+    assert payload["candidate_count"] == 4
+    assert payload["calibration_dataset"]["outer_validation_accessed"] is False
+    assert payload["calibration_dataset"]["inner_validation_accessed"] is False
+    assert payload["downstream_gates"]["hls_c_sim"] == "PENDING"
+    assert payload["downstream_gates"]["bitstream"] == "NOT_GENERATED"
+    assert payload["downstream_gates"]["external_meter_power"] == "NOT_MEASURED"
+    for row in payload["candidates"]:
+        assert row["status"] == "PASS"
+        assert row["calibration_samples"] > 0
+        assert row["scale_count"] >= 8

@@ -1,24 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T14:44:22.099047+00:00",
+  "generated_at": "2026-08-03T15:23:25.501778+00:00",
   "git": {
-    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+    "head": "d62dd84719569e909470a988eaca6566568729a2",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M .gitignore",
-      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
-      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
-      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
-      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-      "?? scripts/export_fourstage_deployment_checkpoints.py",
-      "?? scripts/freeze_fourstage_deployment_selection.py"
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
+      "?? scripts/run_fourstage_int8_reference_gate.py",
+      "?? src/hwnas_fpga/fourstage_int8_reference.py"
     ]
   },
   "snapshot_policy": {
@@ -126,30 +119,22 @@
       "claim_scope": "Current slim PR code, protocol ledger, and deployment queue source",
       "manifest": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "sha256": "12023ec74bb641e8fcb9201da6127d4df86d7003d69a4ef5ba7616ebdcb67be5",
-        "size_bytes": 112671
+        "sha256": "06e4cb98239e668be2a7b3361cfec19ffd8a447ab2056dc54778e3d29bf3bfe4",
+        "size_bytes": 112379
       },
-      "recorded_git_head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+      "recorded_git_head": "d62dd84719569e909470a988eaca6566568729a2",
       "recorded_git_status_porcelain": [
-        "M .gitignore",
-        "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
-        "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
-        " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-        "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
-        "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+        "M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
         " M scripts/build_fourstage_operator_closure_summary.py",
         " M tests/test_fourstage_operator_v2.py",
-        "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-        "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
-        "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
-        "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-        "?? scripts/export_fourstage_deployment_checkpoints.py",
-        "?? scripts/freeze_fourstage_deployment_selection.py"
+        "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
+        "?? scripts/run_fourstage_int8_reference_gate.py",
+        "?? src/hwnas_fpga/fourstage_int8_reference.py"
       ],
       "verification": {
         "status": "PASS",
         "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "expected_file_count": 598,
+        "expected_file_count": 600,
         "missing": [],
         "unexpected": [],
         "changed": [],
@@ -157,14 +142,14 @@
       },
       "archive": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_snapshot.zip",
-        "recorded_sha256": "446c05ff34fedc4b79d1f0406b264671f6f3b677bcf07860d1428643cf3f8e30",
-        "actual_sha256": "446c05ff34fedc4b79d1f0406b264671f6f3b677bcf07860d1428643cf3f8e30",
-        "recorded_bytes": 1604966,
-        "actual_bytes": 1604966,
+        "recorded_sha256": "ac9e8d88bad7d5802d3391892ca693be3a6532dd725f1db02c0cecf880a0134f",
+        "actual_sha256": "ac9e8d88bad7d5802d3391892ca693be3a6532dd725f1db02c0cecf880a0134f",
+        "recorded_bytes": 1613670,
+        "actual_bytes": 1613670,
         "git_tracked": false,
         "mainline_policy": "keep_local_or_release_archive_only; mainline tracks manifest path, bytes, and SHA256, not ZIP bytes"
       }
     }
   ],
-  "payload_sha256": "7e377d2425a06876b39f5dc09b285d298af1d1f96d5d6b3734851c2628c59086"
+  "payload_sha256": "3e6e391c1b5dcfdb1cd53454f54ed46491fa027e6205ae9f33c74990a251a254"
 }

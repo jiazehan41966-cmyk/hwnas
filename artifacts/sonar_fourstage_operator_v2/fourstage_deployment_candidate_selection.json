@@ -1,27 +1,21 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T14:44:22.661791+00:00",
+  "generated_at": "2026-08-03T15:23:26.294553+00:00",
   "status": "GENERAL_OP_SELECTED",
   "stage": "FULL_NETWORK_DEPLOYMENT_CLOSURE_QUEUE_FROZEN",
   "selection_protocol": "fixed_rule_from_existing_ProtocolV2_formal_results_no_new_search",
   "git": {
-    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+    "head": "d62dd84719569e909470a988eaca6566568729a2",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M .gitignore",
-      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
-      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+      " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
-      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
-      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-      "?? scripts/export_fourstage_deployment_checkpoints.py",
-      "?? scripts/freeze_fourstage_deployment_selection.py"
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
+      "?? scripts/run_fourstage_int8_reference_gate.py",
+      "?? src/hwnas_fpga/fourstage_int8_reference.py"
     ]
   },
   "frozen_experiment_conclusion": {
@@ -1240,7 +1234,7 @@
   },
   "source_snapshot_archive_index": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
-    "sha256": "7e377d2425a06876b39f5dc09b285d298af1d1f96d5d6b3734851c2628c59086"
+    "sha256": "3e6e391c1b5dcfdb1cd53454f54ed46491fa027e6205ae9f33c74990a251a254"
   },
-  "payload_sha256": "fae8579af5eab1b3e681e9f9879473eb6fdef041a905693977886e3d774e79ec"
+  "payload_sha256": "6751398c79c76999ce16db1e65bc6536777b0b7be8ec8596377d5e5736f27511"
 }

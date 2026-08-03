@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-03T15:23:57.092572+00:00",
+  "status": "PASS",
+  "gate": "activation_calibrated_python_int8_reference",
+  "contract": "fourstage_per_tensor_symmetric_int8_activation_v1",
+  "checkpoint_export_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_checkpoint_export_summary.json",
+    "sha256": "434dc9696e33341c3cded2185968a0d3c830aa3aa8eee7ca9f35fddabf1ffc59",
+    "size_bytes": 15313
+  },
+  "protocol_file": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\configs\\evaluation\\nksid_frozen_protocol_v2.yaml",
+    "sha256": "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358",
+    "size_bytes": 5200
+  },
+  "git": {
+    "head": "d62dd84719569e909470a988eaca6566568729a2",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": [
+      "M artifacts/sonar_fourstage_operator_v2/fourstage_checkpoint_export_summary.json",
+      " M artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+      " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+      " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
+      " M scripts/build_fourstage_operator_closure_summary.py",
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
+      "?? scripts/run_fourstage_int8_reference_gate.py",
+      "?? src/hwnas_fpga/fourstage_int8_reference.py"
+    ]
+  },
+  "calibration_dataset": {
+    "data_dir": "E:\\1\\hwnas\\hwnas\\data\\NKSID",
+    "fold": 0,
+    "seed": 42,
+    "outer_validation_accessed": false,
+    "inner_validation_accessed": false,
+    "sample_count": 64,
+    "reference_sample_count": 8,
+    "index_source": "split.train_indices from Protocol V2 build_protocol_split",
+    "calibration_indices": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      20,
+      23,
+      24,
+      25,
+      27,
+      28,
+      29,
+      30,
+      32,
+      34,
+      36,
+      37,
+      39,
+      40,
+      41,
+      43,
+      44,
+      45,
+      46,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      56,
+      57,
+      58,
+      59,
+      60,
+      63,
+      64,
+      65,
+      66,
+      68,
+      69,
+      70,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      81,
+      82,
+      83,
+      84,
+      85,
+      88
+    ],
+    "reference_indices": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      11,
+      12,
+      13
+    ]
+  },
+  "candidate_count": 4,
+  "candidates": [
+    {
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "status": "PASS",
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+        "sha256": "ffd1122a2390a90e0956c7857e038b853209fad8747afe567e801d6a4799020a",
+        "size_bytes": 94459
+      },
+      "activation_calibration": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3\\fold0_seed42\\int8_reference\\activation_calibration.json",
+        "sha256": "48c9dde38e73a619b9db9105179f3975abcee27b2d97e084c0878967e3bd0859",
+        "size_bytes": 3445
+      },
+      "python_int8_reference": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3\\fold0_seed42\\int8_reference\\python_int8_reference.json",
+        "sha256": "9989fa1292d42f563b81c1b9322c41a10528e80e2d83a98babc45c98fad2151f",
+        "size_bytes": 10421
+      },
+      "reference_summary": {
+        "sample_count": 8,
+        "argmax_match_count": 8,
+        "argmax_match_rate": 1.0,
+        "max_abs_logit_error_max": 2.4102869033813477,
+        "max_abs_logit_error_mean": 1.8602187037467957
+      },
+      "scale_count": 14,
+      "calibration_samples": 64,
+      "claim_boundary": "Python INT8 reference generated from real checkpoint and training-only activation calibration. This is not HLS/C-sim zero-mismatch, route, COM5, or measured power evidence."
+    },
+    {
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "status": "PASS",
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+        "sha256": "923ff4c2492a7b4f4f82943e60707a747a0f1311f276f1e40b85a4361311e547",
+        "size_bytes": 111547
+      },
+      "activation_calibration": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3\\fold0_seed42\\int8_reference\\activation_calibration.json",
+        "sha256": "1dacf430db90db1aefab3e5dff11fa87a454a528ba6f2578a2ea59a1a6c1dd0c",
+        "size_bytes": 3453
+      },
+      "python_int8_reference": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3\\fold0_seed42\\int8_reference\\python_int8_reference.json",
+        "sha256": "a348156357c13bcc7dce1af54ed1787b8c3cedde67137e46d7973277d949c9d5",
+        "size_bytes": 10443
+      },
+      "reference_summary": {
+        "sample_count": 8,
+        "argmax_match_count": 8,
+        "argmax_match_rate": 1.0,
+        "max_abs_logit_error_max": 1.5489773750305176,
+        "max_abs_logit_error_mean": 1.2251764386892319
+      },
+      "scale_count": 14,
+      "calibration_samples": 64,
+      "claim_boundary": "Python INT8 reference generated from real checkpoint and training-only activation calibration. This is not HLS/C-sim zero-mismatch, route, COM5, or measured power evidence."
+    },
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "status": "PASS",
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold0_seed42.pt",
+        "sha256": "4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e",
+        "size_bytes": 103675
+      },
+      "activation_calibration": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3\\fold0_seed42\\int8_reference\\activation_calibration.json",
+        "sha256": "20c155f3b31e8fd937ff0d04f8469145bd981e535699136990bb4ef95813471e",
+        "size_bytes": 3447
+      },
+      "python_int8_reference": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3\\fold0_seed42\\int8_reference\\python_int8_reference.json",
+        "sha256": "d4dfd08009ddea237ae31c1ff4fdabf2aae4c901ca621580bf2cc1bdd9ef1e47",
+        "size_bytes": 10434
+      },
+      "reference_summary": {
+        "sample_count": 8,
+        "argmax_match_count": 8,
+        "argmax_match_rate": 1.0,
+        "max_abs_logit_error_max": 2.250771999359131,
+        "max_abs_logit_error_mean": 1.6556995064020157
+      },
+      "scale_count": 14,
+      "calibration_samples": 64,
+      "claim_boundary": "Python INT8 reference generated from real checkpoint and training-only activation calibration. This is not HLS/C-sim zero-mismatch, route, COM5, or measured power evidence."
+    },
+    {
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "status": "PASS",
+      "source_checkpoint": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed42.pt",
+        "sha256": "aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8",
+        "size_bytes": 60285
+      },
+      "activation_calibration": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip\\fold0_seed42\\int8_reference\\activation_calibration.json",
+        "sha256": "4443ece4c96ce078f0af5766cc8ff7a857bfca9259cf45d16c05f15d5b819026",
+        "size_bytes": 3264
+      },
+      "python_int8_reference": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip\\fold0_seed42\\int8_reference\\python_int8_reference.json",
+        "sha256": "ba23e0eb9373c9a1ba9fecc03a593bd117ddc92d5acdf400a286d7358f94ec05",
+        "size_bytes": 10400
+      },
+      "reference_summary": {
+        "sample_count": 8,
+        "argmax_match_count": 8,
+        "argmax_match_rate": 1.0,
+        "max_abs_logit_error_max": 1.267045021057129,
+        "max_abs_logit_error_mean": 0.8696747794747353
+      },
+      "scale_count": 12,
+      "calibration_samples": 64,
+      "claim_boundary": "Python INT8 reference generated from real checkpoint and training-only activation calibration. This is not HLS/C-sim zero-mismatch, route, COM5, or measured power evidence."
+    }
+  ],
+  "downstream_gates": {
+    "hls_c_sim": "PENDING",
+    "pytorch_int8_vs_csim_zero_mismatch": "PENDING",
+    "rtl_cosim": "PENDING",
+    "full_network_hls": "PENDING",
+    "place_and_route_5ns": "PENDING",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "known_next_work": [
+    "Generate a four-stage HLS C-sim harness that consumes this exact calibration/reference contract.",
+    "Run C-sim and require PyTorch INT8 reference versus C-sim zero mismatch before RTL or route."
+  ],
+  "claim_boundary": "Activation calibration and Python INT8 reference are complete. No HLS/C-sim zero-mismatch, RTL co-sim, full-network route, bitstream, COM5, or power claim is made.",
+  "payload_sha256": "1e3917b5d8ad3041e495fd52007b40c40c324e4924f68f61d13efee5fde4d137"
+}

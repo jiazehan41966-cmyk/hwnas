@@ -1,25 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T14:43:57.498615+00:00",
+  "generated_at": "2026-08-03T15:23:05.878998+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure",
   "git": {
-    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+    "head": "d62dd84719569e909470a988eaca6566568729a2",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M .gitignore",
-      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
-      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      "M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
-      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
-      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-      "?? scripts/export_fourstage_deployment_checkpoints.py",
-      "?? scripts/freeze_fourstage_deployment_selection.py"
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
+      "?? scripts/run_fourstage_int8_reference_gate.py",
+      "?? src/hwnas_fpga/fourstage_int8_reference.py"
     ]
   },
   "excluded_prefixes": [
@@ -38,7 +30,7 @@
     "hls_lut_builder/board_harness/results/"
   ],
   "extras": [],
-  "file_count": 598,
+  "file_count": 600,
   "files": [
     {
       "path": ".gitignore",
@@ -722,8 +714,8 @@
     },
     {
       "path": "docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-      "bytes": 2536,
-      "sha256": "8d40839af226d41e080ba460dd4b54f3dc683b534b560ae83a629163bd69ac65"
+      "bytes": 2775,
+      "sha256": "18c9282159399d97e5fda02535693d9b22baa9cc725d6b135c31ef7c0c713347"
     },
     {
       "path": "docs/SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md",
@@ -1692,8 +1684,8 @@
     },
     {
       "path": "scripts/build_fourstage_operator_closure_summary.py",
-      "bytes": 14133,
-      "sha256": "5ce142dfbd90a4048dc41000c6a375459d0d7053c95e3e6f68748d52de26d3fc"
+      "bytes": 14332,
+      "sha256": "641f491bcf391390b1c508b1bb40a3f43be19147a3a9cf4c2de4c3a5e1cca911"
     },
     {
       "path": "scripts/build_hw_calibration_v2.py",
@@ -2031,6 +2023,11 @@
       "sha256": "71f516f1a8cc44bb4273baa822c6d49d9277a8e9ca6695ccf9f5b6d948d8a540"
     },
     {
+      "path": "scripts/run_fourstage_int8_reference_gate.py",
+      "bytes": 14650,
+      "sha256": "859f27feb60793a2f66d4037f1cd03a2c39d958df438a67484b78e81cf8f8970"
+    },
+    {
       "path": "scripts/run_g1_baseline_trio.ps1",
       "bytes": 2266,
       "sha256": "b6dff6c02a3ffa57e350a80a1a62a545cba7ea3120b93aca9741e6eb88ff24cf"
@@ -2354,6 +2351,11 @@
       "path": "src/hwnas_fpga/experiment_contract.py",
       "bytes": 4776,
       "sha256": "f82ee5403639067d8f8ac0f303a08b2357b0ccb6114831729e633714dc6a12e1"
+    },
+    {
+      "path": "src/hwnas_fpga/fourstage_int8_reference.py",
+      "bytes": 15769,
+      "sha256": "b61e6b0facc07a47e3f364e1682acb8a7e33006072d5e6e91a410bc517afc866"
     },
     {
       "path": "src/hwnas_fpga/fourstage_operator.py",
@@ -2747,8 +2749,8 @@
     },
     {
       "path": "tests/test_fourstage_operator_v2.py",
-      "bytes": 12491,
-      "sha256": "267ae100fb57a7308a5d9075b4a21848b29e1495d1e40d3c7296813ada461325"
+      "bytes": 14305,
+      "sha256": "c2deecdd09bdc5f78e51eaa278e96b498efd641160989e9b6571951039a68d87"
     },
     {
       "path": "tests/test_g1_launcher.py",
@@ -3033,7 +3035,7 @@
   ],
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_snapshot.zip",
-    "bytes": 1604966,
-    "sha256": "446c05ff34fedc4b79d1f0406b264671f6f3b677bcf07860d1428643cf3f8e30"
+    "bytes": 1613670,
+    "sha256": "ac9e8d88bad7d5802d3391892ca693be3a6532dd725f1db02c0cecf880a0134f"
   }
 }

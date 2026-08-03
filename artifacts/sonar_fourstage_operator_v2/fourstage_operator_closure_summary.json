@@ -1,27 +1,22 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T14:44:48.074646+00:00",
+  "generated_at": "2026-08-03T15:24:04.652521+00:00",
   "final_status": "GENERAL_OP_SELECTED",
   "final_status_reason": "Dir-v1 reached the direction basis gate but failed the preregistered accuracy admission gate. Mature MBConv-k5 has formal Protocol V2 accuracy support in Stage2, and Stage4 K5 also passes accuracy on 3 of 4 Stage2 backgrounds after the exact-shape micro-harness hardware gate opened it.",
   "git": {
-    "head": "84abfb08be09fde82b0c79d35044988bca608d0b",
+    "head": "d62dd84719569e909470a988eaca6566568729a2",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M .gitignore",
-      "D  artifacts/sonar_fourstage_operator_v2/closure_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/dir_v1_source_freeze/source_snapshot.zip",
-      " M artifacts/sonar_fourstage_operator_v2/fourstage_operator_closure_summary.json",
-      "D  artifacts/sonar_fourstage_operator_v2/k5_formal_source_freeze/source_snapshot.zip",
-      "D  artifacts/sonar_fourstage_operator_v2/source_freeze/source_snapshot.zip",
+      "M artifacts/sonar_fourstage_operator_v2/fourstage_checkpoint_export_summary.json",
+      " M artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
+      " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
+      " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_checkpoint_export_summary.json",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-      "?? artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/",
-      "?? artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
-      "?? docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-      "?? scripts/export_fourstage_deployment_checkpoints.py",
-      "?? scripts/freeze_fourstage_deployment_selection.py"
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_int8_reference_summary.json",
+      "?? scripts/run_fourstage_int8_reference_gate.py",
+      "?? src/hwnas_fpga/fourstage_int8_reference.py"
     ]
   },
   "source_freezes": {
@@ -38,7 +33,7 @@
       "verification": {
         "status": "PASS",
         "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "expected_file_count": 598,
+        "expected_file_count": 600,
         "missing": [],
         "unexpected": [],
         "changed": [],
@@ -46,14 +41,14 @@
       },
       "manifest": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "sha256": "12023ec74bb641e8fcb9201da6127d4df86d7003d69a4ef5ba7616ebdcb67be5",
-        "size_bytes": 112671
+        "sha256": "06e4cb98239e668be2a7b3361cfec19ffd8a447ab2056dc54778e3d29bf3bfe4",
+        "size_bytes": 112379
       }
     },
     "source_snapshot_archive_index": {
       "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
-      "sha256": "8ea75398f27e7dbd33526cf3bc90dff7bb835447d904fa8a9281a2028412beb8",
-      "size_bytes": 10291
+      "sha256": "5680d558b421ba5982165d349e8d34bdba2ee50fbe9482ef050d71fde873ed20",
+      "size_bytes": 9056
     }
   },
   "macro_architecture_frozen": {
@@ -282,13 +277,18 @@
   },
   "deployment_candidate_selection": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_deployment_candidate_selection.json",
-    "sha256": "146bbbbbbd5d020a6e6e50bd66755c8b5b4ff644076f0091ee894469b53600ee",
-    "size_bytes": 64729
+    "sha256": "c2f15397d7fdef1f958232f6d30b33e151933de350b2063ad31fadcfd393baad",
+    "size_bytes": 64256
   },
   "checkpoint_export_gate": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_checkpoint_export_summary.json",
-    "sha256": "bb49664b7158776c12e96165372f225667b161aaf9475ffdc47c68998e198f66",
-    "size_bytes": 15641
+    "sha256": "434dc9696e33341c3cded2185968a0d3c830aa3aa8eee7ca9f35fddabf1ffc59",
+    "size_bytes": 15313
+  },
+  "int8_reference_gate": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_int8_reference_summary.json",
+    "sha256": "04503d8b8b9a9a38a89d30d4d73a8325d1f3307b90f2159c225decdd96b70629",
+    "size_bytes": 11098
   },
   "operator_states": {
     "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_BOUNDARY",
@@ -309,5 +309,5 @@
     "com5_board_run": "NOT_RUN",
     "power": "NOT_MEASURED"
   },
-  "payload_sha256": "d081fc5fc0628c266e853ddd4ee94b34f18b74571f6569cfd87fb2e8160aceda"
+  "payload_sha256": "e613699e8a784a10cf70c7555e3cc7d5181e4c7d53f1970cfff40311fb3a3c68"
 }

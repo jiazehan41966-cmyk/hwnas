@@ -24,6 +24,8 @@ Dir-MBConv3 的方向依据诊断通过，但 `dir_mbconv3_split11_e3_v1` 未通
 3. Stage4-K5 代表：已通过 Stage4-K5 预注册精度门槛的最佳候选。
 4. 低成本代表：既有正式结果中最佳 Skip 候选。
 
-后续门禁顺序固定为：真实 checkpoint 导出、INT8 校准、Python 整数参考、完整网络 C-sim、INT8 zero mismatch、完整网络 HLS、AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。
+当前已完成真实 checkpoint 导出、训练数据 activation calibration（激活校准）和 Python full-network INT8 reference（完整网络整数参考）。这些仍属于 CPU 软件层证据，不等于 HLS 或板级部署完成。
+
+后续门禁顺序固定为：完整网络 C-sim、PyTorch INT8 reference 与 C-sim zero mismatch（逐整数输出零差异）、完整网络 HLS、AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。
 
 最终可部署空间尚未冻结。若 Stage4-K5 完整网络硬件闭环通过，可部署空间为 Stage2 4 种 × Stage4 3 种，共 12 种；若 Stage4-K5 完整网络硬件闭环失败，可部署空间回退为 Stage2 4 种 × Stage4 2 种，共 8 种。
