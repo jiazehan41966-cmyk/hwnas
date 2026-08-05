@@ -575,7 +575,8 @@ def run_vitis_synthesis(
     process = subprocess.Popen(
         command,
         cwd=synth_dir,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
     )
     timed_out = False
