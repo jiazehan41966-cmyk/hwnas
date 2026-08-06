@@ -28,6 +28,8 @@ Dir-MBConv3 的方向依据诊断通过，但 `dir_mbconv3_split11_e3_v1` 未通
 
 已尝试基线候选的 static full-buffer complete-network HLS synthesis probe（静态整网激活缓冲综合探针）。该实现的 activation buffer 下界为 545 个 BRAM18，仅完成到 Vitis 调度/绑定中间阶段，日志显示 large buffer memory-port II violation，45 分钟内未生成 csynth 报告，门禁状态为 `TIMEOUT`。因此当前不能进入 RTL co-sim、完整网络 route、bitstream 或 COM5。下一步必须实现更可控的 streaming/tiled full-network HLS datapath（流式/分块整网数据通路），而不是把该 static-buffer probe 当成可部署实现。
 
-后续门禁顺序固定为：streaming/tiled 完整网络 HLS synthesis、RTL co-sim、AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。
+已完成 `external_scratch_pixel_tiled_v1` 的正式完整网络 HLS synthesis 门禁：4 个冻结部署代表候选均使用真实 checkpoint、真实 activation calibration 和相同 INT8 整数契约，通过 Vitis C-sim（mismatch=0）并生成 csynth 报告。该证据说明完整网络 HLS synthesis 层已通过，但它仍不是 RTL co-sim、AV7K325 5ns route、bitstream、COM5 板级 latency 或外部仪表功耗。
+
+后续门禁顺序固定为：RTL co-sim、AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。完整 route 必须等待 RTL co-sim 通过后才能启动。
 
 最终可部署空间尚未冻结。若 Stage4-K5 完整网络硬件闭环通过，可部署空间为 Stage2 4 种 × Stage4 3 种，共 12 种；若 Stage4-K5 完整网络硬件闭环失败，可部署空间回退为 Stage2 4 种 × Stage4 2 种，共 8 种。

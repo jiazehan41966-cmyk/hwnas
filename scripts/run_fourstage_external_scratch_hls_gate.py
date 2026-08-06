@@ -625,7 +625,11 @@ def main() -> int:
         "candidates": rows,
         "downstream_gates": {
             "rtl_cosim": "PENDING" if status == "PASS" else "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED",
-            "place_and_route_5ns": "PENDING" if status == "PASS" else "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED",
+            "place_and_route_5ns": (
+                "NOT_RUN_RTL_COSIM_NOT_PASSED"
+                if status == "PASS"
+                else "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+            ),
             "bitstream": "NOT_GENERATED",
             "com5_board_latency": "NOT_RUN",
             "external_meter_power": "NOT_MEASURED",

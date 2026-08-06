@@ -381,12 +381,18 @@ def main() -> int:
                 "fourstage_hls_synthesis_summary.json"
             )
         ),
+        "external_scratch_hls_gate": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_external_scratch_hls_summary.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
-                "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_CSIM_BOUNDARY"
+                "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_HLS_BOUNDARY"
             ),
             "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": (
-                "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_CSIM_BOUNDARY"
+                "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_HLS_BOUNDARY"
             ),
             "Edge_v1@ProtocolV1": "NOT_ADMITTED",
             "Edge@ProtocolV2": "NOT_RETESTED",
@@ -413,9 +419,11 @@ def main() -> int:
                 "full-network route, bitstream, board, or power evidence."
             ),
             "complete_network_hls_synthesis": (
-                "Static full-buffer HLS probe attempted after C-sim. The "
-                "gate summary, if present, records PASS/FAIL/TIMEOUT and "
-                "must pass before RTL co-sim or route can start."
+                "Static full-buffer HLS probe timed out, but the formal "
+                "external-scratch pixel-tiled HLS gate records whether all "
+                "four frozen deployment representatives pass complete-network "
+                "C-sim plus csynth. This is still not RTL co-sim, route, "
+                "bitstream, COM5, or measured power."
             ),
             "complete_network_route": "NOT_RUN",
             "rtl_cosim": "NOT_RUN",

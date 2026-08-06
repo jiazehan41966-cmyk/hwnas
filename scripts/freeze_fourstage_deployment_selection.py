@@ -39,6 +39,9 @@ CHECKPOINT_EXPORT_SUMMARY = ARTIFACT_ROOT / "fourstage_checkpoint_export_summary
 INT8_REFERENCE_SUMMARY = ARTIFACT_ROOT / "fourstage_int8_reference_summary.json"
 CSIM_ZERO_MISMATCH_SUMMARY = ARTIFACT_ROOT / "fourstage_csim_zero_mismatch_summary.json"
 HLS_SYNTHESIS_SUMMARY = ARTIFACT_ROOT / "fourstage_hls_synthesis_summary.json"
+EXTERNAL_SCRATCH_HLS_SUMMARY = (
+    ARTIFACT_ROOT / "fourstage_external_scratch_hls_summary.json"
+)
 
 SOURCE_FREEZE_MANIFESTS = [
     {
@@ -237,14 +240,17 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
     checkpoint = maybe_evidence(CHECKPOINT_EXPORT_SUMMARY)
     int8 = maybe_evidence(INT8_REFERENCE_SUMMARY)
     csim = maybe_evidence(CSIM_ZERO_MISMATCH_SUMMARY)
-    hls = maybe_evidence(HLS_SYNTHESIS_SUMMARY)
+    static_hls = maybe_evidence(HLS_SYNTHESIS_SUMMARY)
+    external_hls = maybe_evidence(EXTERNAL_SCRATCH_HLS_SUMMARY)
+    hls = external_hls or static_hls
     checkpoint_status = "PENDING"
     int8_status = "PENDING"
     reference_status = "PENDING"
     csim_status = "PENDING"
     zero_mismatch_status = "PENDING"
     hls_status = "PENDING"
-    post_hls_not_run = "PENDING"
+    rtl_status = "PENDING"
+    route_status = "PENDING"
     if checkpoint is not None:
         checkpoint_payload = read_json(CHECKPOINT_EXPORT_SUMMARY)
         if checkpoint_payload.get("status") == "PASS":
@@ -263,11 +269,21 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
         ):
             csim_status = "PASS"
             zero_mismatch_status = "PASS"
-    if hls is not None:
+    if external_hls is not None:
+        hls_payload = read_json(EXTERNAL_SCRATCH_HLS_SUMMARY)
+        hls_status = str(hls_payload.get("status") or "PENDING")
+        if hls_status == "PASS":
+            rtl_status = "PENDING"
+            route_status = "NOT_RUN_RTL_COSIM_NOT_PASSED"
+        else:
+            rtl_status = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+            route_status = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+    elif static_hls is not None:
         hls_payload = read_json(HLS_SYNTHESIS_SUMMARY)
         hls_status = str(hls_payload.get("status") or "PENDING")
         if hls_status != "PASS":
-            post_hls_not_run = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+            rtl_status = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+            route_status = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
     return [
         {
             "gate": "real_checkpoint_export",
@@ -304,15 +320,16 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
             "status": hls_status,
             "required_evidence": "complete-network HLS reports",
             "evidence": hls,
+            "static_full_buffer_probe": static_hls,
         },
         {
             "gate": "rtl_cosim",
-            "status": post_hls_not_run,
+            "status": rtl_status,
             "required_evidence": "complete-network RTL co-simulation transcript and output tensors",
         },
         {
             "gate": "place_and_route_5ns",
-            "status": post_hls_not_run,
+            "status": route_status,
             "required_evidence": "AV7K325 5ns implementation reports",
             "acceptance": {"wns_ns": ">=0", "route_dsp": "<=700"},
         },
