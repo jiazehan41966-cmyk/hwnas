@@ -387,12 +387,18 @@ def main() -> int:
                 "fourstage_external_scratch_hls_summary.json"
             )
         ),
+        "rtl_cosim_gate": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "fourstage_external_scratch_rtl_cosim_summary.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
-                "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_HLS_BOUNDARY"
+                "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_RTL_COSIM_TIMEOUT_BOUNDARY"
             ),
             "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": (
-                "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_HLS_BOUNDARY"
+                "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_RTL_COSIM_TIMEOUT_BOUNDARY"
             ),
             "Edge_v1@ProtocolV1": "NOT_ADMITTED",
             "Edge@ProtocolV2": "NOT_RETESTED",
@@ -425,8 +431,14 @@ def main() -> int:
                 "C-sim plus csynth. This is still not RTL co-sim, route, "
                 "bitstream, COM5, or measured power."
             ),
+            "rtl_cosim": (
+                "Formal external-scratch RTL co-sim was attempted for all "
+                "four frozen deployment representatives and timed out in XSIM. "
+                "C testbench pre-checks wrote mismatch=0, but Vitis did not "
+                "return normally within the preregistered timeout, so this is "
+                "not an RTL co-sim PASS and route remains blocked."
+            ),
             "complete_network_route": "NOT_RUN",
-            "rtl_cosim": "NOT_RUN",
             "bitstream": "NOT_GENERATED",
             "com5_board_run": "NOT_RUN",
             "power": "NOT_MEASURED",

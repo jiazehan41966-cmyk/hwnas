@@ -321,7 +321,7 @@ def test_deployment_selection_freezes_k5_queue_and_boundaries():
     assert gates["full_network_c_sim"] == "PASS"
     assert gates["pytorch_int8_vs_csim_zero_mismatch"] == "PASS"
     assert gates["hls_synthesis"] == "PASS"
-    assert gates["rtl_cosim"] == "PENDING"
+    assert gates["rtl_cosim"] == "TIMEOUT"
     assert gates["place_and_route_5ns"] == "NOT_RUN_RTL_COSIM_NOT_PASSED"
     assert gates["bitstream"] == "NOT_GENERATED"
     assert gates["com5_board_latency"] == "NOT_RUN"
@@ -489,3 +489,33 @@ def test_external_scratch_hls_formal_pass_still_blocks_route_and_board():
         assert row["csynth_report"]["path"].endswith("fourstage_top_hls_csynth.xml")
         assert row["metrics"]["dsp"] <= 700
         assert row["metrics"]["power_w"] is None
+
+
+def test_rtl_cosim_timeout_blocks_route_and_board():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "fourstage_external_scratch_rtl_cosim_summary.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "TIMEOUT"
+    assert payload["gate"] == "full_network_external_scratch_rtl_cosim"
+    assert payload["implementation_style"] == "external_scratch_pixel_tiled_v1"
+    assert payload["candidate_count"] == 4
+    assert payload["formal_candidate_count"] == 4
+    assert payload["formal_scope"] is True
+    assert (
+        payload["downstream_gates"]["place_and_route_5ns"]
+        == "NOT_RUN_RTL_COSIM_NOT_PASSED"
+    )
+    assert payload["downstream_gates"]["bitstream"] == "NOT_GENERATED"
+    assert payload["downstream_gates"]["com5_board_latency"] == "NOT_RUN"
+    assert payload["downstream_gates"]["external_meter_power"] == "NOT_MEASURED"
+    for row in payload["candidates"]:
+        assert row["status"] == "TIMEOUT"
+        assert row["failure_category"] == "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT"
+        assert row["mismatch_count"] == 0
+        assert row["max_abs_mismatch"] == 0
+        assert row["vitis_returncode"] == -1
+        assert row["cosim_result"]["path"].endswith("csim_result.json")

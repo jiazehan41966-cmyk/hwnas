@@ -42,6 +42,9 @@ HLS_SYNTHESIS_SUMMARY = ARTIFACT_ROOT / "fourstage_hls_synthesis_summary.json"
 EXTERNAL_SCRATCH_HLS_SUMMARY = (
     ARTIFACT_ROOT / "fourstage_external_scratch_hls_summary.json"
 )
+EXTERNAL_SCRATCH_RTL_COSIM_SUMMARY = (
+    ARTIFACT_ROOT / "fourstage_external_scratch_rtl_cosim_summary.json"
+)
 
 SOURCE_FREEZE_MANIFESTS = [
     {
@@ -242,6 +245,7 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
     csim = maybe_evidence(CSIM_ZERO_MISMATCH_SUMMARY)
     static_hls = maybe_evidence(HLS_SYNTHESIS_SUMMARY)
     external_hls = maybe_evidence(EXTERNAL_SCRATCH_HLS_SUMMARY)
+    rtl = maybe_evidence(EXTERNAL_SCRATCH_RTL_COSIM_SUMMARY)
     hls = external_hls or static_hls
     checkpoint_status = "PENDING"
     int8_status = "PENDING"
@@ -284,6 +288,14 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
         if hls_status != "PASS":
             rtl_status = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
             route_status = "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+    if rtl is not None:
+        rtl_payload = read_json(EXTERNAL_SCRATCH_RTL_COSIM_SUMMARY)
+        rtl_status = str(rtl_payload.get("status") or "PENDING")
+        route_status = (
+            "PENDING"
+            if rtl_status == "PASS"
+            else "NOT_RUN_RTL_COSIM_NOT_PASSED"
+        )
     return [
         {
             "gate": "real_checkpoint_export",
@@ -326,6 +338,7 @@ def full_network_gate_sequence() -> list[dict[str, Any]]:
             "gate": "rtl_cosim",
             "status": rtl_status,
             "required_evidence": "complete-network RTL co-simulation transcript and output tensors",
+            "evidence": rtl,
         },
         {
             "gate": "place_and_route_5ns",
@@ -585,6 +598,11 @@ def build_deployment_selection(
         "hardware_claim_boundary": {
             "stage4_k5_exact_shape_micro_harness_route": (
                 "PASS, operator-slot evidence only"
+            ),
+            "rtl_cosim": (
+                read_json(EXTERNAL_SCRATCH_RTL_COSIM_SUMMARY).get("status")
+                if EXTERNAL_SCRATCH_RTL_COSIM_SUMMARY.is_file()
+                else "NOT_RUN"
             ),
             "complete_network_route": "NOT_RUN",
             "bitstream": "NOT_GENERATED",

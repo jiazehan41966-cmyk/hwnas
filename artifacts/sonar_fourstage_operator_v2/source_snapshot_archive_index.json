@@ -1,17 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-06T14:36:29.296557+00:00",
+  "generated_at": "2026-08-07T06:35:21.512480+00:00",
   "git": {
-    "head": "28ce0b6f5301f94df2f42db4a2eec8099b2ac1b3",
+    "head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_hls_summary.json",
-      " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
       " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M scripts/freeze_fourstage_deployment_selection.py",
-      " M scripts/run_fourstage_external_scratch_hls_gate.py",
-      " M tests/test_fourstage_operator_v2.py"
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_rtl_cosim_summary.json"
     ]
   },
   "snapshot_policy": {
@@ -119,22 +118,21 @@
       "claim_scope": "Current slim PR code, protocol ledger, and deployment queue source",
       "manifest": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "sha256": "edad499f6c288815d9800a4905e1788f4749e76623ea76f3cc65c9e77b328237",
-        "size_bytes": 112947
+        "sha256": "54e295cda39b9aeafab7da4ec564369f140fae8fdd8498c0db8648340764ba6f",
+        "size_bytes": 113086
       },
-      "recorded_git_head": "28ce0b6f5301f94df2f42db4a2eec8099b2ac1b3",
+      "recorded_git_head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
       "recorded_git_status_porcelain": [
-        "M artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_hls_summary.json",
-        " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
+        "M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
         " M scripts/build_fourstage_operator_closure_summary.py",
         " M scripts/freeze_fourstage_deployment_selection.py",
-        " M scripts/run_fourstage_external_scratch_hls_gate.py",
-        " M tests/test_fourstage_operator_v2.py"
+        " M tests/test_fourstage_operator_v2.py",
+        "?? artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_rtl_cosim_summary.json"
       ],
       "verification": {
         "status": "PASS",
         "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "expected_file_count": 603,
+        "expected_file_count": 604,
         "missing": [],
         "unexpected": [],
         "changed": [],
@@ -142,14 +140,14 @@
       },
       "archive": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_snapshot.zip",
-        "recorded_sha256": "052034ae24051305e2c61c3f48f2d363f759894ded0f85f81535203991856775",
-        "actual_sha256": "052034ae24051305e2c61c3f48f2d363f759894ded0f85f81535203991856775",
-        "recorded_bytes": 1641817,
-        "actual_bytes": 1641817,
+        "recorded_sha256": "372dd5e49bf1fc52d14834d36b1862302703c327b61edc4d5adf995741a64223",
+        "actual_sha256": "372dd5e49bf1fc52d14834d36b1862302703c327b61edc4d5adf995741a64223",
+        "recorded_bytes": 1646064,
+        "actual_bytes": 1646064,
         "git_tracked": false,
         "mainline_policy": "keep_local_or_release_archive_only; mainline tracks manifest path, bytes, and SHA256, not ZIP bytes"
       }
     }
   ],
-  "payload_sha256": "0cffeab31a0979cf299cd3dfdc8c45d6fd8818b954780e200875e0e138e90316"
+  "payload_sha256": "42b0e498779d98ab3de7a8a4f326b40993387d061cd2337bb87c78742cf5012e"
 }

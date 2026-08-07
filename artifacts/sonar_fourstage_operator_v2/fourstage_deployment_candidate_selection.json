@@ -1,21 +1,20 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-06T14:36:30.176146+00:00",
+  "generated_at": "2026-08-07T06:35:22.189573+00:00",
   "status": "GENERAL_OP_SELECTED",
   "stage": "FULL_NETWORK_DEPLOYMENT_CLOSURE_QUEUE_FROZEN",
   "selection_protocol": "fixed_rule_from_existing_ProtocolV2_formal_results_no_new_search",
   "git": {
-    "head": "28ce0b6f5301f94df2f42db4a2eec8099b2ac1b3",
+    "head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
-      "M artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_hls_summary.json",
-      " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
+      "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
       " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
       " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M scripts/freeze_fourstage_deployment_selection.py",
-      " M scripts/run_fourstage_external_scratch_hls_gate.py",
-      " M tests/test_fourstage_operator_v2.py"
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_rtl_cosim_summary.json"
     ]
   },
   "frozen_experiment_conclusion": {
@@ -1199,8 +1198,13 @@
     },
     {
       "gate": "rtl_cosim",
-      "status": "PENDING",
-      "required_evidence": "complete-network RTL co-simulation transcript and output tensors"
+      "status": "TIMEOUT",
+      "required_evidence": "complete-network RTL co-simulation transcript and output tensors",
+      "evidence": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_rtl_cosim_summary.json",
+        "sha256": "3e43bd0e2d3db41f91141564383f9d848f4eca0d65c1d287533d888c843c6070",
+        "size_bytes": 11446
+      }
     },
     {
       "gate": "place_and_route_5ns",
@@ -1266,6 +1270,7 @@
   },
   "hardware_claim_boundary": {
     "stage4_k5_exact_shape_micro_harness_route": "PASS, operator-slot evidence only",
+    "rtl_cosim": "TIMEOUT",
     "complete_network_route": "NOT_RUN",
     "bitstream": "NOT_GENERATED",
     "com5": "NOT_RUN",
@@ -1274,7 +1279,7 @@
   },
   "source_snapshot_archive_index": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
-    "sha256": "0cffeab31a0979cf299cd3dfdc8c45d6fd8818b954780e200875e0e138e90316"
+    "sha256": "42b0e498779d98ab3de7a8a4f326b40993387d061cd2337bb87c78742cf5012e"
   },
-  "payload_sha256": "dc38ec6e553183d4123a9fa8c344ed359e8200c0d9d949a9ff95ec229bb39a98"
+  "payload_sha256": "07d6ee1d97c6222c137f83ed3d04a868af7df3b7acbe9a2ec2f31699a43221de"
 }

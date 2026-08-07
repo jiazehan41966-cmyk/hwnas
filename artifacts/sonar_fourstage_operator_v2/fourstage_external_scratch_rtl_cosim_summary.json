@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-06T20:41:25.363785+00:00",
+  "status": "TIMEOUT",
+  "gate": "full_network_external_scratch_rtl_cosim",
+  "implementation_style": "external_scratch_pixel_tiled_v1",
+  "hls_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_hls_summary.json",
+    "sha256": "2a1e3f70d6f1b9de0f7f4aae8fbe5ed54e54ddd632092028ecdfcf1cc2100fed",
+    "size_bytes": 16543
+  },
+  "vitis_hls": {
+    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "exists": true
+  },
+  "git": {
+    "head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": []
+  },
+  "candidate_count": 4,
+  "formal_candidate_count": 4,
+  "formal_scope": true,
+  "candidate_limit": null,
+  "candidates": [
+    {
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "status": "TIMEOUT",
+      "hls_project_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\original_baseline",
+      "generated": {
+        "tcl": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\original_baseline\\run_rtl_cosim.tcl",
+          "sha256": "176e7951e8c1e177a55e3d029b7e57281ba2119c08c4a6c2ed732979f2f219dc",
+          "size_bytes": 85
+        }
+      },
+      "source_hls_candidate": {
+        "csynth_report": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\original_baseline\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "0fc9f10471dd261ce113ba9aa9738530506c94e4457793ad285d760f90a21664",
+          "size_bytes": 76564
+        },
+        "metrics": {
+          "cycles": 40889481,
+          "latency_ns": 204000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 29,
+          "bram_18k": 29,
+          "bram_36k": 0,
+          "dsp": 270,
+          "lut": 110684,
+          "ff": 111243,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.68,
+          "fmax_est_mhz": 271.7391304347826,
+          "report_format": "xml"
+        }
+      },
+      "sample_count": 8,
+      "output_count": 64,
+      "mismatch_count": 0,
+      "max_abs_mismatch": 0,
+      "vitis_returncode": -1,
+      "timeout_minutes": 90,
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "vitis_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\original_baseline\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "46e74d72b113ccf6a38eb8b5193c32be6e8ab53c6abe6683f5de7246f8ad70fe",
+        "size_bytes": 78059
+      },
+      "cosim_result": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\original_baseline\\csim_result.json",
+        "sha256": "1a8a33188a7795abd5bdf587422dd7deb6a0c55dea0464e4c23488aa75914a4e",
+        "size_bytes": 145
+      },
+      "claim_boundary": "Vitis HLS RTL co-simulation evidence only. This is not place-and-route, bitstream, COM5 board execution, or measured power."
+    },
+    {
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "status": "TIMEOUT",
+      "hls_project_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage2_k5_representative",
+      "generated": {
+        "tcl": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage2_k5_representative\\run_rtl_cosim.tcl",
+          "sha256": "176e7951e8c1e177a55e3d029b7e57281ba2119c08c4a6c2ed732979f2f219dc",
+          "size_bytes": 85
+        }
+      },
+      "source_hls_candidate": {
+        "csynth_report": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage2_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "3d421f7b735fe01d74cc92052a4247c70c0e87fa60c4e550e2af39cefe11e99d",
+          "size_bytes": 76564
+        },
+        "metrics": {
+          "cycles": 60287663,
+          "latency_ns": 301000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 33,
+          "bram_18k": 33,
+          "bram_36k": 0,
+          "dsp": 224,
+          "lut": 105885,
+          "ff": 108322,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.68,
+          "fmax_est_mhz": 271.7391304347826,
+          "report_format": "xml"
+        }
+      },
+      "sample_count": 8,
+      "output_count": 64,
+      "mismatch_count": 0,
+      "max_abs_mismatch": 0,
+      "vitis_returncode": -1,
+      "timeout_minutes": 90,
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "vitis_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage2_k5_representative\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "b3a21a4c130a2949b2d132a1ff88fa96d73654c9b0a0043df14d5cbef99d3787",
+        "size_bytes": 79159
+      },
+      "cosim_result": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage2_k5_representative\\csim_result.json",
+        "sha256": "1a8a33188a7795abd5bdf587422dd7deb6a0c55dea0464e4c23488aa75914a4e",
+        "size_bytes": 145
+      },
+      "claim_boundary": "Vitis HLS RTL co-simulation evidence only. This is not place-and-route, bitstream, COM5 board execution, or measured power."
+    },
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "status": "TIMEOUT",
+      "hls_project_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage4_k5_representative",
+      "generated": {
+        "tcl": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage4_k5_representative\\run_rtl_cosim.tcl",
+          "sha256": "176e7951e8c1e177a55e3d029b7e57281ba2119c08c4a6c2ed732979f2f219dc",
+          "size_bytes": 85
+        }
+      },
+      "source_hls_candidate": {
+        "csynth_report": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage4_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "94bcabf79659c8f91e21ec13cb8b2b34fabf2179fd236d734ff5a9dd2ce8c912",
+          "size_bytes": 76564
+        },
+        "metrics": {
+          "cycles": 48296830,
+          "latency_ns": 241000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 30,
+          "bram_18k": 30,
+          "bram_36k": 0,
+          "dsp": 274,
+          "lut": 112137,
+          "ff": 109753,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.957,
+          "fmax_est_mhz": 252.71670457417235,
+          "report_format": "xml"
+        }
+      },
+      "sample_count": 8,
+      "output_count": 64,
+      "mismatch_count": 0,
+      "max_abs_mismatch": 0,
+      "vitis_returncode": -1,
+      "timeout_minutes": 90,
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "vitis_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage4_k5_representative\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "3c81ed62cd6d98ab9046b5dd3640e53610c7753411f6c754e18e37ad690e35f8",
+        "size_bytes": 79120
+      },
+      "cosim_result": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage4_k5_representative\\csim_result.json",
+        "sha256": "1a8a33188a7795abd5bdf587422dd7deb6a0c55dea0464e4c23488aa75914a4e",
+        "size_bytes": 145
+      },
+      "claim_boundary": "Vitis HLS RTL co-simulation evidence only. This is not place-and-route, bitstream, COM5 board execution, or measured power."
+    },
+    {
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "status": "TIMEOUT",
+      "hls_project_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\low_cost_skip_representative",
+      "generated": {
+        "tcl": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\low_cost_skip_representative\\run_rtl_cosim.tcl",
+          "sha256": "176e7951e8c1e177a55e3d029b7e57281ba2119c08c4a6c2ed732979f2f219dc",
+          "size_bytes": 85
+        }
+      },
+      "source_hls_candidate": {
+        "csynth_report": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\low_cost_skip_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "709b425fd9afc9084a914b5eec6dffe05203a81554d2577f6f9f65afa8c54895",
+          "size_bytes": 76561
+        },
+        "metrics": {
+          "cycles": 34857775,
+          "latency_ns": 174000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 18,
+          "bram_18k": 18,
+          "bram_36k": 0,
+          "dsp": 215,
+          "lut": 84758,
+          "ff": 83782,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.68,
+          "fmax_est_mhz": 271.7391304347826,
+          "report_format": "xml"
+        }
+      },
+      "sample_count": 8,
+      "output_count": 64,
+      "mismatch_count": 0,
+      "max_abs_mismatch": 0,
+      "vitis_returncode": -1,
+      "timeout_minutes": 90,
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "vitis_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\low_cost_skip_representative\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "4d93f4dd5e95a364bf2ba8be1b5ce46adc8bb6c8b33b6abc048287f8ec877c02",
+        "size_bytes": 63133
+      },
+      "cosim_result": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\low_cost_skip_representative\\csim_result.json",
+        "sha256": "1a8a33188a7795abd5bdf587422dd7deb6a0c55dea0464e4c23488aa75914a4e",
+        "size_bytes": 145
+      },
+      "claim_boundary": "Vitis HLS RTL co-simulation evidence only. This is not place-and-route, bitstream, COM5 board execution, or measured power."
+    }
+  ],
+  "downstream_gates": {
+    "place_and_route_5ns": "NOT_RUN_RTL_COSIM_NOT_PASSED",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "Complete-network RTL co-simulation is separate from AV7K325 place-and-route, bitstream generation, COM5 board execution, and external-meter power.",
+  "payload_sha256": "66408f5836ca3d29e042d20bc2129c5d5c55f5dffcd167cd4992353f2cd33ba0"
+}

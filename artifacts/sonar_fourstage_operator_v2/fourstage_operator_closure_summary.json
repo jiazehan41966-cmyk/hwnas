@@ -1,21 +1,20 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-06T14:36:37.493316+00:00",
+  "generated_at": "2026-08-07T06:35:30.801856+00:00",
   "final_status": "GENERAL_OP_SELECTED",
   "final_status_reason": "Dir-v1 reached the direction basis gate but failed the preregistered accuracy admission gate. Mature MBConv-k5 has formal Protocol V2 accuracy support in Stage2, and Stage4 K5 also passes accuracy on 3 of 4 Stage2 backgrounds after the exact-shape micro-harness hardware gate opened it.",
   "git": {
-    "head": "28ce0b6f5301f94df2f42db4a2eec8099b2ac1b3",
+    "head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
       "M artifacts/sonar_fourstage_operator_v2/fourstage_deployment_candidate_selection.json",
-      " M artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_hls_summary.json",
       " M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
       " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
       " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
       " M scripts/freeze_fourstage_deployment_selection.py",
-      " M scripts/run_fourstage_external_scratch_hls_gate.py",
-      " M tests/test_fourstage_operator_v2.py"
+      " M tests/test_fourstage_operator_v2.py",
+      "?? artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_rtl_cosim_summary.json"
     ]
   },
   "source_freezes": {
@@ -32,7 +31,7 @@
       "verification": {
         "status": "PASS",
         "manifest": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "expected_file_count": 603,
+        "expected_file_count": 604,
         "missing": [],
         "unexpected": [],
         "changed": [],
@@ -40,14 +39,14 @@
       },
       "manifest": {
         "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_freeze_manifest.json",
-        "sha256": "edad499f6c288815d9800a4905e1788f4749e76623ea76f3cc65c9e77b328237",
-        "size_bytes": 112947
+        "sha256": "54e295cda39b9aeafab7da4ec564369f140fae8fdd8498c0db8648340764ba6f",
+        "size_bytes": 113086
       }
     },
     "source_snapshot_archive_index": {
       "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
-      "sha256": "36564946c06690bb48f23279c0cbec331c5dd1fdbd7da9476c94b65b5909262a",
-      "size_bytes": 9092
+      "sha256": "a8d44d2730afa746fae355c4dd3cdfad6fd257d0e6c98a5b281351df3064054f",
+      "size_bytes": 8974
     }
   },
   "macro_architecture_frozen": {
@@ -276,8 +275,8 @@
   },
   "deployment_candidate_selection": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_deployment_candidate_selection.json",
-    "sha256": "7bfa6908aaf721141b562b0bfab69ac36b9f11e190e975fc0dce0ed36536e784",
-    "size_bytes": 66567
+    "sha256": "7fea1f511839187ae20f110681cf874526b58ddf72d071faf5d61441047e0851",
+    "size_bytes": 66849
   },
   "checkpoint_export_gate": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_checkpoint_export_summary.json",
@@ -304,9 +303,14 @@
     "sha256": "2a1e3f70d6f1b9de0f7f4aae8fbe5ed54e54ddd632092028ecdfcf1cc2100fed",
     "size_bytes": 16543
   },
+  "rtl_cosim_gate": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_rtl_cosim_summary.json",
+    "sha256": "3e43bd0e2d3db41f91141564383f9d848f4eca0d65c1d287533d888c843c6070",
+    "size_bytes": 11446
+  },
   "operator_states": {
-    "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_HLS_BOUNDARY",
-    "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_HLS_BOUNDARY",
+    "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_RTL_COSIM_TIMEOUT_BOUNDARY",
+    "MBConv-k5-e3@Stage4@ProtocolV2@28x28_32to32_s1": "READY_ACCURACY_SUPPORTED_MICRO_HARNESS_ROUTE_FULL_NETWORK_RTL_COSIM_TIMEOUT_BOUNDARY",
     "Edge_v1@ProtocolV1": "NOT_ADMITTED",
     "Edge@ProtocolV2": "NOT_RETESTED",
     "old_MixConv": "PAUSED",
@@ -319,11 +323,11 @@
     "operator_micro_harness_route": "Stage4 K5 exact-shape route evidence only; not a complete-network route.",
     "complete_network_csim": "Four frozen deployment representatives passed Vitis HLS C-sim integer zero-mismatch against the Python INT8 reference. This is not RTL co-sim, HLS synthesis, full-network route, bitstream, board, or power evidence.",
     "complete_network_hls_synthesis": "Static full-buffer HLS probe timed out, but the formal external-scratch pixel-tiled HLS gate records whether all four frozen deployment representatives pass complete-network C-sim plus csynth. This is still not RTL co-sim, route, bitstream, COM5, or measured power.",
+    "rtl_cosim": "Formal external-scratch RTL co-sim was attempted for all four frozen deployment representatives and timed out in XSIM. C testbench pre-checks wrote mismatch=0, but Vitis did not return normally within the preregistered timeout, so this is not an RTL co-sim PASS and route remains blocked.",
     "complete_network_route": "NOT_RUN",
-    "rtl_cosim": "NOT_RUN",
     "bitstream": "NOT_GENERATED",
     "com5_board_run": "NOT_RUN",
     "power": "NOT_MEASURED"
   },
-  "payload_sha256": "dbac93c95cb257c2a3b8ea397a1293b2763a8a9f219793d851f2a98a8a31d31f"
+  "payload_sha256": "73779855d124e83545694c2a5bc921f2cff3bd1424c292d42760b85a13c333c3"
 }

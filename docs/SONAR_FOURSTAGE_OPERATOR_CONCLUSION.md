@@ -30,6 +30,8 @@ Dir-MBConv3 的方向依据诊断通过，但 `dir_mbconv3_split11_e3_v1` 未通
 
 已完成 `external_scratch_pixel_tiled_v1` 的正式完整网络 HLS synthesis 门禁：4 个冻结部署代表候选均使用真实 checkpoint、真实 activation calibration 和相同 INT8 整数契约，通过 Vitis C-sim（mismatch=0）并生成 csynth 报告。该证据说明完整网络 HLS synthesis 层已通过，但它仍不是 RTL co-sim、AV7K325 5ns route、bitstream、COM5 板级 latency 或外部仪表功耗。
 
-后续门禁顺序固定为：RTL co-sim、AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。完整 route 必须等待 RTL co-sim 通过后才能启动。
+已尝试 `external_scratch_pixel_tiled_v1` 的正式 4 候选 RTL co-sim。Vitis 已完成 C testbench 预检查，4 个候选均写出 mismatch=0，但 XSIM RTL 仿真在 90 分钟门限内未完成第 1 个 transaction，门禁状态为 `TIMEOUT`。因此该证据不能写成 RTL co-sim PASS，完整网络 route、bitstream、COM5 和外部仪表功耗仍不得启动或宣称。
+
+后续门禁顺序固定为：先解决 RTL co-sim 超时，再重新运行 RTL co-sim；只有 RTL co-sim PASS 后，才能进入 AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。
 
 最终可部署空间尚未冻结。若 Stage4-K5 完整网络硬件闭环通过，可部署空间为 Stage2 4 种 × Stage4 3 种，共 12 种；若 Stage4-K5 完整网络硬件闭环失败，可部署空间回退为 Stage2 4 种 × Stage4 2 种，共 8 种。
