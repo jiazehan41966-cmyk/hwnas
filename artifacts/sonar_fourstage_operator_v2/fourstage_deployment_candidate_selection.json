@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-07T06:35:22.189573+00:00",
+  "generated_at": "2026-08-07T07:10:31.513471+00:00",
   "status": "GENERAL_OP_SELECTED",
   "stage": "FULL_NETWORK_DEPLOYMENT_CLOSURE_QUEUE_FROZEN",
   "selection_protocol": "fixed_rule_from_existing_ProtocolV2_formal_results_no_new_search",
   "git": {
-    "head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
+    "head": "5af088819a539c1e75830897489977fbd1e6578c",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
       "M artifacts/sonar_fourstage_operator_v2/slim_pr_source_freeze/source_freeze_manifest.json",
       " M artifacts/sonar_fourstage_operator_v2/source_snapshot_archive_index.json",
       " M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
-      " M scripts/freeze_fourstage_deployment_selection.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_rtl_cosim_summary.json"
+      "?? artifacts/sonar_fourstage_operator_v2/rtl_cosim_timeout_feasibility_audit.json",
+      "?? scripts/analyze_fourstage_rtl_cosim_timeout.py"
     ]
   },
   "frozen_experiment_conclusion": {
@@ -1279,7 +1279,7 @@
   },
   "source_snapshot_archive_index": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\source_snapshot_archive_index.json",
-    "sha256": "42b0e498779d98ab3de7a8a4f326b40993387d061cd2337bb87c78742cf5012e"
+    "sha256": "97723fc2afea1fe5db1fc5d3b20b01b2ff955b66874fb7b2f104e908ecf8ab61"
   },
-  "payload_sha256": "07d6ee1d97c6222c137f83ed3d04a868af7df3b7acbe9a2ec2f31699a43221de"
+  "payload_sha256": "a04a32d51b51803a906340c52b81e3fcfbbd5e61f672eb6448a654992de214fd"
 }

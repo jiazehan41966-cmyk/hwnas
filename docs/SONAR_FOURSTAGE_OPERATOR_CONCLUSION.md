@@ -32,6 +32,8 @@ Dir-MBConv3 的方向依据诊断通过，但 `dir_mbconv3_split11_e3_v1` 未通
 
 已尝试 `external_scratch_pixel_tiled_v1` 的正式 4 候选 RTL co-sim。Vitis 已完成 C testbench 预检查，4 个候选均写出 mismatch=0，但 XSIM RTL 仿真在 90 分钟门限内未完成第 1 个 transaction，门禁状态为 `TIMEOUT`。因此该证据不能写成 RTL co-sim PASS，完整网络 route、bitstream、COM5 和外部仪表功耗仍不得启动或宣称。
 
+RTL co-sim timeout feasibility audit（超时可完成性审计）显示，按日志中的 XSIM 进度线估算，当前 8-sample formal co-sim 合计约需 221 小时；即使降为单样本，4 个候选合计仍约需 27.6 小时。因此不建议盲目用同一外部 scratch RTL 重新跑单样本，下一步应先降低单次 transaction 的 RTL latency 或改为可验证的分阶段/流式 RTL parity 策略。
+
 后续门禁顺序固定为：先解决 RTL co-sim 超时，再重新运行 RTL co-sim；只有 RTL co-sim PASS 后，才能进入 AV7K325 5ns Place & Route、bitstream、COM5 板级 latency，最后才是外部仪表功耗。
 
 最终可部署空间尚未冻结。若 Stage4-K5 完整网络硬件闭环通过，可部署空间为 Stage2 4 种 × Stage4 3 种，共 12 种；若 Stage4-K5 完整网络硬件闭环失败，可部署空间回退为 Stage2 4 种 × Stage4 2 种，共 8 种。

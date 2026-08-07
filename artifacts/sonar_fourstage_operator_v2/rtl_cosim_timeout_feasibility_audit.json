@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-07T07:09:25.305684+00:00",
+  "status": "RTL_COSIM_TIMEOUT_FEASIBILITY_FAIL",
+  "gate": "rtl_cosim_timeout_feasibility_audit",
+  "rtl_cosim_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_rtl_cosim_summary.json",
+    "sha256": "3e43bd0e2d3db41f91141564383f9d848f4eca0d65c1d287533d888c843c6070",
+    "size_bytes": 11446
+  },
+  "git": {
+    "head": "5af088819a539c1e75830897489977fbd1e6578c",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": [
+      "?? scripts/analyze_fourstage_rtl_cosim_timeout.py"
+    ]
+  },
+  "candidate_count": 4,
+  "candidates": [
+    {
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "rtl_status": "TIMEOUT",
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "sample_count": 8,
+      "mismatch_count_from_c_precheck": 0,
+      "max_abs_mismatch_from_c_precheck": 0,
+      "hls_cycles_per_transaction": 40889481,
+      "hls_latency_ns_per_transaction": 204000000.0,
+      "rtl_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\original_baseline\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "46e74d72b113ccf6a38eb8b5193c32be6e8ab53c6abe6683f5de7246f8ad70fe",
+        "size_bytes": 78059
+      },
+      "progress_observations": [
+        {
+          "line_number": 740,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 0.0,
+          "simulation_time_ps": 113000,
+          "line": "// RTL Simulation : 0 / 8 [0.00%] @ \"113000\""
+        },
+        {
+          "line_number": 741,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 24.46,
+          "simulation_time_ps": 50000123000,
+          "line": "// RTL Simulation : 0 / 8 [24.46%] @ \"50000123000\""
+        }
+      ],
+      "latest_progress": {
+        "line_number": 741,
+        "completed_transactions": 0,
+        "total_transactions": 8,
+        "intra_transaction_percent": 24.46,
+        "simulation_time_ps": 50000123000,
+        "line": "// RTL Simulation : 0 / 8 [24.46%] @ \"50000123000\""
+      },
+      "estimated_minutes_per_transaction_from_timeout_window": 367.9476696647588,
+      "estimated_hours_per_transaction": 6.132461161079314,
+      "estimated_hours_for_recorded_sample_count": 49.05968928863451,
+      "single_sample_rerun_still_multi_hour": true
+    },
+    {
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "rtl_status": "TIMEOUT",
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "sample_count": 8,
+      "mismatch_count_from_c_precheck": 0,
+      "max_abs_mismatch_from_c_precheck": 0,
+      "hls_cycles_per_transaction": 60287663,
+      "hls_latency_ns_per_transaction": 301000000.0,
+      "rtl_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage2_k5_representative\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "b3a21a4c130a2949b2d132a1ff88fa96d73654c9b0a0043df14d5cbef99d3787",
+        "size_bytes": 79159
+      },
+      "progress_observations": [
+        {
+          "line_number": 745,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 0.0,
+          "simulation_time_ps": 113000,
+          "line": "// RTL Simulation : 0 / 8 [0.00%] @ \"113000\""
+        },
+        {
+          "line_number": 746,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 16.59,
+          "simulation_time_ps": 50000123000,
+          "line": "// RTL Simulation : 0 / 8 [16.59%] @ \"50000123000\""
+        }
+      ],
+      "latest_progress": {
+        "line_number": 746,
+        "completed_transactions": 0,
+        "total_transactions": 8,
+        "intra_transaction_percent": 16.59,
+        "simulation_time_ps": 50000123000,
+        "line": "// RTL Simulation : 0 / 8 [16.59%] @ \"50000123000\""
+      },
+      "estimated_minutes_per_transaction_from_timeout_window": 542.49547920434,
+      "estimated_hours_per_transaction": 9.041591320072333,
+      "estimated_hours_for_recorded_sample_count": 72.33273056057867,
+      "single_sample_rerun_still_multi_hour": true
+    },
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "rtl_status": "TIMEOUT",
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "sample_count": 8,
+      "mismatch_count_from_c_precheck": 0,
+      "max_abs_mismatch_from_c_precheck": 0,
+      "hls_cycles_per_transaction": 48296830,
+      "hls_latency_ns_per_transaction": 241000000.0,
+      "rtl_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\stage4_k5_representative\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "3c81ed62cd6d98ab9046b5dd3640e53610c7753411f6c754e18e37ad690e35f8",
+        "size_bytes": 79120
+      },
+      "progress_observations": [
+        {
+          "line_number": 744,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 0.0,
+          "simulation_time_ps": 113000,
+          "line": "// RTL Simulation : 0 / 8 [0.00%] @ \"113000\""
+        },
+        {
+          "line_number": 745,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 20.71,
+          "simulation_time_ps": 50000123000,
+          "line": "// RTL Simulation : 0 / 8 [20.71%] @ \"50000123000\""
+        }
+      ],
+      "latest_progress": {
+        "line_number": 745,
+        "completed_transactions": 0,
+        "total_transactions": 8,
+        "intra_transaction_percent": 20.71,
+        "simulation_time_ps": 50000123000,
+        "line": "// RTL Simulation : 0 / 8 [20.71%] @ \"50000123000\""
+      },
+      "estimated_minutes_per_transaction_from_timeout_window": 434.57267020762913,
+      "estimated_hours_per_transaction": 7.242877836793819,
+      "estimated_hours_for_recorded_sample_count": 57.94302269435055,
+      "single_sample_rerun_still_multi_hour": true
+    },
+    {
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "rtl_status": "TIMEOUT",
+      "failure_category": "EXTERNAL_SCRATCH_RTL_COSIM_TIMEOUT",
+      "sample_count": 8,
+      "mismatch_count_from_c_precheck": 0,
+      "max_abs_mismatch_from_c_precheck": 0,
+      "hls_cycles_per_transaction": 34857775,
+      "hls_latency_ns_per_transaction": 174000000.0,
+      "rtl_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hxs\\low_cost_skip_representative\\vitis_hls_external_scratch_rtl_cosim.log",
+        "sha256": "4d93f4dd5e95a364bf2ba8be1b5ce46adc8bb6c8b33b6abc048287f8ec877c02",
+        "size_bytes": 63133
+      },
+      "progress_observations": [
+        {
+          "line_number": 589,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 0.0,
+          "simulation_time_ps": 113000,
+          "line": "// RTL Simulation : 0 / 8 [0.00%] @ \"113000\""
+        },
+        {
+          "line_number": 590,
+          "completed_transactions": 0,
+          "total_transactions": 8,
+          "intra_transaction_percent": 28.69,
+          "simulation_time_ps": 50000123000,
+          "line": "// RTL Simulation : 0 / 8 [28.69%] @ \"50000123000\""
+        }
+      ],
+      "latest_progress": {
+        "line_number": 590,
+        "completed_transactions": 0,
+        "total_transactions": 8,
+        "intra_transaction_percent": 28.69,
+        "simulation_time_ps": 50000123000,
+        "line": "// RTL Simulation : 0 / 8 [28.69%] @ \"50000123000\""
+      },
+      "estimated_minutes_per_transaction_from_timeout_window": 313.6981526664343,
+      "estimated_hours_per_transaction": 5.228302544440571,
+      "estimated_hours_for_recorded_sample_count": 41.82642035552457,
+      "single_sample_rerun_still_multi_hour": true
+    }
+  ],
+  "aggregate_estimate": {
+    "estimated_hours_for_current_8_sample_formal_cosim": 221.1618628990883,
+    "estimated_hours_for_single_sample_all_candidates": 27.645232862386038,
+    "single_sample_rerun_recommended": false,
+    "reason": "The observed XSIM progress lines imply that even one full network transaction per candidate would take multiple hours. Blindly rerunning the same external-scratch RTL co-sim with fewer samples would not close the gate efficiently."
+  },
+  "downstream_gates": {
+    "place_and_route_5ns": "NOT_RUN_RTL_COSIM_NOT_PASSED",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "recommended_next_work": [
+    "Reduce per-transaction RTL latency before rerunning formal RTL co-sim.",
+    "Replace the layer-serial external-scratch probe with a co-sim-feasible tiled/streaming datapath or a validated staged RTL parity strategy.",
+    "Do not start AV7K325 route, bitstream, COM5, or power gates until RTL co-sim returns PASS."
+  ],
+  "claim_boundary": "This audit estimates RTL simulator feasibility from already captured timeout logs. It is not a new RTL co-sim PASS and not route, bitstream, COM5, or power evidence.",
+  "payload_sha256": "13c2a7a20a6bb688342d5e5d23a20a834ce084d7708c12894511a302b335ad66"
+}

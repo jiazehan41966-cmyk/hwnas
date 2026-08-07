@@ -393,6 +393,12 @@ def main() -> int:
                 "fourstage_external_scratch_rtl_cosim_summary.json"
             )
         ),
+        "rtl_cosim_timeout_feasibility_audit": (
+            maybe_evidence(
+                "artifacts/sonar_fourstage_operator_v2/"
+                "rtl_cosim_timeout_feasibility_audit.json"
+            )
+        ),
         "operator_states": {
             "MBConv-k5-e3@Stage2@ProtocolV2@16to24_s2": (
                 "READY_FORMAL_ACCURACY_STRICT_LUT_PROXY_FULL_NETWORK_RTL_COSIM_TIMEOUT_BOUNDARY"
@@ -436,7 +442,9 @@ def main() -> int:
                 "four frozen deployment representatives and timed out in XSIM. "
                 "C testbench pre-checks wrote mismatch=0, but Vitis did not "
                 "return normally within the preregistered timeout, so this is "
-                "not an RTL co-sim PASS and route remains blocked."
+                "not an RTL co-sim PASS and route remains blocked. The timeout "
+                "feasibility audit estimates that simply reducing the testbench "
+                "to one transaction would still require multi-hour simulation."
             ),
             "complete_network_route": "NOT_RUN",
             "bitstream": "NOT_GENERATED",

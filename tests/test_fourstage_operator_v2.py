@@ -519,3 +519,28 @@ def test_rtl_cosim_timeout_blocks_route_and_board():
         assert row["max_abs_mismatch"] == 0
         assert row["vitis_returncode"] == -1
         assert row["cosim_result"]["path"].endswith("csim_result.json")
+
+
+def test_rtl_cosim_timeout_feasibility_audit_rejects_blind_single_sample_rerun():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "artifacts"
+        / "sonar_fourstage_operator_v2"
+        / "rtl_cosim_timeout_feasibility_audit.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["status"] == "RTL_COSIM_TIMEOUT_FEASIBILITY_FAIL"
+    assert payload["gate"] == "rtl_cosim_timeout_feasibility_audit"
+    aggregate = payload["aggregate_estimate"]
+    assert aggregate["single_sample_rerun_recommended"] is False
+    assert aggregate["estimated_hours_for_single_sample_all_candidates"] > 20.0
+    assert aggregate["estimated_hours_for_current_8_sample_formal_cosim"] > 100.0
+    assert (
+        payload["downstream_gates"]["place_and_route_5ns"]
+        == "NOT_RUN_RTL_COSIM_NOT_PASSED"
+    )
+    for row in payload["candidates"]:
+        assert row["rtl_status"] == "TIMEOUT"
+        assert row["single_sample_rerun_still_multi_hour"] is True
+        assert row["estimated_hours_per_transaction"] > 5.0
+        assert row["mismatch_count_from_c_precheck"] == 0

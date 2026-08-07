@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-07T06:35:00.304692+00:00",
+  "generated_at": "2026-08-07T07:10:17.694435+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure",
   "git": {
-    "head": "f1dda1fd955f4803d87a110b0aedf22de8d1ff19",
+    "head": "5af088819a539c1e75830897489977fbd1e6578c",
     "branch": "codex/sonar-fourstage-operator-closure",
     "status_porcelain": [
       "M docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
       " M scripts/build_fourstage_operator_closure_summary.py",
-      " M scripts/freeze_fourstage_deployment_selection.py",
       " M tests/test_fourstage_operator_v2.py",
-      "?? artifacts/sonar_fourstage_operator_v2/fourstage_external_scratch_rtl_cosim_summary.json"
+      "?? artifacts/sonar_fourstage_operator_v2/rtl_cosim_timeout_feasibility_audit.json",
+      "?? scripts/analyze_fourstage_rtl_cosim_timeout.py"
     ]
   },
   "excluded_prefixes": [
@@ -29,7 +29,7 @@
     "hls_lut_builder/board_harness/results/"
   ],
   "extras": [],
-  "file_count": 604,
+  "file_count": 605,
   "files": [
     {
       "path": ".gitignore",
@@ -713,8 +713,8 @@
     },
     {
       "path": "docs/SONAR_FOURSTAGE_OPERATOR_CONCLUSION.md",
-      "bytes": 4477,
-      "sha256": "2c311ed388925de968f2bbadb1eab81675055876221a86202c7c140210d24471"
+      "bytes": 4898,
+      "sha256": "dfa7fe22857f9e74824af33965ecb1fbfa2ec74d4a37cb2adc59481bf940bea9"
     },
     {
       "path": "docs/SONAR_OPERATOR_G5_EXPERIMENT_PLAN.md",
@@ -1582,6 +1582,11 @@
       "sha256": "728a1944d23e3528c4121c50f5f11dcdb3cbd0f6c10bc387758ba7c567c81e55"
     },
     {
+      "path": "scripts/analyze_fourstage_rtl_cosim_timeout.py",
+      "bytes": 7274,
+      "sha256": "935e1e689376a27007eb37913fe0b54b417c104e69ed733143933d424c8c0171"
+    },
+    {
       "path": "scripts/analyze_phase0_v4_sonar_board_candidates.py",
       "bytes": 30274,
       "sha256": "0842db1662d4e26fe3286124c96582cbb4c39876c11a22e2777a942af0400a93"
@@ -1683,8 +1688,8 @@
     },
     {
       "path": "scripts/build_fourstage_operator_closure_summary.py",
-      "bytes": 16371,
-      "sha256": "7a1ef11877cdb7b7279220fa5c1635cbec1a6ee5c9bce6e8312b05f4feb8f1c9"
+      "bytes": 16764,
+      "sha256": "5f841af626b3b38f26dcd82820d1b1840f16bc975518a5da097d9f36f4e5e99b"
     },
     {
       "path": "scripts/build_hw_calibration_v2.py",
@@ -2768,8 +2773,8 @@
     },
     {
       "path": "tests/test_fourstage_operator_v2.py",
-      "bytes": 20429,
-      "sha256": "8ff4630e369933046cd647ef084d741fb80b8c98bc1905a9c4af14625b7943f6"
+      "bytes": 21549,
+      "sha256": "c3b4e9d8b54388aac321d9652326d652330fd60089e0bd2aed313aed9bb5f7a2"
     },
     {
       "path": "tests/test_g1_launcher.py",
@@ -3054,7 +3059,7 @@
   ],
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\slim_pr_source_freeze\\source_snapshot.zip",
-    "bytes": 1646064,
-    "sha256": "372dd5e49bf1fc52d14834d36b1862302703c327b61edc4d5adf995741a64223"
+    "bytes": 1649317,
+    "sha256": "6be05d022f1e74206c11eaa8241210825afcc8787f1dd980c5c41942a91687c3"
   }
 }
