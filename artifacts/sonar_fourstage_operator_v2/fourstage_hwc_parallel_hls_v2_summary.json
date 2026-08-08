@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-08T01:35:35.518457+00:00",
+  "status": "RESOURCE_INFEASIBLE",
+  "gate": "full_network_hwc_parallel_hls",
+  "implementation_style": "hwc_channel_parallel_v2_shared_units",
+  "target_part": "xc7k325tffg900-2",
+  "target_clock_ns": 5.0,
+  "channel_parallel": 16,
+  "hls_resource_limits": {
+    "bram_18k": 890,
+    "dsp": 700,
+    "ff": 407600,
+    "lut": 203800
+  },
+  "csim_zero_mismatch_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_csim_zero_mismatch_summary.json",
+    "sha256": "8b4ec495bc73b32e8a06eea4d18599d00fc6cd003430e0e37eb028f13c1c6d5d",
+    "size_bytes": 14878
+  },
+  "int8_reference_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_int8_reference_summary.json",
+    "sha256": "04503d8b8b9a9a38a89d30d4d73a8325d1f3307b90f2159c225decdd96b70629",
+    "size_bytes": 11098
+  },
+  "vitis_hls": {
+    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "exists": true
+  },
+  "git": {
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "commit": "46ac5c32406fa1bd8e72a37a711285985511ff18",
+    "dirty": false
+  },
+  "candidate_count": 1,
+  "formal_candidate_count": 4,
+  "selected_roles": [
+    "stage4_k5_representative"
+  ],
+  "candidates": [
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "status": "RESOURCE_INFEASIBLE",
+      "hls_project_dir": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative",
+      "generated": {
+        "top": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative\\top.cpp",
+          "sha256": "1fd5c34743de8b7806798cd814adc25eb0f86009e0f41e67be0d68fb0cc2356f",
+          "size_bytes": 100775
+        },
+        "testbench": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative\\tb.cpp",
+          "sha256": "03cf2e35626d13d11711603125617e550b2b91ccfe113717667ab67d238cca39",
+          "size_bytes": 2166400
+        },
+        "tcl": {
+          "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative\\run_synthesis.tcl",
+          "sha256": "18863f2b2cfae0c87eefb9c14bdbd53202a78ee0f39a7531286a8acb83700222",
+          "size_bytes": 371
+        }
+      },
+      "preflight": {
+        "implementation_style": "hwc_channel_parallel_v2_shared_units",
+        "layout": "internal_hwc_channel_contiguous",
+        "channel_parallel": 16,
+        "max_tensor_elements": 602112,
+        "max_residual_elements": 25088,
+        "local_activation_buffer_bytes": 1279488,
+        "banked_activation_bram18_estimate": 587,
+        "av7k325_bram18_equivalent_capacity": 890,
+        "activation_bram_capacity_warning": false,
+        "claim_boundary": "Full-network HLS implementation with local banked activation scratch. Passing HLS still does not imply RTL co-sim, route, bitstream, COM5, or measured power."
+      },
+      "sample_count": 8,
+      "output_count": 64,
+      "mismatch_count": 0,
+      "max_abs_mismatch": 0,
+      "csim_result": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative\\csim_result.json",
+        "sha256": "1a8a33188a7795abd5bdf587422dd7deb6a0c55dea0464e4c23488aa75914a4e",
+        "size_bytes": 145
+      },
+      "vitis_returncode": 0,
+      "timeout_minutes": 180,
+      "failure_category": "HWC_PARALLEL_HLS_RESOURCE_INFEASIBLE",
+      "vitis_log": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative\\vitis_hls_hwc_parallel.log",
+        "sha256": "5c36af8980225ccb4c2508723ae8efb3b09322fdd77b967aa5ccbeab6005c3b3",
+        "size_bytes": 321128
+      },
+      "csynth_report": {
+        "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\hwcpar16_shared\\stage4_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+        "sha256": "0fb3e81451dae2a4f98307d667eae046c5a41d81e7c32d8dc029e3528833b388",
+        "size_bytes": 30767
+      },
+      "metrics": {
+        "cycles": 27964508,
+        "latency_ns": 140000000.0,
+        "ii": 0,
+        "depth": 0,
+        "bram": 1060,
+        "bram_18k": 1060,
+        "bram_36k": 0,
+        "dsp": 1556,
+        "lut": 685162,
+        "ff": 327974,
+        "power_w": null,
+        "estimated_clock_period_ns": 4.876,
+        "fmax_est_mhz": 205.08613617719442,
+        "report_format": "xml"
+      },
+      "hls_resource_check": {
+        "status": "FAIL",
+        "limits": {
+          "bram_18k": 890,
+          "dsp": 700,
+          "ff": 407600,
+          "lut": 203800
+        },
+        "values": {
+          "bram_18k": 1060,
+          "dsp": 1556,
+          "ff": 327974,
+          "lut": 685162
+        },
+        "violations": {
+          "bram_18k": {
+            "value": 1060,
+            "limit": 890
+          },
+          "dsp": {
+            "value": 1556,
+            "limit": 700
+          },
+          "lut": {
+            "value": 685162,
+            "limit": 203800
+          }
+        },
+        "claim_boundary": "HLS resource estimates are a pre-route feasibility gate only. Passing this check does not imply post-route WNS/resource closure."
+      },
+      "claim_boundary": "HWC channel-parallel full-network HLS C-sim/synthesis evidence only. This is not RTL co-sim, place-and-route, bitstream, COM5, or measured power."
+    }
+  ],
+  "downstream_gates": {
+    "rtl_cosim": "NOT_RUN_HLS_NOT_PASSED",
+    "place_and_route_5ns": "NOT_RUN_RTL_COSIM_NOT_PASSED",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "This summary records full-network HWC channel-parallel HLS C-sim/synthesis only. It must not be used as RTL co-sim, full route, bitstream, COM5, or measured-power evidence.",
+  "payload_sha256": "a8697d220d6afac375287017cb7cd4fe6b3e010c4593146ac99370cbd5e9f9da"
+}
