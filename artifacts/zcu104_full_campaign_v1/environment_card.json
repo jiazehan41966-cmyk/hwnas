@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-08T08:27:01.254103+00:00",
+  "generated_at": "2026-08-08T08:28:46.912916+00:00",
   "host": {
     "platform": "Windows-11-10.0.26200-SP0",
     "python_version": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
@@ -13,21 +13,36 @@
     "cuda_available": false
   },
   "vivado": {
-    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+    "command": [
+      "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+      "-version"
+    ],
+    "returncode": 1,
+    "stdout": "ECHO is off.\nECHO is off.\nvivado v2023.2 (64-bit)\nTool Version Limit: 2023.10\nSW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023\nIP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\nSharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023\nCopyright 1986-2022 Xilinx, Inc. All Rights Reserved.\nCopyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.",
+    "stderr": "",
     "available": true,
-    "status": "PENDING_EXPLICIT_PROBE"
+    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat"
   },
   "vitis_hls": {
-    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "command": [
+      "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+      "-version"
+    ],
+    "returncode": 0,
+    "stdout": "ECHO is off.\nECHO is off.\nVitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.2 (64-bit)\nSW Build 4023990 on Oct 11 2023\nIP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\nTool Version Limit: 2023.10\nCopyright 1986-2022 Xilinx, Inc. All Rights Reserved.\nCopyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.\nSharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023",
+    "stderr": "",
     "available": true,
-    "status": "PENDING_EXPLICIT_PROBE"
+    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat"
   },
   "zcu104_target_probe": {
-    "status": "PENDING_EXPLICIT_PROBE",
+    "status": "FAIL_TARGET_PART_UNAVAILABLE",
     "target_part": "xczu7ev-ffvc1156-2-e",
-    "target_part_count": null,
+    "target_part_count": 0,
     "expected_board_part": "xilinx.com:zcu104:part0:1.1",
-    "board_parts": []
+    "board_parts": [],
+    "command_returncode": 0,
+    "stdout": "ECHO is off.\nECHO is off.\n\n****** Vivado v2023.2 (64-bit)\n  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023\n  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\n  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023\n    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.\n    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.\n\nsource {C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zcu104_probe_0rvq4dsx\\probe_zcu104.tcl} -notrace\nCODEX_TARGET_PART_COUNT=0\nCODEX_BOARD_PARTS=\nINFO: [Common 17-206] Exiting Vivado at Sat Aug  8 16:28:46 2026...",
+    "stderr": ""
   },
   "campaign_execution_readiness": "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE",
   "claim_boundary": "Tool presence and target-part visibility are environment preflight evidence. They are not HLS, route, bitstream, board-classification, latency, or power evidence."

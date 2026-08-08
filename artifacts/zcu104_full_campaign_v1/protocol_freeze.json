@@ -1,24 +1,36 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-08T08:27:01.347972+00:00",
-  "status": "PENDING_SOURCE_FREEZE",
+  "generated_at": "2026-08-08T08:28:54.348054+00:00",
+  "status": "PASS",
   "git": {
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
     "campaign_branch": "codex/zcu104-full-campaign-v1",
-    "campaign_head_at_generation": "cae9be4f01d1a55576bc4449b6b41680b4a889d9"
+    "campaign_head_at_generation": "dfd5dc2f3e0313b077d1905a4e781356bf2f7eab"
   },
   "protocol": {
     "path": "configs/evaluation/nksid_frozen_protocol_v2.yaml",
     "sha256": "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358"
   },
   "source_freeze": {
-    "status": "PENDING",
-    "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
-    "missing": null,
-    "unexpected": null,
-    "changed": null
+    "status": "PASS",
+    "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+    "expected_file_count": 610,
+    "missing": [],
+    "unexpected": [],
+    "changed": [],
+    "manifest_sha256": "95f7fa171bebc3ce994850b0fd3a20f5a44a963c930afa19fefbebe6664e677d",
+    "frozen_git": {
+      "head": "dfd5dc2f3e0313b077d1905a4e781356bf2f7eab",
+      "branch": "codex/zcu104-full-campaign-v1",
+      "status_porcelain": []
+    },
+    "archive": {
+      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
+      "bytes": 1679611,
+      "sha256": "640c3af7ced1ff56dfdbbb4d848ea35d4964ee96e7389efc1f852a84470add96"
+    }
   },
   "dataset": {
     "dataset_manifest": {

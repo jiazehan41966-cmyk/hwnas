@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-08T08:27:01.555622+00:00",
-  "baseline_status": "PENDING_SOURCE_FREEZE",
-  "campaign_execution_status": "NOT_READY_BASELINE_FREEZE_INCOMPLETE",
+  "generated_at": "2026-08-08T08:28:54.543195+00:00",
+  "baseline_status": "PASS",
+  "campaign_execution_status": "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE",
   "acceptance_gates": {
     "isolated_worktree": {
       "status": "PASS",
@@ -19,11 +19,23 @@
       "required_output": []
     },
     "source_freeze": {
-      "status": "PENDING",
-      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
-      "missing": null,
-      "unexpected": null,
-      "changed": null
+      "status": "PASS",
+      "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+      "expected_file_count": 610,
+      "missing": [],
+      "unexpected": [],
+      "changed": [],
+      "manifest_sha256": "95f7fa171bebc3ce994850b0fd3a20f5a44a963c930afa19fefbebe6664e677d",
+      "frozen_git": {
+        "head": "dfd5dc2f3e0313b077d1905a4e781356bf2f7eab",
+        "branch": "codex/zcu104-full-campaign-v1",
+        "status_porcelain": []
+      },
+      "archive": {
+        "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
+        "bytes": 1679611,
+        "sha256": "640c3af7ced1ff56dfdbbb4d848ea35d4964ee96e7389efc1f852a84470add96"
+      }
     },
     "candidate_traceability": {
       "status": "PASS",
@@ -48,20 +60,23 @@
       "split_manifest_sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1"
     },
     "environment_versions": {
-      "status": "PENDING",
+      "status": "PASS",
       "python": "3.13.3",
       "pytorch": "2.7.0+cpu",
       "vivado_available": true,
       "vitis_hls_available": true
     },
     "zcu104_target_part": {
-      "status": "PENDING_EXPLICIT_PROBE",
+      "status": "FAIL_TARGET_PART_UNAVAILABLE",
       "target_part": "xczu7ev-ffvc1156-2-e",
-      "target_part_count": null,
+      "target_part_count": 0,
       "expected_board_part": "xilinx.com:zcu104:part0:1.1",
-      "board_parts": []
+      "board_parts": [],
+      "command_returncode": 0,
+      "stdout": "ECHO is off.\nECHO is off.\n\n****** Vivado v2023.2 (64-bit)\n  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023\n  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\n  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023\n    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.\n    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.\n\nsource {C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zcu104_probe_0rvq4dsx\\probe_zcu104.tcl} -notrace\nCODEX_TARGET_PART_COUNT=0\nCODEX_BOARD_PARTS=\nINFO: [Common 17-206] Exiting Vivado at Sat Aug  8 16:28:46 2026...",
+      "stderr": ""
     }
   },
-  "next_required_action": null,
+  "next_required_action": "Install or register Vivado 2023.2 Zynq UltraScale+ device support so get_parts xczu7ev-ffvc1156-2-e returns exactly one part; then rerun this builder.",
   "claim_boundary": "Baseline PASS means provenance is frozen and verifiable. Campaign execution remains blocked until the ZCU104 target part is visible; no hardware or power result is claimed."
 }
