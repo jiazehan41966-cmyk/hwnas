@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-08T08:27:01.254103+00:00",
+  "host": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+    "python_executable": "D:\\software\\python\\python.exe"
+  },
+  "pytorch": {
+    "version": "2.7.0+cpu",
+    "cuda_version": null,
+    "cuda_available": false
+  },
+  "vivado": {
+    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+    "available": true,
+    "status": "PENDING_EXPLICIT_PROBE"
+  },
+  "vitis_hls": {
+    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "available": true,
+    "status": "PENDING_EXPLICIT_PROBE"
+  },
+  "zcu104_target_probe": {
+    "status": "PENDING_EXPLICIT_PROBE",
+    "target_part": "xczu7ev-ffvc1156-2-e",
+    "target_part_count": null,
+    "expected_board_part": "xilinx.com:zcu104:part0:1.1",
+    "board_parts": []
+  },
+  "campaign_execution_readiness": "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE",
+  "claim_boundary": "Tool presence and target-part visibility are environment preflight evidence. They are not HLS, route, bitstream, board-classification, latency, or power evidence."
+}

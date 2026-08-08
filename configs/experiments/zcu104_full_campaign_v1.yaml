@@ -1,0 +1,95 @@
+schema_version: 1
+campaign_id: zcu104_full_campaign_v1
+status: FROZEN_BASELINE
+source:
+  branch: codex/sonar-fourstage-operator-closure
+  commit: cae9be4f01d1a55576bc4449b6b41680b4a889d9
+  worktree: E:/1/hwnas/hwnas-zcu104-full-campaign-v1
+  worktree_branch: codex/zcu104-full-campaign-v1
+protocol:
+  name: nksid_outer5fold_inner_only_v2
+  path: configs/evaluation/nksid_frozen_protocol_v2.yaml
+  sha256: f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358
+  freeze_record: artifacts/zcu104_full_campaign_v1/protocol_freeze.json
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json
+dataset:
+  name: NKSID
+  dataset_manifest:
+    path: artifacts/zcu104_full_campaign_v1/inputs/manifests/dataset_manifest.json
+    sha256: f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781
+  dataset_content_sha256: e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5
+  split_manifest:
+    path: artifacts/zcu104_full_campaign_v1/inputs/manifests/fold0_seed42_split.json
+    sha256: 953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1
+    fold: 0
+    seed: 42
+checkpoint_selection:
+  fold: 0
+  seed: 42
+  rule: fixed deployment representative; no outer-validation metric is used for checkpoint selection
+candidates:
+- role: original_baseline
+  arch_id: fourstage_s2_k3_e3_s4_mbconv_k3_e3
+  architecture_sha256: f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98
+  candidate_json:
+    path: artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k3_e3_s4_mbconv_k3_e3.json
+    sha256: b2777252564779ad2e1e987faec6c869c71ba93aa85b428bf6e04076b6fbbda0
+  checkpoint:
+    path: artifacts/zcu104_full_campaign_v1/inputs/checkpoints/original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3__fold0_seed42.pt
+    sha256: ffd1122a2390a90e0956c7857e038b853209fad8747afe567e801d6a4799020a
+    fold: 0
+    seed: 42
+- role: stage2_k5_representative
+  arch_id: fourstage_s2_k5_e6_s4_mbconv_k3_e3
+  architecture_sha256: 9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d
+  candidate_json:
+    path: artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k5_e6_s4_mbconv_k3_e3.json
+    sha256: 10fbd2f9b60de3e119efa8ef8dcd5f4e35cc3843a838f89fdd6e2ab61076448f
+  checkpoint:
+    path: artifacts/zcu104_full_campaign_v1/inputs/checkpoints/stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3__fold0_seed42.pt
+    sha256: 923ff4c2492a7b4f4f82943e60707a747a0f1311f276f1e40b85a4361311e547
+    fold: 0
+    seed: 42
+- role: stage4_k5_representative
+  arch_id: fourstage_s2_k5_e3_s4_mbconv_k5_e3
+  architecture_sha256: ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d
+  candidate_json:
+    path: artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k5_e3_s4_mbconv_k5_e3.json
+    sha256: 064fd37b7d28b8830d665abb85ac3515b946e84cc2560421c3651e889d061771
+  checkpoint:
+    path: artifacts/zcu104_full_campaign_v1/inputs/checkpoints/stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3__fold0_seed42.pt
+    sha256: 4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e
+    fold: 0
+    seed: 42
+- role: low_cost_skip_representative
+  arch_id: fourstage_s2_k5_e3_s4_skip
+  architecture_sha256: bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9
+  candidate_json:
+    path: artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k5_e3_s4_skip.json
+    sha256: fd27f5d5576f2e1ec2bc6132387bb232047c0c4da3715a42e5c1016681faa524
+  checkpoint:
+    path: artifacts/zcu104_full_campaign_v1/inputs/checkpoints/low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip__fold0_seed42.pt
+    sha256: aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8
+    fold: 0
+    seed: 42
+hardware:
+  board: ZCU104
+  vendor: AMD/Xilinx
+  target_part: xczu7ev-ffvc1156-2-e
+  expected_board_part: xilinx.com:zcu104:part0:1.1
+  clock_period_ns: 5.0
+  route_wns_min_ns: 0.0
+  metrics:
+  - macro_f1
+  - top1
+  - latency_ms
+  - LUT
+  - DSP
+  - BRAM
+  - power_w
+  - feasibility
+  power_policy: external_meter_only_for_measured_power_claim
+environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
+status_record: artifacts/zcu104_full_campaign_v1/status.json
+claim_boundary: This config freezes campaign identity and inputs only. Search proxy, retraining, HLS,
+  route, ZCU104 board classification/latency, and external-meter power remain separate evidence layers.

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-08T08:27:01.555622+00:00",
+  "baseline_status": "PENDING_SOURCE_FREEZE",
+  "campaign_execution_status": "NOT_READY_BASELINE_FREEZE_INCOMPLETE",
+  "acceptance_gates": {
+    "isolated_worktree": {
+      "status": "PASS",
+      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
+      "branch": "codex/zcu104-full-campaign-v1",
+      "source_branch": "codex/sonar-fourstage-operator-closure",
+      "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
+      "dirty_main_worktree_used": false
+    },
+    "worktree_clean": {
+      "status": "PASS_AFTER_BASELINE_COMMIT",
+      "verification_command": "git status --porcelain=v1",
+      "required_output": []
+    },
+    "source_freeze": {
+      "status": "PENDING",
+      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
+      "missing": null,
+      "unexpected": null,
+      "changed": null
+    },
+    "candidate_traceability": {
+      "status": "PASS",
+      "count": 4,
+      "arch_ids": [
+        "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+        "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+        "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+        "fourstage_s2_k5_e3_s4_skip"
+      ]
+    },
+    "checkpoint_traceability": {
+      "status": "PASS",
+      "count": 4,
+      "fold": 0,
+      "seed": 42
+    },
+    "dataset_and_split_traceability": {
+      "status": "PASS",
+      "dataset_manifest_sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
+      "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
+      "split_manifest_sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1"
+    },
+    "environment_versions": {
+      "status": "PENDING",
+      "python": "3.13.3",
+      "pytorch": "2.7.0+cpu",
+      "vivado_available": true,
+      "vitis_hls_available": true
+    },
+    "zcu104_target_part": {
+      "status": "PENDING_EXPLICIT_PROBE",
+      "target_part": "xczu7ev-ffvc1156-2-e",
+      "target_part_count": null,
+      "expected_board_part": "xilinx.com:zcu104:part0:1.1",
+      "board_parts": []
+    }
+  },
+  "next_required_action": null,
+  "claim_boundary": "Baseline PASS means provenance is frozen and verifiable. Campaign execution remains blocked until the ZCU104 target part is visible; no hardware or power result is claimed."
+}

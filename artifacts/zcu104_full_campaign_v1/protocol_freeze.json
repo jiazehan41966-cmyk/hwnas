@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-08T08:27:01.347972+00:00",
+  "status": "PENDING_SOURCE_FREEZE",
+  "git": {
+    "source_branch": "codex/sonar-fourstage-operator-closure",
+    "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
+    "campaign_branch": "codex/zcu104-full-campaign-v1",
+    "campaign_head_at_generation": "cae9be4f01d1a55576bc4449b6b41680b4a889d9"
+  },
+  "protocol": {
+    "path": "configs/evaluation/nksid_frozen_protocol_v2.yaml",
+    "sha256": "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358"
+  },
+  "source_freeze": {
+    "status": "PENDING",
+    "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
+    "missing": null,
+    "unexpected": null,
+    "changed": null
+  },
+  "dataset": {
+    "dataset_manifest": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/manifests/dataset_manifest.json",
+      "sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
+      "size_bytes": 737983,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\manifests\\dataset_manifest.json"
+    },
+    "group_manifest": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/manifests/inferred_hash_group_manifest.json",
+      "sha256": "f3e93fb352bb16c4abed7895fd4c63f34a784b951ba06214205f2c3639e1888b",
+      "size_bytes": 491833,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\protocol_selection\\manifests\\inferred_hash_group_manifest.json"
+    },
+    "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
+    "dataset_files": [
+      {
+        "path": "artifacts/zcu104_full_campaign_v1/inputs/manifests/dataset_files/kfold_train.txt",
+        "sha256": "35611877ee38b05156a7b98757164b0ff7b8c1afe987b3f9a39dfb666b3c7912",
+        "size_bytes": 479400,
+        "source_path": "E:\\1\\hwnas\\hwnas\\data\\NKSID\\kfold_train.txt",
+        "name": "kfold_train.txt"
+      },
+      {
+        "path": "artifacts/zcu104_full_campaign_v1/inputs/manifests/dataset_files/kfold_val.txt",
+        "sha256": "15d2050f18896de474da53ac09f9716ef0ed677c49df621d4dad5169c4f79007",
+        "size_bytes": 120150,
+        "source_path": "E:\\1\\hwnas\\hwnas\\data\\NKSID\\kfold_val.txt",
+        "name": "kfold_val.txt"
+      },
+      {
+        "path": "artifacts/zcu104_full_campaign_v1/inputs/manifests/dataset_files/train_abs.txt",
+        "sha256": "1c49f931c9c50766dbea2fbb2a286679ff27b8169a9ac87ab8e97c5c9e9810a9",
+        "size_bytes": 93679,
+        "source_path": "E:\\1\\hwnas\\hwnas\\data\\NKSID\\train_abs.txt",
+        "name": "train_abs.txt"
+      }
+    ],
+    "split_manifest": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/manifests/fold0_seed42_split.json",
+      "sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1",
+      "size_bytes": 35475
+    }
+  },
+  "candidates": [
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k3_e3_s4_mbconv_k3_e3.json",
+      "sha256": "b2777252564779ad2e1e987faec6c869c71ba93aa85b428bf6e04076b6fbbda0",
+      "size_bytes": 4625,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k3_e3_s4_mbconv_k3_e3.json",
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "architecture_sha256": "f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98"
+    },
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k5_e6_s4_mbconv_k3_e3.json",
+      "sha256": "10fbd2f9b60de3e119efa8ef8dcd5f4e35cc3843a838f89fdd6e2ab61076448f",
+      "size_bytes": 4626,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e6_s4_mbconv_k3_e3.json",
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "architecture_sha256": "9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d"
+    },
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k5_e3_s4_mbconv_k5_e3.json",
+      "sha256": "064fd37b7d28b8830d665abb85ac3515b946e84cc2560421c3651e889d061771",
+      "size_bytes": 4626,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e3_s4_mbconv_k5_e3.json",
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "architecture_sha256": "ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d"
+    },
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/candidates/fourstage_s2_k5_e3_s4_skip.json",
+      "sha256": "fd27f5d5576f2e1ec2bc6132387bb232047c0c4da3715a42e5c1016681faa524",
+      "size_bytes": 4015,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\extended_candidates\\fourstage_s2_k5_e3_s4_skip.json",
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9"
+    }
+  ],
+  "checkpoints": [
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/checkpoints/original_baseline__fourstage_s2_k3_e3_s4_mbconv_k3_e3__fold0_seed42.pt",
+      "sha256": "ffd1122a2390a90e0956c7857e038b853209fad8747afe567e801d6a4799020a",
+      "size_bytes": 94459,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k3_e3_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+      "role": "original_baseline",
+      "arch_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "architecture_sha256": "f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98",
+      "fold": 0,
+      "seed": 42,
+      "selection_rule": "fixed fold0/seed42 deployment representative; no outer-validation metric was used for checkpoint selection"
+    },
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/checkpoints/stage2_k5_representative__fourstage_s2_k5_e6_s4_mbconv_k3_e3__fold0_seed42.pt",
+      "sha256": "923ff4c2492a7b4f4f82943e60707a747a0f1311f276f1e40b85a4361311e547",
+      "size_bytes": 111547,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e6_s4_mbconv_k3_e3\\best_fold0_seed42.pt",
+      "role": "stage2_k5_representative",
+      "arch_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "architecture_sha256": "9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d",
+      "fold": 0,
+      "seed": 42,
+      "selection_rule": "fixed fold0/seed42 deployment representative; no outer-validation metric was used for checkpoint selection"
+    },
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/checkpoints/stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3__fold0_seed42.pt",
+      "sha256": "4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e",
+      "size_bytes": 103675,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\extended_formal\\fourstage_s2_k5_e3_s4_mbconv_k5_e3\\best_fold0_seed42.pt",
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "architecture_sha256": "ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d",
+      "fold": 0,
+      "seed": 42,
+      "selection_rule": "fixed fold0/seed42 deployment representative; no outer-validation metric was used for checkpoint selection"
+    },
+    {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/checkpoints/low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip__fold0_seed42.pt",
+      "sha256": "aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8",
+      "size_bytes": 60285,
+      "source_path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed42.pt",
+      "role": "low_cost_skip_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_skip",
+      "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9",
+      "fold": 0,
+      "seed": 42,
+      "selection_rule": "fixed fold0/seed42 deployment representative; no outer-validation metric was used for checkpoint selection"
+    }
+  ],
+  "traceability_verification": {
+    "status": "PASS",
+    "missing": [],
+    "unexpected": [],
+    "changed": []
+  },
+  "claim_boundary": "This record proves frozen-input traceability only. It does not establish ZCU104 HLS, route, bitstream, board classification, latency, or measured power."
+}
