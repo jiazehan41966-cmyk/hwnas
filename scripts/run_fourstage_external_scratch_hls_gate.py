@@ -167,6 +167,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--vitis-hls", default=str(DEFAULT_VITIS_HLS))
     parser.add_argument("--candidate-limit", type=int, default=None)
     parser.add_argument(
+        "--role",
+        action="append",
+        default=[],
+        help="Candidate role to include; repeatable. Defaults to all candidates.",
+    )
+    parser.add_argument(
+        "--sample-limit",
+        type=int,
+        default=None,
+        help=(
+            "Limit the generated C/RTL testbench to the first N real INT8 "
+            "reference samples. This is a co-sim feasibility knob and makes "
+            "the summary non-formal when set."
+        ),
+    )
+    parser.add_argument(
         "--run-hls",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -382,6 +398,7 @@ def run_one_candidate(
     run_hls: bool,
     timeout_minutes: int,
     int8_summary: dict[str, Any],
+    sample_limit: int | None,
 ) -> dict[str, Any]:
     checkpoint = Path(candidate["source_checkpoint"]["path"]).resolve()
     calibration_path = Path(candidate["activation_calibration"]["path"]).resolve()
@@ -410,6 +427,14 @@ def run_one_candidate(
         [int(value) for value in row["logits_int8"]]
         for row in reference_payload["reference_records"]
     ]
+    reference_sample_count = len(input_samples)
+    if sample_limit is not None:
+        if int(sample_limit) <= 0:
+            raise RuntimeError("--sample-limit must be positive when set")
+        input_samples = input_samples[: int(sample_limit)]
+        expected_outputs = expected_outputs[: int(sample_limit)]
+        if not input_samples:
+            raise RuntimeError("sample-limit removed all testbench samples")
 
     hls_dir = (
         output_root
@@ -449,6 +474,8 @@ def run_one_candidate(
             "generated": generated,
             "preflight": preflight,
             "sample_count": len(input_samples),
+            "reference_sample_count": int(reference_sample_count),
+            "sample_limit": int(sample_limit) if sample_limit is not None else None,
             "output_count": len(input_samples) * OUTPUT_CLASSES,
             "csim_result": None,
             "vitis_returncode": None,
@@ -496,6 +523,8 @@ def run_one_candidate(
         "hls_project_dir": str(hls_dir.resolve()),
         "generated": generated,
         "preflight": preflight,
+        "reference_sample_count": int(reference_sample_count),
+        "sample_limit": int(sample_limit) if sample_limit is not None else None,
         "sample_count": (
             int(result_payload["sample_count"])
             if isinstance(result_payload, dict) and "sample_count" in result_payload
@@ -557,8 +586,13 @@ def main() -> int:
     if len(candidates) != len(int8_summary["candidates"]):
         raise RuntimeError("not all INT8 candidates have matching C-sim PASS evidence")
     formal_candidate_count = len(candidates)
+    roles = {str(role) for role in args.role}
+    if roles:
+        candidates = [row for row in candidates if str(row.get("role")) in roles]
     if args.candidate_limit is not None:
         candidates = candidates[: int(args.candidate_limit)]
+    if not candidates:
+        raise RuntimeError("no candidates selected for external-scratch HLS gate")
     if args.run_hls and not vitis_hls.is_file():
         payload = {
             "schema_version": 1,
@@ -586,10 +620,16 @@ def main() -> int:
             run_hls=bool(args.run_hls),
             timeout_minutes=int(args.timeout_minutes),
             int8_summary=int8_summary,
+            sample_limit=args.sample_limit,
         )
         for candidate in candidates
     ]
-    formal_scope = args.candidate_limit is None and len(rows) == formal_candidate_count
+    formal_scope = (
+        args.candidate_limit is None
+        and not roles
+        and args.sample_limit is None
+        and len(rows) == formal_candidate_count
+    )
     rows_pass = rows and all(row["status"] == "PASS" for row in rows)
     if not bool(args.run_hls):
         status = "NOT_RUN"
@@ -622,12 +662,18 @@ def main() -> int:
         "formal_candidate_count": formal_candidate_count,
         "formal_scope": formal_scope,
         "candidate_limit": args.candidate_limit,
+        "selected_roles": [row.get("role") for row in candidates],
+        "sample_limit": args.sample_limit,
         "candidates": rows,
         "downstream_gates": {
-            "rtl_cosim": "PENDING" if status == "PASS" else "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED",
+            "rtl_cosim": (
+                "PENDING"
+                if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL"}
+                else "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
+            ),
             "place_and_route_5ns": (
                 "NOT_RUN_RTL_COSIM_NOT_PASSED"
-                if status == "PASS"
+                if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL"}
                 else "NOT_RUN_HLS_SYNTHESIS_NOT_PASSED"
             ),
             "bitstream": "NOT_GENERATED",
@@ -645,7 +691,7 @@ def main() -> int:
     payload["payload_sha256"] = canonical_sha256(payload)
     write_json(summary_path, payload)
     print(json.dumps(payload, indent=2, ensure_ascii=False))
-    return 0 if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL"} else 1
+    return 0 if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL", "NOT_RUN"} else 1
 
 
 if __name__ == "__main__":

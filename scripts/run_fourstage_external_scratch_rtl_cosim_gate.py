@@ -47,6 +47,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--summary", default=str(DEFAULT_SUMMARY))
     parser.add_argument("--vitis-hls", default=str(DEFAULT_VITIS_HLS))
     parser.add_argument("--candidate-limit", type=int, default=None)
+    parser.add_argument(
+        "--role",
+        action="append",
+        default=[],
+        help="Candidate role to include; repeatable. Defaults to all candidates in the HLS summary.",
+    )
     parser.add_argument("--run-cosim", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--timeout-minutes", type=int, default=90)
     return parser.parse_args()
@@ -260,12 +266,21 @@ def main() -> int:
     summary_path = Path(args.summary).expanduser().resolve()
     vitis_hls = Path(args.vitis_hls).expanduser().resolve()
     hls_summary = read_json(hls_summary_path)
-    if hls_summary.get("status") != "PASS" or not hls_summary.get("formal_scope"):
-        raise RuntimeError("formal external-scratch HLS gate must PASS before RTL co-sim")
+    roles = {str(role) for role in args.role}
+    if hls_summary.get("status") not in {"PASS", "PARTIAL_PASS_NOT_FORMAL"}:
+        raise RuntimeError("external-scratch HLS gate must PASS before RTL co-sim")
+    if hls_summary.get("status") != "PASS" and not roles:
+        raise RuntimeError(
+            "non-formal external-scratch HLS summaries require an explicit --role"
+        )
     candidates = list(hls_summary["candidates"])
-    formal_candidate_count = len(candidates)
+    formal_candidate_count = int(hls_summary.get("formal_candidate_count") or len(candidates))
+    if roles:
+        candidates = [row for row in candidates if str(row.get("role")) in roles]
     if args.candidate_limit is not None:
         candidates = candidates[: int(args.candidate_limit)]
+    if not candidates:
+        raise RuntimeError("no candidates selected for external-scratch RTL co-sim")
     if args.run_cosim and not vitis_hls.is_file():
         payload = {
             "schema_version": 1,
@@ -292,7 +307,12 @@ def main() -> int:
         )
         for candidate in candidates
     ]
-    formal_scope = args.candidate_limit is None and len(rows) == formal_candidate_count
+    formal_scope = (
+        args.candidate_limit is None
+        and not roles
+        and hls_summary.get("formal_scope")
+        and len(rows) == formal_candidate_count
+    )
     rows_pass = rows and all(row["status"] == "PASS" for row in rows)
     if not bool(args.run_cosim):
         status = "NOT_RUN"
@@ -321,9 +341,16 @@ def main() -> int:
         "formal_candidate_count": formal_candidate_count,
         "formal_scope": formal_scope,
         "candidate_limit": args.candidate_limit,
+        "selected_roles": [row.get("role") for row in candidates],
+        "source_hls_formal_scope": hls_summary.get("formal_scope"),
+        "source_hls_sample_limit": hls_summary.get("sample_limit"),
         "candidates": rows,
         "downstream_gates": {
-            "place_and_route_5ns": "PENDING" if status == "PASS" else "NOT_RUN_RTL_COSIM_NOT_PASSED",
+            "place_and_route_5ns": (
+                "PENDING"
+                if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL"}
+                else "NOT_RUN_RTL_COSIM_NOT_PASSED"
+            ),
             "bitstream": "NOT_GENERATED",
             "com5_board_latency": "NOT_RUN",
             "external_meter_power": "NOT_MEASURED",
@@ -337,7 +364,7 @@ def main() -> int:
     payload["payload_sha256"] = canonical_sha256(payload)
     write_json(summary_path, payload)
     print(json.dumps(payload, indent=2, ensure_ascii=False))
-    return 0 if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL"} else 1
+    return 0 if status in {"PASS", "PARTIAL_PASS_NOT_FORMAL", "NOT_RUN"} else 1
 
 
 if __name__ == "__main__":
