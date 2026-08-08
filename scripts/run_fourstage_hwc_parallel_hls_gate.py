@@ -12,6 +12,8 @@ implementation change is the HLS datapath:
 * internal activations are stored in HWC order so channels are contiguous;
 * local scratch buffers are cyclically banked across the channel-parallel lane;
 * convolution output/depthwise channels are computed in parallel.
+* v2 reuses the standard/depthwise convolution hardware instances across
+  layers and defaults to a resource-gated channel-parallel factor of 16.
 
 It is still not a board result by itself.  Route and bitstream may only be
 claimed after RTL co-sim and Vivado implementation pass their own gates.
@@ -68,8 +70,14 @@ from run_fourstage_hls_synthesis_gate import (  # noqa: E402
 
 ARTIFACT_ROOT = ROOT / "artifacts" / "sonar_fourstage_operator_v2"
 DEFAULT_SUMMARY = ARTIFACT_ROOT / "fourstage_hwc_parallel_hls_summary.json"
-DEFAULT_OUTPUT_ROOT = ROOT / "results" / "sonar_fourstage_operator_v2" / "hwcpar32"
-IMPLEMENTATION_STYLE = "hwc_channel_parallel_v1"
+DEFAULT_OUTPUT_ROOT = ROOT / "results" / "sonar_fourstage_operator_v2" / "hwcpar16_shared"
+IMPLEMENTATION_STYLE = "hwc_channel_parallel_v2_shared_units"
+HLS_RESOURCE_LIMITS = {
+    "bram_18k": AV7K325_BRAM18_EQUIV,
+    "dsp": 700,
+    "ff": 407600,
+    "lut": 203800,
+}
 
 
 def _run_process(
@@ -569,6 +577,9 @@ class HwcParallelEmitter(SynthesizableEmitter):
             #pragma HLS INTERFACE s_axilite port=input bundle=control
             #pragma HLS INTERFACE s_axilite port=output bundle=control
             #pragma HLS INTERFACE s_axilite port=return bundle=control
+            #pragma HLS ALLOCATION instances=conv2d_standard_hwc limit=1 function
+            #pragma HLS ALLOCATION instances=conv2d_depthwise_hwc limit=1 function
+            #pragma HLS ALLOCATION instances=index_hwc limit=1 function
               static i8 buf0[MAX_TENSOR_SIZE];
               static i8 buf1[MAX_TENSOR_SIZE];
               static i8 residual[MAX_RESIDUAL_SIZE];
@@ -715,6 +726,8 @@ def classify_failure(
 ) -> str | None:
     if status == "PASS":
         return None
+    if status == "RESOURCE_INFEASIBLE":
+        return "HWC_PARALLEL_HLS_RESOURCE_INFEASIBLE"
     if timed_out:
         return "HWC_PARALLEL_HLS_TIMEOUT"
     if not csim_pass:
@@ -724,6 +737,39 @@ def classify_failure(
     if returncode != 0:
         return "HWC_PARALLEL_HLS_RETURNCODE_NONZERO_WITH_REPORT"
     return "HWC_PARALLEL_HLS_FAILURE"
+
+
+def hls_resource_check(metrics: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(metrics, dict):
+        return {
+            "status": "UNKNOWN",
+            "limits": dict(HLS_RESOURCE_LIMITS),
+            "violations": {"metrics": "missing_or_unparsed"},
+        }
+    values = {
+        "bram_18k": metrics.get("bram_18k", metrics.get("bram")),
+        "dsp": metrics.get("dsp"),
+        "ff": metrics.get("ff"),
+        "lut": metrics.get("lut"),
+    }
+    violations = {}
+    for key, limit in HLS_RESOURCE_LIMITS.items():
+        value = values.get(key)
+        if value is None:
+            violations[key] = {"value": None, "limit": int(limit), "reason": "missing"}
+            continue
+        if int(value) > int(limit):
+            violations[key] = {"value": int(value), "limit": int(limit)}
+    return {
+        "status": "PASS" if not violations else "FAIL",
+        "limits": dict(HLS_RESOURCE_LIMITS),
+        "values": values,
+        "violations": violations,
+        "claim_boundary": (
+            "HLS resource estimates are a pre-route feasibility gate only. "
+            "Passing this check does not imply post-route WNS/resource closure."
+        ),
+    }
 
 
 def git_output(*args: str) -> str:
@@ -855,7 +901,10 @@ def run_one_candidate(
             metrics = parse_hls_report(report_path)
         except Exception as exc:  # pragma: no cover - evidence path still recorded.
             metrics = {"parse_error": repr(exc)}
+    resource_check = hls_resource_check(metrics)
     status = "PASS" if returncode == 0 and csim_pass and report_path is not None else "FAIL"
+    if status == "PASS" and resource_check.get("status") != "PASS":
+        status = "RESOURCE_INFEASIBLE"
     if timed_out:
         status = "TIMEOUT"
     failure_category = classify_failure(
@@ -899,6 +948,7 @@ def run_one_candidate(
         "vitis_log": evidence(log_path),
         "csynth_report": evidence(report_path) if report_path is not None else None,
         "metrics": metrics,
+        "hls_resource_check": resource_check,
         "claim_boundary": (
             "HWC channel-parallel full-network HLS C-sim/synthesis evidence only. "
             "This is not RTL co-sim, place-and-route, bitstream, COM5, or measured power."
@@ -919,7 +969,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Candidate role to include; repeatable. Defaults to all candidates.",
     )
-    parser.add_argument("--channel-parallel", type=int, default=32)
+    parser.add_argument("--channel-parallel", type=int, default=16)
     parser.add_argument("--run-hls", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--timeout-minutes", type=int, default=120)
     return parser.parse_args()
@@ -989,6 +1039,8 @@ def main() -> int:
         status = "PASS"
     elif any(row["status"] == "TIMEOUT" for row in results):
         status = "TIMEOUT"
+    elif any(row["status"] == "RESOURCE_INFEASIBLE" for row in results):
+        status = "RESOURCE_INFEASIBLE"
     else:
         status = "FAIL"
 
@@ -1001,6 +1053,7 @@ def main() -> int:
         "target_part": TARGET_PART,
         "target_clock_ns": TARGET_CLOCK_NS,
         "channel_parallel": int(args.channel_parallel),
+        "hls_resource_limits": dict(HLS_RESOURCE_LIMITS),
         "csim_zero_mismatch_summary": evidence(csim_summary_path),
         "int8_reference_summary": evidence(int8_summary_path),
         "vitis_hls": {"path": str(vitis_hls), "exists": vitis_hls.is_file()},
