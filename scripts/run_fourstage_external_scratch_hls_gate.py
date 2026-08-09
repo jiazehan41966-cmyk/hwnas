@@ -1147,11 +1147,18 @@ def main() -> int:
             "external_meter_power": "NOT_MEASURED",
         },
         "claim_boundary": (
-            "This is complete-network Vitis HLS C-sim/synthesis evidence for "
-            "an external-scratch pixel-tiled probe. It is distinct from RTL "
-            "co-sim, full route, bitstream, board execution, and "
-            "external-meter power; it is also not a final optimized streaming "
-            "line-buffer datapath."
+            (
+                "Complete-network AXI-DMA HLS source was generated, but Vitis HLS "
+                "C-sim and synthesis were not run. This is portability preflight "
+                "evidence only."
+            )
+            if status == "NOT_RUN"
+            else (
+                "This is complete-network Vitis HLS C-sim/synthesis evidence for "
+                "an external-scratch AXI-DMA probe. It is distinct from RTL co-sim, "
+                "full route, bitstream, board execution, and external-meter power; "
+                "it is also not a final optimized streaming line-buffer datapath."
+            )
         ),
     }
     payload["payload_sha256"] = canonical_sha256(payload)
