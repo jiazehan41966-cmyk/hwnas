@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-09T01:38:50.803150+00:00",
+  "status": "PARTIAL_PASS_NOT_FORMAL",
+  "gate": "full_network_external_scratch_hls",
+  "contract": "fourstage_per_tensor_symmetric_int8_activation_v1",
+  "implementation_style": "external_scratch_pixel_tiled_v1",
+  "target_part": "xc7k325tffg900-2",
+  "target_clock_ns": 5.0,
+  "csim_zero_mismatch_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_csim_zero_mismatch_summary.json",
+    "sha256": "8b4ec495bc73b32e8a06eea4d18599d00fc6cd003430e0e37eb028f13c1c6d5d",
+    "size_bytes": 14878
+  },
+  "int8_reference_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_int8_reference_summary.json",
+    "sha256": "04503d8b8b9a9a38a89d30d4d73a8325d1f3307b90f2159c225decdd96b70629",
+    "size_bytes": 11098
+  },
+  "vitis_hls": {
+    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
+    "exists": true
+  },
+  "git": {
+    "head": "7c632a0ccf5e9b2e9c906bb355bb47cd69a4f310",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": []
+  },
+  "candidate_count": 1,
+  "formal_candidate_count": 4,
+  "formal_scope": false,
+  "candidate_limit": null,
+  "selected_roles": [
+    "stage4_k5_representative"
+  ],
+  "sample_limit": 1,
+  "candidates": [
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "status": "PASS",
+      "hls_project_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative",
+      "generated": {
+        "top": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\top.cpp",
+          "sha256": "34438cda703f8fc90ea32b3d33a1bf4ff871879ea242dd503dd78ada5eaf5bff",
+          "size_bytes": 94108
+        },
+        "testbench": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\tb.cpp",
+          "sha256": "f4087da5923bea63abcfcfa1c815d3fced06f02d21eae037278f98aad37601da",
+          "size_bytes": 272599
+        },
+        "tcl": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\run_synthesis.tcl",
+          "sha256": "18863f2b2cfae0c87eefb9c14bdbd53202a78ee0f39a7531286a8acb83700222",
+          "size_bytes": 371
+        }
+      },
+      "preflight": {
+        "implementation_style": "external_scratch_pixel_tiled_v1",
+        "max_tensor_elements": 602112,
+        "max_residual_elements": 25088,
+        "external_scratch_bytes": 1279488,
+        "local_activation_buffer_bytes": 0,
+        "weight_bytes": 17400,
+        "bias_bytes": 2304,
+        "weight_bias_bram18_lower_bound": 9,
+        "av7k325_bram18_equivalent_capacity": 890,
+        "claim_boundary": "Large activations are modeled as explicit AXI scratch buffers. This reduces local activation BRAM pressure but is not a final line-buffered or routed deployment datapath."
+      },
+      "reference_sample_count": 8,
+      "sample_limit": 1,
+      "sample_count": 1,
+      "output_count": 8,
+      "mismatch_count": 0,
+      "max_abs_mismatch": 0,
+      "csim_result": {
+        "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\csim_result.json",
+        "sha256": "d41287e04fbf90fb7e9641773e7ee2fead08e1321c360bc89b3a976022a53d74",
+        "size_bytes": 144
+      },
+      "vitis_returncode": 0,
+      "timeout_minutes": 120,
+      "failure_category": null,
+      "vitis_log": {
+        "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\vitis_hls_external_scratch.log",
+        "sha256": "c9021a0ce51816901a94028fa4acff966f0db7984fd48f217caba0c888885207",
+        "size_bytes": 211956
+      },
+      "csynth_report": {
+        "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+        "sha256": "94bcabf79659c8f91e21ec13cb8b2b34fabf2179fd236d734ff5a9dd2ce8c912",
+        "size_bytes": 76564
+      },
+      "metrics": {
+        "cycles": 48296830,
+        "latency_ns": 241000000.0,
+        "ii": 0,
+        "depth": 0,
+        "bram": 30,
+        "bram_18k": 30,
+        "bram_36k": 0,
+        "dsp": 274,
+        "lut": 112137,
+        "ff": 109753,
+        "power_w": null,
+        "estimated_clock_period_ns": 3.957,
+        "fmax_est_mhz": 252.71670457417235,
+        "report_format": "xml"
+      },
+      "claim_boundary": "External-scratch full-network HLS C-sim/synthesis evidence only. This is not RTL co-sim, place-and-route, bitstream, COM5, or measured power."
+    }
+  ],
+  "downstream_gates": {
+    "rtl_cosim": "PENDING",
+    "place_and_route_5ns": "NOT_RUN_RTL_COSIM_NOT_PASSED",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "This is complete-network Vitis HLS C-sim/synthesis evidence for an external-scratch pixel-tiled probe. It is distinct from RTL co-sim, full route, bitstream, COM5 board execution, and external-meter power; it is also not a final optimized streaming line-buffer datapath.",
+  "payload_sha256": "3b784ea9c49a1148b08287561e3f08a6c41a8016f9eb3c31b8540920ec2d7857"
+}
