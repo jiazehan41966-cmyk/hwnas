@@ -73,6 +73,9 @@ set_property -dict [list \
   CONFIG.PSU__USE__M_AXI_GP0 {{1}} \
   CONFIG.PSU__USE__S_AXI_GP0 {{1}} \
   CONFIG.PSU__USE__IRQ0 {{1}} \
+  CONFIG.PSU__PL__POWER__ON {{1}} \
+  CONFIG.PSU__I2C1__PERIPHERAL__ENABLE {{1}} \
+  CONFIG.PSU__I2C1__PERIPHERAL__IO {{MIO 16 .. 17}} \
   CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {{200}} \
 ] $ps
 

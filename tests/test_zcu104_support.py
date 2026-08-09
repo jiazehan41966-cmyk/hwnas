@@ -30,6 +30,7 @@ from run_fourstage_external_scratch_hls_gate import (  # noqa: E402
     tcl_script,
 )
 from generate_zcu104_platform import build_tcl as build_zcu104_platform_tcl  # noqa: E402
+from capture_zcu104_onboard_power import read_sample as read_ina226_sample  # noqa: E402
 
 
 class Zcu104BoardSupportTests(unittest.TestCase):
@@ -60,7 +61,11 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(config["clock"]["source"], "ps_fclk")
         self.assertEqual(config["transport"]["type"], "axi_dma")
         self.assertTrue(config["platform_exports"]["xsa"])
-        self.assertEqual(config["power"]["pmbus_role"], "auxiliary_only")
+        self.assertEqual(
+            config["power"]["claimable_source"], "zcu104_vcc12_ina226_i2c"
+        )
+        self.assertEqual(config["power"]["onboard_interface"]["mux_channel"], 3)
+        self.assertEqual(config["power"]["rail_breakdown"]["role"], "auxiliary_only")
 
     def test_campaign_config_binds_the_revision_source_freeze(self) -> None:
         config = yaml.safe_load(
@@ -113,6 +118,22 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertIn("ps/pl_ps_irq0", tcl)
         self.assertIn("write_hw_platform -fixed -include_bit", tcl)
         self.assertIn("zcu104_fourstage.hwh", tcl)
+        self.assertIn("CONFIG.PSU__PL__POWER__ON {1}", tcl)
+        self.assertIn("CONFIG.PSU__I2C1__PERIPHERAL__ENABLE {1}", tcl)
+        self.assertIn("CONFIG.PSU__I2C1__PERIPHERAL__IO {MIO 16 .. 17}", tcl)
+
+    def test_onboard_ina226_capture_converts_linux_hwmon_units(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            hwmon = Path(tmpdir)
+            (hwmon / "in1_input").write_text("12000\n", encoding="utf-8")
+            (hwmon / "curr1_input").write_text("1500\n", encoding="utf-8")
+            (hwmon / "power1_input").write_text("18000000\n", encoding="utf-8")
+
+            sample = read_ina226_sample(hwmon)
+
+        self.assertEqual(sample["voltage_v"], 12.0)
+        self.assertEqual(sample["current_a"], 1.5)
+        self.assertEqual(sample["power_w"], 18.0)
 
     def test_deployment_binding_requires_all_sha_bound_artifacts(self) -> None:
         record = {"path": "/tmp/item", "sha256": "a" * 64}
@@ -150,7 +171,7 @@ def _write_capture(path: Path, power: float) -> None:
 
 
 class Zcu104PowerContractTests(unittest.TestCase):
-    def test_v2_power_manifest_binds_platform_thermal_and_time(self) -> None:
+    def test_v3_onboard_power_manifest_binds_sensor_platform_and_time(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             idle = []
@@ -185,18 +206,41 @@ class Zcu104PowerContractTests(unittest.TestCase):
                     }
                 )
             manifest = {
-                "schema_version": 2,
-                "measurement_source": "external_power_meter_csv",
-                "rail_scope": "board_input_total",
-                "pmbus_role": "auxiliary_only",
-                "instrument": {
-                    "model": "test",
+                "schema_version": 3,
+                "measurement_source": "zcu104_vcc12_ina226_i2c",
+                "rail_scope": "board_input_total_12v",
+                "sensor": {
+                    "model": "INA226",
+                    "reference_designator": "U183",
+                    "rail": "VCC12",
+                    "driver": "ina2xx",
+                    "hwmon_path": "/sys/class/hwmon/hwmon3",
                     "sample_rate_hz": 1,
-                    "calibration": "traceable-test",
-                    "calibration_certificate_id": "CERT-1",
-                    "calibration_valid_at_measurement": True,
+                    "calibration": {
+                        "verified": True,
+                        "source": "ZCU104_schematic_and_driver",
+                        "shunt_resistor_ohm": 0.005,
+                        "configuration_sha256": "f" * 64,
+                    },
                 },
-                "time_sync": {"verified": True, "max_offset_ms": 1.0},
+                "onboard_interface": {
+                    "controller": "PS_I2C1_MIO16_17",
+                    "mux_model": "TCA9548A",
+                    "mux_address": "0x74",
+                    "mux_channel": 3,
+                    "sensor_address": "0x40",
+                },
+                "rail_breakdown": {
+                    "source": "IRPS5401_PMBus",
+                    "mux_channel": 2,
+                    "role": "auxiliary_only",
+                },
+                "time_sync": {
+                    "verified": True,
+                    "method": "host_monotonic",
+                    "host_clock": "CLOCK_MONOTONIC_RAW",
+                    "max_offset_ms": 0.0,
+                },
                 "thermal": {"ambient_c": 25.0, "board_c": 40.0, "fan_mode": "fixed"},
                 "platform_binding": {
                     "board_model": "ZCU104",
@@ -221,6 +265,8 @@ class Zcu104PowerContractTests(unittest.TestCase):
 
         self.assertTrue(result["overall_pass"])
         self.assertTrue(result["gates"]["receipt_platform_binding_match"])
+        self.assertTrue(result["gates"]["onboard_i2c_topology"])
+        self.assertTrue(result["gates"]["onboard_ina226_identity"])
 
 
 if __name__ == "__main__":

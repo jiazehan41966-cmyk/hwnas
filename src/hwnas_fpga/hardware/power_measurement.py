@@ -1,4 +1,4 @@
-"""Instrument-agnostic external board-input power evidence."""
+"""Auditable board-input power evidence for external and onboard sensors."""
 
 from __future__ import annotations
 
@@ -122,20 +122,56 @@ def audit_power_manifest(
         if isinstance(manifest.get("instrument"), Mapping)
         else {}
     )
+    sensor = (
+        manifest.get("sensor")
+        if isinstance(manifest.get("sensor"), Mapping)
+        else {}
+    )
+    onboard_interface = (
+        manifest.get("onboard_interface")
+        if isinstance(manifest.get("onboard_interface"), Mapping)
+        else {}
+    )
+    rail_breakdown = (
+        manifest.get("rail_breakdown")
+        if isinstance(manifest.get("rail_breakdown"), Mapping)
+        else {}
+    )
+    onboard_zcu104 = schema_version >= 3
+    measurement_device = sensor if onboard_zcu104 else instrument
+    sensor_calibration = (
+        sensor.get("calibration")
+        if isinstance(sensor.get("calibration"), Mapping)
+        else {}
+    )
     gates = {
-        "rail_scope": manifest.get("rail_scope") == "board_input_total",
+        "rail_scope": manifest.get("rail_scope")
+        == ("board_input_total_12v" if onboard_zcu104 else "board_input_total"),
         "measurement_source": manifest.get("measurement_source")
-        == "external_power_meter_csv",
-        "instrument_model": bool((manifest.get("instrument") or {}).get("model")),
+        == (
+            "zcu104_vcc12_ina226_i2c"
+            if onboard_zcu104
+            else "external_power_meter_csv"
+        ),
+        "instrument_model": bool(measurement_device.get("model")),
         "instrument_sample_rate": float(
-            (manifest.get("instrument") or {}).get("sample_rate_hz", 0)
+            measurement_device.get("sample_rate_hz", 0)
         )
         > 0,
-        "instrument_calibration": bool(
-            str((manifest.get("instrument") or {}).get("calibration", "")).strip()
-        )
-        and str((manifest.get("instrument") or {}).get("calibration", "")).upper()
-        != "TODO",
+        "instrument_calibration": (
+            sensor_calibration.get("verified") is True
+            and isinstance(sensor_calibration.get("shunt_resistor_ohm"), (int, float))
+            and abs(float(sensor_calibration["shunt_resistor_ohm"]) - 0.005) <= 1e-9
+            and bool(
+                re.fullmatch(
+                    r"[0-9a-fA-F]{64}",
+                    str(sensor_calibration.get("configuration_sha256") or ""),
+                )
+            )
+            if onboard_zcu104
+            else bool(str(instrument.get("calibration", "")).strip())
+            and str(instrument.get("calibration", "")).upper() != "TODO"
+        ),
         "bitstream_sha256": bool(re.fullmatch(r"[0-9a-fA-F]{64}", bitstream_sha256)),
         "contains_programming_false": manifest.get("contains_programming") is False,
         "contains_uart_upload_false": manifest.get("contains_uart_upload") is False,
@@ -207,14 +243,50 @@ def audit_power_manifest(
                 "time_sync_verified": time_sync.get("verified") is True
                 and isinstance(time_sync.get("max_offset_ms"), (int, float))
                 and float(time_sync.get("max_offset_ms")) >= 0.0,
-                "calibration_certificate": bool(
-                    str(instrument.get("calibration_certificate_id") or "").strip()
-                )
-                and instrument.get("calibration_valid_at_measurement") is True,
-                "pmbus_auxiliary_only": str(manifest.get("pmbus_role") or "")
-                == "auxiliary_only",
             }
         )
+        if onboard_zcu104:
+            gates.update(
+                {
+                    "onboard_ina226_identity": str(sensor.get("model") or "").upper()
+                    == "INA226"
+                    and str(sensor.get("reference_designator") or "").upper() == "U183"
+                    and str(sensor.get("rail") or "").upper() == "VCC12",
+                    "onboard_i2c_topology": str(
+                        onboard_interface.get("controller") or ""
+                    ).upper()
+                    == "PS_I2C1_MIO16_17"
+                    and str(onboard_interface.get("mux_model") or "").upper()
+                    == "TCA9548A"
+                    and str(onboard_interface.get("mux_address") or "").lower()
+                    == "0x74"
+                    and int(onboard_interface.get("mux_channel", -1)) == 3
+                    and str(onboard_interface.get("sensor_address") or "").lower()
+                    == "0x40",
+                    "linux_ina2xx_driver": str(sensor.get("driver") or "").lower()
+                    == "ina2xx"
+                    and bool(str(sensor.get("hwmon_path") or "").strip()),
+                    "host_monotonic_sampling": str(time_sync.get("method") or "")
+                    == "host_monotonic"
+                    and str(time_sync.get("host_clock") or "")
+                    == "CLOCK_MONOTONIC_RAW",
+                    "rail_breakdown_auxiliary_only": str(
+                        rail_breakdown.get("role") or ""
+                    )
+                    == "auxiliary_only",
+                }
+            )
+        else:
+            gates.update(
+                {
+                    "calibration_certificate": bool(
+                        str(instrument.get("calibration_certificate_id") or "").strip()
+                    )
+                    and instrument.get("calibration_valid_at_measurement") is True,
+                    "pmbus_auxiliary_only": str(manifest.get("pmbus_role") or "")
+                    == "auxiliary_only",
+                }
+            )
         gates["receipt_platform_binding_match"] = bool(active) and all(
             capture.get("run_repeat_receipt")
             and str(
@@ -267,6 +339,9 @@ def audit_power_manifest(
         "overall_pass": pass_status,
         "gates": gates,
         "instrument": manifest.get("instrument"),
+        "sensor": manifest.get("sensor"),
+        "onboard_interface": onboard_interface,
+        "measurement_source": manifest.get("measurement_source"),
         "platform_binding": platform_binding,
         "thermal": thermal,
         "time_sync": time_sync,
@@ -289,7 +364,12 @@ def audit_power_manifest(
         ),
         "active_inference_count": inference_count,
         "claim_boundary": (
-            "Measured board-input total power for this bitstream/protocol only; "
+            "Measured ZCU104 12 V board-input power from onboard INA226 U183 for "
+            "this bitstream/protocol only; IRPS5401 rail telemetry is auxiliary. "
+            "Power is not a search objective until at least three candidates pass "
+            "under the same sensor contract."
+            if onboard_zcu104
+            else "Measured board-input total power for this bitstream/protocol only; "
             "power is not a search objective until at least three candidates "
             "pass under the same instrument contract."
         ),
@@ -321,7 +401,17 @@ def audit_power_campaign(manifest_paths: list[str | Path]) -> dict[str, Any]:
         for payload, path in zip(manifests, manifest_paths)
     ]
     instrument_keys = {
-        json.dumps(payload.get("instrument") or {}, sort_keys=True)
+        json.dumps(
+            (
+                {
+                    "sensor": payload.get("sensor") or {},
+                    "onboard_interface": payload.get("onboard_interface") or {},
+                }
+                if int(payload.get("schema_version") or 1) >= 3
+                else payload.get("instrument") or {}
+            ),
+            sort_keys=True,
+        )
         for payload in manifests
     }
     protocol_keys = {

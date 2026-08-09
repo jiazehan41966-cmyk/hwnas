@@ -648,7 +648,7 @@ def build_config(
                 "power_w",
                 "feasibility",
             ],
-            "power_policy": "external_meter_only_for_measured_power_claim",
+            "power_policy": "zcu104_vcc12_ina226_board_input_total",
             "toolchain_source": "remote_execution_plane",
             "authoritative_toolchain_version": "2022.2",
             "cross_version_attribution_comparison": "forbidden",
@@ -690,7 +690,7 @@ def build_config(
         "status_record": f"artifacts/{CAMPAIGN_ID}/status.json",
         "claim_boundary": (
             "This config freezes campaign identity and inputs only. Search proxy, retraining, "
-            "HLS, route, ZCU104 board classification/latency, and external-meter power remain "
+            "HLS, route, ZCU104 board classification/latency, and onboard measured power remain "
             "separate evidence layers."
         ),
     }
@@ -880,7 +880,7 @@ def main() -> int:
                 else "PENDING"
             ),
             "physical_zcu104": physical_gate.get("status", "PENDING"),
-            "external_power_meter": "NOT_DETECTED",
+            "onboard_power_interface": "PENDING_READOUT",
         },
         "acceptance_gates": {
             "isolated_worktree": {
@@ -946,7 +946,12 @@ def main() -> int:
                 "bitstream": "PENDING",
                 "board_full_sample_zero_mismatch": "PENDING",
             },
-            "external_board_input_power": {"status": "NOT_MEASURED"},
+            "zcu104_vcc12_onboard_power": {
+                "status": "NOT_MEASURED",
+                "measurement_source": "zcu104_vcc12_ina226_i2c",
+                "rail_scope": "board_input_total_12v",
+                "capture_script": "scripts/capture_zcu104_onboard_power.py",
+            },
         },
         "next_required_action": [
             (
@@ -958,6 +963,11 @@ def main() -> int:
                 next_required_action
                 if isinstance(next_required_action, list)
                 else ([next_required_action] if next_required_action else [])
+            ),
+            (
+                "After the ZCU104 boots, verify the U183 VCC12 INA226 hwmon node "
+                "(PS I2C1, mux 0x74 channel 3, sensor 0x40) and run three idle/active "
+                "captures per candidate."
             ),
         ],
         "claim_boundary": (

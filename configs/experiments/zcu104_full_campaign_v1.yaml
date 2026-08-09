@@ -141,7 +141,7 @@ hardware:
   - BRAM
   - power_w
   - feasibility
-  power_policy: external_meter_only_for_measured_power_claim
+  power_policy: zcu104_vcc12_ina226_board_input_total
   toolchain_source: remote_execution_plane
   authoritative_toolchain_version: '2022.2'
   cross_version_attribution_comparison: forbidden
@@ -173,4 +173,4 @@ power_manifest_template: artifacts/zcu104_full_campaign_v1/power/zcu104_power_ma
 environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
 status_record: artifacts/zcu104_full_campaign_v1/status.json
 claim_boundary: This config freezes campaign identity and inputs only. Search proxy, retraining, HLS,
-  route, ZCU104 board classification/latency, and external-meter power remain separate evidence layers.
+  route, ZCU104 board classification/latency, and onboard measured power remain separate evidence layers.

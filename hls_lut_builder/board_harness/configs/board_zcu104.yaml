@@ -53,8 +53,25 @@ platform_exports:
   bind_sha256: true
 
 power:
-  claimable_source: external_board_input_meter
-  pmbus_role: auxiliary_only
+  claimable_source: zcu104_vcc12_ina226_i2c
+  rail_scope: board_input_total_12v
+  capture_script: scripts/capture_zcu104_onboard_power.py
+  sensor:
+    model: INA226
+    reference_designator: U183
+    rail: VCC12
+    shunt_resistor_ohm: 0.005
+    driver: ina2xx
+  onboard_interface:
+    controller: PS_I2C1_MIO16_17
+    mux_model: TCA9548A
+    mux_address: "0x74"
+    mux_channel: 3
+    sensor_address: "0x40"
+  rail_breakdown:
+    source: IRPS5401_PMBus
+    mux_channel: 2
+    role: auxiliary_only
 
 # The legacy single-operator RTL harness still exposes UART/status ports.  They
 # are not the formal ZCU104 transport and intentionally have no package pins.

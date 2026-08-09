@@ -18,7 +18,7 @@
     "provenance_and_inputs": "PASS",
     "remote_hls_route_toolchain_2022_2": "READY_NOT_EXECUTED",
     "physical_zcu104": "BLOCKED_PL_POWER_OFF",
-    "external_power_meter": "NOT_DETECTED"
+    "onboard_power_interface": "PENDING_READOUT"
   },
   "gates": {
     "baseline_freeze": {
@@ -55,8 +55,11 @@
     "board_full_sample_zero_mismatch": {
       "status": "PENDING"
     },
-    "external_board_input_power": {
-      "status": "NOT_MEASURED"
+    "zcu104_vcc12_onboard_power": {
+      "status": "NOT_MEASURED",
+      "measurement_source": "zcu104_vcc12_ina226_i2c",
+      "rail_scope": "board_input_total_12v",
+      "rail_breakdown": "IRPS5401_PMBus_AUXILIARY"
     },
     "zcu104_power_proxy_holdout": {
       "status": "FROZEN",

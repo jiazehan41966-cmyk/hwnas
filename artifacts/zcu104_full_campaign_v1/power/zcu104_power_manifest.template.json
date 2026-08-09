@@ -1,25 +1,41 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
   "candidate_id": "TODO_ARCH_ID",
   "architecture_sha256": "TODO_64_HEX",
-  "measurement_source": "external_power_meter_csv",
-  "rail_scope": "board_input_total",
-  "pmbus_role": "auxiliary_only",
-  "instrument": {
-    "model": "TODO",
-    "serial": "TODO",
-    "sample_rate_hz": 0,
-    "calibration": "TODO",
-    "calibration_certificate_id": "TODO",
-    "calibration_valid_at_measurement": false
+  "measurement_source": "zcu104_vcc12_ina226_i2c",
+  "rail_scope": "board_input_total_12v",
+  "sensor": {
+    "model": "INA226",
+    "reference_designator": "U183",
+    "rail": "VCC12",
+    "driver": "ina2xx",
+    "hwmon_path": "TODO_/sys/class/hwmon/hwmonN",
+    "sample_rate_hz": 10,
+    "calibration": {
+      "verified": false,
+      "source": "ZCU104_schematic_0381794_and_linux_ina2xx_configuration",
+      "shunt_resistor_ohm": 0.005,
+      "configuration_sha256": "TODO_64_HEX"
+    }
+  },
+  "onboard_interface": {
+    "controller": "PS_I2C1_MIO16_17",
+    "mux_model": "TCA9548A",
+    "mux_address": "0x74",
+    "mux_channel": 3,
+    "sensor_address": "0x40"
+  },
+  "rail_breakdown": {
+    "source": "IRPS5401_PMBus",
+    "mux_channel": 2,
+    "role": "auxiliary_only"
   },
   "time_sync": {
     "verified": false,
-    "method": "TODO",
-    "host_clock": "TODO",
-    "instrument_clock": "TODO",
-    "max_offset_ms": null
+    "method": "host_monotonic",
+    "host_clock": "CLOCK_MONOTONIC_RAW",
+    "max_offset_ms": 0
   },
   "thermal": {
     "ambient_c": null,
@@ -62,5 +78,5 @@
       "run_repeat_receipt": "raw/run_repeat_03.json"
     }
   ],
-  "claim_boundary": "PMBus rail data is auxiliary. Only calibrated external board-input power may support measured-power claims."
+  "claim_boundary": "ZCU104 U183 INA226 VCC12 data is the board-input total-power source. IRPS5401 rail telemetry is auxiliary; no power claim exists until repeated captures and platform binding pass."
 }
