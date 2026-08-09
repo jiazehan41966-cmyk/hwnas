@@ -41,6 +41,9 @@ from .power_measurement import (
     audit_power_manifest,
     load_and_audit_power_manifest,
 )
+from .deployment_binding import (
+    audit_zcu104_deployment_binding,
+)
 
 __all__ = [
     "BOARD_PROFILES",
@@ -61,6 +64,7 @@ __all__ = [
     "build_final_hardware_validation_report",
     "audit_power_campaign",
     "audit_power_manifest",
+    "audit_zcu104_deployment_binding",
     "classify_route_gate_result",
     "create_dummy_fpga_lut",
     "dedupe_candidates_by_signature",

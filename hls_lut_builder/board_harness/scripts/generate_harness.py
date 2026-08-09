@@ -57,6 +57,27 @@ def constraint_clock_period_ns(clock_cfg: dict[str, Any]) -> Any:
     return clock_cfg.get("input_period_ns", clock_cfg["period_ns"])
 
 
+def build_clock_port_declarations(board_cfg: dict[str, Any]) -> str:
+    """Return the clock ports required by the selected board clock source."""
+    clock_cfg = board_cfg["clock"]
+    source = str(clock_cfg.get("source") or "differential_pin").lower()
+    if source == "ps_fclk":
+        return f"    input  wire {clock_cfg.get('port_name', 'pl_clk0')},"
+    if "port_name_p" in clock_cfg and "port_name_n" in clock_cfg:
+        return "\n".join(
+            [
+                f"    input  wire {clock_cfg['port_name_p']},",
+                f"    input  wire {clock_cfg['port_name_n']},",
+            ]
+        )
+    return f"    input  wire {clock_cfg['port_name']},"
+
+
+def build_reset_port_declaration(board_cfg: dict[str, Any]) -> str:
+    reset_name = str(board_cfg["reset"].get("port_name") or "sys_rst_n")
+    return f"    input  wire {reset_name},"
+
+
 def build_clocking_logic(board_cfg: dict[str, Any]) -> str:
     """Build RTL for the harness main clock.
 
@@ -67,14 +88,33 @@ def build_clocking_logic(board_cfg: dict[str, Any]) -> str:
     """
 
     clock_cfg = board_cfg["clock"]
+    source = str(clock_cfg.get("source") or "differential_pin").lower()
+    if source == "ps_fclk":
+        port_name = str(clock_cfg.get("port_name") or "pl_clk0")
+        return f"""wire clk_main;
+wire clock_ready;
+
+assign clk_main = {port_name};
+assign clock_ready = 1'b1;"""
+
     mmcm_cfg = clock_cfg.get("mmcm", {})
     if not isinstance(mmcm_cfg, dict) or not mmcm_cfg.get("enabled", False):
-        return """wire clk_ibuf;
+        if "port_name_p" not in clock_cfg or "port_name_n" not in clock_cfg:
+            port_name = str(clock_cfg["port_name"])
+            return f"""wire clk_main;
+wire clock_ready;
+BUFG u_sys_clk_bufg (
+    .I({port_name}),
+    .O(clk_main)
+);
+
+assign clock_ready = 1'b1;"""
+        return f"""wire clk_ibuf;
 wire clk_main;
 wire clock_ready;
 IBUFDS u_sys_clk_ibufds (
-    .I(sys_clk_p),
-    .IB(sys_clk_n),
+    .I({clock_cfg['port_name_p']}),
+    .IB({clock_cfg['port_name_n']}),
     .O(clk_ibuf)
 );
 
@@ -90,6 +130,9 @@ assign clock_ready = 1'b1;"""
     clkout0_divide_f = float(mmcm_cfg["clkout0_divide_f"])
     clkout0_phase = float(mmcm_cfg.get("clkout0_phase", 0.0))
     clkout0_duty_cycle = float(mmcm_cfg.get("clkout0_duty_cycle", 0.5))
+    primitive = str(mmcm_cfg.get("primitive") or "MMCME2_BASE")
+    if primitive not in {"MMCME2_BASE", "MMCME4_BASE"}:
+        raise ValueError(f"unsupported MMCM primitive: {primitive}")
     return f"""wire clk_ibuf;
 wire clk_mmcm;
 wire clk_fb;
@@ -97,8 +140,8 @@ wire clk_fb_buf;
 wire clk_main;
 wire clock_ready;
 IBUFDS u_sys_clk_ibufds (
-    .I(sys_clk_p),
-    .IB(sys_clk_n),
+    .I({clock_cfg['port_name_p']}),
+    .IB({clock_cfg['port_name_n']}),
     .O(clk_ibuf)
 );
 
@@ -107,7 +150,7 @@ BUFG u_clkfb_bufg (
     .O(clk_fb_buf)
 );
 
-MMCME2_BASE #(
+{primitive} #(
     .BANDWIDTH("OPTIMIZED"),
     .CLKIN1_PERIOD({float(constraint_clock_period_ns(clock_cfg)):.6f}),
     .DIVCLK_DIVIDE({divclk_divide}),
@@ -806,6 +849,9 @@ def main() -> None:
     else:
         biases_support_logic = build_scalar_param_logic("biases", biases_data_width)
     harness_mapping = {
+            "CLOCK_PORT_DECLARATIONS": build_clock_port_declarations(board_cfg),
+            "RESET_PORT_DECLARATION": build_reset_port_declaration(board_cfg),
+            "RESET_INPUT_SIGNAL": str(board_cfg["reset"].get("port_name") or "sys_rst_n"),
             "CLK_FREQ_HZ": str(board_cfg["clock"]["freq_hz"]),
             "UART_BAUD": str(board_cfg.get("uart", {}).get("baud", defaults_cfg["uart_baud"])),
             "BOOT_DELAY_CYCLES": str(defaults_cfg["boot_delay_cycles"]),
@@ -944,6 +990,7 @@ def main() -> None:
             ],
         },
         "interface_summary": {
+            "clock_source": str(board_cfg["clock"].get("source") or "differential_pin"),
             "input_tdata_width": input_tdata_width,
             "output_tdata_width": output_tdata_width,
             "axil_addr_width": axil_addr_width,

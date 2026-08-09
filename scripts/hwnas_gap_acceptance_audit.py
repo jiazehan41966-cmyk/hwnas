@@ -127,7 +127,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--final-candidate-manifest", default=str(DEFAULT_ROUTE_GATE_ROOT / "final_candidate_manifest.json"))
     parser.add_argument("--final-validation-report", default="")
     parser.add_argument("--measurement-json", default="")
-    parser.add_argument("--expected-serial-port", default="COM5")
+    parser.add_argument("--expected-transport-type", default="serial")
+    parser.add_argument("--expected-transport-id", default="COM5")
+    parser.add_argument("--expected-serial-port", default="", help=argparse.SUPPRESS)
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     return parser.parse_args()
 
@@ -151,6 +153,8 @@ def main() -> int:
         final_candidate_manifest_path=args.final_candidate_manifest,
         final_validation_report_path=args.final_validation_report,
         measurement_json_path=args.measurement_json,
+        expected_transport_type=args.expected_transport_type,
+        expected_transport_id=args.expected_transport_id,
         expected_serial_port=args.expected_serial_port,
     )
     audit = build_gap_acceptance_audit(inputs)

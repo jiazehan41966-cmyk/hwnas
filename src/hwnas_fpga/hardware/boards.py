@@ -15,6 +15,9 @@ BOARD_PROFILES: dict[str, HardwareSpec] = {
         max_lut=53_200,
         max_ff=106_400,
         max_bram=140,
+        max_bram18=280,
+        max_bram36=140,
+        max_uram=0,
         max_dsp=220,
         max_power_w=5.0,
         memory_bandwidth_gbps=4.2,
@@ -26,6 +29,9 @@ BOARD_PROFILES: dict[str, HardwareSpec] = {
         max_lut=203_800,
         max_ff=407_600,
         max_bram=445,
+        max_bram18=890,
+        max_bram36=445,
+        max_uram=0,
         max_dsp=840,
         max_power_w=12.0,
         memory_bandwidth_gbps=8.0,
@@ -37,10 +43,29 @@ BOARD_PROFILES: dict[str, HardwareSpec] = {
         max_lut=203_800,
         max_ff=407_600,
         max_bram=445,
+        max_bram18=890,
+        max_bram36=445,
+        max_uram=0,
         max_dsp=840,
         max_power_w=12.0,
         memory_bandwidth_gbps=12.8,
         offchip_mem_mb=2048.0,
+    ),
+    "zcu104_xczu7ev": HardwareSpec(
+        name="AMD/Xilinx ZCU104 (XCZU7EV-2FFVC1156)",
+        clock_mhz=200,
+        max_lut=230_400,
+        max_ff=460_800,
+        # The legacy estimator consumes BRAM36 blocks through ``max_bram``.
+        max_bram=312,
+        max_bram18=624,
+        max_bram36=312,
+        max_uram=96,
+        max_dsp=1_728,
+        # Do not encode an assumed board-power ceiling as measured evidence.
+        max_power_w=None,
+        memory_bandwidth_gbps=19.2,
+        offchip_mem_mb=4096.0,
     ),
 }
 
@@ -60,6 +85,12 @@ BOARD_ALIASES = {
     "alinxav7k325": "alinx_av7k325",
     "alinx_av7k325": "alinx_av7k325",
     "alinx-av7k325": "alinx_av7k325",
+    "zcu104": "zcu104_xczu7ev",
+    "zcu-104": "zcu104_xczu7ev",
+    "xczu7ev": "zcu104_xczu7ev",
+    "xczu7evffvc1156": "zcu104_xczu7ev",
+    "xczu7ev-ffvc1156-2-e": "zcu104_xczu7ev",
+    "zcu104_xczu7ev": "zcu104_xczu7ev",
 }
 
 

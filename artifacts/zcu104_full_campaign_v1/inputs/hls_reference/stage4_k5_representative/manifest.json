@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-09T03:07:55.215847+00:00",
+  "role": "stage4_k5_representative",
+  "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+  "architecture_sha256": "ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d",
+  "checkpoint": {
+    "path": "artifacts/zcu104_full_campaign_v1/inputs/checkpoints/stage4_k5_representative__fourstage_s2_k5_e3_s4_mbconv_k5_e3__fold0_seed42.pt",
+    "sha256": "4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e",
+    "fold": 0,
+    "seed": 42
+  },
+  "activation_calibration": {
+    "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/stage4_k5_representative/activation_calibration.json",
+    "sha256": "20c155f3b31e8fd937ff0d04f8469145bd981e535699136990bb4ef95813471e",
+    "size_bytes": 3447
+  },
+  "python_int8_reference": {
+    "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/stage4_k5_representative/python_int8_reference.json",
+    "sha256": "d4dfd08009ddea237ae31c1ff4fdabf2aae4c901ca621580bf2cc1bdd9ef1e47",
+    "size_bytes": 10434
+  },
+  "test_vectors": {
+    "inputs": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/stage4_k5_representative/inputs.npy",
+      "sha256": "697c78204ce17d3f6b737c6d7356a2bdfcec21f5a32ccf058fa97a54752f4ae9",
+      "size_bytes": 401536,
+      "shape": [
+        8,
+        50176
+      ],
+      "dtype": "int8"
+    },
+    "expected": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/stage4_k5_representative/expected.npy",
+      "sha256": "a58c4e4b62d8677fa0dbd480b82fd3b1a0b9c3be9925975b8e86ebb94ff64665",
+      "size_bytes": 192,
+      "shape": [
+        8,
+        8
+      ],
+      "dtype": "int8"
+    }
+  },
+  "reference_sample_count": 8,
+  "outer_validation_accessed": false,
+  "claim_boundary": "Portable test vectors reproduce the frozen INT8 C-sim inputs only. They are not HLS, RTL co-sim, route, board, or power evidence.",
+  "payload_sha256": "6d7cdb5aa065ecd2129512a0f000a059b1a561be95219eeeaf10aba7691ce415"
+}

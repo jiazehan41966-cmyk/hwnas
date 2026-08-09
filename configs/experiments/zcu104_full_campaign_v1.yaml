@@ -90,11 +90,32 @@ candidates:
     seed: 42
 hardware:
   board: ZCU104
+  board_profile: zcu104_xczu7ev
+  board_config: hls_lut_builder/board_harness/configs/board_zcu104.yaml
   vendor: AMD/Xilinx
   target_part: xczu7ev-ffvc1156-2-e
   expected_board_part: xilinx.com:zcu104:part0:1.1
   clock_period_ns: 5.0
   route_wns_min_ns: 0.0
+  resource_accounting:
+    lut: 230400
+    ff: 460800
+    dsp: 1728
+    bram18: 624
+    bram36: 312
+    uram: 96
+    hls_gate_bram_unit: BRAM18
+    uram_separate: true
+  transport:
+    type: axi_dma
+    id: axi_dma_0
+    memory: ps_ddr4
+    cache_coherency: explicit_flush_invalidate_required
+  platform_exports:
+    xsa: required
+    hwh: required
+    bitstream: required
+    sha256_binding: required
   metrics:
   - macro_f1
   - top1
@@ -106,6 +127,33 @@ hardware:
   - feasibility
   power_policy: external_meter_only_for_measured_power_claim
   toolchain_source: remote_execution_plane
+  authoritative_toolchain_version: "2022.2"
+  cross_version_attribution_comparison: forbidden
+implementation:
+  predecessor_probe: external_scratch_pixel_tiled_v1
+  deployable_baseline: external_scratch_axi_dma_stream_v2
+  hls_work_root_policy: explicit_short_linux_path
+  portable_hls_inputs: artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json
+  io_interface: axi_dma
+  platform_generator: scripts/generate_zcu104_platform.py
+  optimization_after_feasibility:
+  - ping_pong_buffer
+  - line_buffer
+  - compute_unit_reuse
+  - dma_burst
+validation_tiers:
+  operator_complete_rtl_cosim: required
+  network_representative_rtl_cosim:
+    required: true
+    samples: 1
+  board_full_sample_zero_mismatch: required
+legacy_gate_policy:
+  ledger: artifacts/measurement_first_rebuild/status.json
+  preserve_without_overwrite: true
+  old_g4_candidate: rl_arch_193
+campaign_ledger: artifacts/zcu104_full_campaign_v1/campaign_ledger.json
+deployment_binding: artifacts/zcu104_full_campaign_v1/deployment/deployment_binding.json
+power_manifest_template: artifacts/zcu104_full_campaign_v1/power/zcu104_power_manifest.template.json
 environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
 status_record: artifacts/zcu104_full_campaign_v1/status.json
 claim_boundary: This config freezes campaign identity and inputs only. Search proxy, retraining, HLS,

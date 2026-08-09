@@ -97,6 +97,40 @@ class HardwareValidationReportTests(unittest.TestCase):
         self.assertEqual(report["real_board_e2e"]["raw_latency_ms"], 0.5)
         self.assertIsNone(report["real_board_e2e"]["e2e_latency_ms"])
 
+    def test_accepts_zcu104_axi_dma_and_cross_host_paths_when_sha_matches(self) -> None:
+        report = build_final_hardware_validation_report(
+            candidate_payload={"candidate": {"arch_id": "zcu", "metrics": {"latency_ms": 241.0}}},
+            route_payload={
+                "status": "success",
+                "wns_ns": "0.1",
+                "timing_clean": True,
+                "bitstream": "/srv/build/model.bit",
+                "bitstream_sha256": "a" * 64,
+            },
+            measurement_payload={
+                "bitstream": "/home/xilinx/model.bit",
+                "bitstream_sha256": "a" * 64,
+                "transport_type": "axi_dma",
+                "transport_id": "axi_dma_0",
+                "frame": {"status_code": 0, "cycles": 100},
+                "latency_ms": 0.5,
+                "latency_breakdown_ms": {
+                    "kernel": 0.3,
+                    "dma": 0.1,
+                    "ps_runtime": 0.1,
+                    "system_e2e": 0.5,
+                },
+            },
+            expected_serial_port=None,
+            expected_transport_type="axi_dma",
+            expected_transport_id="axi_dma_0",
+        )
+
+        self.assertTrue(report["claimable_real_e2e_latency"])
+        self.assertEqual(report["bitstream"]["binding_method"], "sha256")
+        self.assertEqual(report["real_board_e2e"]["transport_type"], "axi_dma")
+        self.assertEqual(report["real_board_e2e"]["latency_breakdown_ms"]["kernel"], 0.3)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,7 @@
 
 These helpers keep NAS estimator metrics separate from real board measurements.
 Real e2e latency is claimable only when the full-network implementation is
-route-clean and the COM5 measurement frame reports status_code=0.
+route-clean and the declared board transport reports status_code=0.
 """
 
 from __future__ import annotations
@@ -57,13 +57,44 @@ def _paths_match(left: Any, right: Any) -> bool:
         return str(left) == str(right)
 
 
+def _sha256(value: Any) -> str:
+    candidate = str(value or "").strip().lower()
+    if len(candidate) == 64 and all(char in "0123456789abcdef" for char in candidate):
+        return candidate
+    return ""
+
+
+def _transport_from(
+    measurement_payload: Mapping[str, Any],
+) -> tuple[str, str, str]:
+    transport = (
+        measurement_payload.get("transport")
+        if isinstance(measurement_payload.get("transport"), Mapping)
+        else {}
+    )
+    serial_port = str(measurement_payload.get("serial_port") or "")
+    transport_type = str(
+        measurement_payload.get("transport_type")
+        or transport.get("type")
+        or ("serial" if serial_port else "")
+    )
+    transport_id = str(
+        measurement_payload.get("transport_id")
+        or transport.get("id")
+        or serial_port
+    )
+    return transport_type, transport_id, serial_port
+
+
 def build_final_hardware_validation_report(
     *,
     candidate_payload: Mapping[str, Any],
     route_payload: Mapping[str, Any],
     measurement_payload: Mapping[str, Any],
     measurement_json_path: str = "",
-    expected_serial_port: str = "COM5",
+    expected_serial_port: str | None = "COM5",
+    expected_transport_type: str | None = None,
+    expected_transport_id: str | None = None,
 ) -> dict[str, Any]:
     """Build a strict final-report payload for route-clean board validation."""
     candidate = normalize_candidate_payload(candidate_payload)
@@ -73,10 +104,26 @@ def build_final_hardware_validation_report(
     status_code = _parse_int(_frame_value(measurement_payload, "status_code")) if measurement_present else None
     e2e_cycles = _parse_int(_frame_value(measurement_payload, "cycles")) if measurement_present else None
     e2e_latency_ms = _parse_float(measurement_payload.get("latency_ms")) if measurement_present else None
-    serial_port = str(measurement_payload.get("serial_port") or "") if measurement_present else ""
+    transport_type, transport_id, serial_port = (
+        _transport_from(measurement_payload) if measurement_present else ("", "", "")
+    )
+    effective_transport_type = str(expected_transport_type or "")
+    effective_transport_id = str(expected_transport_id or "")
+    if not effective_transport_id and expected_serial_port:
+        effective_transport_type = effective_transport_type or "serial"
+        effective_transport_id = str(expected_serial_port)
     route_bitstream = route_payload.get("bitstream")
     measurement_bitstream = measurement_payload.get("bitstream") if measurement_present else ""
-    bitstream_matches = _paths_match(route_bitstream, measurement_bitstream)
+    route_bitstream_sha256 = _sha256(route_payload.get("bitstream_sha256"))
+    measurement_bitstream_sha256 = _sha256(
+        measurement_payload.get("bitstream_sha256") if measurement_present else ""
+    )
+    bitstream_binding_method = "path"
+    if route_bitstream_sha256 and measurement_bitstream_sha256:
+        bitstream_matches = route_bitstream_sha256 == measurement_bitstream_sha256
+        bitstream_binding_method = "sha256"
+    else:
+        bitstream_matches = _paths_match(route_bitstream, measurement_bitstream)
 
     blockers: list[str] = []
     if route_gate.get("gate_status") != "PASS":
@@ -85,8 +132,18 @@ def build_final_hardware_validation_report(
         blockers.append("measurement_json_missing")
     if measurement_present and status_code != 0:
         blockers.append(f"measurement_status_code_{status_code}")
-    if measurement_present and expected_serial_port and serial_port.upper() != expected_serial_port.upper():
-        blockers.append(f"measurement_serial_port_not_{expected_serial_port}")
+    if (
+        measurement_present
+        and effective_transport_type
+        and transport_type.lower() != effective_transport_type.lower()
+    ):
+        blockers.append(f"measurement_transport_type_not_{effective_transport_type}")
+    if (
+        measurement_present
+        and effective_transport_id
+        and transport_id.lower() != effective_transport_id.lower()
+    ):
+        blockers.append(f"measurement_transport_id_not_{effective_transport_id}")
     if measurement_present and not bitstream_matches:
         blockers.append("measurement_bitstream_does_not_match_route_bitstream")
     if measurement_present and e2e_latency_ms is None:
@@ -115,27 +172,37 @@ def build_final_hardware_validation_report(
         "bitstream": {
             "route_bitstream": route_bitstream or "",
             "measurement_bitstream": measurement_bitstream or "",
-            "bitstream_sha256": route_payload.get("bitstream_sha256") or "",
+            "bitstream_sha256": route_bitstream_sha256,
+            "measurement_bitstream_sha256": measurement_bitstream_sha256,
+            "binding_method": bitstream_binding_method,
             "bitstream_matches_measurement": bitstream_matches,
         },
         "real_board_e2e": {
             "latency_source": (
-                "COM5 measurement JSON from full-network bitstream"
+                f"{transport_type}:{transport_id} measurement JSON from full-network bitstream"
                 if claimable
                 else "not claimable"
             ),
             "measurement_json_path": measurement_json_path,
+            "transport_type": transport_type,
+            "transport_id": transport_id,
             "serial_port": serial_port,
             "status_code": status_code,
             "e2e_cycles": e2e_cycles,
             "e2e_latency_ms": e2e_latency_ms if claimable else None,
             "raw_latency_ms": e2e_latency_ms,
+            "latency_breakdown_ms": (
+                measurement_payload.get("latency_breakdown_ms")
+                if isinstance(measurement_payload.get("latency_breakdown_ms"), Mapping)
+                else {}
+            ),
             "clock_freq_hz": measurement_payload.get("clock_freq_hz") if measurement_present else None,
         },
         "guardrails": [
             "Do not report nas_lut_estimate.latency_ms as real board e2e latency.",
             "Real e2e latency requires route_gate.gate_status == PASS.",
-            "Real e2e latency requires COM5 measurement status_code == 0.",
+            "Real e2e latency requires the declared transport measurement status_code == 0.",
             "Measurement bitstream must match the route-clean bitstream.",
+            "Kernel, DMA, PS runtime, and system E2E latency must remain distinct when available.",
         ],
     }

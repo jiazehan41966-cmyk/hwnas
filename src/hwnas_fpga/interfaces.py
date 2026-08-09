@@ -8,7 +8,13 @@ class HardwareSpec:
     clock_mhz: int
     max_lut: Optional[int] = None
     max_ff: Optional[int] = None
+    # ``max_bram`` is retained as the historical BRAM36-block budget used by
+    # the NAS cost model.  The explicit fields prevent HLS BRAM18 reports from
+    # being compared to that budget without conversion.
     max_bram: Optional[int] = None
+    max_bram18: Optional[int] = None
+    max_bram36: Optional[int] = None
+    max_uram: Optional[int] = None
     max_dsp: Optional[int] = None
     max_power_w: Optional[float] = None
     memory_bandwidth_gbps: Optional[float] = None

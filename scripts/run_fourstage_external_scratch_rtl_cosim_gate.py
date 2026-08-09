@@ -34,6 +34,10 @@ from run_fourstage_csim_gate import (  # noqa: E402
     read_json,
     write_json,
 )
+from run_fourstage_external_scratch_hls_gate import (  # noqa: E402
+    ZCU104_TARGET_PART,
+    probe_vitis_hls_version,
+)
 
 
 ARTIFACT_ROOT = ROOT / "artifacts" / "sonar_fourstage_operator_v2"
@@ -55,6 +59,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--run-cosim", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--timeout-minutes", type=int, default=90)
+    parser.add_argument(
+        "--validation-tier",
+        choices=("network_representative", "network_full"),
+        default="network_representative",
+    )
+    parser.add_argument("--expected-toolchain-version", default="2022.2")
     return parser.parse_args()
 
 
@@ -266,6 +276,8 @@ def main() -> int:
     summary_path = Path(args.summary).expanduser().resolve()
     vitis_hls = Path(args.vitis_hls).expanduser().resolve()
     hls_summary = read_json(hls_summary_path)
+    if hls_summary.get("target_part") != ZCU104_TARGET_PART:
+        raise RuntimeError("RTL co-sim source HLS summary is not bound to the ZCU104 part")
     roles = {str(role) for role in args.role}
     if hls_summary.get("status") not in {"PASS", "PARTIAL_PASS_NOT_FORMAL"}:
         raise RuntimeError("external-scratch HLS gate must PASS before RTL co-sim")
@@ -281,6 +293,17 @@ def main() -> int:
         candidates = candidates[: int(args.candidate_limit)]
     if not candidates:
         raise RuntimeError("no candidates selected for external-scratch RTL co-sim")
+    if args.validation_tier == "network_representative":
+        if len(candidates) != 1 or not roles:
+            raise RuntimeError(
+                "network_representative requires exactly one explicitly selected --role"
+            )
+        if int(hls_summary.get("sample_limit") or 0) != 1:
+            raise RuntimeError(
+                "network_representative requires an HLS summary generated with --sample-limit 1"
+            )
+    if args.validation_tier == "network_full" and hls_summary.get("sample_limit") is not None:
+        raise RuntimeError("network_full does not accept a sample-limited HLS summary")
     if args.run_cosim and not vitis_hls.is_file():
         payload = {
             "schema_version": 1,
@@ -297,6 +320,24 @@ def main() -> int:
         write_json(summary_path, payload)
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 2
+    toolchain_probe = None
+    if args.run_cosim:
+        toolchain_probe = probe_vitis_hls_version(vitis_hls)
+        if toolchain_probe["version"] != str(args.expected_toolchain_version):
+            payload = {
+                "schema_version": 1,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "status": "BLOCKED_TOOLCHAIN_VERSION_MISMATCH",
+                "gate": "full_network_external_scratch_rtl_cosim",
+                "validation_tier": args.validation_tier,
+                "expected_toolchain_version": str(args.expected_toolchain_version),
+                "vitis_hls": toolchain_probe,
+                "candidates": [],
+            }
+            payload["payload_sha256"] = canonical_sha256(payload)
+            write_json(summary_path, payload)
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return 2
 
     rows = [
         run_one_candidate(
@@ -311,6 +352,7 @@ def main() -> int:
         args.candidate_limit is None
         and not roles
         and hls_summary.get("formal_scope")
+        and args.validation_tier == "network_full"
         and len(rows) == formal_candidate_count
     )
     rows_pass = rows and all(row["status"] == "PASS" for row in rows)
@@ -330,8 +372,15 @@ def main() -> int:
         "status": status,
         "gate": "full_network_external_scratch_rtl_cosim",
         "implementation_style": "external_scratch_pixel_tiled_v1",
+        "validation_tier": args.validation_tier,
+        "target_part": hls_summary.get("target_part"),
         "hls_summary": evidence(hls_summary_path),
-        "vitis_hls": {"path": str(vitis_hls), "exists": vitis_hls.is_file()},
+        "vitis_hls": (
+            toolchain_probe
+            if toolchain_probe is not None
+            else {"path": str(vitis_hls), "exists": vitis_hls.is_file(), "version": None}
+        ),
+        "expected_toolchain_version": str(args.expected_toolchain_version),
         "git": {
             "head": git_output("rev-parse", "HEAD"),
             "branch": git_output("branch", "--show-current"),
@@ -352,13 +401,13 @@ def main() -> int:
                 else "NOT_RUN_RTL_COSIM_NOT_PASSED"
             ),
             "bitstream": "NOT_GENERATED",
-            "com5_board_latency": "NOT_RUN",
+            "board_full_sample_zero_mismatch": "NOT_RUN",
             "external_meter_power": "NOT_MEASURED",
         },
         "claim_boundary": (
-            "Complete-network RTL co-simulation is separate from AV7K325 "
-            "place-and-route, bitstream generation, COM5 board execution, "
-            "and external-meter power."
+            "This RTL co-simulation tier is separate from operator-complete co-sim, "
+            "ZCU104 place-and-route, bitstream generation, board full-sample zero "
+            "mismatch, and external-meter power."
         ),
     }
     payload["payload_sha256"] = canonical_sha256(payload)

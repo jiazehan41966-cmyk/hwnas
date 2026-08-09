@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "contract": "fourstage_per_tensor_symmetric_int8_activation_v1",
+  "status": "PASS",
+  "role": "low_cost_skip_representative",
+  "arch_id": "fourstage_s2_k5_e3_s4_skip",
+  "architecture": {
+    "input_channels": 1,
+    "stem_channels": 32,
+    "stem_stride": 2,
+    "post_stem_downsample_stride": 1,
+    "head_conv_channels": null,
+    "head_channels": null,
+    "num_classes": 8,
+    "stages": [
+      {
+        "channels": 16,
+        "depth": 1,
+        "stride": 1,
+        "blocks": [
+          {
+            "op": "conv",
+            "kernel_size": 1,
+            "expand_ratio": 1,
+            "stride": 1
+          }
+        ]
+      },
+      {
+        "channels": 24,
+        "depth": 1,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "mbconv",
+            "kernel_size": 5,
+            "expand_ratio": 3,
+            "stride": 2
+          }
+        ]
+      },
+      {
+        "channels": 32,
+        "depth": 1,
+        "stride": 2,
+        "blocks": [
+          {
+            "op": "mbconv",
+            "kernel_size": 3,
+            "expand_ratio": 3,
+            "stride": 2
+          }
+        ]
+      },
+      {
+        "channels": 32,
+        "depth": 1,
+        "stride": 1,
+        "blocks": [
+          {
+            "op": "skip",
+            "kernel_size": 1,
+            "expand_ratio": 1,
+            "stride": 1
+          }
+        ]
+      }
+    ]
+  },
+  "source_checkpoint": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\base8_formal\\fourstage_s2_k5_e3_s4_skip\\best_fold0_seed42.pt",
+    "sha256": "aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8",
+    "size_bytes": 60285
+  },
+  "activation_calibration": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2\\full_network_deployment_closure\\low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip\\fold0_seed42\\int8_reference\\activation_calibration.json",
+    "sha256": "4443ece4c96ce078f0af5766cc8ff7a857bfca9259cf45d16c05f15d5b819026",
+    "size_bytes": 3264
+  },
+  "reference_data": {
+    "source": "same training-only calibration subset prefix",
+    "outer_validation_accessed": false,
+    "inner_validation_accessed": false,
+    "indices": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      11,
+      12,
+      13
+    ]
+  },
+  "reference_records": [
+    {
+      "offset": 0,
+      "dataset_index": 0,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.775754451751709,
+      "logits_int8": [
+        69,
+        40,
+        -86,
+        -14,
+        -49,
+        48,
+        -20,
+        -94
+      ],
+      "logits_dequant": [
+        5.903850078582764,
+        3.4225215911865234,
+        -7.358421325683594,
+        -1.1978825330734253,
+        -4.192588806152344,
+        4.107026100158691,
+        -1.7112607955932617,
+        -8.042925834655762
+      ],
+      "fp32_logits": [
+        5.761904716491699,
+        3.6077587604522705,
+        -7.468775272369385,
+        -0.8956799507141113,
+        -3.5082144737243652,
+        3.3312716484069824,
+        -1.8544459342956543,
+        -7.6686930656433105
+      ]
+    },
+    {
+      "offset": 1,
+      "dataset_index": 1,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.7483739852905273,
+      "logits_int8": [
+        55,
+        15,
+        -58,
+        17,
+        -31,
+        23,
+        -15,
+        -94
+      ],
+      "logits_dequant": [
+        4.705967426300049,
+        1.2834455966949463,
+        -4.962656497955322,
+        1.4545717239379883,
+        -2.652454376220703,
+        1.9679499864578247,
+        -1.2834455966949463,
+        -8.042925834655762
+      ],
+      "fp32_logits": [
+        4.677432060241699,
+        1.6167041063308716,
+        -5.400390625,
+        1.3697377443313599,
+        -1.9487495422363281,
+        1.2547709941864014,
+        -1.5308030843734741,
+        -7.294551849365234
+      ]
+    },
+    {
+      "offset": 2,
+      "dataset_index": 2,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.931093692779541,
+      "logits_int8": [
+        68,
+        -19,
+        -91,
+        2,
+        -15,
+        48,
+        4,
+        -90
+      ],
+      "logits_dequant": [
+        5.818286895751953,
+        -1.6256977319717407,
+        -7.786236763000488,
+        0.1711260825395584,
+        -1.2834455966949463,
+        4.107026100158691,
+        0.3422521650791168,
+        -7.700673580169678
+      ],
+      "fp32_logits": [
+        6.674100399017334,
+        -1.782020092010498,
+        -8.08653736114502,
+        -0.37811535596847534,
+        -0.3523518741130829,
+        3.787558078765869,
+        -0.25116366147994995,
+        -7.017674922943115
+      ]
+    },
+    {
+      "offset": 3,
+      "dataset_index": 3,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.8018313050270081,
+      "logits_int8": [
+        62,
+        -19,
+        -31,
+        17,
+        -18,
+        -9,
+        -9,
+        -53
+      ],
+      "logits_dequant": [
+        5.304908752441406,
+        -1.6256977319717407,
+        -2.652454376220703,
+        1.4545717239379883,
+        -1.5401347875595093,
+        -0.7700673937797546,
+        -0.7700673937797546,
+        -4.534841060638428
+      ],
+      "fp32_logits": [
+        5.094941139221191,
+        -1.198119878768921,
+        -3.001702308654785,
+        1.6718006134033203,
+        -0.78006911277771,
+        -1.0224497318267822,
+        -1.5718986988067627,
+        -4.069769859313965
+      ]
+    },
+    {
+      "offset": 4,
+      "dataset_index": 5,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 1.267045021057129,
+      "logits_int8": [
+        86,
+        21,
+        -98,
+        4,
+        -40,
+        74,
+        -53,
+        -114
+      ],
+      "logits_dequant": [
+        7.358421325683594,
+        1.7968238592147827,
+        -8.385177612304688,
+        0.3422521650791168,
+        -3.4225215911865234,
+        6.3316650390625,
+        -4.534841060638428,
+        -9.754186630249023
+      ],
+      "fp32_logits": [
+        6.9728803634643555,
+        2.697050094604492,
+        -8.500017166137695,
+        -0.3791481852531433,
+        -2.79190993309021,
+        5.13217830657959,
+        -4.046048641204834,
+        -8.487141609191895
+      ]
+    },
+    {
+      "offset": 5,
+      "dataset_index": 11,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.7290284633636475,
+      "logits_int8": [
+        75,
+        21,
+        -87,
+        -32,
+        -42,
+        42,
+        0,
+        -68
+      ],
+      "logits_dequant": [
+        6.4172282218933105,
+        1.7968238592147827,
+        -7.443984508514404,
+        -2.7380173206329346,
+        -3.5936477184295654,
+        3.5936477184295654,
+        0.0,
+        -5.818286895751953
+      ],
+      "fp32_logits": [
+        6.4385175704956055,
+        1.9251623153686523,
+        -7.326042652130127,
+        -2.7775888442993164,
+        -2.9300732612609863,
+        2.864619255065918,
+        -0.08425123989582062,
+        -5.485843658447266
+      ]
+    },
+    {
+      "offset": 6,
+      "dataset_index": 12,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.8538470268249512,
+      "logits_int8": [
+        78,
+        41,
+        -101,
+        -1,
+        -39,
+        48,
+        -9,
+        -127
+      ],
+      "logits_dequant": [
+        6.673917293548584,
+        3.508084774017334,
+        -8.641867637634277,
+        -0.0855630412697792,
+        -3.336958646774292,
+        4.107026100158691,
+        -0.7700673937797546,
+        -10.866506576538086
+      ],
+      "fp32_logits": [
+        7.177875518798828,
+        3.693942070007324,
+        -9.093611717224121,
+        -0.5215291380882263,
+        -2.483111619949341,
+        3.3993124961853027,
+        -1.0022339820861816,
+        -10.86650562286377
+      ]
+    },
+    {
+      "offset": 7,
+      "dataset_index": 13,
+      "label": 0,
+      "fp32_argmax": 0,
+      "int8_argmax": 0,
+      "argmax_match": true,
+      "max_abs_logit_error": 0.8504242897033691,
+      "logits_int8": [
+        93,
+        15,
+        -98,
+        -8,
+        -46,
+        77,
+        -63,
+        -89
+      ],
+      "logits_dequant": [
+        7.957362651824951,
+        1.2834455966949463,
+        -8.385177612304688,
+        -0.6845043301582336,
+        -3.9358999729156494,
+        6.588354110717773,
+        -5.390471458435059,
+        -7.615110874176025
+      ],
+      "fp32_logits": [
+        7.823659896850586,
+        1.6656070947647095,
+        -8.43081283569336,
+        -0.8686208724975586,
+        -3.196547508239746,
+        5.841580390930176,
+        -5.456993579864502,
+        -6.764686584472656
+      ]
+    }
+  ],
+  "summary": {
+    "sample_count": 8,
+    "argmax_match_count": 8,
+    "argmax_match_rate": 1.0,
+    "max_abs_logit_error_max": 1.267045021057129,
+    "max_abs_logit_error_mean": 0.8696747794747353
+  },
+  "downstream_gates": {
+    "hls_c_sim": "PENDING",
+    "pytorch_int8_vs_csim_zero_mismatch": "PENDING",
+    "rtl_cosim": "PENDING",
+    "full_network_hls": "PENDING",
+    "place_and_route_5ns": "PENDING",
+    "bitstream": "NOT_GENERATED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "Python INT8 reference generated from real checkpoint and training-only activation calibration. This is not HLS/C-sim zero-mismatch, route, COM5, or measured power evidence.",
+  "payload_sha256": "cec11e5b229eb174719f25aca7d6a743019610d70596a17661bf9c5760701441"
+}

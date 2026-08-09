@@ -1,9 +1,8 @@
 `timescale 1ns / 1ps
 
 module harness_top (
-    input  wire sys_clk_p,
-    input  wire sys_clk_n,
-    input  wire sys_rst_n,
+{{CLOCK_PORT_DECLARATIONS}}
+{{RESET_PORT_DECLARATION}}
     input  wire uart_rx,
     output wire uart_tx,
     output wire [{{STATUS_LED_WIDTH}}-1:0] status_led
@@ -39,7 +38,7 @@ localparam integer BIASES_HAS_PORT_B = {{BIASES_HAS_PORT_B}};
 wire rst_n;
 reset_sync u_reset_sync (
     .clk(clk_main),
-    .rst_n_async(sys_rst_n & clock_ready),
+    .rst_n_async({{RESET_INPUT_SIGNAL}} & clock_ready),
     .rst_n_sync(rst_n)
 );
 

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "status": "IMPLEMENTATION_IN_PROGRESS",
+  "candidate_binding": {
+    "status": "PASS",
+    "candidate_count": 4,
+    "source": "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+    "operator_decision": "GENERAL_OP_SELECTED",
+    "selected_general_operator": "MBConv-k5",
+    "excluded_from_formal_search": [
+      "dir_mbconv3_split11_e3_v1",
+      "legacy_edge",
+      "legacy_denoise"
+    ]
+  },
+  "execution_lanes": {
+    "provenance_and_inputs": "PASS",
+    "remote_hls_route_toolchain_2022_2": "READY_NOT_EXECUTED",
+    "physical_zcu104": "BLOCKED_PL_POWER_OFF",
+    "external_power_meter": "NOT_DETECTED"
+  },
+  "gates": {
+    "baseline_freeze": {
+      "status": "PASS",
+      "evidence": "artifacts/zcu104_full_campaign_v1/status.json"
+    },
+    "portable_hls_inputs": {
+      "status": "PASS",
+      "evidence": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json"
+    },
+    "zcu104_hls_source_preflight": {
+      "status": "PASS_SOURCE_GENERATION_ONLY",
+      "evidence": "artifacts/zcu104_full_campaign_v1/hls_source_preflight.json"
+    },
+    "external_scratch_axi_dma_four_candidate_hls_2022_2_zcu104": {
+      "status": "PENDING",
+      "target_part": "xczu7ev-ffvc1156-2-e",
+      "toolchain": "2022.2",
+      "required_candidates": 4
+    },
+    "operator_complete_rtl_cosim": {
+      "status": "PENDING"
+    },
+    "network_representative_rtl_cosim": {
+      "status": "PENDING",
+      "required_samples": 1
+    },
+    "zcu104_full_route": {
+      "status": "PENDING"
+    },
+    "xsa_hwh_bitstream_binding": {
+      "status": "PENDING"
+    },
+    "board_full_sample_zero_mismatch": {
+      "status": "PENDING"
+    },
+    "external_board_input_power": {
+      "status": "NOT_MEASURED"
+    },
+    "zcu104_power_proxy_holdout": {
+      "status": "FROZEN",
+      "minimum_calibration_candidates": 3,
+      "minimum_independent_holdouts": 1
+    },
+    "new_search": {
+      "status": "FROZEN_UNTIL_G2_G4_POWER"
+    }
+  },
+  "legacy_gate_policy": {
+    "ledger": "artifacts/measurement_first_rebuild/status.json",
+    "preserved": true,
+    "overwrite_allowed": false
+  },
+  "claim_boundary": "Operator selection PASS and ZCU104 deployment PASS are separate states. No HLS, route, bitstream, board, latency, or measured-power gate is promoted by this ledger."
+}

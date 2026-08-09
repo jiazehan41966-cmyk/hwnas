@@ -3,7 +3,13 @@
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-09T02:31:01.986310+00:00",
   "baseline_status": "PASS",
-  "campaign_execution_status": "BLOCKED_ZCU104_PL_POWER_OFF",
+  "campaign_execution_status": "IMPLEMENTATION_IN_PROGRESS",
+  "execution_lanes": {
+    "provenance_and_inputs": "PASS",
+    "remote_hls_route_toolchain_2022_2": "READY_NOT_EXECUTED",
+    "physical_zcu104": "BLOCKED_PL_POWER_OFF",
+    "external_power_meter": "NOT_DETECTED"
+  },
   "acceptance_gates": {
     "isolated_worktree": {
       "status": "PASS",
@@ -120,10 +126,37 @@
         ],
         "warning": "xczu7_0 PL Power Status OFF, cannot connect PL TAP; check POR_B signal"
       }
+    },
+    "portable_hls_inputs": {
+      "status": "PASS",
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json",
+      "candidate_count": 4
+    },
+    "zcu104_hls_source_preflight": {
+      "status": "PASS_SOURCE_GENERATION_ONLY",
+      "path": "artifacts/zcu104_full_campaign_v1/hls_source_preflight.json",
+      "target_part": "xczu7ev-ffvc1156-2-e",
+      "candidate_count": 4
+    },
+    "external_scratch_hls_2022_2": {
+      "status": "PENDING"
+    },
+    "rtl_cosim": {
+      "operator_complete": "PENDING",
+      "network_representative": "PENDING"
+    },
+    "zcu104_route_bitstream_board": {
+      "route": "PENDING",
+      "bitstream": "PENDING",
+      "board_full_sample_zero_mismatch": "PENDING"
+    },
+    "external_board_input_power": {
+      "status": "NOT_MEASURED"
     }
   },
   "next_required_action": [
+    "Transfer the corrected branch and portable HLS input bundle to the short Linux campaign path, then run all four external-scratch candidates with Vitis HLS 2022.2 on xczu7ev-ffvc1156-2-e.",
     "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe."
   ],
-  "claim_boundary": "Baseline PASS means provenance and the remote execution topology are frozen. Training readiness, PL programming, HLS/route, board classification/latency, and measured power remain separate gates."
+  "claim_boundary": "Baseline and portable-input PASS prove traceability and source generation only. HLS 2022.2, RTL co-sim, route, bitstream, board full-sample zero mismatch, latency, and measured power remain separate pending gates."
 }

@@ -509,6 +509,13 @@ def build_config(
     checkpoints = {row["arch_id"]: row for row in inputs["checkpoints"]}
     for candidate in inputs["candidates"]:
         checkpoint = checkpoints[candidate["arch_id"]]
+        hls_manifest_path = (
+            ARTIFACT_ROOT
+            / "inputs"
+            / "hls_reference"
+            / str(candidate["role"])
+            / "manifest.json"
+        )
         candidates.append(
             {
                 "role": candidate["role"],
@@ -524,6 +531,14 @@ def build_config(
                     "fold": FOLD,
                     "seed": SEED,
                 },
+                "portable_hls_input": (
+                    file_record(hls_manifest_path, relative_to=REPO_ROOT)
+                    if hls_manifest_path.is_file()
+                    else {
+                        "path": hls_manifest_path.relative_to(REPO_ROOT).as_posix(),
+                        "status": "PENDING",
+                    }
+                ),
             }
         )
     return {
@@ -588,11 +603,35 @@ def build_config(
         "candidates": candidates,
         "hardware": {
             "board": "ZCU104",
+            "board_profile": "zcu104_xczu7ev",
+            "board_config": "hls_lut_builder/board_harness/configs/board_zcu104.yaml",
             "vendor": "AMD/Xilinx",
             "target_part": TARGET_PART,
             "expected_board_part": EXPECTED_BOARD_PART,
             "clock_period_ns": 5.0,
             "route_wns_min_ns": 0.0,
+            "resource_accounting": {
+                "lut": 230_400,
+                "ff": 460_800,
+                "dsp": 1_728,
+                "bram18": 624,
+                "bram36": 312,
+                "uram": 96,
+                "hls_gate_bram_unit": "BRAM18",
+                "uram_separate": True,
+            },
+            "transport": {
+                "type": "axi_dma",
+                "id": "axi_dma_0",
+                "memory": "ps_ddr4",
+                "cache_coherency": "explicit_flush_invalidate_required",
+            },
+            "platform_exports": {
+                "xsa": "required",
+                "hwh": "required",
+                "bitstream": "required",
+                "sha256_binding": "required",
+            },
             "metrics": [
                 "macro_f1",
                 "top1",
@@ -605,7 +644,42 @@ def build_config(
             ],
             "power_policy": "external_meter_only_for_measured_power_claim",
             "toolchain_source": "remote_execution_plane",
+            "authoritative_toolchain_version": "2022.2",
+            "cross_version_attribution_comparison": "forbidden",
         },
+        "implementation": {
+            "predecessor_probe": "external_scratch_pixel_tiled_v1",
+            "deployable_baseline": "external_scratch_axi_dma_stream_v2",
+            "hls_work_root_policy": "explicit_short_linux_path",
+            "portable_hls_inputs": (
+                f"artifacts/{CAMPAIGN_ID}/inputs/hls_reference/summary.json"
+            ),
+            "io_interface": "axi_dma",
+            "platform_generator": "scripts/generate_zcu104_platform.py",
+            "optimization_after_feasibility": [
+                "ping_pong_buffer",
+                "line_buffer",
+                "compute_unit_reuse",
+                "dma_burst",
+            ],
+        },
+        "validation_tiers": {
+            "operator_complete_rtl_cosim": "required",
+            "network_representative_rtl_cosim": {"required": True, "samples": 1},
+            "board_full_sample_zero_mismatch": "required",
+        },
+        "legacy_gate_policy": {
+            "ledger": "artifacts/measurement_first_rebuild/status.json",
+            "preserve_without_overwrite": True,
+            "old_g4_candidate": "rl_arch_193",
+        },
+        "campaign_ledger": f"artifacts/{CAMPAIGN_ID}/campaign_ledger.json",
+        "deployment_binding": (
+            f"artifacts/{CAMPAIGN_ID}/deployment/deployment_binding.json"
+        ),
+        "power_manifest_template": (
+            f"artifacts/{CAMPAIGN_ID}/power/zcu104_power_manifest.template.json"
+        ),
         "environment_card": f"artifacts/{CAMPAIGN_ID}/environment_card.json",
         "status_record": f"artifacts/{CAMPAIGN_ID}/status.json",
         "claim_boundary": (
@@ -787,8 +861,21 @@ def main() -> int:
         "generated_at": utc_now(),
         "baseline_status": "PASS" if baseline_pass else "PENDING_SOURCE_FREEZE",
         "campaign_execution_status": (
-            execution_status if baseline_pass else "NOT_READY_BASELINE_FREEZE_INCOMPLETE"
+            "IMPLEMENTATION_IN_PROGRESS"
+            if baseline_pass
+            else "NOT_READY_BASELINE_FREEZE_INCOMPLETE"
         ),
+        "execution_lanes": {
+            "provenance_and_inputs": "PASS" if baseline_pass else "PENDING",
+            "remote_hls_route_toolchain_2022_2": (
+                "READY_NOT_EXECUTED"
+                if environment_gate.get("vivado") == "2022.2"
+                and environment_gate.get("vitis_hls") == "2022.2"
+                else "PENDING"
+            ),
+            "physical_zcu104": physical_gate.get("status", "PENDING"),
+            "external_power_meter": "NOT_DETECTED",
+        },
         "acceptance_gates": {
             "isolated_worktree": {
                 "status": "PASS",
@@ -824,12 +911,53 @@ def main() -> int:
             "environment_versions": environment_gate,
             "zcu104_target_part": target_gate,
             "physical_zcu104_connection": physical_gate,
+            "portable_hls_inputs": {
+                "status": (
+                    "PASS"
+                    if (ARTIFACT_ROOT / "inputs" / "hls_reference" / "summary.json").is_file()
+                    else "PENDING"
+                ),
+                "path": f"artifacts/{CAMPAIGN_ID}/inputs/hls_reference/summary.json",
+                "candidate_count": 4,
+            },
+            "zcu104_hls_source_preflight": {
+                "status": (
+                    "PASS_SOURCE_GENERATION_ONLY"
+                    if (ARTIFACT_ROOT / "hls_source_preflight.json").is_file()
+                    else "PENDING"
+                ),
+                "path": f"artifacts/{CAMPAIGN_ID}/hls_source_preflight.json",
+                "target_part": TARGET_PART,
+                "candidate_count": 4,
+            },
+            "external_scratch_hls_2022_2": {"status": "PENDING"},
+            "rtl_cosim": {
+                "operator_complete": "PENDING",
+                "network_representative": "PENDING",
+            },
+            "zcu104_route_bitstream_board": {
+                "route": "PENDING",
+                "bitstream": "PENDING",
+                "board_full_sample_zero_mismatch": "PENDING",
+            },
+            "external_board_input_power": {"status": "NOT_MEASURED"},
         },
-        "next_required_action": next_required_action,
+        "next_required_action": [
+            (
+                "Transfer the corrected branch and portable HLS input bundle to the short "
+                "Linux campaign path, then run all four external-scratch candidates with "
+                "Vitis HLS 2022.2 on xczu7ev-ffvc1156-2-e."
+            ),
+            *(
+                next_required_action
+                if isinstance(next_required_action, list)
+                else ([next_required_action] if next_required_action else [])
+            ),
+        ],
         "claim_boundary": (
-            "Baseline PASS means provenance and the remote execution topology are frozen. "
-            "Training readiness, PL programming, HLS/route, board classification/latency, "
-            "and measured power remain separate gates."
+            "Baseline and portable-input PASS prove traceability and source generation only. "
+            "HLS 2022.2, RTL co-sim, route, bitstream, board full-sample zero mismatch, "
+            "latency, and measured power remain separate pending gates."
         ),
     }
     write_json(ARTIFACT_ROOT / "status.json", status)

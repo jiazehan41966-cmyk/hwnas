@@ -1,0 +1,75 @@
+schema_version: 1
+board_name: ZCU104
+board_part: xilinx.com:zcu104:part0:1.1
+target_part: xczu7ev-ffvc1156-2-e
+platform_status: PLATFORM_CONTRACT_PENDING_BUILD
+
+toolchain:
+  authoritative_version: "2022.2"
+  comparison_policy: do_not_attribute_compare_against_2023_2_outputs
+
+resources:
+  accounting:
+    bram_unit_for_hls_gate: BRAM18
+    bram18_per_bram36: 2
+    uram_separate: true
+  lut: 230400
+  ff: 460800
+  dsp: 1728
+  bram18: 624
+  bram36: 312
+  uram: 96
+
+clock:
+  source: ps_fclk
+  port_name: pl_clk0
+  period_ns: 5.0
+  freq_hz: 200000000
+  generator: zynq_ultra_ps_e_FCLK_CLK0
+
+reset:
+  source: processor_system_reset
+  port_name: pl_resetn0
+  active_low: true
+
+transport:
+  type: axi_dma
+  id: axi_dma_0
+  control: axi_lite
+  data_path: ps_ddr_to_pl
+  interrupt: pl_ps_irq0
+
+memory:
+  source: ps_ddr4
+  capacity_mb: 4096
+  scratch_policy: external_scratch_ping_pong
+  cache_coherency: explicit_flush_invalidate_required
+  dma_burst: required
+
+platform_exports:
+  xsa: required
+  hwh: required
+  bitstream: required
+  bind_sha256: true
+
+power:
+  claimable_source: external_board_input_meter
+  pmbus_role: auxiliary_only
+
+# The legacy single-operator RTL harness still exposes UART/status ports.  They
+# are not the formal ZCU104 transport and intentionally have no package pins.
+uart:
+  enabled: false
+  rx_port_name: uart_rx
+  tx_port_name: uart_tx
+  baud: 115200
+
+status_led:
+  width: 2
+  package_pins: []
+
+allow_unconstrained_io: true
+claim_boundary: >-
+  This file freezes the ZCU104 platform contract only. It is not an XSA, HWH,
+  routed design, bitstream, board-classification result, latency result, or
+  measured-power result.

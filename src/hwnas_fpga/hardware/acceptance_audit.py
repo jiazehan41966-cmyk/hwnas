@@ -42,7 +42,10 @@ class GapAcceptanceAuditInputs:
     final_candidate_manifest_path: str = ""
     final_validation_report_path: str = ""
     measurement_json_path: str = ""
-    expected_serial_port: str = "COM5"
+    expected_transport_type: str = "serial"
+    expected_transport_id: str = "COM5"
+    # Backward-compatible alias for callers that have not migrated yet.
+    expected_serial_port: str = ""
 
 
 def timestamp() -> str:
@@ -689,29 +692,60 @@ def _measurement_cycles_from(payload: Mapping[str, Any]) -> Optional[int]:
     return int(float(value))
 
 
-def _audit_com5(inputs: GapAcceptanceAuditInputs, validation: Mapping[str, Any], measurement: Mapping[str, Any]) -> dict[str, Any]:
-    requirement = "COM5 measurement JSON exists and has status_code=0 with e2e cycles/latency."
+def _transport_from(
+    payload: Mapping[str, Any],
+    fallback: Mapping[str, Any],
+) -> tuple[str, str, str]:
+    nested = payload.get("transport") if isinstance(payload.get("transport"), Mapping) else {}
+    serial_port = str(payload.get("serial_port") or fallback.get("serial_port") or "")
+    transport_type = str(
+        payload.get("transport_type")
+        or nested.get("type")
+        or fallback.get("transport_type")
+        or ("serial" if serial_port else "")
+    )
+    transport_id = str(
+        payload.get("transport_id")
+        or nested.get("id")
+        or fallback.get("transport_id")
+        or serial_port
+    )
+    return transport_type, transport_id, serial_port
+
+
+def _audit_board_transport(inputs: GapAcceptanceAuditInputs, validation: Mapping[str, Any], measurement: Mapping[str, Any]) -> dict[str, Any]:
+    requirement = "Declared board-transport measurement exists and has status_code=0 with e2e cycles/latency."
     measurement_from_report = validation.get("real_board_e2e") if isinstance(validation.get("real_board_e2e"), Mapping) else {}
-    serial_port = str(measurement.get("serial_port") or measurement_from_report.get("serial_port") or "")
+    transport_type, transport_id, serial_port = _transport_from(
+        measurement,
+        measurement_from_report,
+    )
+    expected_type = str(inputs.expected_transport_type or "")
+    expected_id = str(inputs.expected_serial_port or inputs.expected_transport_id or "")
+    if inputs.expected_serial_port:
+        expected_type = "serial"
     status_code = _measurement_status_from(measurement) if measurement else measurement_from_report.get("status_code")
     cycles = _measurement_cycles_from(measurement) if measurement else measurement_from_report.get("e2e_cycles")
     latency = measurement.get("latency_ms") if measurement else measurement_from_report.get("e2e_latency_ms")
     passed = (
         bool(measurement or measurement_from_report)
-        and str(serial_port).upper() == inputs.expected_serial_port.upper()
+        and (not expected_type or transport_type.lower() == expected_type.lower())
+        and (not expected_id or transport_id.lower() == expected_id.lower())
         and status_code == 0
         and cycles is not None
         and latency is not None
     )
     return _criterion(
-        "com5_measurement_status_zero",
+        "board_transport_measurement_status_zero",
         PASS if passed else MISSING if not measurement and not measurement_from_report else FAIL,
         requirement,
         evidence=[
-            _artifact(inputs.measurement_json_path, role="COM5 measurement JSON"),
+            _artifact(inputs.measurement_json_path, role="board transport measurement JSON"),
             _artifact(inputs.final_validation_report_path, role="final validation report"),
         ],
         details={
+            "transport_type": transport_type,
+            "transport_id": transport_id,
             "serial_port": serial_port,
             "status_code": status_code,
             "e2e_cycles": cycles,
@@ -737,7 +771,7 @@ def _audit_latency_distinction(inputs: GapAcceptanceAuditInputs, validation: Map
     passed = (
         "NAS strict LUT" in latency_scope
         and "board e2e" in latency_scope
-        and "COM5" in real_source
+        and "measurement JSON from full-network bitstream" in real_source
         and nas.get("latency_ms") is not None
         and real.get("e2e_latency_ms") is not None
     )
@@ -812,7 +846,7 @@ def build_gap_acceptance_audit(inputs: GapAcceptanceAuditInputs) -> dict[str, An
         ),
         _audit_vivado_gate(effective_inputs, route_gate_summary),
         _audit_final_route_clean(effective_inputs, final_manifest),
-        _audit_com5(effective_inputs, final_validation, measurement),
+        _audit_board_transport(effective_inputs, final_validation, measurement),
         _audit_latency_distinction(effective_inputs, final_validation),
     ]
     counts = _status_counts(criteria)
@@ -829,13 +863,16 @@ def build_gap_acceptance_audit(inputs: GapAcceptanceAuditInputs) -> dict[str, An
         "generated_at": timestamp(),
         "status": "ready_for_completion" if not remaining_gaps else "in_progress",
         "status_counts": counts,
-        "expected_serial_port": effective_inputs.expected_serial_port,
+        "expected_transport": {
+            "type": effective_inputs.expected_transport_type,
+            "id": effective_inputs.expected_serial_port or effective_inputs.expected_transport_id,
+        },
         "inputs": {key: value for key, value in effective_inputs.__dict__.items()},
         "acceptance_criteria": criteria,
         "remaining_gaps": remaining_gaps,
         "guardrails": [
             "PASS means the supplied artifacts prove the criterion for the checked scope.",
             "WEAK means implementation/proof evidence exists but final pipeline evidence is incomplete.",
-            "This audit does not run search, Vivado, or COM measurement.",
+            "This audit does not run search, Vivado, or board transport measurement.",
         ],
     }

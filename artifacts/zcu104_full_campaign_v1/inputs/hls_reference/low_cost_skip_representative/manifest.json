@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-09T03:07:57.122089+00:00",
+  "role": "low_cost_skip_representative",
+  "arch_id": "fourstage_s2_k5_e3_s4_skip",
+  "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9",
+  "checkpoint": {
+    "path": "artifacts/zcu104_full_campaign_v1/inputs/checkpoints/low_cost_skip_representative__fourstage_s2_k5_e3_s4_skip__fold0_seed42.pt",
+    "sha256": "aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8",
+    "fold": 0,
+    "seed": 42
+  },
+  "activation_calibration": {
+    "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/low_cost_skip_representative/activation_calibration.json",
+    "sha256": "4443ece4c96ce078f0af5766cc8ff7a857bfca9259cf45d16c05f15d5b819026",
+    "size_bytes": 3264
+  },
+  "python_int8_reference": {
+    "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/low_cost_skip_representative/python_int8_reference.json",
+    "sha256": "ba23e0eb9373c9a1ba9fecc03a593bd117ddc92d5acdf400a286d7358f94ec05",
+    "size_bytes": 10400
+  },
+  "test_vectors": {
+    "inputs": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/low_cost_skip_representative/inputs.npy",
+      "sha256": "697c78204ce17d3f6b737c6d7356a2bdfcec21f5a32ccf058fa97a54752f4ae9",
+      "size_bytes": 401536,
+      "shape": [
+        8,
+        50176
+      ],
+      "dtype": "int8"
+    },
+    "expected": {
+      "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/low_cost_skip_representative/expected.npy",
+      "sha256": "433198b44291053ae278148ce51ea51110f8ded71483586c566b9b24ce8ff5b3",
+      "size_bytes": 192,
+      "shape": [
+        8,
+        8
+      ],
+      "dtype": "int8"
+    }
+  },
+  "reference_sample_count": 8,
+  "outer_validation_accessed": false,
+  "claim_boundary": "Portable test vectors reproduce the frozen INT8 C-sim inputs only. They are not HLS, RTL co-sim, route, board, or power evidence.",
+  "payload_sha256": "1e50398067ecc856eb64b08f377bf0dcb85b29da55b4f22c5a7905d1140a17ee"
+}

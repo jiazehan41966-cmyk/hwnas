@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write a strict final hardware validation report from route and COM5 evidence."""
+"""Write a strict final hardware validation report from route and board evidence."""
 
 from __future__ import annotations
 
@@ -39,9 +39,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--candidate-path", required=True, help="best_candidate.json or candidate snapshot")
     parser.add_argument("--e2e-summary", help="rl_best_e2e_summary.json with build and measurement paths")
     parser.add_argument("--route-build-result", help="Single build_result.json / route payload")
-    parser.add_argument("--measurement-json", help="COM5 measurement JSON")
+    parser.add_argument("--measurement-json", help="Board transport measurement JSON")
     parser.add_argument("--run-name", help="Run name to select from --e2e-summary")
-    parser.add_argument("--expected-serial-port", default="COM5")
+    parser.add_argument("--expected-transport-type", default="serial")
+    parser.add_argument("--expected-transport-id", default="COM5")
+    parser.add_argument("--expected-serial-port", default="", help=argparse.SUPPRESS)
     parser.add_argument("--output", required=True)
     return parser.parse_args()
 
@@ -88,7 +90,9 @@ def main() -> int:
         route_payload=route_payload,
         measurement_payload=measurement_payload,
         measurement_json_path=str(measurement_path) if measurement_payload else "",
-        expected_serial_port=args.expected_serial_port,
+        expected_serial_port=args.expected_serial_port or None,
+        expected_transport_type=args.expected_transport_type,
+        expected_transport_id=args.expected_transport_id,
     )
     report.update(
         {

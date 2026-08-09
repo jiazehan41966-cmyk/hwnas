@@ -228,7 +228,7 @@ class GapAcceptanceAuditTests(unittest.TestCase):
         self.assertEqual(criteria["pareto_physical_risk_ranking"]["status"], "WEAK")
         self.assertEqual(criteria["vivado_gate_structured_json"]["status"], "WEAK")
         self.assertEqual(criteria["final_candidate_full_route_clean"]["status"], "PASS")
-        self.assertEqual(criteria["com5_measurement_status_zero"]["status"], "PASS")
+        self.assertEqual(criteria["board_transport_measurement_status_zero"]["status"], "PASS")
         self.assertEqual(criteria["latency_scope_distinction"]["status"], "PASS")
         self.assertEqual(audit["status"], "in_progress")
 
@@ -577,7 +577,7 @@ class GapAcceptanceAuditTests(unittest.TestCase):
 
         criteria = {item["id"]: item for item in audit["acceptance_criteria"]}
         self.assertEqual(criteria["final_candidate_full_route_clean"]["status"], "PASS")
-        self.assertEqual(criteria["com5_measurement_status_zero"]["status"], "PASS")
+        self.assertEqual(criteria["board_transport_measurement_status_zero"]["status"], "PASS")
         self.assertEqual(criteria["latency_scope_distinction"]["status"], "PASS")
         self.assertEqual(audit["inputs"]["final_validation_report_path"], str(final_validation))
         self.assertEqual(audit["inputs"]["measurement_json_path"], str(measurement))

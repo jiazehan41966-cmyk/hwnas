@@ -75,6 +75,7 @@ def audit_power_manifest(
     manifest_path: str | Path,
 ) -> dict[str, Any]:
     source_path = Path(manifest_path).resolve()
+    schema_version = int(manifest.get("schema_version") or 1)
     idle_values = manifest.get("idle_csvs", [])
     active_values = manifest.get("active_captures", [])
     idle = [
@@ -101,6 +102,26 @@ def audit_power_manifest(
             }
         active.append(capture)
     bitstream_sha256 = str(manifest.get("bitstream_sha256", ""))
+    platform_binding = (
+        manifest.get("platform_binding")
+        if isinstance(manifest.get("platform_binding"), Mapping)
+        else {}
+    )
+    thermal = (
+        manifest.get("thermal")
+        if isinstance(manifest.get("thermal"), Mapping)
+        else {}
+    )
+    time_sync = (
+        manifest.get("time_sync")
+        if isinstance(manifest.get("time_sync"), Mapping)
+        else {}
+    )
+    instrument = (
+        manifest.get("instrument")
+        if isinstance(manifest.get("instrument"), Mapping)
+        else {}
+    )
     gates = {
         "rail_scope": manifest.get("rail_scope") == "board_input_total",
         "measurement_source": manifest.get("measurement_source")
@@ -161,6 +182,51 @@ def audit_power_manifest(
         is False
         for capture in active
     )
+    if schema_version >= 2:
+        hash_fields = {
+            "xsa_sha256": platform_binding.get("xsa_sha256"),
+            "hwh_sha256": platform_binding.get("hwh_sha256"),
+            "runtime_sha256": platform_binding.get("runtime_sha256"),
+            "toolchain_sha256": platform_binding.get("toolchain_sha256"),
+        }
+        gates.update(
+            {
+                "zcu104_board_model": str(platform_binding.get("board_model") or "").upper()
+                == "ZCU104",
+                "board_serial": bool(str(platform_binding.get("board_serial") or "").strip()),
+                "platform_artifact_hashes": all(
+                    bool(re.fullmatch(r"[0-9a-fA-F]{64}", str(value or "")))
+                    for value in hash_fields.values()
+                ),
+                "toolchain_2022_2": str(platform_binding.get("vivado_version") or "")
+                == "2022.2"
+                and str(platform_binding.get("vitis_hls_version") or "") == "2022.2",
+                "temperature_recorded": isinstance(thermal.get("ambient_c"), (int, float))
+                and isinstance(thermal.get("board_c"), (int, float)),
+                "fan_recorded": bool(str(thermal.get("fan_mode") or "").strip()),
+                "time_sync_verified": time_sync.get("verified") is True
+                and isinstance(time_sync.get("max_offset_ms"), (int, float))
+                and float(time_sync.get("max_offset_ms")) >= 0.0,
+                "calibration_certificate": bool(
+                    str(instrument.get("calibration_certificate_id") or "").strip()
+                )
+                and instrument.get("calibration_valid_at_measurement") is True,
+                "pmbus_auxiliary_only": str(manifest.get("pmbus_role") or "")
+                == "auxiliary_only",
+            }
+        )
+        gates["receipt_platform_binding_match"] = bool(active) and all(
+            capture.get("run_repeat_receipt")
+            and str(
+                capture["run_repeat_receipt"]["payload"].get("board_serial", "")
+            )
+            == str(platform_binding.get("board_serial") or "")
+            and str(
+                capture["run_repeat_receipt"]["payload"].get("runtime_sha256", "")
+            ).lower()
+            == str(platform_binding.get("runtime_sha256") or "").lower()
+            for capture in active
+        )
     idle_power = (
         statistics.fmean(capture["time_weighted_mean_w"] for capture in idle)
         if idle
@@ -189,7 +255,7 @@ def audit_power_manifest(
     )
     pass_status = all(gates.values())
     return {
-        "schema_version": 1,
+        "schema_version": schema_version,
         "candidate_id": manifest.get("candidate_id"),
         "measurement_protocol_fingerprint": manifest.get(
             "measurement_protocol_fingerprint"
@@ -201,6 +267,9 @@ def audit_power_manifest(
         "overall_pass": pass_status,
         "gates": gates,
         "instrument": manifest.get("instrument"),
+        "platform_binding": platform_binding,
+        "thermal": thermal,
+        "time_sync": time_sync,
         "rail_scope": manifest.get("rail_scope"),
         "bitstream_sha256": manifest.get("bitstream_sha256"),
         "idle_captures": idle,

@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "candidate_id": "TODO_ARCH_ID",
+  "architecture_sha256": "TODO_64_HEX",
+  "measurement_source": "external_power_meter_csv",
+  "rail_scope": "board_input_total",
+  "pmbus_role": "auxiliary_only",
+  "instrument": {
+    "model": "TODO",
+    "serial": "TODO",
+    "sample_rate_hz": 0,
+    "calibration": "TODO",
+    "calibration_certificate_id": "TODO",
+    "calibration_valid_at_measurement": false
+  },
+  "time_sync": {
+    "verified": false,
+    "method": "TODO",
+    "host_clock": "TODO",
+    "instrument_clock": "TODO",
+    "max_offset_ms": null
+  },
+  "thermal": {
+    "ambient_c": null,
+    "board_c": null,
+    "fan_mode": "TODO",
+    "fan_rpm": null
+  },
+  "platform_binding": {
+    "board_model": "ZCU104",
+    "board_serial": "TODO",
+    "xsa_sha256": "TODO_64_HEX",
+    "hwh_sha256": "TODO_64_HEX",
+    "runtime_sha256": "TODO_64_HEX",
+    "toolchain_sha256": "TODO_64_HEX",
+    "vivado_version": "2022.2",
+    "vitis_hls_version": "2022.2"
+  },
+  "bitstream_sha256": "TODO_64_HEX",
+  "contains_programming": false,
+  "contains_uart_upload": false,
+  "idle_csvs": [
+    "raw/idle_01.csv",
+    "raw/idle_02.csv",
+    "raw/idle_03.csv"
+  ],
+  "active_captures": [
+    {
+      "csv": "raw/active_01.csv",
+      "inference_count": 3000,
+      "run_repeat_receipt": "raw/run_repeat_01.json"
+    },
+    {
+      "csv": "raw/active_02.csv",
+      "inference_count": 3000,
+      "run_repeat_receipt": "raw/run_repeat_02.json"
+    },
+    {
+      "csv": "raw/active_03.csv",
+      "inference_count": 3000,
+      "run_repeat_receipt": "raw/run_repeat_03.json"
+    }
+  ],
+  "claim_boundary": "PMBus rail data is auxiliary. Only calibrated external board-input power may support measured-power claims."
+}
