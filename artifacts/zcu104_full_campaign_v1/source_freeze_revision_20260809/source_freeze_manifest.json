@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-09T03:57:36.322801+00:00",
+  "generated_at": "2026-08-09T04:12:28.288236+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
   "content_source": "git-head",
   "git": {
-    "head": "75882167c2571d81e1557a3d74a1cbda0010d665",
+    "head": "916211a95be5a9c08caff5560c26328edc83690e",
     "branch": "codex/zcu104-full-campaign-v1",
     "status_porcelain": []
   },
@@ -213,8 +213,8 @@
     },
     {
       "path": "configs/experiments/zcu104_full_campaign_v1.yaml",
-      "bytes": 6829,
-      "sha256": "c9e8b808fa9ef117d32b2bd7dc41a6f8f71227b715caecb2ebc4134601eb1128"
+      "bytes": 7811,
+      "sha256": "ab3e5d7b70294fbb7f0e3190039bb5df39d1f7c37e1cfb236913ca9e3f0f56f9"
     },
     {
       "path": "configs/hardware/alinx_av7k325.yaml",
@@ -1728,8 +1728,8 @@
     },
     {
       "path": "scripts/build_zcu104_full_campaign_baseline.py",
-      "bytes": 37513,
-      "sha256": "f3b9e05f2ce73606896353d25e39fa2f7c118f9be435c869065fd88c9ec0ff0b"
+      "bytes": 37906,
+      "sha256": "78ec2df3fada6146ca86ce28d55a68e436c1cc3bddf877aeb0459888ea4e44cb"
     },
     {
       "path": "scripts/build_zcu104_hls_input_bundle.py",
@@ -3098,8 +3098,8 @@
     },
     {
       "path": "tests/test_zcu104_support.py",
-      "bytes": 8633,
-      "sha256": "683c6858515b8e8481515a0e12a35d007c814b9553f1bdef097f4df706810a79"
+      "bytes": 9111,
+      "sha256": "2f4daf3282ee47c26fa7adc196444cbfdb311831fa57ff34c82021b77e204595"
     },
     {
       "path": "tight_setup_hold_pins.txt",
@@ -3114,7 +3114,7 @@
   ],
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
-    "bytes": 1689892,
-    "sha256": "aba3b6b549f727d7c64d1e1d99b9930cd587d5e6d1dba223252e399659d12588"
+    "bytes": 1690385,
+    "sha256": "bcf2892e4f4c11b86e8f6ae5ce550ff5224f14c5139f037b8c56a63014366be4"
   }
 }
