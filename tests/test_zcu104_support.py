@@ -62,6 +62,19 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertTrue(config["platform_exports"]["xsa"])
         self.assertEqual(config["power"]["pmbus_role"], "auxiliary_only")
 
+    def test_campaign_config_binds_the_revision_source_freeze(self) -> None:
+        config = yaml.safe_load(
+            (ROOT / "configs" / "experiments" / "zcu104_full_campaign_v1.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(
+            config["protocol"]["source_freeze_manifest"],
+            "artifacts/zcu104_full_campaign_v1/"
+            "source_freeze_revision_20260809/source_freeze_manifest.json",
+        )
+
     def test_clock_generator_bypasses_7_series_mmcm_for_ps_fclk(self) -> None:
         config = yaml.safe_load(
             (ROOT / "hls_lut_builder" / "board_harness" / "configs" / "board_zcu104.yaml")

@@ -484,7 +484,10 @@ def verify_source_freeze(path: Path | None) -> dict[str, Any]:
             "--manifest",
             str(path),
         ],
-        timeout=120,
+        # A 600-file Git-head archive takes about three minutes to re-hash on
+        # the Windows workspace.  Keep this bounded, but do not turn a valid
+        # freeze into a timeout-only false failure.
+        timeout=600,
     )
     if result.get("returncode") not in (0, 2):
         raise RuntimeError(f"source-freeze verifier failed: {result}")
@@ -504,6 +507,7 @@ def build_config(
     source_commit: str,
     inputs: dict[str, Any],
     remote_probe_record: dict[str, Any] | None,
+    source_freeze_manifest: Path | None,
 ) -> dict[str, Any]:
     candidates = []
     checkpoints = {row["arch_id"]: row for row in inputs["checkpoints"]}
@@ -575,7 +579,9 @@ def build_config(
             ),
             "freeze_record": f"artifacts/{CAMPAIGN_ID}/protocol_freeze.json",
             "source_freeze_manifest": (
-                f"artifacts/{CAMPAIGN_ID}/source_freeze/source_freeze_manifest.json"
+                source_freeze_manifest.relative_to(REPO_ROOT).as_posix()
+                if source_freeze_manifest is not None
+                else f"artifacts/{CAMPAIGN_ID}/source_freeze/source_freeze_manifest.json"
             ),
         },
         "dataset": {
@@ -732,18 +738,18 @@ def main() -> int:
             raise RuntimeError("remote probe campaign_id mismatch")
         remote_probe_record = file_record(remote_probe_path, relative_to=REPO_ROOT)
 
-    inputs = build_inputs(source_root)
-    config = build_config(source_commit, inputs, remote_probe_record)
-    write_yaml(CAMPAIGN_CONFIG, config)
-
-    environment = capture_environment(args, remote_probe, remote_probe_record)
-    write_json(ARTIFACT_ROOT / "environment_card.json", environment)
-
     freeze_path = (
         Path(args.source_freeze_manifest).resolve()
         if args.source_freeze_manifest
         else None
     )
+    inputs = build_inputs(source_root)
+    config = build_config(source_commit, inputs, remote_probe_record, freeze_path)
+    write_yaml(CAMPAIGN_CONFIG, config)
+
+    environment = capture_environment(args, remote_probe, remote_probe_record)
+    write_json(ARTIFACT_ROOT / "environment_card.json", environment)
+
     source_freeze = verify_source_freeze(freeze_path)
     all_input_records = (
         inputs["candidates"]
