@@ -1,14 +1,12 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-09T03:49:36.704004+00:00",
+  "generated_at": "2026-08-09T03:57:36.322801+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
   "content_source": "git-head",
   "git": {
-    "head": "ba05896ef6c07ba3c6e699b644c148d3cd1d5575",
+    "head": "75882167c2571d81e1557a3d74a1cbda0010d665",
     "branch": "codex/zcu104-full-campaign-v1",
-    "status_porcelain": [
-      "?? artifacts/zcu104_full_campaign_v1/hls_source_preflight.json"
-    ]
+    "status_porcelain": []
   },
   "excluded_prefixes": [
     ".git/",

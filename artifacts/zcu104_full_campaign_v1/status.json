@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T02:31:01.986310+00:00",
-  "baseline_status": "PASS",
-  "campaign_execution_status": "IMPLEMENTATION_IN_PROGRESS",
+  "generated_at": "2026-08-09T04:06:24.009078+00:00",
+  "baseline_status": "PENDING_SOURCE_FREEZE",
+  "campaign_execution_status": "NOT_READY_BASELINE_FREEZE_INCOMPLETE",
   "execution_lanes": {
-    "provenance_and_inputs": "PASS",
+    "provenance_and_inputs": "PENDING",
     "remote_hls_route_toolchain_2022_2": "READY_NOT_EXECUTED",
-    "physical_zcu104": "BLOCKED_PL_POWER_OFF",
+    "physical_zcu104": "DETECTED_PL_POWER_OFF",
     "external_power_meter": "NOT_DETECTED"
   },
   "acceptance_gates": {
@@ -25,37 +25,35 @@
       "required_output": []
     },
     "source_freeze": {
-      "status": "PASS",
-      "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+      "status": "FAIL",
+      "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_freeze_manifest.json",
       "content_source": "git-head",
-      "expected_file_count": 611,
+      "expected_file_count": 617,
       "missing": [],
       "unexpected": [],
-      "changed": [],
-      "manifest_sha256": "92b295bde479ce4b7ab022a6f2ecbfd3741104d85ec12be7eaf03f51f9ab472e",
+      "changed": [
+        {
+          "path": "scripts/build_zcu104_full_campaign_baseline.py",
+          "expected": "f3b9e05f2ce73606896353d25e39fa2f7c118f9be435c869065fd88c9ec0ff0b",
+          "actual": "78ec2df3fada6146ca86ce28d55a68e436c1cc3bddf877aeb0459888ea4e44cb"
+        },
+        {
+          "path": "tests/test_zcu104_support.py",
+          "expected": "683c6858515b8e8481515a0e12a35d007c814b9553f1bdef097f4df706810a79",
+          "actual": "2f4daf3282ee47c26fa7adc196444cbfdb311831fa57ff34c82021b77e204595"
+        }
+      ],
+      "manifest_sha256": "3c700cc47f2f5d166940931ff73fc3206dd8764ac42ba0e2442b3d3ab49c52e8",
       "frozen_git": {
-        "head": "bdae2dee814defed8e576352cb517b5ee9229b16",
+        "head": "75882167c2571d81e1557a3d74a1cbda0010d665",
         "branch": "codex/zcu104-full-campaign-v1",
         "status_porcelain": []
       },
       "archive": {
-        "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
-        "bytes": 1669638,
-        "sha256": "4ee564d2ee2f680577b0d07928c5db3100309605f8c8318a9a11d24ccb9ef569"
+        "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
+        "bytes": 1689892,
+        "sha256": "aba3b6b549f727d7c64d1e1d99b9930cd587d5e6d1dba223252e399659d12588"
       }
-    },
-    "remote_server_verification": {
-      "status": "PASS",
-      "path": "artifacts/zcu104_full_campaign_v1/remote_final_verification_20260809.json",
-      "sha256": "3dfe00a4f48556b09c409e67a9216c5c48085944c039532781f5394255d03270",
-      "verified_baseline_commit": "caece41e6a98aee9f92e1972bf0d5bff7bdd1531",
-      "source_freeze_expected_file_count": 611,
-      "source_freeze_missing": [],
-      "source_freeze_unexpected": [],
-      "source_freeze_changed": [],
-      "input_sha256_mismatches": [],
-      "candidate_binding_mismatches": [],
-      "focused_tests_passed": 25
     },
     "candidate_traceability": {
       "status": "PASS",
@@ -156,7 +154,8 @@
   },
   "next_required_action": [
     "Transfer the corrected branch and portable HLS input bundle to the short Linux campaign path, then run all four external-scratch candidates with Vitis HLS 2022.2 on xczu7ev-ffvc1156-2-e.",
-    "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe."
+    "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
+    "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training."
   ],
   "claim_boundary": "Baseline and portable-input PASS prove traceability and source generation only. HLS 2022.2, RTL co-sim, route, bitstream, board full-sample zero mismatch, latency, and measured power remain separate pending gates."
 }

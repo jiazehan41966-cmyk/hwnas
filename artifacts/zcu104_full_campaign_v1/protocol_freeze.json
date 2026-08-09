@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T02:31:01.861467+00:00",
-  "status": "PASS",
+  "generated_at": "2026-08-09T04:06:23.625035+00:00",
+  "status": "PENDING_SOURCE_FREEZE",
   "git": {
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
     "campaign_branch": "codex/zcu104-full-campaign-v1",
-    "campaign_head_at_generation": "bdae2dee814defed8e576352cb517b5ee9229b16"
+    "campaign_head_at_generation": "61aa30d8e54fffdb2690271d0d3603be7694ab3f"
   },
   "protocol": {
     "path": "configs/evaluation/nksid_frozen_protocol_v2.yaml",
@@ -19,23 +19,34 @@
     "size_bytes": 6043
   },
   "source_freeze": {
-    "status": "PASS",
-    "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+    "status": "FAIL",
+    "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_freeze_manifest.json",
     "content_source": "git-head",
-    "expected_file_count": 611,
+    "expected_file_count": 617,
     "missing": [],
     "unexpected": [],
-    "changed": [],
-    "manifest_sha256": "92b295bde479ce4b7ab022a6f2ecbfd3741104d85ec12be7eaf03f51f9ab472e",
+    "changed": [
+      {
+        "path": "scripts/build_zcu104_full_campaign_baseline.py",
+        "expected": "f3b9e05f2ce73606896353d25e39fa2f7c118f9be435c869065fd88c9ec0ff0b",
+        "actual": "78ec2df3fada6146ca86ce28d55a68e436c1cc3bddf877aeb0459888ea4e44cb"
+      },
+      {
+        "path": "tests/test_zcu104_support.py",
+        "expected": "683c6858515b8e8481515a0e12a35d007c814b9553f1bdef097f4df706810a79",
+        "actual": "2f4daf3282ee47c26fa7adc196444cbfdb311831fa57ff34c82021b77e204595"
+      }
+    ],
+    "manifest_sha256": "3c700cc47f2f5d166940931ff73fc3206dd8764ac42ba0e2442b3d3ab49c52e8",
     "frozen_git": {
-      "head": "bdae2dee814defed8e576352cb517b5ee9229b16",
+      "head": "75882167c2571d81e1557a3d74a1cbda0010d665",
       "branch": "codex/zcu104-full-campaign-v1",
       "status_porcelain": []
     },
     "archive": {
-      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
-      "bytes": 1669638,
-      "sha256": "4ee564d2ee2f680577b0d07928c5db3100309605f8c8318a9a11d24ccb9ef569"
+      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
+      "bytes": 1689892,
+      "sha256": "aba3b6b549f727d7c64d1e1d99b9930cd587d5e6d1dba223252e399659d12588"
     }
   },
   "dataset": {

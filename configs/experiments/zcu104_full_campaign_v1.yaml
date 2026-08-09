@@ -27,7 +27,7 @@ protocol:
   path: configs/evaluation/nksid_frozen_protocol_v2.yaml
   sha256: f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358
   freeze_record: artifacts/zcu104_full_campaign_v1/protocol_freeze.json
-  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_revision_20260809/source_freeze_manifest.json
 dataset:
   name: NKSID
   dataset_manifest:
@@ -55,6 +55,10 @@ candidates:
     sha256: ffd1122a2390a90e0956c7857e038b853209fad8747afe567e801d6a4799020a
     fold: 0
     seed: 42
+  portable_hls_input:
+    path: artifacts/zcu104_full_campaign_v1/inputs/hls_reference/original_baseline/manifest.json
+    sha256: ac69cbd4d0cd750ea38b5ecbd5469e1b47ae400866311a753a0917c7c3213add
+    size_bytes: 2083
 - role: stage2_k5_representative
   arch_id: fourstage_s2_k5_e6_s4_mbconv_k3_e3
   architecture_sha256: 9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d
@@ -66,6 +70,10 @@ candidates:
     sha256: 923ff4c2492a7b4f4f82943e60707a747a0f1311f276f1e40b85a4361311e547
     fold: 0
     seed: 42
+  portable_hls_input:
+    path: artifacts/zcu104_full_campaign_v1/inputs/hls_reference/stage2_k5_representative/manifest.json
+    sha256: fa4e89f9bf2a4ef3adf3969d7c0e197050ca35e870e6e48845ad89a4fd4ab3e9
+    size_bytes: 2125
 - role: stage4_k5_representative
   arch_id: fourstage_s2_k5_e3_s4_mbconv_k5_e3
   architecture_sha256: ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d
@@ -77,6 +85,10 @@ candidates:
     sha256: 4f03b7a2b7c6bf9d50543ced1b173a6f3397ec2b6279de2949f495889833731e
     fold: 0
     seed: 42
+  portable_hls_input:
+    path: artifacts/zcu104_full_campaign_v1/inputs/hls_reference/stage4_k5_representative/manifest.json
+    sha256: d2e1f690c8ca00e192be6a65f98007423ef5c2b4ad1a8604beeb6224016c3730
+    size_bytes: 2125
 - role: low_cost_skip_representative
   arch_id: fourstage_s2_k5_e3_s4_skip
   architecture_sha256: bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9
@@ -88,6 +100,10 @@ candidates:
     sha256: aea9dab636cad8263015f59c0a1daf89deb50ec3dc08a093423d248bee10acf8
     fold: 0
     seed: 42
+  portable_hls_input:
+    path: artifacts/zcu104_full_campaign_v1/inputs/hls_reference/low_cost_skip_representative/manifest.json
+    sha256: 810f7ad8078dc250efaf94d3649c57cfbfab5d9db2f4da8cceab803d51cfe99c
+    size_bytes: 2133
 hardware:
   board: ZCU104
   board_profile: zcu104_xczu7ev
@@ -127,7 +143,7 @@ hardware:
   - feasibility
   power_policy: external_meter_only_for_measured_power_claim
   toolchain_source: remote_execution_plane
-  authoritative_toolchain_version: "2022.2"
+  authoritative_toolchain_version: '2022.2'
   cross_version_attribution_comparison: forbidden
 implementation:
   predecessor_probe: external_scratch_pixel_tiled_v1
