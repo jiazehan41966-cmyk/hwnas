@@ -1,0 +1,2 @@
+configs/experiments/zcu104_full_campaign_v1.yaml -text
+artifacts/zcu104_full_campaign_v1/** -text

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "captured_at": "2026-08-09T09:54:35+08:00",
+  "captured_at": "2026-08-09T10:24:35+08:00",
   "transport": {
     "protocol": "ssh",
     "host": "10.70.23.121",
@@ -60,8 +60,59 @@
     "base_python_executable": "/opt/conda/bin/python3",
     "base_pytorch_status": "NOT_INSTALLED",
     "cuda_compiler_status": "NVCC_NOT_ON_PATH",
-    "dedicated_campaign_environment": "PENDING_CREATION_AND_FREEZE",
-    "status": "PENDING_DEDICATED_ENVIRONMENT"
+    "dedicated_campaign_environment": "/home/jiajia/experiments/zcu104_full_campaign_v1/.venv",
+    "dedicated_python_version": "3.13.11",
+    "pytorch_version": "2.7.1+cu128",
+    "torchvision_version": "0.22.1+cu128",
+    "pytorch_cuda_version": "12.8",
+    "cuda_available": true,
+    "gpu_tensor_probe": {
+      "status": "PASS",
+      "gpu_count": 4,
+      "model": "NVIDIA GeForce RTX 5090",
+      "compute_capability": "12.0",
+      "expected_tensor_result": 2.0,
+      "passed_gpu_indices": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "pip_freeze": {
+      "path": "/home/jiajia/experiments/zcu104_full_campaign_v1/environment/pip_freeze.txt",
+      "sha256": "c5737a80418954d1a75b97a8903268273010624ffc3e5d7f90e217ebb020630f"
+    },
+    "focused_tests": {
+      "command": "python -m pytest tests/test_protocol_source_freeze.py tests/test_fourstage_operator_v2.py -q",
+      "status": "PASS",
+      "passed": 23,
+      "duration_seconds": 2.83
+    },
+    "status": "PASS_READY"
+  },
+  "remote_campaign_staging": {
+    "root": "/home/jiajia/experiments/zcu104_full_campaign_v1",
+    "repository": "/home/jiajia/experiments/zcu104_full_campaign_v1/repo",
+    "branch": "codex/zcu104-full-campaign-v1",
+    "head_commit": "7157b475addf591f36b9352355c73ed3e2e93cef",
+    "repository_status": "CLEAN",
+    "pinned_source_commit_present": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
+    "transfer_bundle": {
+      "path": "/home/jiajia/experiments/zcu104_full_campaign_v1/staging/zcu104_full_campaign_v1.bundle",
+      "sha256": "b5d15e1f7b36005350863cb1e0812e1b251139891100fb6d7e0b0dc378cdef45"
+    },
+    "dataset_archive": {
+      "path": "/home/jiajia/experiments/zcu104_full_campaign_v1/staging/NKSID.tar",
+      "sha256": "f6f2168cbf4fab4a5d6ec514b295f771f8eeb73eef0a1f5b719a7f67e7edbbb0"
+    },
+    "dataset_validation": {
+      "status": "PASS",
+      "sample_count": 2617,
+      "split_file_count": 3,
+      "mismatch_count": 0,
+      "content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5"
+    }
   },
   "fpga_toolchain": {
     "vivado": {
@@ -123,16 +174,15 @@
     }
   },
   "readiness": {
-    "baseline_environment_status": "PASS_REMOTE_EXECUTION_PLANE_IDENTIFIED",
-    "training_status": "BLOCKED_DEDICATED_PYTORCH_CUDA_ENVIRONMENT_MISSING",
+    "baseline_environment_status": "PASS_REMOTE_EXECUTION_PLANE_READY",
+    "training_status": "PASS_READY",
     "fpga_catalog_status": "PASS",
     "physical_board_status": "BLOCKED_PL_POWER_OFF",
-    "campaign_execution_status": "BLOCKED_REMOTE_TRAINING_ENV_AND_ZCU104_PL_POWER_OFF",
+    "campaign_execution_status": "BLOCKED_ZCU104_PL_POWER_OFF",
     "next_required_actions": [
-      "Create and freeze a dedicated PyTorch CUDA environment on the server.",
       "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
-      "Stage the frozen campaign source and SHA256-bound inputs under a dedicated remote experiment directory."
+      "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training."
     ]
   },
-  "claim_boundary": "This proves remote server access, GPU visibility, FPGA tool versions, ZCU104 catalog support, and physical JTAG enumeration. It does not prove a usable training runtime, PL programming, HLS/route success, board classification, latency, or measured power."
+  "claim_boundary": "This proves remote server access, a dedicated usable PyTorch CUDA environment, four-GPU tensor execution, staged NKSID content validation, FPGA tool versions, ZCU104 catalog support, and physical JTAG enumeration. It does not prove completed model training, PL programming, HLS/route success, board classification, latency, or measured power."
 }

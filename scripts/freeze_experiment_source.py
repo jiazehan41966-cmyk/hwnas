@@ -67,8 +67,16 @@ def is_excluded(relative: str) -> bool:
     return any(normalized == prefix.rstrip("/") or normalized.startswith(prefix) for prefix in EXCLUDED_PREFIXES)
 
 
-def selected_paths(extras: Iterable[str] = ()) -> list[str]:
-    raw = git_output("ls-files", "--cached", "--others", "--exclude-standard", "-z", binary=True)
+def selected_paths(
+    extras: Iterable[str] = (),
+    *,
+    include_untracked: bool = True,
+) -> list[str]:
+    args = ["ls-files", "--cached"]
+    if include_untracked:
+        args.extend(("--others", "--exclude-standard"))
+    args.append("-z")
+    raw = git_output(*args, binary=True)
     assert isinstance(raw, bytes)
     selected: set[str] = set()
     for item in raw.decode("utf-8", errors="surrogateescape").split("\0"):
@@ -87,21 +95,38 @@ def selected_paths(extras: Iterable[str] = ()) -> list[str]:
     return sorted(selected)
 
 
-def file_records(paths: Iterable[str]) -> list[dict[str, object]]:
+def content_bytes(relative: str, content_source: str) -> bytes:
+    if content_source == "git-head":
+        payload = git_output("show", f"HEAD:{relative}", binary=True)
+        assert isinstance(payload, bytes)
+        return payload
+    return (REPO_ROOT / relative).read_bytes()
+
+
+def file_records(
+    paths: Iterable[str],
+    *,
+    content_source: str = "worktree",
+) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for relative in paths:
-        path = REPO_ROOT / relative
+        payload = content_bytes(relative, content_source)
         records.append(
             {
                 "path": relative,
-                "bytes": path.stat().st_size,
-                "sha256": sha256_file(path),
+                "bytes": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
             }
         )
     return records
 
 
-def build_archive(path: Path, records: list[dict[str, object]]) -> None:
+def build_archive(
+    path: Path,
+    records: list[dict[str, object]],
+    *,
+    content_source: str = "worktree",
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
         for record in records:
@@ -109,7 +134,7 @@ def build_archive(path: Path, records: list[dict[str, object]]) -> None:
             info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
-            bundle.writestr(info, (REPO_ROOT / relative).read_bytes())
+            bundle.writestr(info, content_bytes(relative, content_source))
 
 
 def freeze(args: argparse.Namespace) -> int:
@@ -118,14 +143,38 @@ def freeze(args: argparse.Namespace) -> int:
         output_dir = REPO_ROOT / output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     extras = [normalize_relative(item) for item in args.extra]
-    paths = selected_paths(extras)
-    records = file_records(paths)
+    content_source = str(args.content_source)
+    if content_source == "git-head":
+        status = str(git_output("status", "--porcelain=v1")).splitlines()
+        relevant_status = [
+            row
+            for row in status
+            if len(row) < 4 or not is_excluded(row[3:].strip().strip('"'))
+        ]
+        if relevant_status:
+            raise RuntimeError(
+                "git-head freeze requires a clean non-artifact source tree: "
+                + "; ".join(relevant_status)
+            )
+        raw_tracked = git_output("ls-files", "-z", binary=True)
+        assert isinstance(raw_tracked, bytes)
+        tracked = set(
+            raw_tracked.decode("utf-8", errors="surrogateescape").split("\0")
+        )
+        untracked_extras = [item for item in extras if item not in tracked]
+        if untracked_extras:
+            raise RuntimeError(
+                "git-head freeze extras must be tracked: " + ", ".join(untracked_extras)
+            )
+    paths = selected_paths(extras, include_untracked=content_source == "worktree")
+    records = file_records(paths, content_source=content_source)
     archive = output_dir / "source_snapshot.zip"
-    build_archive(archive, records)
+    build_archive(archive, records, content_source=content_source)
     manifest = {
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "repository_root": str(REPO_ROOT),
+        "content_source": content_source,
         "git": {
             "head": git_output("rev-parse", "HEAD"),
             "branch": git_output("branch", "--show-current"),
@@ -152,21 +201,28 @@ def verify(args: argparse.Namespace) -> int:
     if not manifest_path.is_absolute():
         manifest_path = REPO_ROOT / manifest_path
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    content_source = str(manifest.get("content_source") or "worktree")
     expected = {str(item["path"]): str(item["sha256"]) for item in manifest["files"]}
-    current_paths = set(selected_paths(manifest.get("extras", [])))
+    current_paths = set(
+        selected_paths(
+            manifest.get("extras", []),
+            include_untracked=content_source == "worktree",
+        )
+    )
     missing = sorted(set(expected) - current_paths)
     unexpected = sorted(current_paths - set(expected))
     changed: list[dict[str, str]] = []
     for relative, expected_hash in expected.items():
         path = REPO_ROOT / relative
         if path.is_file():
-            actual = sha256_file(path)
+            actual = hashlib.sha256(content_bytes(relative, content_source)).hexdigest()
             if actual != expected_hash:
                 changed.append({"path": relative, "expected": expected_hash, "actual": actual})
     passed = not missing and not unexpected and not changed
     payload = {
         "status": "PASS" if passed else "FAIL",
         "manifest": str(manifest_path.resolve()),
+        "content_source": content_source,
         "expected_file_count": len(expected),
         "missing": missing,
         "unexpected": unexpected,
@@ -182,6 +238,15 @@ def main() -> int:
     freeze_parser = subparsers.add_parser("freeze")
     freeze_parser.add_argument("--output-dir", required=True)
     freeze_parser.add_argument("--extra", action="append", default=[])
+    freeze_parser.add_argument(
+        "--content-source",
+        choices=("worktree", "git-head"),
+        default="worktree",
+        help=(
+            "Use git-head for cross-platform byte-stable freezes. It reads committed "
+            "Git blobs and requires all non-artifact source changes to be committed."
+        ),
+    )
     freeze_parser.set_defaults(handler=freeze)
     verify_parser = subparsers.add_parser("verify")
     verify_parser.add_argument("--manifest", required=True)
