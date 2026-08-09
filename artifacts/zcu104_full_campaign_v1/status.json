@@ -38,6 +38,19 @@
         "sha256": "4ee564d2ee2f680577b0d07928c5db3100309605f8c8318a9a11d24ccb9ef569"
       }
     },
+    "remote_server_verification": {
+      "status": "PASS",
+      "path": "artifacts/zcu104_full_campaign_v1/remote_final_verification_20260809.json",
+      "sha256": "3dfe00a4f48556b09c409e67a9216c5c48085944c039532781f5394255d03270",
+      "verified_baseline_commit": "caece41e6a98aee9f92e1972bf0d5bff7bdd1531",
+      "source_freeze_expected_file_count": 611,
+      "source_freeze_missing": [],
+      "source_freeze_unexpected": [],
+      "source_freeze_changed": [],
+      "input_sha256_mismatches": [],
+      "candidate_binding_mismatches": [],
+      "focused_tests_passed": 25
+    },
     "candidate_traceability": {
       "status": "PASS",
       "count": 4,
@@ -110,8 +123,7 @@
     }
   },
   "next_required_action": [
-    "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
-    "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training."
+    "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe."
   ],
   "claim_boundary": "Baseline PASS means provenance and the remote execution topology are frozen. Training readiness, PL programming, HLS/route, board classification/latency, and measured power remain separate gates."
 }
