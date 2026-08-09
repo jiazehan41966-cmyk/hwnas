@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-09T03:43:08.962451+00:00",
+  "status": "FAIL",
+  "gate": "full_network_external_scratch_direct_route",
+  "implementation_style": "external_scratch_pixel_tiled_v1",
+  "route_scope": "vivado_ooc_generated_hls_rtl_without_rtl_cosim",
+  "target_part": "xc7k325tffg900-2",
+  "target_clock_ns": 5.0,
+  "route_dsp_limit": 700,
+  "hls_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_stage4_k5_sample1_hls_shortpath_summary.json",
+    "sha256": "e5dc57a4e8f2a038d4d41c1b0365ff04596ca0f0ed2c2b524d846d48d44c04a3",
+    "size_bytes": 5219
+  },
+  "vivado": {
+    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+    "exists": true
+  },
+  "git": {
+    "head": "afd766e1ccf8fb7103645997cb4720601dabe882",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": []
+  },
+  "candidate_count": 1,
+  "formal_candidate_count": 4,
+  "formal_scope": false,
+  "candidate_limit": null,
+  "selected_roles": [
+    "stage4_k5_representative"
+  ],
+  "rtl_cosim": {
+    "status": "SKIPPED_FOR_BOARD_BRINGUP",
+    "claim_boundary": "No bit-exact RTL co-simulation parity is claimed."
+  },
+  "candidates": [
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "hls_project_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative",
+      "rtl_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\verilog",
+      "route_work_dir": "E:\\hxs_s4k5_route\\stage4_k5_representative",
+      "generated": {
+        "tcl": {
+          "path": "E:\\hxs_s4k5_route\\stage4_k5_representative\\run_route.tcl",
+          "sha256": "0059000e781020e0592070f17bac05df201c8f1242af5b25f85ca6f7339b6d4d",
+          "size_bytes": 2640
+        },
+        "copied_dat_count": 24
+      },
+      "source_hls_candidate": {
+        "csim_result": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\csim_result.json",
+          "sha256": "d41287e04fbf90fb7e9641773e7ee2fead08e1321c360bc89b3a976022a53d74",
+          "size_bytes": 144
+        },
+        "vitis_log": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\vitis_hls_external_scratch.log",
+          "sha256": "c9021a0ce51816901a94028fa4acff966f0db7984fd48f217caba0c888885207",
+          "size_bytes": 211956
+        },
+        "csynth_report": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "94bcabf79659c8f91e21ec13cb8b2b34fabf2179fd236d734ff5a9dd2ce8c912",
+          "size_bytes": 76564
+        },
+        "metrics": {
+          "cycles": 48296830,
+          "latency_ns": 241000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 30,
+          "bram_18k": 30,
+          "bram_36k": 0,
+          "dsp": 274,
+          "lut": 112137,
+          "ff": 109753,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.957,
+          "fmax_est_mhz": 252.71670457417235,
+          "report_format": "xml"
+        }
+      },
+      "rtl_cosim": {
+        "status": "SKIPPED_FOR_BOARD_BRINGUP",
+        "claim_boundary": "No bit-exact RTL co-simulation parity is claimed."
+      },
+      "timeout_minutes": 240,
+      "bitstream": {
+        "status": "NOT_GENERATED_OOC_ROUTE_ONLY",
+        "reason": "The generated HLS RTL is not wrapped in a board harness yet."
+      },
+      "status": "FAIL",
+      "vivado_execution": "REUSED_EXISTING_REPORTS",
+      "vivado_returncode": null,
+      "failure_category": "EXTERNAL_SCRATCH_DIRECT_ROUTE_WNS_FAIL",
+      "vivado_log": {
+        "path": "E:\\hxs_s4k5_route\\stage4_k5_representative\\vivado_ooc_route.log",
+        "sha256": "e4a5b89454360e89275d762094c92a3319f1bfef50f0a74265dc3319ac43785e",
+        "size_bytes": 1515457
+      },
+      "acceptance": {
+        "target_clock_ns": 5.0,
+        "wns_ns": -1.696,
+        "wns_pass": false,
+        "route_dsp": 354,
+        "route_dsp_limit": 700,
+        "route_dsp_pass": true
+      },
+      "metrics": {
+        "timing": {
+          "setup_wns_ns": -1.696,
+          "setup_tns_ns": -11521.905,
+          "hold_whs_ns": 0.068,
+          "hold_ths_ns": 0.0,
+          "target_clock_ns": 5.0,
+          "data_path_delay_ns": 6.612,
+          "logic_delay_ns": 0.775,
+          "route_delay_ns": 5.837,
+          "fmax_est_mhz": 149.34289127837516,
+          "report_format": "text"
+        },
+        "utilization": {
+          "lut": 63201,
+          "ff": 61247,
+          "block_ram_tile": 15.0,
+          "ramb36": 4,
+          "ramb18": 22,
+          "dsp": 354,
+          "report_format": "text"
+        },
+        "power_estimate": {
+          "power_w": 2.186,
+          "power_source": "implementation_vectorless_report",
+          "report_format": "text"
+        },
+        "reports": {
+          "post_route_timing": {
+            "path": "E:\\hxs_s4k5_route\\stage4_k5_representative\\vivado_ooc_route\\reports\\post_route_timing_summary.rpt",
+            "sha256": "ec3b638cd4d7d97b18e6afd5ab272c15f6a17b95220d0702110bf504e7f6ff0a",
+            "size_bytes": 293406
+          },
+          "post_route_utilization": {
+            "path": "E:\\hxs_s4k5_route\\stage4_k5_representative\\vivado_ooc_route\\reports\\post_route_utilization.rpt",
+            "sha256": "8130ce8df7ea681d480df655e760c52399fa03a7c8eb8d99d25d26f262b03151",
+            "size_bytes": 11367
+          },
+          "post_route_power": {
+            "path": "E:\\hxs_s4k5_route\\stage4_k5_representative\\vivado_ooc_route\\reports\\post_route_power.rpt",
+            "sha256": "b68826979d6d108cea52a633ac6be8a09b335ba7f42de7782107e70b80b4fee4",
+            "size_bytes": 20508
+          }
+        }
+      },
+      "claim_boundary": "Out-of-context direct route with RTL co-simulation skipped. This is not bit-exact RTL parity, a board bitstream, a board run, or measured power."
+    }
+  ],
+  "downstream_gates": {
+    "board_harness_bitstream": "NOT_RUN_ROUTE_NOT_PASSED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "Direct route was used to prioritize board bring-up after RTL co-simulation was skipped. This does not prove bit-exact RTL parity and does not by itself produce a deployable board bitstream.",
+  "payload_sha256": "0f1a138a74f0d975c31759c31f6fd49bad220c7d5000157312793cd8e63bf1a7"
+}
