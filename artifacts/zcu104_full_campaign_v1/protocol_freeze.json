@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T02:28:33.401522+00:00",
-  "status": "PENDING_SOURCE_FREEZE",
+  "generated_at": "2026-08-09T02:31:01.861467+00:00",
+  "status": "PASS",
   "git": {
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
     "campaign_branch": "codex/zcu104-full-campaign-v1",
-    "campaign_head_at_generation": "9b4bf1e66d63faf6ea1b90285ab7a56e6623f882"
+    "campaign_head_at_generation": "bdae2dee814defed8e576352cb517b5ee9229b16"
   },
   "protocol": {
     "path": "configs/evaluation/nksid_frozen_protocol_v2.yaml",
@@ -19,36 +19,23 @@
     "size_bytes": 6043
   },
   "source_freeze": {
-    "status": "FAIL",
+    "status": "PASS",
     "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
-    "content_source": "worktree",
-    "expected_file_count": 610,
+    "content_source": "git-head",
+    "expected_file_count": 611,
     "missing": [],
-    "unexpected": [
-      ".gitattributes"
-    ],
-    "changed": [
-      {
-        "path": "configs/experiments/zcu104_full_campaign_v1.yaml",
-        "expected": "7a0aeda9e111d66a362951a6f69e18997e9cd109da210cc7baf2db65ffd09f52",
-        "actual": "c26db4a5273ecf2fed860bab2f0763db0bc59f1dffb5fb32e7d7465de154202c"
-      },
-      {
-        "path": "scripts/freeze_experiment_source.py",
-        "expected": "4b45fca2dfcbdefa8be398c5ebfaa1ce84f8a50b8d40bb405b90325c1f46b1b7",
-        "actual": "c18168b17cfd95f39fd6586f2cabc88bc02000bb3700fca595d53503c1c9759a"
-      }
-    ],
-    "manifest_sha256": "bbc596e9253656356ab626bd9e381d991c876164c0b57a5347c531d495366ea0",
+    "unexpected": [],
+    "changed": [],
+    "manifest_sha256": "92b295bde479ce4b7ab022a6f2ecbfd3741104d85ec12be7eaf03f51f9ab472e",
     "frozen_git": {
-      "head": "38626e4d34e0334b2904c5686506551bde914847",
+      "head": "bdae2dee814defed8e576352cb517b5ee9229b16",
       "branch": "codex/zcu104-full-campaign-v1",
       "status_porcelain": []
     },
     "archive": {
       "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
-      "bytes": 1680748,
-      "sha256": "5903c34f637fcfd60500762f02b1fe15bc5b3802812b5f0955b1a7359a3bf2dc"
+      "bytes": 1669638,
+      "sha256": "4ee564d2ee2f680577b0d07928c5db3100309605f8c8318a9a11d24ccb9ef569"
     }
   },
   "dataset": {
