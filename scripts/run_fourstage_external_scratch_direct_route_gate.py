@@ -19,6 +19,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from textwrap import dedent
 from typing import Any
 
 
@@ -34,7 +35,7 @@ from run_fourstage_hwc_parallel_route_gate import (  # noqa: E402
     DEFAULT_VIVADO,
     ROUTE_DSP_LIMIT,
     parse_reports,
-    route_tcl,
+    route_tcl as baseline_route_tcl,
     run_vivado,
 )
 
@@ -66,6 +67,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--timeout-minutes", type=int, default=240)
     parser.add_argument(
+        "--impl-profile",
+        choices=["baseline", "timing_explore"],
+        default="baseline",
+        help="Vivado implementation directive profile; does not change the network.",
+    )
+    parser.add_argument(
         "--ack-skip-rtl-cosim",
         action="store_true",
         help="Required when --run-vivado is enabled; records the evidence downgrade.",
@@ -96,6 +103,94 @@ def git_status_excluding(path: Path) -> list[str]:
         rel = path.name
     rows = git_output("status", "--porcelain=v1").splitlines()
     return [row for row in rows if row[3:].replace("\\", "/") != rel]
+
+
+def tcl_path(path: Path) -> str:
+    return str(path).replace("\\", "/")
+
+
+def route_tcl_for_profile(*, rtl_dir: Path, out_dir: Path, impl_profile: str) -> str:
+    if impl_profile == "baseline":
+        return baseline_route_tcl(rtl_dir=rtl_dir, out_dir=out_dir)
+    if impl_profile != "timing_explore":
+        raise RuntimeError(f"unknown implementation profile: {impl_profile}")
+    return dedent(
+        f"""
+        set rtl_dir "{tcl_path(rtl_dir)}"
+        set out_dir "{tcl_path(out_dir)}"
+        set report_dir [file join $out_dir reports]
+        set checkpoint_dir [file join $out_dir checkpoints]
+        file mkdir $out_dir
+        file mkdir $report_dir
+        file mkdir $checkpoint_dir
+
+        set_param general.maxThreads 1
+        catch {{set_param synth.maxThreads 1}}
+
+        puts "=== Four-stage external-scratch direct route gate: timing_explore ==="
+        puts "RTL dir: $rtl_dir"
+        puts "Part: {TARGET_PART}"
+        puts "Clock: {TARGET_CLOCK_NS:.3f} ns"
+        puts "Output dir: $out_dir"
+
+        set rtl_files [lsort [glob -nocomplain -directory $rtl_dir *.v]]
+        if {{[llength $rtl_files] == 0}} {{
+            puts "ERROR: No Verilog files found under $rtl_dir"
+            exit 2
+        }}
+        foreach rtl_file $rtl_files {{
+            read_verilog $rtl_file
+        }}
+
+        if {{[catch {{synth_design -top fourstage_top_hls -part {TARGET_PART} -mode out_of_context -directive AreaOptimized_high}} err]}} {{
+            puts "WARNING: synth_design AreaOptimized_high failed: $err"
+            if {{[catch {{synth_design -top fourstage_top_hls -part {TARGET_PART} -mode out_of_context}} err2]}} {{
+                puts "ERROR: synth_design failed: $err2"
+                exit 3
+            }}
+        }}
+        create_clock -period {TARGET_CLOCK_NS:.3f} -name ap_clk [get_ports ap_clk]
+        if {{[llength [get_ports -quiet ap_rst_n]] > 0}} {{
+            set_false_path -from [get_ports ap_rst_n]
+        }}
+
+        write_checkpoint -force [file join $checkpoint_dir post_synth.dcp]
+        report_utilization -hierarchical -hierarchical_depth 4 -file [file join $report_dir post_synth_utilization_hier.rpt]
+        report_utilization -file [file join $report_dir post_synth_utilization.rpt]
+        report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 10 -file [file join $report_dir post_synth_timing_summary.rpt]
+
+        if {{[catch {{opt_design -directive Explore}} err]}} {{
+            puts "ERROR: opt_design failed: $err"
+            exit 4
+        }}
+        if {{[catch {{place_design -directive Explore}} err]}} {{
+            puts "ERROR: place_design failed: $err"
+            exit 5
+        }}
+        if {{[catch {{phys_opt_design -directive Explore}} err]}} {{
+            puts "WARNING: phys_opt_design Explore failed: $err"
+            catch {{phys_opt_design}}
+        }}
+        if {{[catch {{route_design -directive Explore}} err]}} {{
+            puts "ERROR: route_design failed: $err"
+            exit 6
+        }}
+        if {{[catch {{phys_opt_design -directive Explore}} err]}} {{
+            puts "WARNING: post-route phys_opt_design failed: $err"
+        }}
+
+        write_checkpoint -force [file join $checkpoint_dir post_route.dcp]
+        report_utilization -hierarchical -hierarchical_depth 4 -file [file join $report_dir post_route_utilization_hier.rpt]
+        report_utilization -file [file join $report_dir post_route_utilization.rpt]
+        report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 10 -file [file join $report_dir post_route_timing_summary.rpt]
+        report_clock_utilization -file [file join $report_dir post_route_clock_utilization.rpt]
+        if {{[catch {{report_power -file [file join $report_dir post_route_power.rpt]}} err]}} {{
+            puts "WARNING: report_power failed: $err"
+        }}
+        puts "=== Four-stage external-scratch timing_explore route gate completed ==="
+        exit 0
+        """
+    ).lstrip()
 
 
 def selected_candidates(
@@ -156,6 +251,7 @@ def run_one(
     vivado: Path,
     run_vivado_flag: bool,
     reuse_existing_reports: bool,
+    impl_profile: str,
     force: bool,
     timeout_minutes: int,
 ) -> dict[str, Any]:
@@ -180,7 +276,12 @@ def run_one(
     tcl = role_dir / "run_route.tcl"
     vivado_out = role_dir / "vivado_ooc_route"
     reports = vivado_out / "reports"
-    tcl.write_text(route_tcl(rtl_dir=rtl_dir, out_dir=vivado_out), encoding="utf-8")
+    tcl.write_text(
+        route_tcl_for_profile(
+            rtl_dir=rtl_dir, out_dir=vivado_out, impl_profile=impl_profile
+        ),
+        encoding="utf-8",
+    )
     log_path = role_dir / "vivado_ooc_route.log"
     base = {
         "role": candidate["role"],
@@ -188,6 +289,7 @@ def run_one(
         "hls_project_dir": str(hls_dir),
         "rtl_dir": str(rtl_dir),
         "route_work_dir": str(role_dir),
+        "impl_profile": impl_profile,
         "generated": {
             "tcl": evidence(tcl),
             "copied_dat_count": len(list(role_dir.glob("*.dat"))),
@@ -307,6 +409,7 @@ def main() -> int:
             vivado=vivado,
             run_vivado_flag=bool(args.run_vivado),
             reuse_existing_reports=bool(args.reuse_existing_reports),
+            impl_profile=str(args.impl_profile),
             force=bool(args.force),
             timeout_minutes=int(args.timeout_minutes),
         )
@@ -337,6 +440,7 @@ def main() -> int:
         "gate": "full_network_external_scratch_direct_route",
         "implementation_style": IMPLEMENTATION_STYLE,
         "route_scope": "vivado_ooc_generated_hls_rtl_without_rtl_cosim",
+        "impl_profile": str(args.impl_profile),
         "target_part": TARGET_PART,
         "target_clock_ns": TARGET_CLOCK_NS,
         "route_dsp_limit": ROUTE_DSP_LIMIT,
