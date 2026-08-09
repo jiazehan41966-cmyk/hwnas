@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-09T02:11:37.043330+00:00",
+  "status": "NOT_RUN",
+  "gate": "full_network_external_scratch_direct_route",
+  "implementation_style": "external_scratch_pixel_tiled_v1",
+  "route_scope": "vivado_ooc_generated_hls_rtl_without_rtl_cosim",
+  "target_part": "xc7k325tffg900-2",
+  "target_clock_ns": 5.0,
+  "route_dsp_limit": 700,
+  "hls_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_stage4_k5_sample1_hls_shortpath_summary.json",
+    "sha256": "e5dc57a4e8f2a038d4d41c1b0365ff04596ca0f0ed2c2b524d846d48d44c04a3",
+    "size_bytes": 5219
+  },
+  "vivado": {
+    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+    "exists": true
+  },
+  "git": {
+    "head": "446a7d14f25a621e111feb6979a320ea300053f1",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": [
+      "?? scripts/run_fourstage_external_scratch_direct_route_gate.py"
+    ]
+  },
+  "candidate_count": 1,
+  "formal_candidate_count": 4,
+  "formal_scope": false,
+  "candidate_limit": null,
+  "selected_roles": [
+    "stage4_k5_representative"
+  ],
+  "rtl_cosim": {
+    "status": "SKIPPED_FOR_BOARD_BRINGUP",
+    "claim_boundary": "未做逐位一致的硬件电路联合仿真证明。"
+  },
+  "candidates": [
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "hls_project_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative",
+      "rtl_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\verilog",
+      "route_work_dir": "E:\\hxs_s4k5_route\\stage4_k5_representative",
+      "generated": {
+        "tcl": {
+          "path": "E:\\hxs_s4k5_route\\stage4_k5_representative\\run_route.tcl",
+          "sha256": "0059000e781020e0592070f17bac05df201c8f1242af5b25f85ca6f7339b6d4d",
+          "size_bytes": 2640
+        },
+        "copied_dat_count": 24
+      },
+      "source_hls_candidate": {
+        "csim_result": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\csim_result.json",
+          "sha256": "d41287e04fbf90fb7e9641773e7ee2fead08e1321c360bc89b3a976022a53d74",
+          "size_bytes": 144
+        },
+        "vitis_log": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\vitis_hls_external_scratch.log",
+          "sha256": "c9021a0ce51816901a94028fa4acff966f0db7984fd48f217caba0c888885207",
+          "size_bytes": 211956
+        },
+        "csynth_report": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "94bcabf79659c8f91e21ec13cb8b2b34fabf2179fd236d734ff5a9dd2ce8c912",
+          "size_bytes": 76564
+        },
+        "metrics": {
+          "cycles": 48296830,
+          "latency_ns": 241000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 30,
+          "bram_18k": 30,
+          "bram_36k": 0,
+          "dsp": 274,
+          "lut": 112137,
+          "ff": 109753,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.957,
+          "fmax_est_mhz": 252.71670457417235,
+          "report_format": "xml"
+        }
+      },
+      "rtl_cosim": {
+        "status": "SKIPPED_FOR_BOARD_BRINGUP",
+        "claim_boundary": "未做逐位一致的硬件电路联合仿真证明。"
+      },
+      "timeout_minutes": 240,
+      "bitstream": {
+        "status": "NOT_GENERATED_OOC_ROUTE_ONLY",
+        "reason": "当前只布线裸 HLS 顶层，还没有板级封装。"
+      },
+      "status": "NOT_RUN",
+      "vivado_returncode": null,
+      "failure_category": null,
+      "vivado_log": null,
+      "acceptance": null,
+      "metrics": null
+    }
+  ],
+  "downstream_gates": {
+    "board_harness_bitstream": "NOT_RUN_ROUTE_NOT_PASSED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "这是为推进上板而跳过联合仿真的直接布线证据。它不能证明硬件输出与软件参考逐位一致，也不能单独代表可上板比特流。",
+  "payload_sha256": "fa8c56f427efccadde254a2c935d6cd32e63d799a80581b39dc533ae7ade5194"
+}
