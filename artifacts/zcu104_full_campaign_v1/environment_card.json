@@ -1,49 +1,158 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-08T08:28:46.912916+00:00",
-  "host": {
+  "generated_at": "2026-08-09T01:57:22.245766+00:00",
+  "authoritative_execution_plane": "remote_server",
+  "control_plane": {
+    "role": "freeze_configuration_and_dispatch_only",
     "platform": "Windows-11-10.0.26200-SP0",
     "python_version": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
-    "python_executable": "D:\\software\\python\\python.exe"
+    "python_executable": "D:\\software\\python\\python.exe",
+    "fpga_toolchain_is_authoritative": false
   },
-  "pytorch": {
-    "version": "2.7.0+cpu",
-    "cuda_version": null,
-    "cuda_available": false
+  "execution_plane": {
+    "schema_version": 1,
+    "campaign_id": "zcu104_full_campaign_v1",
+    "captured_at": "2026-08-09T09:54:35+08:00",
+    "transport": {
+      "protocol": "ssh",
+      "host": "10.70.23.121",
+      "port": 7889,
+      "username": "jiajia",
+      "authentication": "interactive_secret_not_persisted",
+      "status": "PASS"
+    },
+    "host": {
+      "hostname": "inspur-NULL",
+      "operating_system": "Ubuntu 24.04.4 LTS",
+      "kernel": "Linux 7.0.0-28-generic x86_64",
+      "user": "jiajia",
+      "groups": [
+        "jiajia",
+        "dialout",
+        "users"
+      ],
+      "memory_total_gib": 251,
+      "memory_available_gib": 227,
+      "home_filesystem": {
+        "size": "3.5T",
+        "used": "3.2T",
+        "available": "155G",
+        "use_percent": 96
+      }
+    },
+    "accelerators": {
+      "status": "PASS_VISIBLE",
+      "driver_version": "580.159.03",
+      "gpus": [
+        {
+          "index": 0,
+          "model": "NVIDIA GeForce RTX 5090",
+          "memory_mib": 32607
+        },
+        {
+          "index": 1,
+          "model": "NVIDIA GeForce RTX 5090",
+          "memory_mib": 32607
+        },
+        {
+          "index": 2,
+          "model": "NVIDIA GeForce RTX 5090",
+          "memory_mib": 32607
+        },
+        {
+          "index": 3,
+          "model": "NVIDIA GeForce RTX 5090",
+          "memory_mib": 32607
+        }
+      ]
+    },
+    "python_training_environment": {
+      "base_python_version": "3.13.11",
+      "base_python_executable": "/opt/conda/bin/python3",
+      "base_pytorch_status": "NOT_INSTALLED",
+      "cuda_compiler_status": "NVCC_NOT_ON_PATH",
+      "dedicated_campaign_environment": "PENDING_CREATION_AND_FREEZE",
+      "status": "PENDING_DEDICATED_ENVIRONMENT"
+    },
+    "fpga_toolchain": {
+      "vivado": {
+        "path": "/opt/Xilinx/Vivado/2022.2/bin/vivado",
+        "version": "2022.2",
+        "sw_build": "3671981",
+        "ip_build": "3669848",
+        "status": "PASS"
+      },
+      "vitis_hls": {
+        "path": "/opt/Xilinx/Vitis_HLS/2022.2/bin/vitis_hls",
+        "version": "2022.2",
+        "sw_build": "3670227",
+        "ip_build": "3669848",
+        "status": "PASS"
+      },
+      "hw_server": {
+        "path": "/opt/Xilinx/Vivado/2022.2/bin/hw_server",
+        "listen": "127.0.0.1:3121",
+        "status": "RUNNING_LOCALHOST_ONLY"
+      }
+    },
+    "zcu104_catalog_probe": {
+      "status": "PASS",
+      "user_declared_board_model": "ZCU104",
+      "target_part": "xczu7ev-ffvc1156-2-e",
+      "target_part_count": 1,
+      "board_part": "xilinx.com:zcu104:part0:1.1",
+      "board_parts": [
+        "xilinx.com:zcu104:part0:1.1"
+      ]
+    },
+    "physical_board_probe": {
+      "status": "DETECTED_PL_POWER_OFF",
+      "usb": {
+        "vendor_product_id": "0403:6011",
+        "model": "Xilinx JTAG+3Serial / FT4232H",
+        "serial": "36708",
+        "uart_devices": [
+          "/dev/ttyUSB1",
+          "/dev/ttyUSB2",
+          "/dev/ttyUSB3"
+        ]
+      },
+      "vivado_hardware_manager": {
+        "hw_target": "localhost:3121/xilinx_tcf/Xilinx/366708A",
+        "device_count": 2,
+        "devices": [
+          {
+            "name": "xczu7_0",
+            "part": "xczu7"
+          },
+          {
+            "name": "arm_dap_1",
+            "part": "arm_dap"
+          }
+        ],
+        "warning": "xczu7_0 PL Power Status OFF, cannot connect PL TAP; check POR_B signal"
+      }
+    },
+    "readiness": {
+      "baseline_environment_status": "PASS_REMOTE_EXECUTION_PLANE_IDENTIFIED",
+      "training_status": "BLOCKED_DEDICATED_PYTORCH_CUDA_ENVIRONMENT_MISSING",
+      "fpga_catalog_status": "PASS",
+      "physical_board_status": "BLOCKED_PL_POWER_OFF",
+      "campaign_execution_status": "BLOCKED_REMOTE_TRAINING_ENV_AND_ZCU104_PL_POWER_OFF",
+      "next_required_actions": [
+        "Create and freeze a dedicated PyTorch CUDA environment on the server.",
+        "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
+        "Stage the frozen campaign source and SHA256-bound inputs under a dedicated remote experiment directory."
+      ]
+    },
+    "claim_boundary": "This proves remote server access, GPU visibility, FPGA tool versions, ZCU104 catalog support, and physical JTAG enumeration. It does not prove a usable training runtime, PL programming, HLS/route success, board classification, latency, or measured power."
   },
-  "vivado": {
-    "command": [
-      "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
-      "-version"
-    ],
-    "returncode": 1,
-    "stdout": "ECHO is off.\nECHO is off.\nvivado v2023.2 (64-bit)\nTool Version Limit: 2023.10\nSW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023\nIP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\nSharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023\nCopyright 1986-2022 Xilinx, Inc. All Rights Reserved.\nCopyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.",
-    "stderr": "",
-    "available": true,
-    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat"
+  "remote_probe_record": {
+    "path": "artifacts/zcu104_full_campaign_v1/remote_execution_probe_20260809.json",
+    "sha256": "f09c6e87f270877ce78f1eb52051070126d439af4d47f1fdde727b90863b4d09",
+    "size_bytes": 4140
   },
-  "vitis_hls": {
-    "command": [
-      "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat",
-      "-version"
-    ],
-    "returncode": 0,
-    "stdout": "ECHO is off.\nECHO is off.\nVitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.2 (64-bit)\nSW Build 4023990 on Oct 11 2023\nIP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\nTool Version Limit: 2023.10\nCopyright 1986-2022 Xilinx, Inc. All Rights Reserved.\nCopyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.\nSharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023",
-    "stderr": "",
-    "available": true,
-    "path": "F:\\vivado\\Vitis_HLS\\2023.2\\bin\\vitis_hls.bat"
-  },
-  "zcu104_target_probe": {
-    "status": "FAIL_TARGET_PART_UNAVAILABLE",
-    "target_part": "xczu7ev-ffvc1156-2-e",
-    "target_part_count": 0,
-    "expected_board_part": "xilinx.com:zcu104:part0:1.1",
-    "board_parts": [],
-    "command_returncode": 0,
-    "stdout": "ECHO is off.\nECHO is off.\n\n****** Vivado v2023.2 (64-bit)\n  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023\n  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\n  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023\n    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.\n    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.\n\nsource {C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zcu104_probe_0rvq4dsx\\probe_zcu104.tcl} -notrace\nCODEX_TARGET_PART_COUNT=0\nCODEX_BOARD_PARTS=\nINFO: [Common 17-206] Exiting Vivado at Sat Aug  8 16:28:46 2026...",
-    "stderr": ""
-  },
-  "campaign_execution_readiness": "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE",
-  "claim_boundary": "Tool presence and target-part visibility are environment preflight evidence. They are not HLS, route, bitstream, board-classification, latency, or power evidence."
+  "campaign_execution_readiness": "BLOCKED_REMOTE_TRAINING_ENV_AND_ZCU104_PL_POWER_OFF",
+  "claim_boundary": "The remote server is authoritative for training, FPGA tools, and ZCU104 connectivity. The local host is only the frozen control plane. Environment preflight is not HLS, route, bitstream, board-classification, latency, or power evidence."
 }

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-08T08:28:54.543195+00:00",
-  "baseline_status": "PASS",
-  "campaign_execution_status": "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE",
+  "generated_at": "2026-08-09T01:57:22.462487+00:00",
+  "baseline_status": "PENDING_SOURCE_FREEZE",
+  "campaign_execution_status": "NOT_READY_BASELINE_FREEZE_INCOMPLETE",
   "acceptance_gates": {
     "isolated_worktree": {
       "status": "PASS",
@@ -19,23 +19,11 @@
       "required_output": []
     },
     "source_freeze": {
-      "status": "PASS",
-      "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
-      "expected_file_count": 610,
-      "missing": [],
-      "unexpected": [],
-      "changed": [],
-      "manifest_sha256": "95f7fa171bebc3ce994850b0fd3a20f5a44a963c930afa19fefbebe6664e677d",
-      "frozen_git": {
-        "head": "dfd5dc2f3e0313b077d1905a4e781356bf2f7eab",
-        "branch": "codex/zcu104-full-campaign-v1",
-        "status_porcelain": []
-      },
-      "archive": {
-        "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
-        "bytes": 1679611,
-        "sha256": "640c3af7ced1ff56dfdbbb4d848ea35d4964ee96e7389efc1f852a84470add96"
-      }
+      "status": "PENDING",
+      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
+      "missing": null,
+      "unexpected": null,
+      "changed": null
     },
     "candidate_traceability": {
       "status": "PASS",
@@ -60,23 +48,58 @@
       "split_manifest_sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1"
     },
     "environment_versions": {
-      "status": "PASS",
-      "python": "3.13.3",
-      "pytorch": "2.7.0+cpu",
-      "vivado_available": true,
-      "vitis_hls_available": true
+      "status": "PASS_REMOTE_CAPTURED",
+      "execution_plane": "10.70.23.121:7889",
+      "base_python": "3.13.11",
+      "pytorch_environment": "PENDING_DEDICATED_ENVIRONMENT",
+      "gpu_count": 4,
+      "gpu_model": "NVIDIA GeForce RTX 5090",
+      "vivado": "2022.2",
+      "vitis_hls": "2022.2"
     },
     "zcu104_target_part": {
-      "status": "FAIL_TARGET_PART_UNAVAILABLE",
+      "status": "PASS",
+      "user_declared_board_model": "ZCU104",
       "target_part": "xczu7ev-ffvc1156-2-e",
-      "target_part_count": 0,
-      "expected_board_part": "xilinx.com:zcu104:part0:1.1",
-      "board_parts": [],
-      "command_returncode": 0,
-      "stdout": "ECHO is off.\nECHO is off.\n\n****** Vivado v2023.2 (64-bit)\n  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023\n  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023\n  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023\n    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.\n    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.\n\nsource {C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zcu104_probe_0rvq4dsx\\probe_zcu104.tcl} -notrace\nCODEX_TARGET_PART_COUNT=0\nCODEX_BOARD_PARTS=\nINFO: [Common 17-206] Exiting Vivado at Sat Aug  8 16:28:46 2026...",
-      "stderr": ""
+      "target_part_count": 1,
+      "board_part": "xilinx.com:zcu104:part0:1.1",
+      "board_parts": [
+        "xilinx.com:zcu104:part0:1.1"
+      ]
+    },
+    "physical_zcu104_connection": {
+      "status": "DETECTED_PL_POWER_OFF",
+      "usb": {
+        "vendor_product_id": "0403:6011",
+        "model": "Xilinx JTAG+3Serial / FT4232H",
+        "serial": "36708",
+        "uart_devices": [
+          "/dev/ttyUSB1",
+          "/dev/ttyUSB2",
+          "/dev/ttyUSB3"
+        ]
+      },
+      "vivado_hardware_manager": {
+        "hw_target": "localhost:3121/xilinx_tcf/Xilinx/366708A",
+        "device_count": 2,
+        "devices": [
+          {
+            "name": "xczu7_0",
+            "part": "xczu7"
+          },
+          {
+            "name": "arm_dap_1",
+            "part": "arm_dap"
+          }
+        ],
+        "warning": "xczu7_0 PL Power Status OFF, cannot connect PL TAP; check POR_B signal"
+      }
     }
   },
-  "next_required_action": "Install or register Vivado 2023.2 Zynq UltraScale+ device support so get_parts xczu7ev-ffvc1156-2-e returns exactly one part; then rerun this builder.",
-  "claim_boundary": "Baseline PASS means provenance is frozen and verifiable. Campaign execution remains blocked until the ZCU104 target part is visible; no hardware or power result is claimed."
+  "next_required_action": [
+    "Create and freeze a dedicated PyTorch CUDA environment on the server.",
+    "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
+    "Stage the frozen campaign source and SHA256-bound inputs under a dedicated remote experiment directory."
+  ],
+  "claim_boundary": "Baseline PASS means provenance and the remote execution topology are frozen. Training readiness, PL programming, HLS/route, board classification/latency, and measured power remain separate gates."
 }

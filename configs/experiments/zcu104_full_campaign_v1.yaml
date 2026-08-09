@@ -6,6 +6,22 @@ source:
   commit: cae9be4f01d1a55576bc4449b6b41680b4a889d9
   worktree: E:/1/hwnas/hwnas-zcu104-full-campaign-v1
   worktree_branch: codex/zcu104-full-campaign-v1
+execution_topology:
+  control_plane:
+    role: freeze_configuration_and_dispatch_only
+    worktree: E:/1/hwnas/hwnas-zcu104-full-campaign-v1
+  execution_plane:
+    role: training_hls_route_programming_and_board_runtime
+    transport: ssh
+    host: 10.70.23.121
+    port: 7889
+    username: jiajia
+    authentication: interactive_secret_not_persisted
+    remote_probe:
+      path: artifacts/zcu104_full_campaign_v1/remote_execution_probe_20260809.json
+      sha256: f09c6e87f270877ce78f1eb52051070126d439af4d47f1fdde727b90863b4d09
+      size_bytes: 4140
+  authoritative_hardware_environment: execution_plane
 protocol:
   name: nksid_outer5fold_inner_only_v2
   path: configs/evaluation/nksid_frozen_protocol_v2.yaml
@@ -89,6 +105,7 @@ hardware:
   - power_w
   - feasibility
   power_policy: external_meter_only_for_measured_power_claim
+  toolchain_source: remote_execution_plane
 environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
 status_record: artifacts/zcu104_full_campaign_v1/status.json
 claim_boundary: This config freezes campaign identity and inputs only. Search proxy, retraining, HLS,

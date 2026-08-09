@@ -24,6 +24,7 @@ CAMPAIGN_ID = "zcu104_full_campaign_v1"
 CAMPAIGN_CONFIG = REPO_ROOT / "configs" / "experiments" / f"{CAMPAIGN_ID}.yaml"
 ARTIFACT_ROOT = REPO_ROOT / "artifacts" / CAMPAIGN_ID
 SOURCE_BRANCH = "codex/sonar-fourstage-operator-closure"
+PINNED_SOURCE_COMMIT = "cae9be4f01d1a55576bc4449b6b41680b4a889d9"
 TARGET_PART = "xczu7ev-ffvc1156-2-e"
 EXPECTED_BOARD_PART = "xilinx.com:zcu104:part0:1.1"
 FOLD = 0
@@ -371,7 +372,37 @@ def probe_zcu104(vivado: Path) -> dict[str, Any]:
     }
 
 
-def capture_environment(args: argparse.Namespace) -> dict[str, Any]:
+def capture_environment(
+    args: argparse.Namespace,
+    remote_probe: dict[str, Any] | None,
+    remote_probe_record: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if remote_probe is not None:
+        return {
+            "schema_version": 2,
+            "campaign_id": CAMPAIGN_ID,
+            "generated_at": utc_now(),
+            "authoritative_execution_plane": "remote_server",
+            "control_plane": {
+                "role": "freeze_configuration_and_dispatch_only",
+                "platform": platform.platform(),
+                "python_version": sys.version,
+                "python_executable": sys.executable,
+                "fpga_toolchain_is_authoritative": False,
+            },
+            "execution_plane": remote_probe,
+            "remote_probe_record": remote_probe_record,
+            "campaign_execution_readiness": remote_probe["readiness"][
+                "campaign_execution_status"
+            ],
+            "claim_boundary": (
+                "The remote server is authoritative for training, FPGA tools, and ZCU104 "
+                "connectivity. The local host is only the frozen control plane. Environment "
+                "preflight is not HLS, route, bitstream, board-classification, latency, or "
+                "power evidence."
+            ),
+        }
+
     try:
         import torch
 
@@ -469,7 +500,11 @@ def verify_source_freeze(path: Path | None) -> dict[str, Any]:
     return verification
 
 
-def build_config(source_commit: str, inputs: dict[str, Any]) -> dict[str, Any]:
+def build_config(
+    source_commit: str,
+    inputs: dict[str, Any],
+    remote_probe_record: dict[str, Any] | None,
+) -> dict[str, Any]:
     candidates = []
     checkpoints = {row["arch_id"]: row for row in inputs["checkpoints"]}
     for candidate in inputs["candidates"]:
@@ -500,6 +535,22 @@ def build_config(source_commit: str, inputs: dict[str, Any]) -> dict[str, Any]:
             "commit": source_commit,
             "worktree": "E:/1/hwnas/hwnas-zcu104-full-campaign-v1",
             "worktree_branch": "codex/zcu104-full-campaign-v1",
+        },
+        "execution_topology": {
+            "control_plane": {
+                "role": "freeze_configuration_and_dispatch_only",
+                "worktree": "E:/1/hwnas/hwnas-zcu104-full-campaign-v1",
+            },
+            "execution_plane": {
+                "role": "training_hls_route_programming_and_board_runtime",
+                "transport": "ssh",
+                "host": "10.70.23.121",
+                "port": 7889,
+                "username": "jiajia",
+                "authentication": "interactive_secret_not_persisted",
+                "remote_probe": remote_probe_record,
+            },
+            "authoritative_hardware_environment": "execution_plane",
         },
         "protocol": {
             "name": "nksid_outer5fold_inner_only_v2",
@@ -553,6 +604,7 @@ def build_config(source_commit: str, inputs: dict[str, Any]) -> dict[str, Any]:
                 "feasibility",
             ],
             "power_policy": "external_meter_only_for_measured_power_claim",
+            "toolchain_source": "remote_execution_plane",
         },
         "environment_card": f"artifacts/{CAMPAIGN_ID}/environment_card.json",
         "status_record": f"artifacts/{CAMPAIGN_ID}/status.json",
@@ -570,6 +622,7 @@ def main() -> int:
         "--source-root",
         default=r"E:\1\hwnas\hwnas-sonar-fourstage-operator-closure",
     )
+    parser.add_argument("--source-commit", default=PINNED_SOURCE_COMMIT)
     parser.add_argument(
         "--vivado", default=r"F:\vivado\Vivado\2023.2\bin\vivado.bat"
     )
@@ -577,28 +630,39 @@ def main() -> int:
         "--vitis-hls", default=r"F:\vivado\Vitis_HLS\2023.2\bin\vitis_hls.bat"
     )
     parser.add_argument("--source-freeze-manifest")
+    parser.add_argument("--remote-probe")
     parser.add_argument("--skip-tool-probe", action="store_true")
     args = parser.parse_args()
 
     source_root = Path(args.source_root).resolve()
     if not source_root.is_dir():
         raise FileNotFoundError(source_root)
-    source_commit = git_text(source_root, "rev-parse", SOURCE_BRANCH)
-    source_branch_head = git_text(source_root, "rev-parse", "HEAD")
-    if source_commit != source_branch_head:
+    source_commit = git_text(source_root, "rev-parse", args.source_commit)
+    if source_commit != args.source_commit:
         raise RuntimeError(
-            f"source worktree HEAD {source_branch_head} does not match {SOURCE_BRANCH} {source_commit}"
+            f"resolved source commit {source_commit} does not match requested pin {args.source_commit}"
         )
 
     protocol_path = REPO_ROOT / "configs" / "evaluation" / "nksid_frozen_protocol_v2.yaml"
     expected_protocol_sha = "f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358"
     assert_hash(protocol_path, expected_protocol_sha, "Protocol V2")
 
+    remote_probe_path = Path(args.remote_probe).resolve() if args.remote_probe else None
+    remote_probe = None
+    remote_probe_record = None
+    if remote_probe_path is not None:
+        if not remote_probe_path.is_file():
+            raise FileNotFoundError(remote_probe_path)
+        remote_probe = json.loads(remote_probe_path.read_text(encoding="utf-8"))
+        if remote_probe.get("campaign_id") != CAMPAIGN_ID:
+            raise RuntimeError("remote probe campaign_id mismatch")
+        remote_probe_record = file_record(remote_probe_path, relative_to=REPO_ROOT)
+
     inputs = build_inputs(source_root)
-    config = build_config(source_commit, inputs)
+    config = build_config(source_commit, inputs, remote_probe_record)
     write_yaml(CAMPAIGN_CONFIG, config)
 
-    environment = capture_environment(args)
+    environment = capture_environment(args, remote_probe, remote_probe_record)
     write_json(ARTIFACT_ROOT / "environment_card.json", environment)
 
     freeze_path = (
@@ -651,6 +715,7 @@ def main() -> int:
             "path": protocol_path.relative_to(REPO_ROOT).as_posix(),
             "sha256": sha256_file(protocol_path),
         },
+        "execution_environment_probe": remote_probe_record,
         "source_freeze": source_freeze,
         "dataset": {
             "dataset_manifest": inputs["dataset_manifest"],
@@ -674,17 +739,55 @@ def main() -> int:
     }
     write_json(ARTIFACT_ROOT / "protocol_freeze.json", protocol_freeze)
 
-    environment_ready = environment["campaign_execution_readiness"] == "READY"
+    environment_ready = environment["campaign_execution_readiness"] in {
+        "READY",
+        "READY_TO_LAUNCH",
+    }
     baseline_pass = provenance_pass and source_freeze_pass
+    if remote_probe is not None:
+        execution_status = remote_probe["readiness"]["campaign_execution_status"]
+        environment_gate = {
+            "status": "PASS_REMOTE_CAPTURED",
+            "execution_plane": "10.70.23.121:7889",
+            "base_python": remote_probe["python_training_environment"][
+                "base_python_version"
+            ],
+            "pytorch_environment": remote_probe["python_training_environment"]["status"],
+            "gpu_count": len(remote_probe["accelerators"]["gpus"]),
+            "gpu_model": remote_probe["accelerators"]["gpus"][0]["model"],
+            "vivado": remote_probe["fpga_toolchain"]["vivado"]["version"],
+            "vitis_hls": remote_probe["fpga_toolchain"]["vitis_hls"]["version"],
+        }
+        target_gate = remote_probe["zcu104_catalog_probe"]
+        physical_gate = remote_probe["physical_board_probe"]
+        next_required_action: Any = remote_probe["readiness"]["next_required_actions"]
+    else:
+        execution_status = (
+            "READY_TO_LAUNCH"
+            if environment_ready
+            else "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE"
+        )
+        environment_gate = {
+            "status": "PASS" if not args.skip_tool_probe else "PENDING",
+            "python": sys.version.split()[0],
+            "pytorch": environment["pytorch"].get("version"),
+            "vivado_available": environment["vivado"].get("available"),
+            "vitis_hls_available": environment["vitis_hls"].get("available"),
+        }
+        target_gate = environment["zcu104_target_probe"]
+        physical_gate = {"status": "NOT_PROBED_LOCAL_FALLBACK"}
+        next_required_action = (
+            "Install or register Vivado Zynq UltraScale+ device support and repeat the probe."
+            if not environment_ready and not args.skip_tool_probe
+            else None
+        )
     status = {
         "schema_version": 1,
         "campaign_id": CAMPAIGN_ID,
         "generated_at": utc_now(),
         "baseline_status": "PASS" if baseline_pass else "PENDING_SOURCE_FREEZE",
         "campaign_execution_status": (
-            "READY_TO_LAUNCH" if baseline_pass and environment_ready
-            else "BLOCKED_ZCU104_DEVICE_SUPPORT_UNAVAILABLE" if baseline_pass
-            else "NOT_READY_BASELINE_FREEZE_INCOMPLETE"
+            execution_status if baseline_pass else "NOT_READY_BASELINE_FREEZE_INCOMPLETE"
         ),
         "acceptance_gates": {
             "isolated_worktree": {
@@ -718,25 +821,15 @@ def main() -> int:
                 "dataset_content_sha256": inputs["dataset_content_sha256"],
                 "split_manifest_sha256": inputs["split_manifest"]["sha256"],
             },
-            "environment_versions": {
-                "status": "PASS" if not args.skip_tool_probe else "PENDING",
-                "python": sys.version.split()[0],
-                "pytorch": environment["pytorch"].get("version"),
-                "vivado_available": environment["vivado"].get("available"),
-                "vitis_hls_available": environment["vitis_hls"].get("available"),
-            },
-            "zcu104_target_part": environment["zcu104_target_probe"],
+            "environment_versions": environment_gate,
+            "zcu104_target_part": target_gate,
+            "physical_zcu104_connection": physical_gate,
         },
-        "next_required_action": (
-            "Install or register Vivado 2023.2 Zynq UltraScale+ device support so "
-            f"get_parts {TARGET_PART} returns exactly one part; then rerun this builder."
-            if not environment_ready and not args.skip_tool_probe
-            else None
-        ),
+        "next_required_action": next_required_action,
         "claim_boundary": (
-            "Baseline PASS means provenance is frozen and verifiable. Campaign execution "
-            "remains blocked until the ZCU104 target part is visible; no hardware or power "
-            "result is claimed."
+            "Baseline PASS means provenance and the remote execution topology are frozen. "
+            "Training readiness, PL programming, HLS/route, board classification/latency, "
+            "and measured power remain separate gates."
         ),
     }
     write_json(ARTIFACT_ROOT / "status.json", status)

@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "captured_at": "2026-08-09T09:54:35+08:00",
+  "transport": {
+    "protocol": "ssh",
+    "host": "10.70.23.121",
+    "port": 7889,
+    "username": "jiajia",
+    "authentication": "interactive_secret_not_persisted",
+    "status": "PASS"
+  },
+  "host": {
+    "hostname": "inspur-NULL",
+    "operating_system": "Ubuntu 24.04.4 LTS",
+    "kernel": "Linux 7.0.0-28-generic x86_64",
+    "user": "jiajia",
+    "groups": [
+      "jiajia",
+      "dialout",
+      "users"
+    ],
+    "memory_total_gib": 251,
+    "memory_available_gib": 227,
+    "home_filesystem": {
+      "size": "3.5T",
+      "used": "3.2T",
+      "available": "155G",
+      "use_percent": 96
+    }
+  },
+  "accelerators": {
+    "status": "PASS_VISIBLE",
+    "driver_version": "580.159.03",
+    "gpus": [
+      {
+        "index": 0,
+        "model": "NVIDIA GeForce RTX 5090",
+        "memory_mib": 32607
+      },
+      {
+        "index": 1,
+        "model": "NVIDIA GeForce RTX 5090",
+        "memory_mib": 32607
+      },
+      {
+        "index": 2,
+        "model": "NVIDIA GeForce RTX 5090",
+        "memory_mib": 32607
+      },
+      {
+        "index": 3,
+        "model": "NVIDIA GeForce RTX 5090",
+        "memory_mib": 32607
+      }
+    ]
+  },
+  "python_training_environment": {
+    "base_python_version": "3.13.11",
+    "base_python_executable": "/opt/conda/bin/python3",
+    "base_pytorch_status": "NOT_INSTALLED",
+    "cuda_compiler_status": "NVCC_NOT_ON_PATH",
+    "dedicated_campaign_environment": "PENDING_CREATION_AND_FREEZE",
+    "status": "PENDING_DEDICATED_ENVIRONMENT"
+  },
+  "fpga_toolchain": {
+    "vivado": {
+      "path": "/opt/Xilinx/Vivado/2022.2/bin/vivado",
+      "version": "2022.2",
+      "sw_build": "3671981",
+      "ip_build": "3669848",
+      "status": "PASS"
+    },
+    "vitis_hls": {
+      "path": "/opt/Xilinx/Vitis_HLS/2022.2/bin/vitis_hls",
+      "version": "2022.2",
+      "sw_build": "3670227",
+      "ip_build": "3669848",
+      "status": "PASS"
+    },
+    "hw_server": {
+      "path": "/opt/Xilinx/Vivado/2022.2/bin/hw_server",
+      "listen": "127.0.0.1:3121",
+      "status": "RUNNING_LOCALHOST_ONLY"
+    }
+  },
+  "zcu104_catalog_probe": {
+    "status": "PASS",
+    "user_declared_board_model": "ZCU104",
+    "target_part": "xczu7ev-ffvc1156-2-e",
+    "target_part_count": 1,
+    "board_part": "xilinx.com:zcu104:part0:1.1",
+    "board_parts": [
+      "xilinx.com:zcu104:part0:1.1"
+    ]
+  },
+  "physical_board_probe": {
+    "status": "DETECTED_PL_POWER_OFF",
+    "usb": {
+      "vendor_product_id": "0403:6011",
+      "model": "Xilinx JTAG+3Serial / FT4232H",
+      "serial": "36708",
+      "uart_devices": [
+        "/dev/ttyUSB1",
+        "/dev/ttyUSB2",
+        "/dev/ttyUSB3"
+      ]
+    },
+    "vivado_hardware_manager": {
+      "hw_target": "localhost:3121/xilinx_tcf/Xilinx/366708A",
+      "device_count": 2,
+      "devices": [
+        {
+          "name": "xczu7_0",
+          "part": "xczu7"
+        },
+        {
+          "name": "arm_dap_1",
+          "part": "arm_dap"
+        }
+      ],
+      "warning": "xczu7_0 PL Power Status OFF, cannot connect PL TAP; check POR_B signal"
+    }
+  },
+  "readiness": {
+    "baseline_environment_status": "PASS_REMOTE_EXECUTION_PLANE_IDENTIFIED",
+    "training_status": "BLOCKED_DEDICATED_PYTORCH_CUDA_ENVIRONMENT_MISSING",
+    "fpga_catalog_status": "PASS",
+    "physical_board_status": "BLOCKED_PL_POWER_OFF",
+    "campaign_execution_status": "BLOCKED_REMOTE_TRAINING_ENV_AND_ZCU104_PL_POWER_OFF",
+    "next_required_actions": [
+      "Create and freeze a dedicated PyTorch CUDA environment on the server.",
+      "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
+      "Stage the frozen campaign source and SHA256-bound inputs under a dedicated remote experiment directory."
+    ]
+  },
+  "claim_boundary": "This proves remote server access, GPU visibility, FPGA tool versions, ZCU104 catalog support, and physical JTAG enumeration. It does not prove a usable training runtime, PL programming, HLS/route success, board classification, latency, or measured power."
+}
