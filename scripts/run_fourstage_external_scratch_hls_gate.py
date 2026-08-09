@@ -307,6 +307,21 @@ def git_output(*args: str) -> str:
     return completed.stdout.strip()
 
 
+def git_status_excluding(*paths: Path) -> list[str]:
+    """Return provenance dirt while excluding files produced by this invocation."""
+    excluded = {
+        path.resolve().relative_to(ROOT).as_posix()
+        for path in paths
+        if path.resolve().is_relative_to(ROOT)
+    }
+    rows = []
+    for row in git_output("status", "--porcelain=v1").splitlines():
+        status_path = row[3:].replace("\\", "/") if len(row) > 3 else ""
+        if status_path not in excluded:
+            rows.append(row)
+    return rows
+
+
 def probe_vitis_hls_version(vitis_hls: Path) -> dict[str, Any]:
     completed = subprocess.run(
         [str(vitis_hls), "-version"],
@@ -1107,7 +1122,7 @@ def main() -> int:
         "git": {
             "head": git_output("rev-parse", "HEAD"),
             "branch": git_output("branch", "--show-current"),
-            "status_porcelain": git_output("status", "--porcelain=v1").splitlines(),
+            "status_porcelain": git_status_excluding(summary_path),
         },
         "candidate_count": len(rows),
         "formal_candidate_count": formal_candidate_count,
