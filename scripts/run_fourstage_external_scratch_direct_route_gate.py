@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Direct-route a four-stage external-scratch HLS candidate without RTL co-sim.
 
-This is a board bring-up shortcut requested after the RTL co-simulation proved
-too slow for the current iteration.  It consumes an HLS summary whose candidate
-has C-sim/synthesis PASS evidence and runs Vivado out-of-context route on the
-generated HLS Verilog.
+This script is an engineering bring-up shortcut.  It consumes an HLS summary
+whose candidate has C-sim/synthesis PASS evidence and runs, or reuses, a Vivado
+out-of-context route on the generated HLS Verilog.
 
-Evidence boundary: a PASS here is *not* bit-exact RTL co-simulation parity and
-is not a deployable board bitstream.  It only answers whether the generated RTL
-can pass the post-route timing/resource gate.
+Evidence boundary: a PASS here is not bit-exact RTL co-simulation parity and is
+not a deployable board bitstream.  It only answers whether the generated RTL
+passes the post-route timing/resource gate in out-of-context Vivado route.
 """
 
 from __future__ import annotations
@@ -30,6 +29,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from hwnas_fpga.fourstage_selection import canonical_sha256  # noqa: E402
 from hwnas_fpga.training.protocol_reporting import sha256_file  # noqa: E402
 from run_fourstage_csim_gate import evidence, read_json, write_json  # noqa: E402
+from run_fourstage_hls_synthesis_gate import TARGET_CLOCK_NS, TARGET_PART  # noqa: E402
 from run_fourstage_hwc_parallel_route_gate import (  # noqa: E402
     DEFAULT_VIVADO,
     ROUTE_DSP_LIMIT,
@@ -37,7 +37,6 @@ from run_fourstage_hwc_parallel_route_gate import (  # noqa: E402
     route_tcl,
     run_vivado,
 )
-from run_fourstage_hls_synthesis_gate import TARGET_CLOCK_NS, TARGET_PART  # noqa: E402
 
 
 IMPLEMENTATION_STYLE = "external_scratch_pixel_tiled_v1"
@@ -70,6 +69,11 @@ def parse_args() -> argparse.Namespace:
         "--ack-skip-rtl-cosim",
         action="store_true",
         help="Required when --run-vivado is enabled; records the evidence downgrade.",
+    )
+    parser.add_argument(
+        "--reuse-existing-reports",
+        action="store_true",
+        help="Parse existing Vivado reports instead of launching Vivado again.",
     )
     return parser.parse_args()
 
@@ -116,12 +120,33 @@ def safe_remove(path: Path, allowed_root: Path) -> None:
     shutil.rmtree(resolved)
 
 
+def classify_route(
+    *,
+    timed_out: bool,
+    route_success: bool,
+    wns: Any,
+    dsp: Any,
+) -> tuple[str, str | None, bool, bool]:
+    wns_pass = wns is not None and float(wns) >= 0.0
+    dsp_pass = dsp is not None and int(dsp) <= ROUTE_DSP_LIMIT
+    if timed_out:
+        return "TIMEOUT", "EXTERNAL_SCRATCH_DIRECT_ROUTE_TIMEOUT", wns_pass, dsp_pass
+    if not route_success:
+        return "FAIL", "EXTERNAL_SCRATCH_DIRECT_ROUTE_VIVADO_FAIL", wns_pass, dsp_pass
+    if not wns_pass:
+        return "FAIL", "EXTERNAL_SCRATCH_DIRECT_ROUTE_WNS_FAIL", wns_pass, dsp_pass
+    if not dsp_pass:
+        return "FAIL", "EXTERNAL_SCRATCH_DIRECT_ROUTE_DSP_FAIL", wns_pass, dsp_pass
+    return "PASS", None, wns_pass, dsp_pass
+
+
 def run_one(
     candidate: dict[str, Any],
     *,
     output_root: Path,
     vivado: Path,
     run_vivado_flag: bool,
+    reuse_existing_reports: bool,
     force: bool,
     timeout_minutes: int,
 ) -> dict[str, Any]:
@@ -137,7 +162,7 @@ def run_one(
         raise RuntimeError(f"{candidate['arch_id']}: source csynth SHA mismatch")
 
     role_dir = output_root / str(candidate["role"])
-    if role_dir.exists() and force:
+    if role_dir.exists() and force and not reuse_existing_reports:
         safe_remove(role_dir, output_root)
     role_dir.mkdir(parents=True, exist_ok=True)
     for data_file in rtl_dir.glob("*.dat"):
@@ -147,6 +172,7 @@ def run_one(
     vivado_out = role_dir / "vivado_ooc_route"
     reports = vivado_out / "reports"
     tcl.write_text(route_tcl(rtl_dir=rtl_dir, out_dir=vivado_out), encoding="utf-8")
+    log_path = role_dir / "vivado_ooc_route.log"
     base = {
         "role": candidate["role"],
         "arch_id": candidate["arch_id"],
@@ -165,18 +191,19 @@ def run_one(
         },
         "rtl_cosim": {
             "status": "SKIPPED_FOR_BOARD_BRINGUP",
-            "claim_boundary": "未做逐位一致的硬件电路联合仿真证明。",
+            "claim_boundary": "No bit-exact RTL co-simulation parity is claimed.",
         },
         "timeout_minutes": int(timeout_minutes),
         "bitstream": {
             "status": "NOT_GENERATED_OOC_ROUTE_ONLY",
-            "reason": "当前只布线裸 HLS 顶层，还没有板级封装。",
+            "reason": "The generated HLS RTL is not wrapped in a board harness yet.",
         },
     }
-    if not run_vivado_flag:
+    if not run_vivado_flag and not reuse_existing_reports:
         return {
             **base,
             "status": "NOT_RUN",
+            "vivado_execution": "NOT_RUN",
             "vivado_returncode": None,
             "failure_category": None,
             "vivado_log": None,
@@ -184,36 +211,41 @@ def run_one(
             "metrics": None,
         }
 
-    log_path = role_dir / "vivado_ooc_route.log"
-    returncode, log_path, timed_out = run_vivado(
-        vivado=vivado,
-        work_dir=role_dir,
-        tcl_path_=tcl,
-        log_path=log_path,
-        timeout_minutes=timeout_minutes,
-    )
+    timed_out = False
+    returncode: int | None = None
+    if reuse_existing_reports:
+        if not log_path.is_file():
+            raise RuntimeError(f"{candidate['arch_id']}: existing Vivado log missing: {log_path}")
+        vivado_execution = "REUSED_EXISTING_REPORTS"
+    else:
+        returncode, log_path, timed_out = run_vivado(
+            vivado=vivado,
+            work_dir=role_dir,
+            tcl_path_=tcl,
+            log_path=log_path,
+            timeout_minutes=timeout_minutes,
+        )
+        vivado_execution = "RAN_VIVADO"
+
     metrics = parse_reports(reports)
     timing = (metrics or {}).get("timing") or {}
     util = (metrics or {}).get("utilization") or {}
     wns = timing.get("setup_wns_ns")
     dsp = util.get("dsp")
-    route_success = returncode == 0 and metrics is not None
-    wns_pass = wns is not None and float(wns) >= 0.0
-    dsp_pass = dsp is not None and int(dsp) <= ROUTE_DSP_LIMIT
-    if timed_out:
-        status, failure = "TIMEOUT", "EXTERNAL_SCRATCH_DIRECT_ROUTE_TIMEOUT"
-    elif not route_success:
-        status, failure = "FAIL", "EXTERNAL_SCRATCH_DIRECT_ROUTE_VIVADO_FAIL"
-    elif not wns_pass:
-        status, failure = "FAIL", "EXTERNAL_SCRATCH_DIRECT_ROUTE_WNS_FAIL"
-    elif not dsp_pass:
-        status, failure = "FAIL", "EXTERNAL_SCRATCH_DIRECT_ROUTE_DSP_FAIL"
-    else:
-        status, failure = "PASS", None
+    route_success = (
+        metrics is not None if reuse_existing_reports else returncode == 0 and metrics is not None
+    )
+    status, failure, wns_pass, dsp_pass = classify_route(
+        timed_out=timed_out,
+        route_success=route_success,
+        wns=wns,
+        dsp=dsp,
+    )
     return {
         **base,
         "status": status,
-        "vivado_returncode": int(returncode),
+        "vivado_execution": vivado_execution,
+        "vivado_returncode": returncode,
         "failure_category": failure,
         "vivado_log": evidence(log_path),
         "acceptance": {
@@ -226,8 +258,9 @@ def run_one(
         },
         "metrics": metrics,
         "claim_boundary": (
-            "跳过联合仿真的脱离板子布线证据；不是硬件逐位一致证明、"
-            "不是可上板比特流、不是板级运行或实测功耗。"
+            "Out-of-context direct route with RTL co-simulation skipped. "
+            "This is not bit-exact RTL parity, a board bitstream, a board run, "
+            "or measured power."
         ),
     }
 
@@ -244,7 +277,7 @@ def main() -> int:
     candidates, formal_count = selected_candidates(
         hls_summary, {str(role) for role in args.role}, args.candidate_limit
     )
-    if args.run_vivado and not vivado.is_file():
+    if args.run_vivado and not args.reuse_existing_reports and not vivado.is_file():
         payload = {
             "schema_version": 1,
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -264,6 +297,7 @@ def main() -> int:
             output_root=output_root,
             vivado=vivado,
             run_vivado_flag=bool(args.run_vivado),
+            reuse_existing_reports=bool(args.reuse_existing_reports),
             force=bool(args.force),
             timeout_minutes=int(args.timeout_minutes),
         )
@@ -277,7 +311,7 @@ def main() -> int:
         and len(rows) == formal_count
         and hls_formal
     )
-    if not bool(args.run_vivado):
+    if not bool(args.run_vivado) and not bool(args.reuse_existing_reports):
         status = "NOT_RUN"
     elif formal_scope and rows_pass:
         status = "PASS"
@@ -311,7 +345,7 @@ def main() -> int:
         "selected_roles": [row.get("role") for row in candidates],
         "rtl_cosim": {
             "status": "SKIPPED_FOR_BOARD_BRINGUP",
-            "claim_boundary": "未做逐位一致的硬件电路联合仿真证明。",
+            "claim_boundary": "No bit-exact RTL co-simulation parity is claimed.",
         },
         "candidates": rows,
         "downstream_gates": {
@@ -324,8 +358,9 @@ def main() -> int:
             "external_meter_power": "NOT_MEASURED",
         },
         "claim_boundary": (
-            "这是为推进上板而跳过联合仿真的直接布线证据。它不能证明硬件"
-            "输出与软件参考逐位一致，也不能单独代表可上板比特流。"
+            "Direct route was used to prioritize board bring-up after RTL "
+            "co-simulation was skipped. This does not prove bit-exact RTL "
+            "parity and does not by itself produce a deployable board bitstream."
         ),
     }
     payload["payload_sha256"] = canonical_sha256(payload)
