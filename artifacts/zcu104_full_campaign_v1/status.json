@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T01:59:49.067238+00:00",
-  "baseline_status": "PASS",
-  "campaign_execution_status": "BLOCKED_REMOTE_TRAINING_ENV_AND_ZCU104_PL_POWER_OFF",
+  "generated_at": "2026-08-09T02:28:33.551915+00:00",
+  "baseline_status": "PENDING_SOURCE_FREEZE",
+  "campaign_execution_status": "NOT_READY_BASELINE_FREEZE_INCOMPLETE",
   "acceptance_gates": {
     "isolated_worktree": {
       "status": "PASS",
@@ -19,12 +19,26 @@
       "required_output": []
     },
     "source_freeze": {
-      "status": "PASS",
+      "status": "FAIL",
       "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+      "content_source": "worktree",
       "expected_file_count": 610,
       "missing": [],
-      "unexpected": [],
-      "changed": [],
+      "unexpected": [
+        ".gitattributes"
+      ],
+      "changed": [
+        {
+          "path": "configs/experiments/zcu104_full_campaign_v1.yaml",
+          "expected": "7a0aeda9e111d66a362951a6f69e18997e9cd109da210cc7baf2db65ffd09f52",
+          "actual": "c26db4a5273ecf2fed860bab2f0763db0bc59f1dffb5fb32e7d7465de154202c"
+        },
+        {
+          "path": "scripts/freeze_experiment_source.py",
+          "expected": "4b45fca2dfcbdefa8be398c5ebfaa1ce84f8a50b8d40bb405b90325c1f46b1b7",
+          "actual": "c18168b17cfd95f39fd6586f2cabc88bc02000bb3700fca595d53503c1c9759a"
+        }
+      ],
       "manifest_sha256": "bbc596e9253656356ab626bd9e381d991c876164c0b57a5347c531d495366ea0",
       "frozen_git": {
         "head": "38626e4d34e0334b2904c5686506551bde914847",
@@ -63,7 +77,7 @@
       "status": "PASS_REMOTE_CAPTURED",
       "execution_plane": "10.70.23.121:7889",
       "base_python": "3.13.11",
-      "pytorch_environment": "PENDING_DEDICATED_ENVIRONMENT",
+      "pytorch_environment": "PASS_READY",
       "gpu_count": 4,
       "gpu_model": "NVIDIA GeForce RTX 5090",
       "vivado": "2022.2",
@@ -109,9 +123,8 @@
     }
   },
   "next_required_action": [
-    "Create and freeze a dedicated PyTorch CUDA environment on the server.",
     "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
-    "Stage the frozen campaign source and SHA256-bound inputs under a dedicated remote experiment directory."
+    "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training."
   ],
   "claim_boundary": "Baseline PASS means provenance and the remote execution topology are frozen. Training readiness, PL programming, HLS/route, board classification/latency, and measured power remain separate gates."
 }
