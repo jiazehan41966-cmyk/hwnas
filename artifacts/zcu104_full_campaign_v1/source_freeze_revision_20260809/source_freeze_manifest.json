@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-09T04:12:28.288236+00:00",
+  "generated_at": "2026-08-09T04:39:44.896356+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
   "content_source": "git-head",
   "git": {
-    "head": "916211a95be5a9c08caff5560c26328edc83690e",
+    "head": "8f36e3daac747bbf01053e0a73b9c8a4b39451ae",
     "branch": "codex/zcu104-full-campaign-v1",
     "status_porcelain": []
   },
@@ -24,7 +24,7 @@
     "hls_lut_builder/board_harness/results/"
   ],
   "extras": [],
-  "file_count": 617,
+  "file_count": 618,
   "files": [
     {
       "path": ".gitattributes",
@@ -213,8 +213,8 @@
     },
     {
       "path": "configs/experiments/zcu104_full_campaign_v1.yaml",
-      "bytes": 7811,
-      "sha256": "ab3e5d7b70294fbb7f0e3190039bb5df39d1f7c37e1cfb236913ca9e3f0f56f9"
+      "bytes": 7804,
+      "sha256": "f93696d795ac6aa84894f2e7ab8009851bc92289a2f8c5d074610e1b16c55717"
     },
     {
       "path": "configs/hardware/alinx_av7k325.yaml",
@@ -888,8 +888,8 @@
     },
     {
       "path": "hls_lut_builder/board_harness/configs/board_zcu104.yaml",
-      "bytes": 1646,
-      "sha256": "b850b1cddf25ec23abf1d61b8c98d862664032b12f0e5ff16c47993e16655ad6"
+      "bytes": 2069,
+      "sha256": "53fec2ac9b1839d056b787769175f5eebc82e0a88009577d631007f62a3436f2"
     },
     {
       "path": "hls_lut_builder/board_harness/configs/harness_defaults.yaml",
@@ -1728,8 +1728,8 @@
     },
     {
       "path": "scripts/build_zcu104_full_campaign_baseline.py",
-      "bytes": 37906,
-      "sha256": "78ec2df3fada6146ca86ce28d55a68e436c1cc3bddf877aeb0459888ea4e44cb"
+      "bytes": 38377,
+      "sha256": "fa97b0e1d686c68ebdc39901514092e561e5153063affde7f6ae147b12213711"
     },
     {
       "path": "scripts/build_zcu104_hls_input_bundle.py",
@@ -1745,6 +1745,11 @@
       "path": "scripts/capture_benchmark_environments.py",
       "bytes": 5025,
       "sha256": "b9fe9e4096af0563a49193d6ed2897c3bdf6143feb35a86196488205c6fd4800"
+    },
+    {
+      "path": "scripts/capture_zcu104_onboard_power.py",
+      "bytes": 6463,
+      "sha256": "c20ed291ad09904e713f529c3883346d3a51d271511c1d1e24caa2fc5f838726"
     },
     {
       "path": "scripts/collect_proxy_reliability_observations.py",
@@ -1888,8 +1893,8 @@
     },
     {
       "path": "scripts/generate_zcu104_platform.py",
-      "bytes": 9179,
-      "sha256": "441d5b11db95ff422b8a75845bc1a6c66770fa20e3777b490c067e3097593206"
+      "bytes": 9316,
+      "sha256": "37fe6118adaa63f9d2232798b92f4682f65be3a27f50c64bfbb9607587761031"
     },
     {
       "path": "scripts/hwnas_gap_acceptance_audit.py",
@@ -2488,8 +2493,8 @@
     },
     {
       "path": "src/hwnas_fpga/hardware/power_measurement.py",
-      "bytes": 14830,
-      "sha256": "c07354cc5ce3d28c74eeef844d685258485bdb15433d1646daef6917457ffd98"
+      "bytes": 18548,
+      "sha256": "11ffbc09e15b81c065a51fbd91069c38ff08885b16eba2ccb70e2ffc1634646f"
     },
     {
       "path": "src/hwnas_fpga/hardware/report_parser.py",
@@ -3098,8 +3103,8 @@
     },
     {
       "path": "tests/test_zcu104_support.py",
-      "bytes": 9111,
-      "sha256": "2f4daf3282ee47c26fa7adc196444cbfdb311831fa57ff34c82021b77e204595"
+      "bytes": 11231,
+      "sha256": "84cb93825648ef54825ea4b98da0a0f395e7fb4afe295c978e5da06dc470cd0c"
     },
     {
       "path": "tight_setup_hold_pins.txt",
@@ -3114,7 +3119,7 @@
   ],
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
-    "bytes": 1690385,
-    "sha256": "bcf2892e4f4c11b86e8f6ae5ce550ff5224f14c5139f037b8c56a63014366be4"
+    "bytes": 1694506,
+    "sha256": "0cd26f4a700c520cecedba5431b3ba4553df4555e6f6f2ddb9c47ab0d88429d5"
   }
 }

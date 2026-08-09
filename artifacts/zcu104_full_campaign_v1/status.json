@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T04:15:15.142166+00:00",
+  "generated_at": "2026-08-09T04:40:36.120670+00:00",
   "baseline_status": "PASS",
   "campaign_execution_status": "IMPLEMENTATION_IN_PROGRESS",
   "execution_lanes": {
     "provenance_and_inputs": "PASS",
     "remote_hls_route_toolchain_2022_2": "READY_NOT_EXECUTED",
     "physical_zcu104": "DETECTED_PL_POWER_OFF",
-    "external_power_meter": "NOT_DETECTED"
+    "onboard_power_interface": "PENDING_READOUT"
   },
   "acceptance_gates": {
     "isolated_worktree": {
@@ -28,20 +28,20 @@
       "status": "PASS",
       "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_freeze_manifest.json",
       "content_source": "git-head",
-      "expected_file_count": 617,
+      "expected_file_count": 618,
       "missing": [],
       "unexpected": [],
       "changed": [],
-      "manifest_sha256": "f5ed9655cd0764c93055546857171427f273bd2a3f50afe3ee87ae97101a8825",
+      "manifest_sha256": "7ccb3befb1a8581180b8daabcc3687068b10359f728fd632778f3ae1317b73ae",
       "frozen_git": {
-        "head": "916211a95be5a9c08caff5560c26328edc83690e",
+        "head": "8f36e3daac747bbf01053e0a73b9c8a4b39451ae",
         "branch": "codex/zcu104-full-campaign-v1",
         "status_porcelain": []
       },
       "archive": {
         "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
-        "bytes": 1690385,
-        "sha256": "bcf2892e4f4c11b86e8f6ae5ce550ff5224f14c5139f037b8c56a63014366be4"
+        "bytes": 1694506,
+        "sha256": "0cd26f4a700c520cecedba5431b3ba4553df4555e6f6f2ddb9c47ab0d88429d5"
       }
     },
     "candidate_traceability": {
@@ -137,14 +137,18 @@
       "bitstream": "PENDING",
       "board_full_sample_zero_mismatch": "PENDING"
     },
-    "external_board_input_power": {
-      "status": "NOT_MEASURED"
+    "zcu104_vcc12_onboard_power": {
+      "status": "NOT_MEASURED",
+      "measurement_source": "zcu104_vcc12_ina226_i2c",
+      "rail_scope": "board_input_total_12v",
+      "capture_script": "scripts/capture_zcu104_onboard_power.py"
     }
   },
   "next_required_action": [
     "Transfer the corrected branch and portable HLS input bundle to the short Linux campaign path, then run all four external-scratch candidates with Vitis HLS 2022.2 on xczu7ev-ffvc1156-2-e.",
     "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
-    "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training."
+    "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training.",
+    "After the ZCU104 boots, verify the U183 VCC12 INA226 hwmon node (PS I2C1, mux 0x74 channel 3, sensor 0x40) and run three idle/active captures per candidate."
   ],
   "claim_boundary": "Baseline and portable-input PASS prove traceability and source generation only. HLS 2022.2, RTL co-sim, route, bitstream, board full-sample zero mismatch, latency, and measured power remain separate pending gates."
 }
