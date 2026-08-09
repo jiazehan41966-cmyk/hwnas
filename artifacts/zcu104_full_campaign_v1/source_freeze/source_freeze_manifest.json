@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-08T08:27:56.640094+00:00",
+  "generated_at": "2026-08-09T01:59:44.008130+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
   "git": {
-    "head": "dfd5dc2f3e0313b077d1905a4e781356bf2f7eab",
+    "head": "38626e4d34e0334b2904c5686506551bde914847",
     "branch": "codex/zcu104-full-campaign-v1",
     "status_porcelain": []
   },
@@ -207,8 +207,8 @@
     },
     {
       "path": "configs/experiments/zcu104_full_campaign_v1.yaml",
-      "bytes": 4532,
-      "sha256": "0e2361b1d0c0c35c6e9fc7c0d3ac1339eefdf9120d7db6eb90c19a525eba7ced"
+      "bytes": 5199,
+      "sha256": "7a0aeda9e111d66a362951a6f69e18997e9cd109da210cc7baf2db65ffd09f52"
     },
     {
       "path": "configs/hardware/alinx_av7k325.yaml",
@@ -1712,8 +1712,8 @@
     },
     {
       "path": "scripts/build_zcu104_full_campaign_baseline.py",
-      "bytes": 28094,
-      "sha256": "52402b443c146da7e354943a0bc31da66719b4376f7bbc9cc0c847ee258c5fbc"
+      "bytes": 32194,
+      "sha256": "faf714916bde3f0949545f3d29e976e319c8bab8abb4a6d52ffeebd9d73d2191"
     },
     {
       "path": "scripts/calibrate_hw_surrogate.py",
@@ -3078,7 +3078,7 @@
   ],
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
-    "bytes": 1679611,
-    "sha256": "640c3af7ced1ff56dfdbbb4d848ea35d4964ee96e7389efc1f852a84470add96"
+    "bytes": 1680748,
+    "sha256": "5903c34f637fcfd60500762f02b1fe15bc5b3802812b5f0955b1a7359a3bf2dc"
   }
 }

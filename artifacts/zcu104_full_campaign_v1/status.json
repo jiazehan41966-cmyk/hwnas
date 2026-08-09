@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T01:57:22.462487+00:00",
-  "baseline_status": "PENDING_SOURCE_FREEZE",
-  "campaign_execution_status": "NOT_READY_BASELINE_FREEZE_INCOMPLETE",
+  "generated_at": "2026-08-09T01:59:49.067238+00:00",
+  "baseline_status": "PASS",
+  "campaign_execution_status": "BLOCKED_REMOTE_TRAINING_ENV_AND_ZCU104_PL_POWER_OFF",
   "acceptance_gates": {
     "isolated_worktree": {
       "status": "PASS",
@@ -19,11 +19,23 @@
       "required_output": []
     },
     "source_freeze": {
-      "status": "PENDING",
-      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
-      "missing": null,
-      "unexpected": null,
-      "changed": null
+      "status": "PASS",
+      "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+      "expected_file_count": 610,
+      "missing": [],
+      "unexpected": [],
+      "changed": [],
+      "manifest_sha256": "bbc596e9253656356ab626bd9e381d991c876164c0b57a5347c531d495366ea0",
+      "frozen_git": {
+        "head": "38626e4d34e0334b2904c5686506551bde914847",
+        "branch": "codex/zcu104-full-campaign-v1",
+        "status_porcelain": []
+      },
+      "archive": {
+        "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
+        "bytes": 1680748,
+        "sha256": "5903c34f637fcfd60500762f02b1fe15bc5b3802812b5f0955b1a7359a3bf2dc"
+      }
     },
     "candidate_traceability": {
       "status": "PASS",

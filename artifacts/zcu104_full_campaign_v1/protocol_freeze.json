@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T01:57:22.350029+00:00",
-  "status": "PENDING_SOURCE_FREEZE",
+  "generated_at": "2026-08-09T01:59:48.932631+00:00",
+  "status": "PASS",
   "git": {
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
     "campaign_branch": "codex/zcu104-full-campaign-v1",
-    "campaign_head_at_generation": "04f1d50d757551fbf2e86d4364abb4673f52f458"
+    "campaign_head_at_generation": "38626e4d34e0334b2904c5686506551bde914847"
   },
   "protocol": {
     "path": "configs/evaluation/nksid_frozen_protocol_v2.yaml",
@@ -19,11 +19,23 @@
     "size_bytes": 4140
   },
   "source_freeze": {
-    "status": "PENDING",
-    "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze/source_freeze_manifest.json",
-    "missing": null,
-    "unexpected": null,
-    "changed": null
+    "status": "PASS",
+    "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_freeze_manifest.json",
+    "expected_file_count": 610,
+    "missing": [],
+    "unexpected": [],
+    "changed": [],
+    "manifest_sha256": "bbc596e9253656356ab626bd9e381d991c876164c0b57a5347c531d495366ea0",
+    "frozen_git": {
+      "head": "38626e4d34e0334b2904c5686506551bde914847",
+      "branch": "codex/zcu104-full-campaign-v1",
+      "status_porcelain": []
+    },
+    "archive": {
+      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze\\source_snapshot.zip",
+      "bytes": 1680748,
+      "sha256": "5903c34f637fcfd60500762f02b1fe15bc5b3802812b5f0955b1a7359a3bf2dc"
+    }
   },
   "dataset": {
     "dataset_manifest": {
