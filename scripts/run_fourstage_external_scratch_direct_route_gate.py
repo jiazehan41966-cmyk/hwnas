@@ -89,6 +89,15 @@ def git_output(*args: str) -> str:
     return completed.stdout.strip()
 
 
+def git_status_excluding(path: Path) -> list[str]:
+    try:
+        rel = path.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        rel = path.name
+    rows = git_output("status", "--porcelain=v1").splitlines()
+    return [row for row in rows if row[3:].replace("\\", "/") != rel]
+
+
 def selected_candidates(
     hls_summary: dict[str, Any], roles: set[str], limit: int | None
 ) -> tuple[list[dict[str, Any]], int]:
@@ -336,7 +345,7 @@ def main() -> int:
         "git": {
             "head": git_output("rev-parse", "HEAD"),
             "branch": git_output("branch", "--show-current"),
-            "status_porcelain": git_output("status", "--porcelain=v1").splitlines(),
+            "status_porcelain": git_status_excluding(summary_path),
         },
         "candidate_count": len(rows),
         "formal_candidate_count": formal_count,
