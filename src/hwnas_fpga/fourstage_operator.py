@@ -31,6 +31,20 @@ EXTENDED_STAGE4_CHOICES = (
 )
 STAGE4_K5_CHOICE = "mbconv_k5_e3"
 MECHANISM_CONTROL = "split_dw3_control"
+RAW20_STAGE4_CHOICES = (
+    "skip",
+    "mbconv_k3_e3",
+    "mbconv_k5_e3",
+    "fused_mbconv_e3",
+    "ghost_bottleneck",
+)
+RAW20_STAGE4_LABELS = {
+    "skip": "Skip",
+    "mbconv_k3_e3": "MBConv-k3-e3",
+    "mbconv_k5_e3": "MBConv-k5-e3",
+    "fused_mbconv_e3": "Fused-MBConv-e3",
+    "ghost_bottleneck": "Ghost-Bottleneck",
+}
 
 
 @dataclass(frozen=True)
@@ -63,6 +77,14 @@ def build_fourstage_architecture(
     elif stage4_key == STAGE4_K5_CHOICE:
         stage4_block = BlockSpec(
             op="mbconv", kernel_size=5, expand_ratio=3, stride=1
+        )
+    elif stage4_key == "fused_mbconv_e3":
+        stage4_block = BlockSpec(
+            op="fused_mbconv", kernel_size=3, expand_ratio=3, stride=1
+        )
+    elif stage4_key == "ghost_bottleneck":
+        stage4_block = BlockSpec(
+            op="ghost_bottleneck", kernel_size=3, expand_ratio=3, stride=1
         )
     elif stage4_key == "dir_mbconv3_split11_e3_v1":
         stage4_block = BlockSpec(
@@ -198,6 +220,35 @@ def enumerate_extended(
     return tuple(rows)
 
 
+def enumerate_raw20() -> tuple[FourStageFactorRow, ...]:
+    """Enumerate the frozen 4 x 5 RAW search-space candidates.
+
+    This is the current block-level operator candidate space only.  It keeps the
+    historical 12/16-row Dir experiment intact and excludes eliminated or future
+    research operators from the active space.
+    """
+
+    rows: list[FourStageFactorRow] = []
+    for stage2_name, kernel, expansion in STAGE2_CHOICES:
+        for stage4 in RAW20_STAGE4_CHOICES:
+            rows.append(
+                FourStageFactorRow(
+                    arch_id=f"fourstage_s2_{stage2_name}_s4_{stage4}",
+                    kernel=kernel,
+                    expansion=expansion,
+                    stage4=RAW20_STAGE4_LABELS[stage4],
+                    architecture=build_fourstage_architecture(
+                        stage2_kernel=kernel,
+                        stage2_expansion=expansion,
+                        stage4_op=stage4,
+                    ),
+                )
+            )
+    if len(rows) != 20:
+        raise AssertionError(f"RAW20 enumeration must contain 20 rows")
+    return tuple(rows)
+
+
 def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
     errors: list[str] = []
     if architecture.input_channels != 1:
@@ -251,6 +302,18 @@ def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
             ),
             BlockSpec(
                 op="split_dw3_control",
+                kernel_size=3,
+                expand_ratio=3,
+                stride=1,
+            ),
+            BlockSpec(
+                op="fused_mbconv",
+                kernel_size=3,
+                expand_ratio=3,
+                stride=1,
+            ),
+            BlockSpec(
+                op="ghost_bottleneck",
                 kernel_size=3,
                 expand_ratio=3,
                 stride=1,

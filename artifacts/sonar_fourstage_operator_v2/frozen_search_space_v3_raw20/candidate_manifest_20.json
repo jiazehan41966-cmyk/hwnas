@@ -1,0 +1,1629 @@
+{
+  "candidate_count": 20,
+  "payload_sha256": "ae77c33d1f90190d480b4fa87098f04dc07aafd00c896174693de519a684e881",
+  "rows": [
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_skip",
+      "architecture_sha256": "d900357ca51bcc483213b2b0e0868728ad93e8e70600c94e06f81d1d8a5762b4",
+      "candidate_index": 1,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "architecture_sha256": "f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98",
+      "candidate_index": 2,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_mbconv_k5_e3",
+      "architecture_sha256": "df4762b92ee8ed9423a1f2c2c093c728d8687cb4b27f881539d5acc63b21a2f1",
+      "candidate_index": 3,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "fused_mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_fused_mbconv_e3",
+      "architecture_sha256": "71b07785c677b6cda5bab7807ef74544fe10372abdb40d5588e1007eb06637df",
+      "candidate_index": 4,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "fused_mbconv_e3",
+        "op_name": "Fused-MBConv-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "ghost_bottleneck",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_ghost_bottleneck",
+      "architecture_sha256": "25bf5b45ebf8245de1ac904c96171adaf98fa5f9a7158ac94d66c18934a4ad18",
+      "candidate_index": 5,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "ghost_bottleneck",
+        "op_name": "Ghost-Bottleneck"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_skip",
+      "architecture_sha256": "11ef7c5193b0f31f3a58f5a277698a23cfccb65c12110c46cb4dc8f1a6818df0",
+      "candidate_index": 6,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+      "architecture_sha256": "cad054d5706c8e30a32b655981b5fea4446af428010b498cb07aadc1d4a23a7a",
+      "candidate_index": 7,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_mbconv_k5_e3",
+      "architecture_sha256": "aea0c521cd72e8b6db44f4231a3c0997001a16913cd30e7d9435224d1f4c1da0",
+      "candidate_index": 8,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "fused_mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_fused_mbconv_e3",
+      "architecture_sha256": "50f31302b263c3e95783f59ddf757e0448919b4157843e2d70bdf0141ac6c4b6",
+      "candidate_index": 9,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "fused_mbconv_e3",
+        "op_name": "Fused-MBConv-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "ghost_bottleneck",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_ghost_bottleneck",
+      "architecture_sha256": "0c78f547df67927f04cec20769e8385800e6c55e25e5c5e9bd2b322301e05ac7",
+      "candidate_index": 10,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "ghost_bottleneck",
+        "op_name": "Ghost-Bottleneck"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_skip",
+      "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9",
+      "candidate_index": 11,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+      "architecture_sha256": "6e01d4ef53a838ed82d0f61d59c5e8f9f52bb2e1f82ab337d1f05248f7c7bc8f",
+      "candidate_index": 12,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "architecture_sha256": "ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d",
+      "candidate_index": 13,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "fused_mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_fused_mbconv_e3",
+      "architecture_sha256": "46e7f28887e8c25d11615c0eb4439c7f3981c085ac4cfb1102ced171255a1a2c",
+      "candidate_index": 14,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "fused_mbconv_e3",
+        "op_name": "Fused-MBConv-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "ghost_bottleneck",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_ghost_bottleneck",
+      "architecture_sha256": "925580d3eb74170105c7e369a5610ad2ee55fb1e60228aabc4fb40200eec05d3",
+      "candidate_index": 15,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "ghost_bottleneck",
+        "op_name": "Ghost-Bottleneck"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_skip",
+      "architecture_sha256": "1fb67b177b483b8aabce6717ddc5109ea9d331e797ca0f4f6463d43ee409bfcd",
+      "candidate_index": 16,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "architecture_sha256": "9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d",
+      "candidate_index": 17,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_mbconv_k5_e3",
+      "architecture_sha256": "c098d28a661777dc8454f5fa5af7b9ca4f3db3792e527a3c8d680bf3fb54c6a9",
+      "candidate_index": 18,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "fused_mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_fused_mbconv_e3",
+      "architecture_sha256": "3452f6d1ec4e1458488ce54d710db6db0bfbf1891ed59f5ccf12b7506fff0ada",
+      "candidate_index": 19,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "fused_mbconv_e3",
+        "op_name": "Fused-MBConv-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "ghost_bottleneck",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_ghost_bottleneck",
+      "architecture_sha256": "125eb9cdd2188286072eabe6072b3eb1592de0bb90fde8283ce78c6cc23ea36a",
+      "candidate_index": 20,
+      "claim_boundary": "Search-space definition only; no training, hardware-cost measurement, HLS, route, board, bitstream, or power evidence.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "ghost_bottleneck",
+        "op_name": "Ghost-Bottleneck"
+      }
+    }
+  ],
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_raw20_v1",
+  "status": "FROZEN_CANDIDATE_MANIFEST"
+}

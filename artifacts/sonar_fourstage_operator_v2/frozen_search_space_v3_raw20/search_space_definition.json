@@ -1,0 +1,322 @@
+{
+  "candidate_count": 20,
+  "description": "Fixed MobileNetV2-style 4-Stage macroarchitecture; Stage2 keeps mature MBConv choices, Stage4 introduces Skip, MBConv, Fused-MBConv, and Ghost Bottleneck as block-level operator candidates.",
+  "enumeration_method": "deterministic_cartesian_product",
+  "excluded_from_active_space": [
+    "dir_mbconv3_split11_e3_v1",
+    "edge",
+    "denoise",
+    "fused_edge",
+    "fused_denoise",
+    "mixed_dw_k3_k5",
+    "dual_dw3",
+    "dilated_dw",
+    "rep_k5",
+    "ghost_k5",
+    "attention",
+    "dynamic_branch"
+  ],
+  "fixed_macroarchitecture": {
+    "frozen_dimensions": [
+      "input_resolution",
+      "stem",
+      "stage_count",
+      "stage_channels",
+      "stage_strides",
+      "stage_depths",
+      "stage1",
+      "stage3",
+      "head"
+    ],
+    "head": {
+      "conv_head": null,
+      "num_classes": 8,
+      "op": "GAP->FC8"
+    },
+    "input": {
+      "channels": 1,
+      "height": 224,
+      "width": 224
+    },
+    "stage1": {
+      "depth": 1,
+      "in_channels": 32,
+      "op": "Conv1x1",
+      "out_channels": 16,
+      "output_shape": [
+        16,
+        112,
+        112
+      ],
+      "searchable": false,
+      "stride": 1
+    },
+    "stage2": {
+      "depth": 1,
+      "in_channels": 16,
+      "op_family": "MBConv",
+      "out_channels": 24,
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "searchable": true,
+      "stride": 2
+    },
+    "stage3": {
+      "depth": 1,
+      "in_channels": 24,
+      "op": "MBConv-k3-e3",
+      "out_channels": 32,
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "searchable": false,
+      "stride": 2
+    },
+    "stage4": {
+      "depth": 1,
+      "in_channels": 32,
+      "out_channels": 32,
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "searchable": true,
+      "stride": 1
+    },
+    "stem": {
+      "in_channels": 1,
+      "op": "Conv3x3",
+      "out_channels": 32,
+      "output_shape": [
+        32,
+        112,
+        112
+      ],
+      "stride": 2
+    }
+  },
+  "forbidden_search_methods": [
+    "RL",
+    "Aging",
+    "Random",
+    "Evolutionary sampling"
+  ],
+  "historical_space_policy": {
+    "historical_16_space": "preserved, not overwritten",
+    "historical_dir_status": "eliminated from active RAW20 space",
+    "new_raw_space": "Stage2 4 x Stage4 5 = 20"
+  },
+  "payload_sha256": "2ba0534be0435349e9f4143fe8298ccd6419f1b882a9a199a3573f9518f8ce09",
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_raw20_v1",
+  "source_file_sha256": {
+    "scripts/freeze_fourstage_search_space_raw20.py": "584ef1a38b8b30edb62b99feeb7e9ec0fa48a1cfdd368979bc33672ded90a29c",
+    "src/hwnas_fpga/fourstage_operator.py": "6cb74fca66cdab811c1d9998fc681386f505635db1f2556105d62e3b1d0752f8",
+    "src/hwnas_fpga/models/__init__.py": "8851ed1a43f753863b6e855598f2ffb3c12d9632b8673814bfb1f21e83c772d8",
+    "src/hwnas_fpga/models/builder.py": "66f2f540ad00424c5719940ede4e4ceed9012e15d524378f41f51227d9a0ef17"
+  },
+  "stage2_candidate_count": 4,
+  "stage2_candidates": [
+    {
+      "candidate_id": "A1",
+      "candidate_key": "k3_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 3,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "search_role": "Stage2 transition block",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    },
+    {
+      "candidate_id": "A2",
+      "candidate_key": "k3_e6",
+      "expand_ratio": 6,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 3,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "search_role": "Stage2 transition block",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    },
+    {
+      "candidate_id": "A3",
+      "candidate_key": "k5_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 5,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "search_role": "Stage2 transition block",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    },
+    {
+      "candidate_id": "A4",
+      "candidate_key": "k5_e6",
+      "expand_ratio": 6,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 5,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "search_role": "Stage2 transition block",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    }
+  ],
+  "stage4_candidate_count": 5,
+  "stage4_candidates": [
+    {
+      "candidate_id": "B1",
+      "candidate_key": "skip",
+      "expand_ratio": 1,
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": null,
+      "op_name": "Skip",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "identity is valid only when stride=1 and channels match",
+      "search_role": "Stage4 normal block",
+      "stride": 1,
+      "structure": "identity mapping"
+    },
+    {
+      "candidate_id": "B2",
+      "candidate_key": "mbconv_k3_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 3,
+      "op_name": "MBConv-k3-e3",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "enabled because stride=1 and channels are 32->32",
+      "search_role": "Stage4 normal block",
+      "stride": 1,
+      "structure": "1x1 expand -> depthwise 3x3 -> 1x1 project -> residual add"
+    },
+    {
+      "candidate_id": "B3",
+      "candidate_key": "mbconv_k5_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 5,
+      "op_name": "MBConv-k5-e3",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "enabled because stride=1 and channels are 32->32",
+      "search_role": "Stage4 normal block",
+      "stride": 1,
+      "structure": "1x1 expand -> depthwise 5x5 -> 1x1 project -> residual add"
+    },
+    {
+      "candidate_id": "B4",
+      "candidate_key": "fused_mbconv_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 3,
+      "new_search_dimensions": [],
+      "op_name": "Fused-MBConv-e3",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "enabled because stride=1 and channels are 32->32",
+      "search_role": "Stage4 normal block",
+      "stride": 1,
+      "structure": "fused 3x3 spatial expansion convolution -> 1x1 project -> residual add"
+    },
+    {
+      "candidate_id": "B5",
+      "candidate_key": "ghost_bottleneck",
+      "expand_ratio": 3,
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 3,
+      "new_search_dimensions": [],
+      "op_name": "Ghost Bottleneck",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "enabled because stride=1 and channels are 32->32",
+      "search_role": "Stage4 normal block",
+      "stride": 1,
+      "structure": "Ghost expansion module -> depthwise 3x3 -> Ghost projection module -> residual add"
+    }
+  ],
+  "status": "FROZEN_SEARCH_SPACE_DEFINITION"
+}

@@ -1,0 +1,80 @@
+{
+  "active_architecture_ids": [
+    "fourstage_s2_k3_e3_s4_skip",
+    "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k3_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k3_e3_s4_fused_mbconv_e3",
+    "fourstage_s2_k3_e3_s4_ghost_bottleneck",
+    "fourstage_s2_k3_e6_s4_skip",
+    "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k3_e6_s4_mbconv_k5_e3",
+    "fourstage_s2_k3_e6_s4_fused_mbconv_e3",
+    "fourstage_s2_k3_e6_s4_ghost_bottleneck",
+    "fourstage_s2_k5_e3_s4_skip",
+    "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e3_s4_fused_mbconv_e3",
+    "fourstage_s2_k5_e3_s4_ghost_bottleneck",
+    "fourstage_s2_k5_e6_s4_skip",
+    "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e6_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e6_s4_fused_mbconv_e3",
+    "fourstage_s2_k5_e6_s4_ghost_bottleneck"
+  ],
+  "active_stage2_candidates": [
+    "k3_e3",
+    "k3_e6",
+    "k5_e3",
+    "k5_e6"
+  ],
+  "active_stage4_candidates": [
+    "skip",
+    "mbconv_k3_e3",
+    "mbconv_k5_e3",
+    "fused_mbconv_e3",
+    "ghost_bottleneck"
+  ],
+  "builder_checks": {
+    "fused_mbconv_builder_recognized": true,
+    "ghost_bottleneck_builder_recognized": true
+  },
+  "candidate_count": 20,
+  "checks": {
+    "architecture_id_unique": true,
+    "dir_not_in_active_space": true,
+    "fixed_macroarchitecture_unchanged": true,
+    "fused_mbconv_builder_recognized": true,
+    "ghost_bottleneck_builder_recognized": true,
+    "historical_configs_compatible": true,
+    "stage2_candidate_count_eq_4": true,
+    "stage4_candidate_count_eq_5": true,
+    "total_candidate_count_eq_20": true
+  },
+  "claim_boundary": {
+    "bitstream": "NOT_GENERATED",
+    "board": "NOT_RUN",
+    "formal_evaluation": "NOT_RUN",
+    "hardware_cost_table": "NOT_MEASURED",
+    "hls": "NOT_RUN",
+    "power": "NOT_MEASURED",
+    "route": "NOT_RUN",
+    "rtl": "NOT_RUN",
+    "training": "NOT_RUN"
+  },
+  "fixed_macroarchitecture_errors": [],
+  "historical_manifest_checks": {
+    "base8_manifest_candidate_count": 8,
+    "base8_manifest_exists": true,
+    "base8_manifest_path": "artifacts/sonar_fourstage_operator_v2/base8_candidates/base8_manifest.json",
+    "base8_runtime_count": 8,
+    "extended12_runtime_count": 12,
+    "extended16_runtime_count": 16,
+    "extended_manifest_candidate_count": 16,
+    "extended_manifest_exists": true,
+    "extended_manifest_path": "artifacts/sonar_fourstage_operator_v2/extended_candidates/extended_manifest.json"
+  },
+  "payload_sha256": "f14f260bd265ba9955ad44f29cd112d7c0fb46d8a7ae7acf5a11428910ede395",
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_raw20_v1",
+  "status": "PASS"
+}
