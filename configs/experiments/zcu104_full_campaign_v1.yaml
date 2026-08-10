@@ -41,7 +41,7 @@ protocol:
   path: configs/evaluation/nksid_frozen_protocol_v2.yaml
   sha256: f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358
   freeze_record: artifacts/zcu104_full_campaign_v1/protocol_freeze.json
-  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json
 dataset:
   name: NKSID
   dataset_manifest:
