@@ -33,7 +33,7 @@ def test_parallel_registry_has_three_non_overlapping_control_bound_lanes() -> No
     payload = json.loads(path.read_text(encoding="utf-8"))
 
     assert payload["campaign_id"] == "zcu104_full_campaign_v1"
-    assert payload["status"] == "PARALLEL_READY"
+    assert payload["status"] == "PASS_ALL_LANES_AT_CONTROL_HANDOFF"
     assert set(payload["lanes"]) == {"hardware", "runtime", "evidence"}
 
     expected = {
