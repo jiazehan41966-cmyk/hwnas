@@ -2,7 +2,7 @@
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-10T18:45:00+08:00",
-  "status": "CFEM20_FROZEN_HARDWARE_GATES_PREREGISTERED_7_HLS_ROWS_READY",
+  "status": "CFEM20_FROZEN_HLS_7_SUPPORTED_PASS_OPERATOR_OOC_ROUTE_RUNNING",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
     "search_proxy",
@@ -106,15 +106,18 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json"
     },
     "fresh_exact_shape_hls_9_rows": {
-      "status": "BLOCKED_2_TEMPLATES_MISSING_7_LOCAL_SOURCES_ONLY",
+      "status": "PARTIAL_PASS_7_SYNTHESIZED_2_TEMPLATES_MISSING",
       "local_source_rows": 7,
-      "synthesized_rows": 0
+      "synthesized_rows": 7,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/remote_hls_execution_complete_20260810.json"
     },
     "operator_rtl_cosim": {
       "status": "PENDING"
     },
     "fresh_exact_shape_route_9_rows": {
-      "status": "PENDING"
+      "status": "IN_PROGRESS_OPERATOR_OOC_1_PASS_6_RUNNING_OR_QUEUED_2_BLOCKED_FULL_ROUTE_PENDING",
+      "scope": "operator_only_out_of_context",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/remote_ooc_route_execution_start_20260810.json"
     },
     "deployment_binding": {
       "status": "PENDING"
@@ -156,5 +159,5 @@
     "local_pass_does_not_promote_formal_gate": true,
     "preserve_fail_timeout_resource_infeasible": true
   },
-  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The live ZCU104 is visible through JTAG with PL power on, and the hardware budgets were preregistered before candidate outcomes. Seven exact-shape HLS source projects are locally reproducible and two exact semantic paths remain missing. Measured coverage is still 0/9; no fresh HLS synthesis, route, experiment-owned bitstream, board latency, onboard power, temperature-series, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows remain excluded; search is disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The remote portable source passed 638/638 verification and all seven rows with exact HLS semantics synthesized successfully. Skip passed operator-only OOC route and six supported OOC routes are running or queued; two exact semantic paths remain missing. OOC route is not the preregistered full AXI DMA route gate. Measured hardware-cost coverage remains 0/9 because no experiment-owned bitstream, board latency, onboard power, temperature-series, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows remain excluded; search is disabled."
 }

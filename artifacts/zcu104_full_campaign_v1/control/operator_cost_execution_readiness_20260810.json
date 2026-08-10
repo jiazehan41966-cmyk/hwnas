@@ -35,6 +35,12 @@
     "experiment_owned_bitstream": "PENDING_HLS_ROUTE_AND_BITSTREAM",
     "axi_dma_runtime_binding": "PENDING"
   },
+  "remote_execution": {
+    "source_verification": "PASS_638_OF_638",
+    "generated_project_archive_sha256": "8527a79127bb76f580ded24b4d51886d11c21e937bb11fa7e9662b4a09612382",
+    "hls_status": "PASS_7_OF_7_SUPPORTED_ROWS_2_BLOCKED",
+    "evidence": "artifacts/zcu104_full_campaign_v1/control/remote_hls_execution_complete_20260810.json"
+  },
   "fresh_measurement_coverage": "0_OF_9",
   "search_enabled": false,
   "evidence": [

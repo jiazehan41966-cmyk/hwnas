@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "recorded_at": "2026-08-10T18:46:00+08:00",
+  "server": {
+    "endpoint": "10.70.23.121:7889",
+    "tool": "Vitis HLS 2022.2 build 3670227",
+    "authentication": "interactive_secret_not_persisted",
+    "preexisting_hls_or_vivado_tasks": 0,
+    "available_disk_gib_observed": 119,
+    "software_installation_performed": false
+  },
+  "source_transfer": {
+    "source_head": "0bd41da9ab4c4cb9aa8f07bc4e7b701a3b6bed0f",
+    "source_archive_sha256": "c938fa2f853a75497b7a75803b85e726c14908b020a999e6233ea1e6c4d6c950",
+    "source_manifest_sha256": "f49a7ce6295ce18d0f7c5df8847244df48a787371aa3668dfa95061cce26ebda",
+    "remote_source_root": "/home/jiajia/experiments/zcu104_full_campaign_v1/staging/source_0bd41da",
+    "remote_verification": "PASS_638_OF_638"
+  },
+  "generated_project_transfer": {
+    "generator": "hls_lut_builder/scripts/gen_project.py",
+    "case_count": 7,
+    "file_count": 35,
+    "project_archive": "results/zcu104_full_campaign_v1/hardware_lane/operator_cost_hls/generated_projects_0bd41da.zip",
+    "project_archive_bytes": 54077,
+    "project_archive_sha256": "8527a79127bb76f580ded24b4d51886d11c21e937bb11fa7e9662b4a09612382",
+    "portable_include_mode": "per_case_include_directory",
+    "remote_project_root": "/home/jiajia/experiments/zcu104_full_campaign_v1/staging/hls_run_0bd41da/projects",
+    "remote_archive_sha256_verified": true
+  },
+  "pilot": {
+    "case_name": "skip_stage4_stage4_32x28x28_to_32x28x28_s1_balanced_pi4_po4_u1_main_5ns",
+    "cost_key": "stage4__skip__32x28x28_to_32x28x28__s1",
+    "returncode": 0,
+    "status": "PASS_HLS_SYNTHESIS_ONLY",
+    "report_files": [
+      "zcu104_stage4_skip_kernel_csynth.xml",
+      "zcu104_stage4_skip_kernel_csynth.rpt"
+    ],
+    "estimated_clock_period_ns": 2.383,
+    "target_clock_period_ns": 5.0,
+    "estimated_fmax_mhz_from_log": 419.64,
+    "latency_cycles": 787,
+    "initiation_interval_cycles": 788,
+    "hls_resource_estimate": {
+      "lut": 224,
+      "ff": 317,
+      "dsp": 0,
+      "bram18k": 0,
+      "uram": 0
+    },
+    "claim_boundary": "HLS estimates only; not post-route resources, WNS, board latency, power, temperature or energy."
+  },
+  "remaining_queue": {
+    "runner_pid": 1378957,
+    "mode": "owned_sequential_background_runner",
+    "per_case_timeout_minutes": 30,
+    "running_or_queued_cases": 6,
+    "controller_log": "/home/jiajia/experiments/zcu104_full_campaign_v1/staging/hls_run_0bd41da/projects/controller.log",
+    "failure_policy": "preserve_log_and_status_then_continue"
+  },
+  "blocked_rows": [
+    "stage4__dmdc_conv_sonar__32x28x28_to_32x28x28__s1",
+    "stage4__cfem_sonar__32x28x28_to_32x28x28__s1"
+  ],
+  "fresh_hls_synthesis_coverage_at_record_time": "1_OF_9",
+  "fresh_board_measurement_coverage": "0_OF_9"
+}

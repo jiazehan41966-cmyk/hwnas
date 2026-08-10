@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "recorded_at": "2026-08-10T18:55:00+08:00",
+  "scope": "operator_only_out_of_context",
+  "tool": "Vivado 2022.2 build 3671981",
+  "source_head": "0bd41da9ab4c4cb9aa8f07bc4e7b701a3b6bed0f",
+  "flow_tcl": "hls_lut_builder/scripts/run_vivado_downstream.tcl",
+  "target_part": "xczu7ev-ffvc1156-2-e",
+  "target_clock_period_ns": 5.0,
+  "pilot": {
+    "cost_key": "stage4__skip__32x28x28_to_32x28x28__s1",
+    "returncode": 0,
+    "status": "PASS_OPERATOR_ONLY_OOC_ROUTE",
+    "post_route": {
+      "wns_ns": 2.412,
+      "tns_ns": 0.0,
+      "lut": 330,
+      "ff": 1345,
+      "dsp": 0,
+      "bram36": 0,
+      "uram": 0,
+      "power_vivado_estimated_total_w": 0.612,
+      "power_vivado_estimated_dynamic_w": 0.020,
+      "power_vivado_estimated_static_w": 0.592
+    },
+    "warnings": [
+      "HD.CLK_SRC is not set for the OOC clock port, so top-level clock delay and skew are not modeled."
+    ]
+  },
+  "remaining_queue": {
+    "runner_pid": 1383979,
+    "mode": "owned_sequential_background_runner",
+    "per_case_timeout_minutes": 60,
+    "running_or_queued_cases": 6,
+    "controller_log": "/home/jiajia/experiments/zcu104_full_campaign_v1/staging/hls_run_0bd41da/projects/vivado_controller.log",
+    "failure_policy": "preserve_log_and_status_then_continue"
+  },
+  "formal_gate_interpretation": {
+    "operator_ooc_route": "IN_PROGRESS_1_PASS_6_RUNNING_OR_QUEUED_2_BLOCKED",
+    "full_axi_dma_post_route": "NOT_STARTED",
+    "experiment_owned_bitstream": "NOT_GENERATED",
+    "board_measurement": "NOT_STARTED"
+  },
+  "claim_boundary": "The OOC route is a screening layer only. It excludes the PS-PL clock/reset, AXI DMA, interconnect and board constraints required by the preregistered full-design hardware gate. Vivado power is an estimate and not a board measurement."
+}
