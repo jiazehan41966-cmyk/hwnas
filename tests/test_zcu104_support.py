@@ -67,7 +67,7 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(config["power"]["onboard_interface"]["mux_channel"], 3)
         self.assertEqual(config["power"]["rail_breakdown"]["role"], "auxiliary_only")
 
-    def test_campaign_config_binds_the_revision_source_freeze(self) -> None:
+    def test_campaign_config_binds_operator_cost_route_and_source_freeze(self) -> None:
         config = yaml.safe_load(
             (ROOT / "configs" / "experiments" / "zcu104_full_campaign_v1.yaml").read_text(
                 encoding="utf-8"
@@ -77,8 +77,17 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(
             config["protocol"]["source_freeze_manifest"],
             "artifacts/zcu104_full_campaign_v1/"
-            "source_freeze_control_20260810/source_freeze_manifest.json",
+            "source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
         )
+        self.assertNotIn("candidates", config)
+        self.assertNotIn("formal_checkpoint_registry", config)
+        self.assertFalse(config["scope_revision"]["historical_four_networks_allowed"])
+        self.assertFalse(config["scope_revision"]["historical_60_checkpoints_allowed"])
+        self.assertEqual(len(config["operator_pool_v1"]["stage2"]), 4)
+        self.assertEqual(len(config["operator_pool_v1"]["stage4"]), 5)
+        self.assertEqual(config["operator_pool_v1"]["expected_operator_row_count"], 9)
+        self.assertFalse(config["operator_pool_v1"]["search_enabled"])
+        self.assertIsNone(config["hardware"]["deployment_budgets"]["dsp_max"])
 
     def test_clock_generator_bypasses_7_series_mmcm_for_ps_fclk(self) -> None:
         config = yaml.safe_load(

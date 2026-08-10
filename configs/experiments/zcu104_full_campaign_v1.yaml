@@ -1,6 +1,20 @@
-schema_version: 1
+schema_version: 2
 campaign_id: zcu104_full_campaign_v1
-status: FROZEN_BASELINE
+status: OPERATOR_COST_LUT_V1_CONTRACT_FROZEN_EXECUTION_BLOCKED
+scope_revision:
+  effective_date: '2026-08-10'
+  route: zcu104_exact_shape_operator_measurement_before_search
+  contract: docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md
+  historical_four_networks_allowed: false
+  historical_60_checkpoints_allowed: false
+  historical_operator_cost_lut_allowed: false
+  preserved_bindings:
+  - independent_worktrees
+  - source_freeze_mechanism
+  - NKSID_dataset
+  - Protocol_V2
+  - server_environment_record
+  - ZCU104_connection_information
 source:
   branch: codex/sonar-fourstage-operator-closure
   commit: cae9be4f01d1a55576bc4449b6b41680b4a889d9
@@ -27,7 +41,7 @@ protocol:
   path: configs/evaluation/nksid_frozen_protocol_v2.yaml
   sha256: f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358
   freeze_record: artifacts/zcu104_full_campaign_v1/protocol_freeze.json
-  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json
 dataset:
   name: NKSID
   dataset_manifest:
@@ -39,11 +53,15 @@ dataset:
     sha256: 953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1
     fold: 0
     seed: 42
-checkpoint_selection:
+historical_excluded_checkpoint_selection:
   fold: 0
   seed: 42
   rule: fixed deployment representative; no outer-validation metric is used for checkpoint selection
-formal_checkpoint_registry:
+  active_for_current_campaign: false
+historical_excluded_checkpoint_registry:
+  status: EXCLUDED_FROM_CURRENT_CAMPAIGN
+  active_for_current_campaign: false
+  exclusion_reason: Historical four-network results cannot be search input, control, calibration, or deployment input.
   expected_candidate_count: 4
   folds: [0, 1, 2, 3, 4]
   seeds: [42, 43, 44]
@@ -56,11 +74,17 @@ formal_checkpoint_registry:
     outer_prediction_count: 60
     source_worktree: E:/1/hwnas/hwnas-sonar-fourstage-operator-closure
   fingerprint_registration:
-    status: PENDING
-    owner: codex/zcu104-evidence-lane
-    handoff_manifest: artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json
-  claim_boundary: File presence is not formal fingerprint registration; the gate remains PENDING until the evidence lane handoff is merged and reverified by control.
-candidates:
+    status: NOT_REQUIRED_CURRENT_CAMPAIGN
+    previous_owner: codex/zcu104-evidence-lane
+  claim_boundary: Historical file presence and fingerprints do not admit these files into the current campaign.
+historical_excluded_network_candidate_policy:
+  active_for_current_campaign: false
+  forbidden_uses:
+  - search_input
+  - control_network
+  - calibration_point
+  - deployment_target
+historical_excluded_network_candidates:
 - role: original_baseline
   arch_id: fourstage_s2_k3_e3_s4_mbconv_k3_e3
   architecture_sha256: f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98
@@ -121,6 +145,79 @@ candidates:
     path: artifacts/zcu104_full_campaign_v1/inputs/hls_reference/low_cost_skip_representative/manifest.json
     sha256: 810f7ad8078dc250efaf94d3649c57cfbfab5d9db2f4da8cceab803d51cfe99c
     size_bytes: 2133
+operator_pool_v1:
+  status: CONFIRMED_FOR_FRESH_ZCU104_OPERATOR_MEASUREMENT
+  source: src/hwnas_fpga/fourstage_operator.py
+  historical_network_inputs_allowed: false
+  historical_cost_rows_allowed: false
+  expected_operator_row_count: 9
+  expected_network_combinations_after_gating_max: 20
+  search_enabled: false
+  stage2:
+  - operator_id: k3_e3
+    op: mbconv
+    kernel: 3
+    expansion: 3
+    stride: 2
+    input_shape_chw: [16, 112, 112]
+    output_shape_chw: [24, 56, 56]
+  - operator_id: k3_e6
+    op: mbconv
+    kernel: 3
+    expansion: 6
+    stride: 2
+    input_shape_chw: [16, 112, 112]
+    output_shape_chw: [24, 56, 56]
+  - operator_id: k5_e3
+    op: mbconv
+    kernel: 5
+    expansion: 3
+    stride: 2
+    input_shape_chw: [16, 112, 112]
+    output_shape_chw: [24, 56, 56]
+  - operator_id: k5_e6
+    op: mbconv
+    kernel: 5
+    expansion: 6
+    stride: 2
+    input_shape_chw: [16, 112, 112]
+    output_shape_chw: [24, 56, 56]
+  stage4:
+  - operator_id: mbconv_k3_e3
+    op: mbconv
+    kernel: 3
+    expansion: 3
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
+  - operator_id: skip
+    op: skip
+    kernel: 1
+    expansion: 1
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
+  - operator_id: dir_mbconv3_split11_e3_v1
+    op: dir_mbconv3_split11_e3_v1
+    kernel: 3
+    expansion: 3
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
+  - operator_id: split_dw3_control
+    op: split_dw3_control
+    kernel: 3
+    expansion: 3
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
+  - operator_id: mbconv_k5_e3
+    op: mbconv
+    kernel: 5
+    expansion: 3
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
 hardware:
   board: ZCU104
   board_profile: zcu104_xczu7ev
@@ -130,7 +227,7 @@ hardware:
   expected_board_part: xilinx.com:zcu104:part0:1.1
   clock_period_ns: 5.0
   route_wns_min_ns: 0.0
-  resource_accounting:
+  device_capacity_not_deployment_budget:
     lut: 230400
     ff: 460800
     dsp: 1728
@@ -139,6 +236,15 @@ hardware:
     uram: 96
     hls_gate_bram_unit: BRAM18
     uram_separate: true
+  deployment_budgets:
+    status: PENDING_PREREGISTRATION_BEFORE_MEASUREMENT_RESULTS
+    lut_max: null
+    dsp_max: null
+    bram18_max: null
+    latency_board_ms_max: null
+    dynamic_power_w_max: null
+    dynamic_energy_mj_per_op_max: null
+    policy: Device totals and legacy AV7K325 thresholds are forbidden as deployment budgets.
   transport:
     type: axi_dma
     id: axi_dma_0
@@ -150,15 +256,38 @@ hardware:
     bitstream: required
     sha256_binding: required
   metrics:
-  - macro_f1
-  - top1
-  - latency_ms
-  - LUT
-  - DSP
-  - BRAM
-  - power_w
-  - feasibility
-  power_policy: zcu104_vcc12_ina226_board_input_total
+  - latency_hls_cycles
+  - latency_hls_ms
+  - latency_board_ms
+  - fps
+  - lut
+  - ff
+  - dsp
+  - bram18
+  - bram36
+  - uram
+  - wns_ns
+  - tns_ns
+  - power_vivado_estimated_w
+  - p_idle_w
+  - p_active_w
+  - p_dynamic_w
+  - energy_total_mj_per_op
+  - energy_dynamic_mj_per_op
+  - temperature_start_c
+  - temperature_end_c
+  power_policy:
+    primary_source: zcu104_vcc12_ina226_board_input_total
+    rail_scope: board_input_total_12v
+    auxiliary_source: irps5401_pmbus_rail_breakdown
+    auxiliary_only: true
+    vivado_estimate_is_measured_power: false
+    idle_active_pair_repetitions_min: 3
+    capture_duration_s_min: 60
+    active_completed_ops_min: 1000
+    dynamic_power_definition: p_active_w_minus_p_idle_w
+    primary_energy_definition: integrated_active_energy_minus_idle_baseline_energy_divided_by_completed_ops
+    latency_product_role: consistency_check_only_when_duty_cycle_and_scope_match
   toolchain_source: remote_execution_plane
   authoritative_toolchain_version: '2022.2'
   cross_version_attribution_comparison: forbidden
@@ -180,7 +309,7 @@ validation_tiers:
     required: true
     samples: 1
   board_full_sample_zero_mismatch: required
-legacy_gate_policy:
+historical_gate_policy:
   ledger: artifacts/measurement_first_rebuild/status.json
   preserve_without_overwrite: true
   old_g4_candidate: rl_arch_193
@@ -191,5 +320,7 @@ deployment_binding: artifacts/zcu104_full_campaign_v1/deployment/deployment_bind
 power_manifest_template: artifacts/zcu104_full_campaign_v1/power/zcu104_power_manifest.template.json
 environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
 status_record: artifacts/zcu104_full_campaign_v1/status.json
-claim_boundary: This config freezes campaign identity and inputs only. Search proxy, retraining, HLS,
-  route, ZCU104 board classification/latency, and onboard measured power remain separate evidence layers.
+claim_boundary: This config freezes the fresh ZCU104 operator pool, exact macro shapes, and measurement
+  contract only. No operator has passed HLS, route, bitstream, board latency, onboard power, energy,
+  or hardware admission. Search and retraining remain disabled until the new LUT has 100 percent
+  coverage and the preregistered hardware gates pass.

@@ -1,15 +1,15 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T10:49:00+08:00",
-  "baseline_status": "PASS_CONTROL_BASELINE",
-  "campaign_execution_status": "PARALLEL_READY",
+  "generated_at": "2026-08-10T14:40:12+08:00",
+  "baseline_status": "PASS_SCOPE_REVISION_RECORDED",
+  "campaign_execution_status": "BLOCKED_BEFORE_FRESH_OPERATOR_MEASUREMENT",
   "integration": {
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
     "branch": "codex/zcu104-full-campaign-v1",
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
-    "frozen_source_head": "dddfe573b53c7c59556eface2d64f28991f291fa",
+    "frozen_source_head": "PENDING_ROUTE_COMMIT_AND_REFREEZE",
     "main_worktree_used_for_writes": false
   },
   "control_preparation": {
@@ -18,66 +18,64 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/documentation_migration.json"
     },
     "source_freeze": {
-      "status": "PASS",
-      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json",
-      "manifest_sha256": "e5c15fe9a41bf0e032dc52c78906a2384ab72010902d89c00d4fde1bc4928186",
-      "content_source": "git-head",
-      "frozen_git_head": "dddfe573b53c7c59556eface2d64f28991f291fa",
-      "expected_file_count": 627,
-      "missing": [],
-      "unexpected": [],
-      "changed": [],
-      "archive_sha256": "2fa140fc98ffb9d8faec9ce25565d80567184c42719dbf47509f989055987cb3"
+      "status": "PENDING_ROUTE_COMMIT_AND_REFREEZE",
+      "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json",
+      "planned_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
+      "reason": "The prior freeze predates the measured-power operator-LUT scope revision."
     },
-    "candidates": {
-      "status": "PASS",
-      "count": 4,
-      "arch_ids": [
-        "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
-        "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
-        "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
-        "fourstage_s2_k5_e3_s4_skip"
+    "scope_revision": {
+      "status": "PASS_RECORDED",
+      "contract": "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md",
+      "historical_four_networks": "EXCLUDED",
+      "historical_60_checkpoints": "EXCLUDED",
+      "historical_operator_cost_lut": "EXCLUDED"
+    },
+    "operator_pool_v1": {
+      "status": "PASS_IDENTITIES_AND_MACRO_SHAPES_FROZEN",
+      "expected_fresh_operator_rows": 9,
+      "stage2": [
+        {
+          "operator_id": "k3_e3",
+          "shape": "16x112x112_to_24x56x56_s2"
+        },
+        {
+          "operator_id": "k3_e6",
+          "shape": "16x112x112_to_24x56x56_s2"
+        },
+        {
+          "operator_id": "k5_e3",
+          "shape": "16x112x112_to_24x56x56_s2"
+        },
+        {
+          "operator_id": "k5_e6",
+          "shape": "16x112x112_to_24x56x56_s2"
+        }
+      ],
+      "stage4": [
+        "mbconv_k3_e3",
+        "skip",
+        "dir_mbconv3_split11_e3_v1",
+        "split_dw3_control",
+        "mbconv_k5_e3"
+      ],
+      "stage4_shape": "32x28x28_to_32x28x28_s1",
+      "fresh_lut_coverage": "0_OF_9_MEASURED",
+      "search_enabled": false
+    },
+    "historical_network_and_checkpoint_inputs": {
+      "status": "EXCLUDED_FROM_CURRENT_CAMPAIGN",
+      "network_count": 4,
+      "checkpoint_file_count_observed_historically": 60,
+      "allowed_uses": [
+        "provenance_archive_only"
       ]
-    },
-    "checkpoints": {
-      "representative_bindings": {
-        "status": "PASS",
-        "count": 4,
-        "fold": 0,
-        "seed": 42
-      },
-      "local_60_file_presence_preflight": {
-        "status": "PASS_PRESENCE_ONLY",
-        "checkpoint_count": 60,
-        "outer_prediction_count": 60,
-        "folds": [
-          0,
-          1,
-          2,
-          3,
-          4
-        ],
-        "seeds": [
-          42,
-          43,
-          44
-        ],
-        "source_worktree": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure"
-      },
-      "formal_60_fingerprint_registry": {
-        "status": "PENDING",
-        "owner": "codex/zcu104-evidence-lane",
-        "expected_checkpoint_count": 60,
-        "expected_outer_prediction_count": 60,
-        "handoff": "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json"
-      }
     },
     "dataset_and_split": {
       "status": "PASS_REPRESENTATIVE_FOLD0_SEED42",
       "dataset_manifest_sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
       "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
       "split_manifest_sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1",
-      "full_5x3_split_binding": "PENDING_WITH_60_FINGERPRINT_REGISTRY"
+      "full_5x3_split_binding": "PRESERVED_PROTOCOL_INPUT_NOT_BOUND_TO_HISTORICAL_CHECKPOINTS"
     },
     "server_toolchain": {
       "status": "PASS_CAPTURED_20260809_LIVE_RECHECK_PENDING",
@@ -103,48 +101,59 @@
       "latest_physical_probe": "DETECTED_PL_POWER_OFF"
     },
     "parallel_worktrees": {
-      "status": "PASS_CLEAN_AT_LANE_BASE",
+      "status": "PAUSED_SCOPE_REVISION_NOT_YET_PROPAGATED",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "registry": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json",
       "hardware": {
         "branch": "codex/zcu104-hardware-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
         "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-        "status": "PASS_CLEAN"
+        "status": "PAUSED_PENDING_CONTROL_HANDOFF_UPDATE"
       },
       "runtime": {
         "branch": "codex/zcu104-runtime-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
         "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-        "status": "PASS_CLEAN"
+        "status": "PAUSED_PENDING_CONTROL_HANDOFF_UPDATE"
       },
       "evidence": {
         "branch": "codex/zcu104-evidence-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
         "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-        "status": "PASS_CLEAN"
+        "status": "PAUSED_PENDING_CONTROL_HANDOFF_UPDATE"
       }
     }
   },
   "acceptance_gates": {
-    "checkpoint_registry_60": "PENDING",
-    "external_scratch_hls_2022_2": "PENDING",
-    "rtl_cosim_operator": "PENDING",
-    "rtl_cosim_network_representative": "PENDING",
-    "full_route": "PENDING",
-    "xsa_hwh_bitstream_binding": "PENDING",
-    "board_full_sample_classification": "PENDING",
-    "latency_blocks": "PENDING",
-    "thermal_stability": "PENDING",
-    "onboard_vcc12_power": "NOT_MEASURED",
-    "external_instrument_board_input_power": "NOT_MEASURED",
-    "calibration_holdout": "FROZEN",
-    "new_search": "FROZEN_UNTIL_REQUIRED_GATES_PASS"
+    "historical_four_networks_excluded": "PASS",
+    "historical_60_checkpoints_excluded": "PASS",
+    "historical_operator_lut_excluded": "PASS",
+    "operator_pool_v1_identity": "PASS",
+    "operator_exact_macro_shapes": "PASS",
+    "device_deployment_budgets": "PENDING_PREREGISTRATION",
+    "zcu104_pl_available": "BLOCKED_DETECTED_PL_POWER_OFF",
+    "zcu104_onboard_sensor_path": "PENDING_LIVE_PROBE",
+    "fresh_hls_9_of_9": "PENDING",
+    "fresh_route_9_of_9": "PENDING",
+    "fresh_bitstream_runtime_bindings_9_of_9": "PENDING",
+    "fresh_board_latency_9_of_9": "PENDING_MEASUREMENT",
+    "fresh_onboard_power_9_of_9": "PENDING_MEASUREMENT",
+    "fresh_dynamic_energy_9_of_9": "PENDING_MEASUREMENT",
+    "hardware_cost_lut_key_coverage": "PENDING_0_OF_9",
+    "hardware_gate": "FROZEN_UNTIL_BUDGETS_AND_MEASUREMENTS_PASS",
+    "new_search_space": "FROZEN_UNTIL_HARDWARE_GATE_PASS",
+    "new_search": "FROZEN_UNTIL_SEARCH_SPACE_FREEZE",
+    "retraining": "FROZEN_UNTIL_NEW_SEARCH_COMPLETES",
+    "full_network_deployment": "FROZEN_UNTIL_RETRAINING_AND_DEPLOYMENT_GATES_PASS"
   },
   "verification": {
     "focused_zcu104_tests": {
-      "status": "PASS",
-      "passed": 11
+      "status": "PASS_CURRENT_SCOPE",
+      "passed": 11,
+      "commands": [
+        "python -m pytest tests/test_zcu104_support.py -q -p no:cacheprovider",
+        "python -m pytest tests/test_power_measurement_v2.py -q -p no:cacheprovider"
+      ]
     },
     "full_pytest": {
       "status": "FAIL_RECORDED",
@@ -156,19 +165,16 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
     },
     "source_freeze_reverification": {
-      "status": "PASS",
-      "expected_file_count": 627,
-      "missing": [],
-      "unexpected": [],
-      "changed": []
+      "status": "PENDING_NEW_FREEZE"
     },
-    "git_diff_check": "PASS"
+    "git_diff_check": "PENDING_FINAL"
   },
   "next_required_actions": [
-    "Run the evidence lane 60-checkpoint and 60-prediction SHA256 audit; control must reverify before promoting the gate.",
-    "Run hardware source/interface development and runtime mock development only; do not launch complete HLS, route, training, or board measurements in control.",
-    "Restore server reachability and reverify the actual remote repository/toolchain before remote execution.",
-    "Power or boot the ZCU104 so the PL TAP is accessible before programming or board tests."
+    "Commit the operator-cost route revision and generate a fresh git-head source freeze.",
+    "Preregister ZCU104 deployment budgets without inspecting candidate measurement outcomes.",
+    "Update lane handoffs so all 9 exact-shape operator rows are generated from scratch and no historical cost row is imported.",
+    "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
+    "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
   ],
-  "claim_boundary": "Control preparation and source traceability PASS do not establish HLS, RTL, route, bitstream, board classification, latency, thermal stability, or measured power. Four representative checkpoints are bound; the formal 60-checkpoint fingerprint registry remains PENDING."
+  "claim_boundary": "The fresh operator identities, macro shapes, and measurement contract are recorded only. Zero of nine operators currently has fresh ZCU104 HLS/route/bitstream/latency/power/energy evidence. Historical networks, checkpoints, and cost rows are excluded, and search remains disabled."
 }

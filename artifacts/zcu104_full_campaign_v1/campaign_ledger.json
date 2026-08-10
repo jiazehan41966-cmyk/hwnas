@@ -1,8 +1,8 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T10:49:00+08:00",
-  "status": "PARALLEL_READY",
+  "generated_at": "2026-08-10T14:40:12+08:00",
+  "status": "OPERATOR_COST_LUT_V1_CONTRACT_FROZEN_EXECUTION_BLOCKED",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
     "search_proxy",
@@ -14,7 +14,8 @@
     "latency",
     "thermal",
     "onboard_power",
-    "external_instrument_power"
+    "external_instrument_power",
+    "dynamic_energy"
   ],
   "gates": {
     "control_worktree_and_branch": {
@@ -22,12 +23,12 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/status.json"
     },
     "parallel_worktrees": {
-      "status": "PASS_CLEAN_AT_LANE_BASE",
+      "status": "PAUSED_SCOPE_REVISION_NOT_YET_PROPAGATED",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "evidence": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     },
     "focused_zcu104_tests": {
-      "status": "PASS",
+      "status": "PASS_CURRENT_SCOPE",
       "passed": 11
     },
     "full_test_suite": {
@@ -38,24 +39,31 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
     },
     "current_source_freeze": {
-      "status": "PASS",
-      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json"
+      "status": "PENDING_ROUTE_COMMIT_AND_REFREEZE",
+      "planned_evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
     },
     "public_protocol_migration": {
       "status": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
       "evidence": "artifacts/zcu104_full_campaign_v1/control/documentation_migration.json"
     },
-    "candidate_identity_4": {
-      "status": "PASS",
-      "evidence": "artifacts/zcu104_full_campaign_v1/protocol_freeze.json"
+    "historical_four_networks": {
+      "status": "EXCLUDED_FROM_CURRENT_CAMPAIGN",
+      "allowed_use": "provenance_archive_only"
     },
-    "representative_checkpoint_identity_4": {
-      "status": "PASS",
-      "evidence": "artifacts/zcu104_full_campaign_v1/protocol_freeze.json"
+    "historical_60_checkpoints": {
+      "status": "EXCLUDED_FROM_CURRENT_CAMPAIGN",
+      "allowed_use": "provenance_archive_only"
     },
-    "formal_checkpoint_fingerprint_registry_60": {
-      "status": "PENDING",
-      "owner": "codex/zcu104-evidence-lane"
+    "historical_operator_cost_lut": {
+      "status": "EXCLUDED_REPLACEMENT_REQUIRED"
+    },
+    "operator_pool_v1_identity_and_macro_shape": {
+      "status": "PASS",
+      "expected_fresh_rows": 9,
+      "evidence": "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md"
+    },
+    "device_deployment_budgets": {
+      "status": "PENDING_PREREGISTRATION_BEFORE_MEASUREMENT_RESULTS"
     },
     "remote_toolchain_2022_2": {
       "status": "PASS_CAPTURED_20260809_LIVE_RECHECK_PENDING",
@@ -64,43 +72,41 @@
     "zcu104_physical_access": {
       "status": "BLOCKED_PL_POWER_OFF"
     },
-    "external_scratch_hls_four_candidates": {
+    "fresh_exact_shape_hls_9_rows": {
       "status": "PENDING"
     },
     "operator_rtl_cosim": {
       "status": "PENDING"
     },
-    "network_representative_rtl_cosim": {
-      "status": "PENDING"
-    },
-    "zcu104_full_route": {
+    "fresh_exact_shape_route_9_rows": {
       "status": "PENDING"
     },
     "deployment_binding": {
       "status": "PENDING"
     },
-    "board_full_sample_zero_mismatch": {
-      "status": "PENDING"
-    },
-    "board_latency": {
-      "status": "PENDING"
+    "board_operator_latency_9_rows": {
+      "status": "PENDING_MEASUREMENT"
     },
     "thermal_stability": {
       "status": "PENDING"
     },
     "zcu104_vcc12_onboard_power": {
-      "status": "NOT_MEASURED",
+      "status": "PENDING_LIVE_SENSOR_PROBE_AND_MEASUREMENT",
       "measurement_source": "zcu104_vcc12_ina226_i2c",
       "rail_scope": "board_input_total_12v"
     },
-    "external_instrument_board_input_power": {
-      "status": "NOT_MEASURED"
+    "fresh_dynamic_energy_9_rows": {
+      "status": "PENDING_MEASUREMENT",
+      "primary_definition": "integrated_active_energy_minus_idle_baseline_energy_divided_by_completed_ops"
     },
-    "zcu104_cost_model_holdout": {
-      "status": "FROZEN"
+    "hardware_cost_lut_coverage": {
+      "status": "PENDING_0_OF_9"
+    },
+    "hardware_gate": {
+      "status": "FROZEN_UNTIL_PREREGISTERED_BUDGETS_AND_9_OF_9_MEASUREMENTS_PASS"
     },
     "formal_hardware_aware_search": {
-      "status": "FROZEN"
+      "status": "FROZEN_UNTIL_NEW_SEARCH_SPACE_IS_BUILT_AND_FROZEN"
     }
   },
   "merge_policy": {
@@ -114,5 +120,5 @@
     "local_pass_does_not_promote_formal_gate": true,
     "preserve_fail_timeout_resource_infeasible": true
   },
-  "claim_boundary": "Control preparation and source traceability PASS do not establish HLS, RTL, route, bitstream, board classification, latency, thermal stability, or measured power. Four representative checkpoints are bound; the formal 60-checkpoint fingerprint registry remains PENDING."
+  "claim_boundary": "The operator identities, macro shapes, and ZCU104 measurement contract are frozen, but zero of nine fresh operator rows has HLS, route, bitstream, board latency, onboard power, or dynamic-energy evidence. Historical networks, checkpoints, and cost rows are excluded; search is disabled."
 }

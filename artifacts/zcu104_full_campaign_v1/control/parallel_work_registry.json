@@ -1,13 +1,13 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T10:49:00+08:00",
-  "status": "PARALLEL_READY",
+  "generated_at": "2026-08-10T14:40:12+08:00",
+  "status": "PAUSED_SCOPE_REVISION_REBASE_REQUIRED",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
-    "frozen_source_head": "dddfe573b53c7c59556eface2d64f28991f291fa",
-    "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json"
+    "frozen_source_head": "PENDING_OPERATOR_COST_ROUTE_COMMIT",
+    "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
   "public_context_files": [
@@ -19,6 +19,7 @@
     "docs/zcu104_full_experiment/METRICS_AND_ACCEPTANCE.md",
     "docs/zcu104_full_experiment/SONAR_AND_THERMAL_METRICS.md",
     "docs/zcu104_full_experiment/PARALLEL_WORK_PROMPTS.md",
+    "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md",
     "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
     "artifacts/zcu104_full_campaign_v1/status.json"
   ],
@@ -39,14 +40,19 @@
     "preserve_failure_timeout_resource_infeasible": true,
     "server_authentication": "interactive_secret_not_persisted",
     "no_complete_training_hls_route_or_board_measurement_in_control": true,
-    "no_flash_qspi_or_nonvolatile_board_writes_without_user_authorization": true
+    "no_flash_qspi_or_nonvolatile_board_writes_without_user_authorization": true,
+    "historical_four_networks_allowed": false,
+    "historical_60_checkpoints_allowed": false,
+    "historical_operator_cost_rows_allowed": false,
+    "new_search_allowed_before_9_of_9_lut_coverage_and_hardware_gate": false
   },
   "lanes": {
     "hardware": {
       "branch": "codex/zcu104-hardware-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
-      "input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "purpose": "ZCU104 board profile, external-scratch HLS generation, RTL testbench, Vivado/BD interface contract, and focused tests.",
+      "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "input_commit": "PENDING_CONTROL_SCOPE_REVISION_HANDOFF",
+      "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for all 9 operator rows; no historical cost-row import.",
       "allowed_exact_files": [
         "src/hwnas_fpga/hardware/boards.py",
         "configs/hardware/zcu104.yaml",
@@ -83,15 +89,16 @@
         "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json"
       ],
       "immediate_work": [
-        "board profile and clock/backend code",
-        "external-scratch/shared-compute generator and testbench",
-        "board interface contract",
-        "source generation, mock, and short focused tests"
+        "wait for the control scope-revision input commit",
+        "after handoff, map all 9 exact-shape rows to fresh HLS and route configurations",
+        "extend source generation and focused tests without launching complete HLS or route",
+        "define bitstream and report SHA256 evidence receipts"
       ],
       "must_wait": [
-        "complete four-candidate HLS",
+        "any lane work until the new control input commit is recorded",
+        "complete 9-row HLS",
         "formal RTL co-sim",
-        "Full Route and bitstream",
+        "full Route and bitstream generation",
         "board programming and measurement"
       ],
       "handoff_files": [
@@ -103,8 +110,9 @@
     "runtime": {
       "branch": "codex/zcu104-runtime-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
-      "input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "purpose": "ZCU104 A53 runtime, simulated AXI DMA transport, receipts, deployment binding, and host-side validation tests.",
+      "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "input_commit": "PENDING_CONTROL_SCOPE_REVISION_HANDOFF",
+      "purpose": "ZCU104 continuous-repeat operator micro-benchmark runtime, board-latency receipts, onboard VCC12 sampling integration, and host-side validation tests.",
       "allowed_exact_files": [
         "src/hwnas_fpga/deploy/board_protocol.py",
         "src/hwnas_fpga/hardware/deployment_binding.py",
@@ -141,11 +149,13 @@
         "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json"
       ],
       "immediate_work": [
-        "host-side mock runtime and transport abstraction",
-        "timeout, CRC, cache, address, and length checks",
-        "receipt and deployment-binding schema tests"
+        "wait for the control scope-revision input commit",
+        "after handoff, implement host-side mock continuous-repeat runtime",
+        "validate timeout, CRC, cache, address, length, completed-op count, and duration receipts",
+        "test requested/effective sample-rate and idle/active capture metadata"
       ],
       "must_wait": [
+        "any lane work until the new control input commit is recorded",
         "real register/address binding until hardware interface handoff",
         "real board execution",
         "full-sample board validation",
@@ -161,12 +171,14 @@
     "evidence": {
       "branch": "codex/zcu104-evidence-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
-      "input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "purpose": "Read-only source evidence audit, 60-checkpoint and prediction fingerprint registries, handoff validation, and focused fail-closed tests.",
+      "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "input_commit": "PENDING_CONTROL_SCOPE_REVISION_HANDOFF",
+      "purpose": "Fresh 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
       "allowed_exact_files": [
-        "scripts/audit_zcu104_checkpoint_registry.py",
+        "scripts/audit_zcu104_operator_cost_lut.py",
         "scripts/audit_zcu104_lane_handoff.py",
-        "tests/test_zcu104_evidence_lane.py"
+        "tests/test_zcu104_evidence_lane.py",
+        "tests/test_zcu104_operator_cost_lut.py"
       ],
       "allowed_prefixes": [
         "schemas/zcu104_full_campaign_v1/",
@@ -192,37 +204,39 @@
       "required_inputs": [
         "configs/experiments/zcu104_full_campaign_v1.yaml",
         "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
-        "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2"
+        "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md"
       ],
       "immediate_work": [
-        "audit the 4 x 5 folds x 3 seeds checkpoint Cartesian product",
-        "audit the matching 60 outer prediction files",
-        "record file sizes, SHA256, candidate identity, fold, seed, and source paths",
-        "generate a local handoff only; do not promote the formal gate"
+        "wait for the control scope-revision input commit",
+        "after handoff, define the 9-row machine-readable operator-cost schema",
+        "audit identity, exact shape, report and bitstream hashes, raw power captures, completed-op receipts, and failure preservation",
+        "audit 9-of-9 operator rows and 100-percent search-key coverage",
+        "generate a local handoff only; do not promote any formal gate"
       ],
       "must_wait": [
+        "any lane work until the new control input commit is recorded",
         "formal gate promotion until control merges and reverifies",
-        "remote-copy traceability until server reachability returns"
+        "measurement-result audit until fresh HLS, route, runtime, and power artifacts exist"
       ],
       "handoff_files": [
         "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/handoff.json",
-        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json",
-        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/prediction_registry_60.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/operator_cost_schema_v1.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/operator_lut_coverage_audit.json",
         "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/evidence_index.json"
       ]
     }
   },
   "worktree_creation_receipt": {
     "hardware": {
-      "status": "PASS_CLEAN",
+      "status": "EXISTING_NOT_AUTHORIZED_FOR_NEW_SCOPE",
       "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
     },
     "runtime": {
-      "status": "PASS_CLEAN",
+      "status": "EXISTING_NOT_AUTHORIZED_FOR_NEW_SCOPE",
       "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
     },
     "evidence": {
-      "status": "PASS_CLEAN",
+      "status": "EXISTING_NOT_AUTHORIZED_FOR_NEW_SCOPE",
       "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
     }
   },
@@ -241,5 +255,5 @@
     "source_freeze_reverification_required": true,
     "formal_ledger_update_by_control_only": true
   },
-  "claim_boundary": "PARALLEL_READY authorizes code/interface work, runtime mocks, and the 60-file fingerprint audit. It does not authorize complete HLS, route, board programming, full-sample board tests, latency, thermal, or power measurements."
+  "claim_boundary": "No lane is authorized until control records the new input commit and verifies each worktree remains safe to reuse. Historical networks, checkpoints, predictions, and cost rows are outside scope. This registry never promotes HLS, route, bitstream, board latency, power, energy, or search gates."
 }
