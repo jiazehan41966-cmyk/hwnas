@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:45:28+08:00",
+  "generated_at": "2026-08-10T14:55:24+08:00",
   "status": "PAUSED_INPUT_COMMIT_RECORDED_LANE_REFRESH_REQUIRED",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
-    "frozen_source_head": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+    "frozen_source_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
     "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
@@ -51,7 +51,7 @@
       "branch": "codex/zcu104-hardware-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+      "input_commit": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
       "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for all 9 operator rows; no historical cost-row import.",
       "allowed_exact_files": [
         "src/hwnas_fpga/hardware/boards.py",
@@ -111,7 +111,7 @@
       "branch": "codex/zcu104-runtime-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+      "input_commit": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
       "purpose": "ZCU104 continuous-repeat operator micro-benchmark runtime, board-latency receipts, onboard VCC12 sampling integration, and host-side validation tests.",
       "allowed_exact_files": [
         "src/hwnas_fpga/deploy/board_protocol.py",
@@ -172,7 +172,7 @@
       "branch": "codex/zcu104-evidence-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+      "input_commit": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
       "purpose": "Fresh 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
       "allowed_exact_files": [
         "scripts/audit_zcu104_operator_cost_lut.py",

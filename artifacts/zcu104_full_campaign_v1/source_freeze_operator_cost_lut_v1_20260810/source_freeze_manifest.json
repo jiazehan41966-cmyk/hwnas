@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-10T06:43:45.519441+00:00",
+  "generated_at": "2026-08-10T06:55:06.993600+00:00",
   "repository_root": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
   "content_source": "git-head",
   "git": {
-    "head": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+    "head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
     "branch": "codex/zcu104-full-campaign-v1",
     "status_porcelain": []
   },
@@ -863,8 +863,8 @@
     },
     {
       "path": "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md",
-      "bytes": 8364,
-      "sha256": "f00667b1304376dbe8d231e0707ed76702bb6a5cc2aa379a3f7147ce34453487"
+      "bytes": 8363,
+      "sha256": "d1bdb4d5bcf4dc9abde4b8feb59e13767731d7085382a00e908667efdf85f416"
     },
     {
       "path": "generate_estimator_lut.py",
@@ -3170,6 +3170,6 @@
   "archive": {
     "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_operator_cost_lut_v1_20260810\\source_snapshot.zip",
     "bytes": 1746794,
-    "sha256": "003cda0086139ad8476f4817ab4b7b7032da3e9764f96135c8734bc36263ab5e"
+    "sha256": "8a78d9982bde4fa92effc16fdd5658196283d812a22fdb6cd2367219d5d48680"
   }
 }

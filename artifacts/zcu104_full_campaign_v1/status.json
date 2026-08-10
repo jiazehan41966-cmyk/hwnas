@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:45:28+08:00",
+  "generated_at": "2026-08-10T14:55:24+08:00",
   "baseline_status": "PASS_OPERATOR_ROUTE_AND_SOURCE_FREEZE",
   "campaign_execution_status": "BLOCKED_BEFORE_FRESH_OPERATOR_MEASUREMENT",
   "integration": {
@@ -9,7 +9,7 @@
     "branch": "codex/zcu104-full-campaign-v1",
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
-    "frozen_source_head": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+    "frozen_source_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
     "main_worktree_used_for_writes": false
   },
   "control_preparation": {
@@ -21,15 +21,15 @@
       "status": "PASS",
       "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json",
       "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
-      "manifest_sha256": "b0dada3878ddf56a81ba13ffddbc8b8a8202eae5ed52d8afac13267249d6ab56",
+      "manifest_sha256": "4ed091d64100a90aac46f2113af1c832ab03fa0563e34fba62280bb0819445dd",
       "content_source": "git-head",
-      "frozen_git_head": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+      "frozen_git_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
       "expected_file_count": 628,
       "missing": [],
       "unexpected": [],
       "changed": [],
       "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_snapshot.zip",
-      "archive_sha256": "003cda0086139ad8476f4817ab4b7b7032da3e9764f96135c8734bc36263ab5e",
+      "archive_sha256": "8a78d9982bde4fa92effc16fdd5658196283d812a22fdb6cd2367219d5d48680",
       "archive_bytes": 1746794
     },
     "scope_revision": {
@@ -184,7 +184,7 @@
   },
   "next_required_actions": [
     "Preregister ZCU104 deployment budgets without inspecting candidate measurement outcomes.",
-    "Safely refresh each clean lane from input commit 7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981 before any lane work.",
+    "Safely refresh each clean lane from input commit 8cd395f937924b8490c72421b7fcd42997e2fa1f before any lane work.",
     "Update lane handoffs so all 9 exact-shape operator rows are generated from scratch and no historical cost row is imported.",
     "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
     "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
