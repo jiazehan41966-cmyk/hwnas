@@ -1,9 +1,9 @@
 schema_version: 2
 campaign_id: zcu104_full_campaign_v1
-status: OPERATOR_COST_LUT_V1_CONTRACT_FROZEN_EXECUTION_BLOCKED
+status: CFEM20_FROZEN_COST_LUT_SCAFFOLD_BUILT_EXECUTION_BLOCKED
 scope_revision:
   effective_date: '2026-08-10'
-  route: zcu104_exact_shape_operator_measurement_before_search
+  route: frozen_cfem20_exact_shape_operator_measurement_before_search
   contract: docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md
   historical_four_networks_allowed: false
   historical_60_checkpoints_allowed: false
@@ -17,7 +17,7 @@ scope_revision:
   - ZCU104_connection_information
 source:
   branch: codex/sonar-fourstage-operator-closure
-  commit: cae9be4f01d1a55576bc4449b6b41680b4a889d9
+  commit: ed7763208f42d4038ecefe61399def71e10a0ea9
   worktree: E:/1/hwnas/hwnas-zcu104-full-campaign-v1
   worktree_branch: codex/zcu104-full-campaign-v1
 execution_topology:
@@ -41,7 +41,7 @@ protocol:
   path: configs/evaluation/nksid_frozen_protocol_v2.yaml
   sha256: f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358
   freeze_record: artifacts/zcu104_full_campaign_v1/protocol_freeze.json
-  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json
 dataset:
   name: NKSID
   dataset_manifest:
@@ -146,13 +146,41 @@ historical_excluded_network_candidates:
     sha256: 810f7ad8078dc250efaf94d3649c57cfbfab5d9db2f4da8cceab803d51cfe99c
     size_bytes: 2133
 operator_pool_v1:
-  status: CONFIRMED_FOR_FRESH_ZCU104_OPERATOR_MEASUREMENT
+  status: PASS_FROZEN_FOURSTAGE_CFEM20_V1
+  search_space_version: fourstage_cfem20_v1
   source: src/hwnas_fpga/fourstage_operator.py
   historical_network_inputs_allowed: false
   historical_cost_rows_allowed: false
   expected_operator_row_count: 9
-  expected_network_combinations_after_gating_max: 20
+  raw_network_count: 20
   search_enabled: false
+  frozen_artifacts:
+    root: artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20
+    search_space_definition:
+      path: artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/search_space_definition.json
+      file_sha256: e12252a8abfad4a3f78a876f9907502a0fd873bb3c28ba1e6eaf85c5d6bb5a49
+      payload_sha256: bf187a14f2d0a0542083aedeee2c26baf0104be92be08ecb7aed332490406fa0
+    candidate_manifest:
+      path: artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/candidate_manifest_20.json
+      file_sha256: 1fd4f710627980188dac8bdd12a1017958c6ee403d2d1d65b8a9111f5ccc5902
+      payload_sha256: 12cd5cf5ef94bb2e6ee245770d738032f1bc05b0554ae6c1cdad865127599d27
+    operator_definition:
+      path: artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/operator_definition.json
+      file_sha256: b4d91fc61ab561a911190c44f36157d9596bca578ff7d5bd96f45e77d0e677f9
+      payload_sha256: 747ce22a09d61b4613f08a1a98d8376308f86b3a521f5aefa787697bdabd75c1
+    search_space_audit:
+      path: artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/search_space_audit.json
+      file_sha256: ee9189ad89330dade279a062c9b78b7576c67732deb5840206f7354e09b7da31
+      payload_sha256: c20ee17ed85444c1bcde5907dc4abd08ecebd057900568022ec1c9e54c36bb1f
+      status: PASS
+  cost_lut_scaffold:
+    path: artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/hardware_cost_lut.scaffold.json
+    coverage_audit: artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/coverage_audit.json
+    build_manifest: artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/build_manifest.json
+    operator_key_definition_coverage: 9_of_9_pass
+    raw_candidate_key_mapping_coverage: 20_of_20_pass
+    measured_operator_coverage: 0_of_9_pending
+    search_ready: false
   stage2:
   - operator_id: k3_e3
     op: mbconv
@@ -183,29 +211,15 @@ operator_pool_v1:
     input_shape_chw: [16, 112, 112]
     output_shape_chw: [24, 56, 56]
   stage4:
-  - operator_id: mbconv_k3_e3
-    op: mbconv
-    kernel: 3
-    expansion: 3
-    stride: 1
-    input_shape_chw: [32, 28, 28]
-    output_shape_chw: [32, 28, 28]
   - operator_id: skip
     op: skip
-    kernel: 1
+    kernel: null
     expansion: 1
     stride: 1
     input_shape_chw: [32, 28, 28]
     output_shape_chw: [32, 28, 28]
-  - operator_id: dir_mbconv3_split11_e3_v1
-    op: dir_mbconv3_split11_e3_v1
-    kernel: 3
-    expansion: 3
-    stride: 1
-    input_shape_chw: [32, 28, 28]
-    output_shape_chw: [32, 28, 28]
-  - operator_id: split_dw3_control
-    op: split_dw3_control
+  - operator_id: mbconv_k3_e3
+    op: mbconv
     kernel: 3
     expansion: 3
     stride: 1
@@ -218,6 +232,31 @@ operator_pool_v1:
     stride: 1
     input_shape_chw: [32, 28, 28]
     output_shape_chw: [32, 28, 28]
+  - operator_id: dmdc_conv_sonar
+    op: DMDC_Conv
+    kernel: 3
+    expansion: 1
+    dilation_rates: [1, 3, 5]
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
+  - operator_id: cfem_sonar
+    op: CFEM
+    kernel: 3
+    expansion: 1
+    dilation_rates: [2, 3, 5]
+    stride: 1
+    input_shape_chw: [32, 28, 28]
+    output_shape_chw: [32, 28, 28]
+  inactive_stage4:
+  - operator_id: msconv_sonar
+    status: pending_original_spec
+  - operator_id: fused_mbconv
+    status: excluded_from_current_space
+  - operator_id: ghost_bottleneck
+    status: excluded_from_current_space
+  - operator_id: dir_mbconv3_split11_e3_v1
+    status: historical_negative_not_in_current_space
 hardware:
   board: ZCU104
   board_profile: zcu104_xczu7ev
@@ -320,7 +359,9 @@ deployment_binding: artifacts/zcu104_full_campaign_v1/deployment/deployment_bind
 power_manifest_template: artifacts/zcu104_full_campaign_v1/power/zcu104_power_manifest.template.json
 environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
 status_record: artifacts/zcu104_full_campaign_v1/status.json
-claim_boundary: This config freezes the fresh ZCU104 operator pool, exact macro shapes, and measurement
-  contract only. No operator has passed HLS, route, bitstream, board latency, onboard power, energy,
-  or hardware admission. Search and retraining remain disabled until the new LUT has 100 percent
-  coverage and the preregistered hardware gates pass.
+claim_boundary: The fourstage_cfem20_v1 RAW search space is already frozen and audited PASS. This
+  config adds only the fresh ZCU104 operator-cost scaffold and exact macro shapes. Structural key
+  coverage is 9/9 and RAW mapping is 20/20, but measured coverage is 0/9. No operator has passed
+  HLS, route, bitstream, board latency, onboard power, energy, or hardware admission. Search and
+  retraining remain disabled until the new LUT has 100 percent accepted measurement coverage and
+  the preregistered hardware gates pass; any later feasibility mask must not rewrite the frozen RAW space.

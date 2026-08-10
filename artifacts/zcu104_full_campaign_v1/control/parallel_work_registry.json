@@ -2,12 +2,12 @@
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-10T14:55:24+08:00",
-  "status": "PAUSED_INPUT_COMMIT_RECORDED_LANE_REFRESH_REQUIRED",
+  "status": "PAUSED_CFEM20_CONTROL_INPUT_COMMIT_PENDING",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
-    "frozen_source_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
-    "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
+    "frozen_source_head": null,
+    "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
   "public_context_files": [
@@ -51,8 +51,8 @@
       "branch": "codex/zcu104-hardware-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
-      "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for all 9 operator rows; no historical cost-row import.",
+      "input_commit": null,
+      "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for the 9 fourstage_cfem20_v1 operator rows; no historical cost-row import.",
       "allowed_exact_files": [
         "src/hwnas_fpga/hardware/boards.py",
         "configs/hardware/zcu104.yaml",
@@ -86,11 +86,12 @@
       "required_inputs": [
         "configs/experiments/zcu104_full_campaign_v1.yaml",
         "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
-        "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json"
+        "artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/operator_definition.json",
+        "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/hardware_cost_lut.scaffold.json"
       ],
       "immediate_work": [
         "verify the existing lane is clean, then refresh it from the recorded control input commit",
-        "after refresh, map all 9 exact-shape rows to fresh HLS and route configurations",
+        "after refresh, map Stage2 A1-A4 and Stage4 Skip/MBConv-K3-E3/MBConv-K5-E3/DMDC_Conv/CFEM to fresh HLS and route configurations",
         "extend source generation and focused tests without launching complete HLS or route",
         "define bitstream and report SHA256 evidence receipts"
       ],
@@ -111,7 +112,7 @@
       "branch": "codex/zcu104-runtime-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
+      "input_commit": null,
       "purpose": "ZCU104 continuous-repeat operator micro-benchmark runtime, board-latency receipts, onboard VCC12 sampling integration, and host-side validation tests.",
       "allowed_exact_files": [
         "src/hwnas_fpga/deploy/board_protocol.py",
@@ -146,6 +147,7 @@
       "required_inputs": [
         "configs/experiments/zcu104_full_campaign_v1.yaml",
         "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+        "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/hardware_cost_lut.scaffold.json",
         "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json"
       ],
       "immediate_work": [
@@ -172,8 +174,8 @@
       "branch": "codex/zcu104-evidence-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
-      "purpose": "Fresh 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
+      "input_commit": null,
+      "purpose": "Fresh fourstage_cfem20_v1 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
       "allowed_exact_files": [
         "scripts/audit_zcu104_operator_cost_lut.py",
         "scripts/audit_zcu104_lane_handoff.py",
@@ -204,6 +206,8 @@
       "required_inputs": [
         "configs/experiments/zcu104_full_campaign_v1.yaml",
         "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+        "artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/search_space_audit.json",
+        "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/coverage_audit.json",
         "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md"
       ],
       "immediate_work": [
@@ -255,5 +259,5 @@
     "source_freeze_reverification_required": true,
     "formal_ledger_update_by_control_only": true
   },
-  "claim_boundary": "No lane is authorized until control records the new input commit and verifies each worktree remains safe to reuse. Historical networks, checkpoints, predictions, and cost rows are outside scope. This registry never promotes HLS, route, bitstream, board latency, power, energy, or search gates."
+  "claim_boundary": "No lane is authorized until control records the new CFEM20 input commit and verifies each worktree remains safe to reuse. fourstage_cfem20_v1 is the only active RAW search-space identity. Historical networks, checkpoints, predictions, and cost rows are outside scope. This registry never promotes HLS, route, bitstream, board latency, power, energy, or search gates."
 }

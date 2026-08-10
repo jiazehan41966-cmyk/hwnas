@@ -2,7 +2,7 @@
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-10T14:55:24+08:00",
-  "status": "OPERATOR_COST_LUT_V1_CONTRACT_FROZEN_EXECUTION_BLOCKED",
+  "status": "CFEM20_FROZEN_COST_LUT_SCAFFOLD_BUILT_EXECUTION_BLOCKED",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
     "search_proxy",
@@ -29,7 +29,8 @@
     },
     "focused_zcu104_tests": {
       "status": "PASS_CURRENT_SCOPE",
-      "passed": 11
+      "passed": 53,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json"
     },
     "full_test_suite": {
       "status": "FAIL_RECORDED",
@@ -39,8 +40,8 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
     },
     "current_source_freeze": {
-      "status": "PASS",
-      "frozen_git_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
+      "status": "PENDING_REFRESH_AFTER_CFEM20_INTEGRATION",
+      "frozen_git_head": null,
       "manifest_sha256": "4ed091d64100a90aac46f2113af1c832ab03fa0563e34fba62280bb0819445dd",
       "archive_sha256": "8a78d9982bde4fa92effc16fdd5658196283d812a22fdb6cd2367219d5d48680",
       "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
@@ -61,9 +62,18 @@
       "status": "EXCLUDED_REPLACEMENT_REQUIRED"
     },
     "operator_pool_v1_identity_and_macro_shape": {
-      "status": "PASS",
+      "status": "PASS_FOURSTAGE_CFEM20_V1_RAW20_FROZEN",
+      "search_space_version": "fourstage_cfem20_v1",
       "expected_fresh_rows": 9,
       "evidence": "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md"
+    },
+    "operator_cost_key_scaffold": {
+      "status": "PASS_STRUCTURAL_ONLY",
+      "operator_key_definition_coverage": "9_OF_9",
+      "raw_candidate_key_mapping_coverage": "20_OF_20",
+      "measured_operator_coverage": "0_OF_9",
+      "search_ready": false,
+      "evidence": "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/coverage_audit.json"
     },
     "device_deployment_budgets": {
       "status": "PENDING_PREREGISTRATION_BEFORE_MEASUREMENT_RESULTS"
@@ -103,13 +113,13 @@
       "primary_definition": "integrated_active_energy_minus_idle_baseline_energy_divided_by_completed_ops"
     },
     "hardware_cost_lut_coverage": {
-      "status": "PENDING_0_OF_9"
+      "status": "PENDING_MEASURED_0_OF_9"
     },
     "hardware_gate": {
       "status": "FROZEN_UNTIL_PREREGISTERED_BUDGETS_AND_9_OF_9_MEASUREMENTS_PASS"
     },
     "formal_hardware_aware_search": {
-      "status": "FROZEN_UNTIL_NEW_SEARCH_SPACE_IS_BUILT_AND_FROZEN"
+      "status": "FROZEN_UNTIL_9_OF_9_ACCEPTED_COST_COVERAGE_AND_HARDWARE_GATE"
     }
   },
   "merge_policy": {
@@ -123,5 +133,5 @@
     "local_pass_does_not_promote_formal_gate": true,
     "preserve_fail_timeout_resource_infeasible": true
   },
-  "claim_boundary": "The operator identities, macro shapes, and ZCU104 measurement contract are frozen, but zero of nine fresh operator rows has HLS, route, bitstream, board latency, onboard power, or dynamic-energy evidence. Historical networks, checkpoints, and cost rows are excluded; search is disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The cost scaffold defines all 9 operator keys and maps all 20 RAW candidates, but these are structural checks only: measured coverage is 0/9 and search_ready is false. No fresh HLS, route, bitstream, board latency, onboard power, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows are excluded; search is disabled."
 }

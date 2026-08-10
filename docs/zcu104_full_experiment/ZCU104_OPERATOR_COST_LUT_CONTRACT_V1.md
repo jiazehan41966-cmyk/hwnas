@@ -2,7 +2,7 @@
 
 ## 1. 适用范围
 
-本合同把 `zcu104_full_campaign_v1` 的当前主线改为“先测算子、再冻结搜索空间”。本轮所有硬件代价必须在 ZCU104（XCZU7EV-FFVC1156-2-E）上重新建立。
+本合同把 `zcu104_full_campaign_v1` 的当前主线绑定到已经冻结的 `fourstage_cfem20_v1`，下一阶段只构建算子代价表。本轮所有硬件代价必须在 ZCU104（XCZU7EV-FFVC1156-2-E）上重新建立。
 
 以下内容仅作历史留档，禁止作为本轮搜索输入、对照网络、标定点、部署对象或代价表补丁来源：
 
@@ -15,7 +15,7 @@
 
 ## 2. 新算子池与精确形状
 
-本合同中的“候选”是算子定义，不是历史网络候选。算子身份来自 `src/hwnas_fpga/fourstage_operator.py` 当前实现。
+本合同中的“候选”是算子定义，不是历史网络候选。算子身份以 `artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20/` 中的四个冻结 JSON 为准，源码实现来自 `src/hwnas_fpga/fourstage_operator.py`。
 
 | 位置 | 算子 ID | 参数 | 精确输入形状 C×H×W | 精确输出形状 C×H×W | 状态 |
 |---|---|---|---:|---:|---|
@@ -23,13 +23,15 @@
 | Stage2 | `k3_e6` | MBConv, k=3, e=6, s=2 | 16×112×112 | 24×56×56 | 纳入重新测量 |
 | Stage2 | `k5_e3` | MBConv, k=5, e=3, s=2 | 16×112×112 | 24×56×56 | 纳入重新测量 |
 | Stage2 | `k5_e6` | MBConv, k=5, e=6, s=2 | 16×112×112 | 24×56×56 | 纳入重新测量 |
+| Stage4 | `skip` | identity, k=N/A, e=1, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
 | Stage4 | `mbconv_k3_e3` | MBConv, k=3, e=3, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
-| Stage4 | `skip` | identity, k=1, e=1, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
-| Stage4 | `dir_mbconv3_split11_e3_v1` | directional MBConv, k=3, e=3, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
-| Stage4 | `split_dw3_control` | mechanism control, k=3, e=3, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
 | Stage4 | `mbconv_k5_e3` | MBConv, k=5, e=3, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
+| Stage4 | `dmdc_conv_sonar` | DMDC_Conv, k=3, e=1, dilation={1,3,5}, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
+| Stage4 | `cfem_sonar` | CFEM, k=3, e=1, dilation={2,3,5}, s=1 | 32×28×28 | 32×28×28 | 纳入重新测量 |
 
-Stage2 虽然是成熟算子，也不得复用旧代价。本轮必须形成 9 个独立的 ZCU104 exact-shape（精确形状）算子测量行。只有 Stage2 四行和通过 Stage4 硬件门的行均有完整证据后，才允许构造最多 `4 × 5 = 20` 个网络组合。当前不启动网络搜索。
+Stage2 虽然是成熟算子，也不得复用旧代价。本轮必须形成 9 个独立的 ZCU104 exact-shape（精确形状）算子测量行。`fourstage_cfem20_v1` 的 RAW 网络集合已经以 `4 × 5 = 20` 冻结并审计 PASS；后续硬件门只允许生成有版本的 hardware-feasibility mask（硬件可行性掩码），不得改写这 20 个 RAW 定义或把门禁结果伪装成另一份未登记搜索空间。当前不启动网络搜索。
+
+当前 active space 之外：`msconv_sonar` 为 `pending_original_spec`；Fused-MBConv 和 Ghost Bottleneck 为 `excluded_from_current_space`；`dir_mbconv3_split11_e3_v1` 为历史阴性，不进入当前空间。上述项目均不建立本轮代价行。
 
 ## 3. ZCU104 Device Contract V1
 
@@ -105,14 +107,13 @@ E_dynamic/op = 1000 × [integral(P_active(t) dt) - P_idle × T_active]
 正式顺序固定为：
 
 ```text
-确认算子池
-→ 冻结每种算子的合法形状
+验证 `fourstage_cfem20_v1` 冻结产物和 9 个 exact-shape 代价键
 → HLS + Route + bitstream + exact-shape micro-benchmark
 → ZCU104 板级 latency/power/energy 采样
 → 生成全新的 Hardware Cost LUT V1
 → 检查 9/9 算子行和搜索所需键的 100% 覆盖
 → 预注册并执行 Hardware Gate
-→ 冻结仅由通过算子组成的新搜索空间
+→ 生成绑定冻结 RAW20 的 hardware-feasibility mask
 → 新网络搜索
 → 重新训练搜索结果
 → 完整网络 HLS、Vivado 和 ZCU104 部署
@@ -122,7 +123,7 @@ E_dynamic/op = 1000 × [integral(P_active(t) dt) - P_idle × T_active]
 
 ## 7. 当前门状态
 
-截至 2026-08-10，五个 Stage4 和四个 Stage2 算子身份及宏观精确形状可由当前源码确定；但 ZCU104 最新探测结果仍是 `DETECTED_PL_POWER_OFF`，板载 hwmon 路径、有效采样率、bitstream、板级 latency 和功耗均未完成实测。因此当前只能冻结测量合同，不能生成任何通过的功耗行，也不能启动搜索。
+截至 2026-08-10，`fourstage_cfem20_v1` 的 4 个 Stage2、5 个 Stage4、20 个 RAW 网络和冻结审计均为 PASS。代价表结构已建立：9/9 算子键定义和 20/20 RAW 网络到代价键的映射通过；真实测量覆盖仍为 0/9，`search_ready=false`。ZCU104 最新探测结果仍是 `DETECTED_PL_POWER_OFF`，板载 hwmon 路径、有效采样率、bitstream、板级 latency 和功耗均未完成实测。部署预算仍为 `PENDING_PREREGISTRATION`，因此当前不能报告任何硬件门通过，也不能启动搜索。
 
 ## 8. 官方依据
 

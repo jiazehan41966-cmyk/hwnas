@@ -77,7 +77,7 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(
             config["protocol"]["source_freeze_manifest"],
             "artifacts/zcu104_full_campaign_v1/"
-            "source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
+            "source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json",
         )
         self.assertNotIn("candidates", config)
         self.assertNotIn("formal_checkpoint_registry", config)
@@ -85,7 +85,36 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertFalse(config["scope_revision"]["historical_60_checkpoints_allowed"])
         self.assertEqual(len(config["operator_pool_v1"]["stage2"]), 4)
         self.assertEqual(len(config["operator_pool_v1"]["stage4"]), 5)
+        self.assertEqual(
+            config["operator_pool_v1"]["search_space_version"],
+            "fourstage_cfem20_v1",
+        )
+        self.assertEqual(
+            {row["operator_id"] for row in config["operator_pool_v1"]["stage4"]},
+            {
+                "skip",
+                "mbconv_k3_e3",
+                "mbconv_k5_e3",
+                "dmdc_conv_sonar",
+                "cfem_sonar",
+            },
+        )
         self.assertEqual(config["operator_pool_v1"]["expected_operator_row_count"], 9)
+        self.assertEqual(
+            config["operator_pool_v1"]["cost_lut_scaffold"]
+            ["operator_key_definition_coverage"],
+            "9_of_9_pass",
+        )
+        self.assertEqual(
+            config["operator_pool_v1"]["cost_lut_scaffold"]
+            ["raw_candidate_key_mapping_coverage"],
+            "20_of_20_pass",
+        )
+        self.assertEqual(
+            config["operator_pool_v1"]["cost_lut_scaffold"]
+            ["measured_operator_coverage"],
+            "0_of_9_pending",
+        )
         self.assertFalse(config["operator_pool_v1"]["search_enabled"])
         self.assertIsNone(config["hardware"]["deployment_budgets"]["dsp_max"])
 

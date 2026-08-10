@@ -2,14 +2,14 @@
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-10T14:55:24+08:00",
-  "baseline_status": "PASS_OPERATOR_ROUTE_AND_SOURCE_FREEZE",
-  "campaign_execution_status": "BLOCKED_BEFORE_FRESH_OPERATOR_MEASUREMENT",
+  "baseline_status": "PASS_CFEM20_FREEZE_AND_COST_KEY_SCAFFOLD",
+  "campaign_execution_status": "BLOCKED_MEASURED_OPERATOR_COVERAGE_0_OF_9",
   "integration": {
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
     "branch": "codex/zcu104-full-campaign-v1",
     "source_branch": "codex/sonar-fourstage-operator-closure",
-    "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
-    "frozen_source_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
+    "source_commit": "ed7763208f42d4038ecefe61399def71e10a0ea9",
+    "frozen_source_head": null,
     "main_worktree_used_for_writes": false
   },
   "control_preparation": {
@@ -18,7 +18,7 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/documentation_migration.json"
     },
     "source_freeze": {
-      "status": "PASS",
+      "status": "PENDING_REFRESH_AFTER_CFEM20_INTEGRATION",
       "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json",
       "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
       "manifest_sha256": "4ed091d64100a90aac46f2113af1c832ab03fa0563e34fba62280bb0819445dd",
@@ -40,7 +40,11 @@
       "historical_operator_cost_lut": "EXCLUDED"
     },
     "operator_pool_v1": {
-      "status": "PASS_IDENTITIES_AND_MACRO_SHAPES_FROZEN",
+      "status": "PASS_FOURSTAGE_CFEM20_V1_FROZEN",
+      "search_space_version": "fourstage_cfem20_v1",
+      "frozen_artifact_root": "artifacts/sonar_fourstage_operator_v2/frozen_search_space_v5_cfem20",
+      "frozen_search_space_audit": "PASS",
+      "raw_network_count": 20,
       "expected_fresh_operator_rows": 9,
       "stage2": [
         {
@@ -61,13 +65,26 @@
         }
       ],
       "stage4": [
-        "mbconv_k3_e3",
         "skip",
-        "dir_mbconv3_split11_e3_v1",
-        "split_dw3_control",
-        "mbconv_k5_e3"
+        "mbconv_k3_e3",
+        "mbconv_k5_e3",
+        "dmdc_conv_sonar",
+        "cfem_sonar"
       ],
       "stage4_shape": "32x28x28_to_32x28x28_s1",
+      "inactive_stage4": {
+        "msconv_sonar": "pending_original_spec",
+        "fused_mbconv": "excluded_from_current_space",
+        "ghost_bottleneck": "excluded_from_current_space",
+        "dir_mbconv3_split11_e3_v1": "historical_negative_not_in_current_space"
+      },
+      "cost_lut_scaffold": {
+        "status": "PASS_SCAFFOLD_BUILT",
+        "hardware_cost_lut": "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/hardware_cost_lut.scaffold.json",
+        "coverage_audit": "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/coverage_audit.json",
+        "operator_key_definition_coverage": "9_OF_9_PASS",
+        "raw_candidate_key_mapping_coverage": "20_OF_20_PASS"
+      },
       "fresh_lut_coverage": "0_OF_9_MEASURED",
       "search_enabled": false
     },
@@ -137,8 +154,10 @@
     "historical_four_networks_excluded": "PASS",
     "historical_60_checkpoints_excluded": "PASS",
     "historical_operator_lut_excluded": "PASS",
-    "operator_pool_v1_identity": "PASS",
+    "fourstage_cfem20_v1_freeze": "PASS_RAW20_AUDITED",
+    "operator_pool_v1_identity": "PASS_9_OF_9_DEFINED",
     "operator_exact_macro_shapes": "PASS",
+    "raw_candidate_cost_key_mapping": "PASS_20_OF_20_STRUCTURAL_ONLY",
     "device_deployment_budgets": "PENDING_PREREGISTRATION",
     "zcu104_pl_available": "BLOCKED_DETECTED_PL_POWER_OFF",
     "zcu104_onboard_sensor_path": "PENDING_LIVE_PROBE",
@@ -148,21 +167,29 @@
     "fresh_board_latency_9_of_9": "PENDING_MEASUREMENT",
     "fresh_onboard_power_9_of_9": "PENDING_MEASUREMENT",
     "fresh_dynamic_energy_9_of_9": "PENDING_MEASUREMENT",
-    "hardware_cost_lut_key_coverage": "PENDING_0_OF_9",
+    "hardware_cost_lut_key_definition_coverage": "PASS_9_OF_9_STRUCTURAL_ONLY",
+    "hardware_cost_lut_measured_coverage": "PENDING_0_OF_9",
     "hardware_gate": "FROZEN_UNTIL_BUDGETS_AND_MEASUREMENTS_PASS",
-    "new_search_space": "FROZEN_UNTIL_HARDWARE_GATE_PASS",
-    "new_search": "FROZEN_UNTIL_SEARCH_SPACE_FREEZE",
+    "raw_search_space": "PASS_FROZEN_FOURSTAGE_CFEM20_V1",
+    "hardware_feasibility_mask": "PENDING_HARDWARE_GATE",
+    "new_search": "FROZEN_UNTIL_9_OF_9_ACCEPTED_COST_COVERAGE_AND_HARDWARE_GATE",
     "retraining": "FROZEN_UNTIL_NEW_SEARCH_COMPLETES",
     "full_network_deployment": "FROZEN_UNTIL_RETRAINING_AND_DEPLOYMENT_GATES_PASS"
   },
   "verification": {
     "focused_zcu104_tests": {
       "status": "PASS_CURRENT_SCOPE",
-      "passed": 11,
+      "passed": 53,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json",
       "commands": [
-        "python -m pytest tests/test_zcu104_support.py -q -p no:cacheprovider",
-        "python -m pytest tests/test_power_measurement_v2.py -q -p no:cacheprovider"
+        "python -m pytest tests/test_fourstage_cfem20_search_space.py tests/test_fourstage_dmdc16_search_space.py tests/test_zcu104_cfem20_operator_cost_scaffold.py tests/test_zcu104_support.py tests/test_power_measurement_v2.py -q -p no:cacheprovider",
+        "python -m pytest tests/test_fourstage_operator_v2.py tests/test_hardware.py -q -p no:cacheprovider"
       ]
+    },
+    "corrected_test_command_failure": {
+      "status": "RECORDED",
+      "reason": "one attempted test path did not exist; corrected target passed",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json"
     },
     "full_pytest": {
       "status": "FAIL_RECORDED",
@@ -184,10 +211,11 @@
   },
   "next_required_actions": [
     "Preregister ZCU104 deployment budgets without inspecting candidate measurement outcomes.",
-    "Safely refresh each clean lane from input commit 8cd395f937924b8490c72421b7fcd42997e2fa1f before any lane work.",
+    "Refresh the source freeze after the CFEM20 integration and record the new control input commit.",
+    "Safely refresh each clean lane from the newly recorded control input commit before any lane work.",
     "Update lane handoffs so all 9 exact-shape operator rows are generated from scratch and no historical cost row is imported.",
     "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
     "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
   ],
-  "claim_boundary": "The fresh operator identities, macro shapes, and measurement contract are recorded only. Zero of nine operators currently has fresh ZCU104 HLS/route/bitstream/latency/power/energy evidence. Historical networks, checkpoints, and cost rows are excluded, and search remains disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The 9/9 operator-key definitions and 20/20 RAW candidate mappings are structural only; measured coverage remains 0/9. Zero operators currently has fresh ZCU104 HLS/route/bitstream/latency/power/energy evidence. Historical networks, checkpoints, and cost rows are excluded, deployment budgets remain pending, and search remains disabled."
 }

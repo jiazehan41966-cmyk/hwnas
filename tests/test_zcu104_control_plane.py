@@ -8,13 +8,15 @@ ROOT = Path(__file__).resolve().parents[1]
 CAMPAIGN_ROOT = ROOT / "artifacts" / "zcu104_full_campaign_v1"
 
 
-def test_control_config_keeps_formal_60_checkpoint_registry_pending() -> None:
+def test_control_config_excludes_historical_60_checkpoint_registry() -> None:
     config = yaml.safe_load(
         (ROOT / "configs" / "experiments" / "zcu104_full_campaign_v1.yaml").read_text(
             encoding="utf-8"
         )
     )
-    registry = config["formal_checkpoint_registry"]
+    registry = config["historical_excluded_checkpoint_registry"]
+    assert registry["status"] == "EXCLUDED_FROM_CURRENT_CAMPAIGN"
+    assert registry["active_for_current_campaign"] is False
     assert registry["expected_candidate_count"] == 4
     assert registry["folds"] == [0, 1, 2, 3, 4]
     assert registry["seeds"] == [42, 43, 44]
@@ -22,7 +24,7 @@ def test_control_config_keeps_formal_60_checkpoint_registry_pending() -> None:
     assert registry["expected_outer_prediction_count"] == 60
     assert registry["representative_checkpoints_bound_in_this_config"] == 4
     assert registry["local_source_presence_preflight"]["status"] == "PASS_PRESENCE_ONLY"
-    assert registry["fingerprint_registration"]["status"] == "PENDING"
+    assert registry["fingerprint_registration"]["status"] == "NOT_REQUIRED_CURRENT_CAMPAIGN"
     assert config["hardware"]["authoritative_toolchain_version"] == "2022.2"
 
 
@@ -60,7 +62,8 @@ def test_parallel_registry_has_three_non_overlapping_control_bound_lanes() -> No
         lane = payload["lanes"][name]
         assert lane["branch"] == branch
         assert lane["worktree"] == worktree
-        assert lane["input_commit"] == payload["lane_base_commit"]
+        assert lane["previous_input_commit"] == payload["lane_base_commit"]
+        assert lane["input_commit"] == payload["integration"]["frozen_source_head"]
         assert protected.isdisjoint(set(lane["allowed_exact_files"]))
         assert protected.issubset(set(lane["forbidden_exact_files"]))
         assert lane["handoff_files"]

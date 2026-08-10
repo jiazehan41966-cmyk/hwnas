@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-10T17:02:30+08:00",
+  "scope": "fourstage_cfem20_v1 integration and ZCU104 operator-cost scaffold only",
+  "records": [
+    {
+      "command": "python -m pytest tests/test_fourstage_cfem20_search_space.py tests/test_fourstage_dmdc16_search_space.py tests/test_zcu104_cfem20_operator_cost_scaffold.py -q -p no:cacheprovider",
+      "status": "PASS",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "command": "python -m pytest tests/test_fourstage_cfem20_search_space.py tests/test_fourstage_dmdc16_search_space.py tests/test_zcu104_cfem20_operator_cost_scaffold.py tests/test_zcu104_support.py tests/test_power_measurement_v2.py -q -p no:cacheprovider",
+      "status": "PASS",
+      "passed": 23,
+      "failed": 0
+    },
+    {
+      "command": "python -m pytest tests/test_fourstage_operator_v2.py tests/test_fourstage_external_scratch_hls_gate.py -q -p no:cacheprovider",
+      "status": "FAIL_COMMAND_TARGET_NOT_FOUND",
+      "passed": 0,
+      "failed": 0,
+      "error": "tests/test_fourstage_external_scratch_hls_gate.py does not exist; no tests ran"
+    },
+    {
+      "command": "python -m pytest tests/test_fourstage_operator_v2.py tests/test_hardware.py -q -p no:cacheprovider",
+      "status": "PASS_CORRECTED_TARGET",
+      "passed": 30,
+      "failed": 0
+    },
+    {
+      "command": "parse formal JSON and YAML control files",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS_WITH_LINE_ENDING_WARNINGS_ONLY"
+    },
+    {
+      "command": "python -m pytest tests -q -p no:cacheprovider",
+      "status": "FAIL_RECORDED_BEFORE_STALE_CONTROL_TEST_UPDATE",
+      "passed": 522,
+      "failed": 19,
+      "skipped": 3,
+      "warnings": 1,
+      "subtests_passed": 28,
+      "new_scope_related_failures": [
+        "tests/test_zcu104_control_plane.py::test_control_config_keeps_formal_60_checkpoint_registry_pending",
+        "tests/test_zcu104_control_plane.py::test_parallel_registry_has_three_non_overlapping_control_bound_lanes"
+      ],
+      "preexisting_or_external_evidence_failures": 17
+    }
+  ],
+  "forbidden_experiment_actions_executed": [],
+  "claim_boundary": "These are code and structural-audit tests. They are not HLS, route, bitstream, board latency, power, energy, training, or search evidence."
+}
