@@ -59,17 +59,31 @@ DMDC16_STAGE4_LABELS = {
 }
 PENDING_STAGE4_OPERATORS = {
     "msconv_sonar": {
-        "implementation_status": "pending_adaptation_review",
+        "implementation_status": "pending_original_spec",
+        "active_searchable": False,
         "reason": (
-            "paper-derived MS-Conv kernel scales, group/channel allocation, "
-            "and CSP split require explicit adaptation confirmation before "
-            "entering the frozen active space"
+            "original paper does not uniquely specify kernel scales, "
+            "group-channel allocation, or CSP split details"
         ),
     }
 }
 EXCLUDED_FROM_CURRENT_STAGE4_SPACE = {
     "fused_mbconv_e3": "excluded_from_current_space",
     "ghost_bottleneck": "excluded_from_current_space",
+}
+CFEM20_STAGE4_CHOICES = (
+    "skip",
+    "mbconv_k3_e3",
+    "mbconv_k5_e3",
+    "dmdc_conv_sonar",
+    "cfem_sonar",
+)
+CFEM20_STAGE4_LABELS = {
+    "skip": "Skip",
+    "mbconv_k3_e3": "MBConv-k3-e3",
+    "mbconv_k5_e3": "MBConv-k5-e3",
+    "dmdc_conv_sonar": "DMDC_Conv",
+    "cfem_sonar": "CFEM",
 }
 
 
@@ -115,6 +129,10 @@ def build_fourstage_architecture(
     elif stage4_key == "dmdc_conv_sonar":
         stage4_block = BlockSpec(
             op="dmdc_conv_sonar", kernel_size=3, expand_ratio=1, stride=1
+        )
+    elif stage4_key == "cfem_sonar":
+        stage4_block = BlockSpec(
+            op="cfem_sonar", kernel_size=3, expand_ratio=1, stride=1
         )
     elif stage4_key == "dir_mbconv3_split11_e3_v1":
         stage4_block = BlockSpec(
@@ -308,6 +326,35 @@ def enumerate_dmdc16() -> tuple[FourStageFactorRow, ...]:
     return tuple(rows)
 
 
+def enumerate_cfem20() -> tuple[FourStageFactorRow, ...]:
+    """Enumerate the current active 4 x 5 Stage4 space with CFEM.
+
+    Stage2 remains the fixed four mature MBConv choices.  Stage4 contains
+    Skip, MBConv-k3-e3, MBConv-k5-e3, DMDC_Conv, and CFEM.  MS-Conv remains
+    pending and inactive.
+    """
+
+    rows: list[FourStageFactorRow] = []
+    for stage2_name, kernel, expansion in STAGE2_CHOICES:
+        for stage4 in CFEM20_STAGE4_CHOICES:
+            rows.append(
+                FourStageFactorRow(
+                    arch_id=f"fourstage_s2_{stage2_name}_s4_{stage4}",
+                    kernel=kernel,
+                    expansion=expansion,
+                    stage4=CFEM20_STAGE4_LABELS[stage4],
+                    architecture=build_fourstage_architecture(
+                        stage2_kernel=kernel,
+                        stage2_expansion=expansion,
+                        stage4_op=stage4,
+                    ),
+                )
+            )
+    if len(rows) != 20:
+        raise AssertionError(f"CFEM20 enumeration must contain 20 rows")
+    return tuple(rows)
+
+
 def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
     errors: list[str] = []
     if architecture.input_channels != 1:
@@ -379,6 +426,12 @@ def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
             ),
             BlockSpec(
                 op="dmdc_conv_sonar",
+                kernel_size=3,
+                expand_ratio=1,
+                stride=1,
+            ),
+            BlockSpec(
+                op="cfem_sonar",
                 kernel_size=3,
                 expand_ratio=1,
                 stride=1,

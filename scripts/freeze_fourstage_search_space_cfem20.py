@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Freeze the current fixed four-stage sonar search space with DMDC_Conv.
+"""Freeze the current fixed four-stage sonar search space with CFEM.
 
-This emits architecture-definition artifacts only.  It does not run training,
-hardware-cost measurement, HLS, RTL, route, bitstream, board tests, or power
-measurement.
+This script writes architecture-definition artifacts only.  It does not run
+training, NAS search, hardware-cost measurement, HLS, RTL, route, bitstream,
+board validation, or power measurement.
 """
 
 from __future__ import annotations
@@ -19,20 +19,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from hwnas_fpga.fourstage_operator import (  # noqa: E402
-    DMDC16_STAGE4_CHOICES,
-    DMDC16_STAGE4_LABELS,
+    CFEM20_STAGE4_CHOICES,
+    CFEM20_STAGE4_LABELS,
     EXCLUDED_FROM_CURRENT_STAGE4_SPACE,
     PENDING_STAGE4_OPERATORS,
     STAGE2_CHOICES,
     architecture_sha256,
     build_fourstage_architecture,
     enumerate_base8,
+    enumerate_cfem20,
     enumerate_dmdc16,
     enumerate_extended,
     enumerate_raw20,
     validate_frozen_fourstage,
 )
-from hwnas_fpga.models import DMDCConvSonarBlock, build_model  # noqa: E402
+from hwnas_fpga.models import CFEMSonarBlock, build_model  # noqa: E402
 from hwnas_fpga.training.protocol_reporting import (  # noqa: E402
     canonical_sha256,
     sha256_file,
@@ -43,8 +44,9 @@ DEFAULT_OUTPUT_DIR = (
     ROOT
     / "artifacts"
     / "sonar_fourstage_operator_v2"
-    / "frozen_search_space_v4_dmdc16"
+    / "frozen_search_space_v5_cfem20"
 )
+SOURCE_PDF = Path(r"C:/Users/Lenovo/Downloads/fmars-12-1539210.pdf")
 
 STAGE2_IDS = {
     "k3_e3": "A1",
@@ -58,6 +60,7 @@ STAGE4_IDS = {
     "mbconv_k3_e3": "B2",
     "mbconv_k5_e3": "B3",
     "dmdc_conv_sonar": "B4",
+    "cfem_sonar": "B5",
 }
 
 
@@ -165,7 +168,6 @@ def stage4_definitions() -> list[dict[str, Any]]:
             "stride": 1,
             "input_shape": [32, 28, 28],
             "output_shape": [32, 28, 28],
-            "residual_condition": "identity is valid only when stride=1 and channels match",
             "implementation_status": "implemented_existing",
         },
         {
@@ -178,7 +180,6 @@ def stage4_definitions() -> list[dict[str, Any]]:
             "stride": 1,
             "input_shape": [32, 28, 28],
             "output_shape": [32, 28, 28],
-            "residual_condition": "enabled because stride=1 and channels are 32->32",
             "implementation_status": "implemented_existing",
         },
         {
@@ -191,7 +192,6 @@ def stage4_definitions() -> list[dict[str, Any]]:
             "stride": 1,
             "input_shape": [32, 28, 28],
             "output_shape": [32, 28, 28],
-            "residual_condition": "enabled because stride=1 and channels are 32->32",
             "implementation_status": "implemented_existing",
         },
         {
@@ -200,10 +200,8 @@ def stage4_definitions() -> list[dict[str, Any]]:
             "op_name": "DMDC_Conv",
             "operator_name": "dmdc_conv_sonar",
             "structure": (
-                "parallel k={1,3,5} DMDC branches; each branch has a 3x3 "
-                "dilated-convolution path and an adaptive-pooling regional "
-                "context path, branch fusion, 1x1 branch projection, channel "
-                "concat, and final 1x1 channel compression"
+                "parallel k={1,3,5} DMDC branches with a dilated-convolution "
+                "path and an adaptive-pooling regional-context path per branch"
             ),
             "dilation_rates": [1, 3, 5],
             "kernel": 3,
@@ -211,37 +209,58 @@ def stage4_definitions() -> list[dict[str, Any]]:
             "stride": 1,
             "input_shape": [32, 28, 28],
             "output_shape": [32, 28, 28],
-            "residual_condition": "not added; no residual connection is shown inside the paper DMDC_Conv module",
-            "source_type": "literature_operator",
-            "source_task": "side_scan_sonar_segmentation",
-            "sonar_specific": True,
-            "source_paper": (
-                "Fused Adaptive Receptive Field Mechanism and Dynamic "
-                "Multiscale Dilated Convolution for Side-Scan Sonar Image "
-                "Segmentation"
+            "implementation_status": "implemented",
+        },
+        {
+            "candidate_id": "B5",
+            "candidate_key": "cfem_sonar",
+            "op_name": "CFEM",
+            "operator_name": "cfem_sonar",
+            "operator_full_name": "Context Feature Extraction Module",
+            "structure": (
+                "input feature -> three 1x1+dilated-3x3 branches with "
+                "dilation rates 2/3/5 -> concat F -> CAM produces "
+                "alpha/beta/gamma -> weighted feature aggregation -> 1x1 "
+                "context projection Y; projected input X' and Y are fused by "
+                "CBAM-derived dynamic weights, then channel/spatial attention "
+                "is applied to form the output feature"
             ),
-            "source_doi": "10.1109/TGRS.2022.3201248",
-            "core_mechanism": "dynamic_multiscale_dilated_convolution",
+            "dilation_rates": [2, 3, 5],
+            "kernel": 3,
+            "expand_ratio": 1,
+            "stride": 1,
+            "input_shape": [32, 28, 28],
+            "output_shape": [32, 28, 28],
+            "source_type": "literature_operator",
+            "source_task": "forward_looking_sonar_object_detection",
+            "sonar_specific": True,
+            "candidate_role": "sonar_context_multiscale_candidate",
+            "source_paper": (
+                "YOLO-SONAR: A lightweight object detection network for "
+                "forward-looking sonar images"
+            ),
+            "source_doi": "10.3389/fmars.2025.1539210",
+            "source_pdf": str(SOURCE_PDF).replace("\\", "/"),
+            "core_mechanism": (
+                "multiscale_dilated_context_extraction_with_attention_fusion"
+            ),
             "implementation_status": "implemented",
             "adaptation_note": (
-                "sealed as a 32->32 stride-1 Stage4 block; regional context "
-                "features are resized back to 28x28 for the paper fusion "
-                "operation without removing the dynamic/context branch"
+                "sealed as a 32->32 stride-1 Stage4 block without removing "
+                "multiscale dilation, alpha/beta/gamma CAM weighting, context "
+                "aggregation, or CBAM-style attention feature fusion"
             ),
         },
     ]
 
 
 def pending_operator_definitions() -> list[dict[str, Any]]:
+    msconv = PENDING_STAGE4_OPERATORS["msconv_sonar"]
     return [
         {
             "operator_name": "msconv_sonar",
-            "active_space_status": PENDING_STAGE4_OPERATORS["msconv_sonar"][
-                "implementation_status"
-            ],
-            "active_searchable": PENDING_STAGE4_OPERATORS["msconv_sonar"][
-                "active_searchable"
-            ],
+            "active_space_status": msconv["implementation_status"],
+            "active_searchable": msconv["active_searchable"],
             "source_type": "literature_operator",
             "source_task": "sonar_object_detection",
             "sonar_specific": True,
@@ -251,7 +270,7 @@ def pending_operator_definitions() -> list[dict[str, Any]]:
             ),
             "source_doi": "10.1109/TGRS.2022.3214748",
             "core_mechanism": "multiscale_group_convolution_with_csp",
-            "pending_reason": PENDING_STAGE4_OPERATORS["msconv_sonar"]["reason"],
+            "reason": msconv["reason"],
         }
     ]
 
@@ -277,7 +296,7 @@ def excluded_operator_definitions() -> list[dict[str, Any]]:
 
 def candidate_manifest() -> list[dict[str, Any]]:
     rows = []
-    for index, row in enumerate(enumerate_dmdc16(), start=1):
+    for index, row in enumerate(enumerate_cfem20(), start=1):
         stage2_key = f"k{row.kernel}_e{row.expansion}"
         stage4_key = row.arch_id.split("_s4_", 1)[1]
         rows.append(
@@ -295,12 +314,13 @@ def candidate_manifest() -> list[dict[str, Any]]:
                 "stage4": {
                     "candidate_id": STAGE4_IDS[stage4_key],
                     "candidate_key": stage4_key,
-                    "op_name": DMDC16_STAGE4_LABELS[stage4_key],
+                    "op_name": CFEM20_STAGE4_LABELS[stage4_key],
                 },
                 "architecture": row.architecture.to_dict(),
                 "claim_boundary": (
-                    "Search-space definition only; no training, hardware-cost "
-                    "measurement, HLS, route, board, bitstream, or power evidence."
+                    "RAW candidate definition only; no accuracy, hardware "
+                    "feasibility, deployability, LUT, route, board, or power "
+                    "claim is made here."
                 ),
             }
         )
@@ -308,20 +328,21 @@ def candidate_manifest() -> list[dict[str, Any]]:
 
 
 def historical_manifest_checks() -> dict[str, Any]:
-    base8_path = ROOT / "artifacts" / "sonar_fourstage_operator_v2" / "base8_candidates" / "base8_manifest.json"
-    extended_path = ROOT / "artifacts" / "sonar_fourstage_operator_v2" / "extended_candidates" / "extended_manifest.json"
-    raw20_path = ROOT / "artifacts" / "sonar_fourstage_operator_v2" / "frozen_search_space_v3_raw20" / "candidate_manifest_20.json"
+    root = ROOT / "artifacts" / "sonar_fourstage_operator_v2"
+    paths = {
+        "base8": root / "base8_candidates" / "base8_manifest.json",
+        "extended16": root / "extended_candidates" / "extended_manifest.json",
+        "raw20_v3": root / "frozen_search_space_v3_raw20" / "candidate_manifest_20.json",
+        "dmdc16_v4": root / "frozen_search_space_v4_dmdc16" / "candidate_manifest_16.json",
+    }
     return {
-        "base8_manifest_path": rel(base8_path),
-        "base8_manifest_exists": base8_path.exists(),
-        "extended_manifest_path": rel(extended_path),
-        "extended_manifest_exists": extended_path.exists(),
-        "raw20_historical_manifest_path": rel(raw20_path),
-        "raw20_historical_manifest_exists": raw20_path.exists(),
+        **{f"{key}_manifest_path": rel(path) for key, path in paths.items()},
+        **{f"{key}_manifest_exists": path.exists() for key, path in paths.items()},
         "base8_runtime_count": len(enumerate_base8()),
         "extended12_runtime_count": len(enumerate_extended(include_stage4_k5=False)),
         "extended16_runtime_count": len(enumerate_extended(include_stage4_k5=True)),
         "raw20_runtime_count": len(enumerate_raw20()),
+        "dmdc16_runtime_count": len(enumerate_dmdc16()),
     }
 
 
@@ -329,16 +350,14 @@ def builder_checks() -> dict[str, Any]:
     architecture = build_fourstage_architecture(
         stage2_kernel=3,
         stage2_expansion=3,
-        stage4_op="dmdc_conv_sonar",
+        stage4_op="cfem_sonar",
     )
     model = build_model(architecture, num_classes=8).eval()
     block = model.stages[3][0]
     return {
-        "dmdc_builder_recognized": isinstance(block, DMDCConvSonarBlock),
-        "dmdc_dilation_rates": list(getattr(block, "dilation_rates", ())),
-        "dmdc_implementation_status": getattr(
-            block, "implementation_status", None
-        ),
+        "cfem_builder_recognized": isinstance(block, CFEMSonarBlock),
+        "cfem_dilation_rates": list(getattr(block, "dilation_rates", ())),
+        "cfem_implementation_status": getattr(block, "implementation_status", None),
     }
 
 
@@ -347,9 +366,12 @@ def source_file_hashes() -> dict[str, str]:
         ROOT / "src" / "hwnas_fpga" / "fourstage_operator.py",
         ROOT / "src" / "hwnas_fpga" / "models" / "builder.py",
         ROOT / "src" / "hwnas_fpga" / "models" / "__init__.py",
-        ROOT / "scripts" / "freeze_fourstage_search_space_dmdc16.py",
+        ROOT / "scripts" / "freeze_fourstage_search_space_cfem20.py",
     ]
-    return {rel(path): sha256_file(path) for path in paths if path.exists()}
+    result = {rel(path): sha256_file(path) for path in paths if path.exists()}
+    if SOURCE_PDF.exists():
+        result[str(SOURCE_PDF).replace("\\", "/")] = sha256_file(SOURCE_PDF)
+    return result
 
 
 def make_payloads() -> dict[str, dict[str, Any]]:
@@ -358,48 +380,54 @@ def make_payloads() -> dict[str, dict[str, Any]]:
     rows = candidate_manifest()
     arch_ids = [row["architecture_id"] for row in rows]
     fixed_macro_errors = []
-    for row in enumerate_dmdc16():
+    for row in enumerate_cfem20():
         try:
             validate_frozen_fourstage(row.architecture)
         except ValueError as exc:
             fixed_macro_errors.append(f"{row.arch_id}: {exc}")
     historical = historical_manifest_checks()
     builder = builder_checks()
-    excluded_keys = set(EXCLUDED_FROM_CURRENT_STAGE4_SPACE)
     active_stage4_keys = {row["candidate_key"] for row in stage4}
     audit_checks = {
         "stage2_candidate_count_eq_4": len(stage2) == 4,
-        "stage4_candidate_count_eq_4": len(stage4) == 4,
-        "total_candidate_count_eq_16": len(rows) == 16,
-        "architecture_id_unique": len(arch_ids) == len(set(arch_ids)),
+        "stage4_candidate_count_eq_5": len(stage4) == 5,
+        "raw_network_count_eq_20": len(rows) == 20,
+        "architecture_ids_unique": len(arch_ids) == len(set(arch_ids)),
         "fixed_macroarchitecture_unchanged": not fixed_macro_errors,
-        "dmdc_builder_recognized": builder["dmdc_builder_recognized"],
-        "dmdc_dilation_rates_eq_1_3_5": builder["dmdc_dilation_rates"]
-        == [1, 3, 5],
+        "cfem_builder_recognized": builder["cfem_builder_recognized"],
+        "cfem_dilation_rates_eq_2_3_5": builder["cfem_dilation_rates"]
+        == [2, 3, 5],
         "msconv_pending_not_in_active_space": "msconv_sonar"
         not in active_stage4_keys,
-        "fused_and_ghost_excluded_from_current_space": excluded_keys.isdisjoint(
-            active_stage4_keys
-        ),
+        "msconv_pending_original_spec": PENDING_STAGE4_OPERATORS[
+            "msconv_sonar"
+        ]["implementation_status"]
+        == "pending_original_spec",
+        "fused_and_ghost_excluded_from_current_space": {
+            "fused_mbconv_e3",
+            "ghost_bottleneck",
+        }.isdisjoint(active_stage4_keys),
         "historical_configs_compatible": (
             historical["base8_manifest_exists"]
-            and historical["extended_manifest_exists"]
-            and historical["raw20_historical_manifest_exists"]
+            and historical["extended16_manifest_exists"]
+            and historical["raw20_v3_manifest_exists"]
+            and historical["dmdc16_v4_manifest_exists"]
             and historical["base8_runtime_count"] == 8
             and historical["extended12_runtime_count"] == 12
             and historical["extended16_runtime_count"] == 16
             and historical["raw20_runtime_count"] == 20
+            and historical["dmdc16_runtime_count"] == 16
         ),
     }
     definition = {
         "schema_version": "1.0",
-        "search_space_version": "fourstage_dmdc16_v1",
+        "search_space_version": "fourstage_cfem20_v1",
         "status": "FROZEN_SEARCH_SPACE_DEFINITION",
         "description": (
-            "Fixed MobileNetV2-style 4-Stage macroarchitecture; Stage2 keeps "
-            "mature MBConv choices, while current active Stage4 choices are "
-            "Skip, MBConv-K3-E3, MBConv-K5-E3, and the literature-derived "
-            "DMDC_Conv sonar operator."
+            "Fixed MobileNetV2-style 4-Stage macroarchitecture. Stage2 keeps "
+            "the four mature MBConv choices. Current active Stage4 choices "
+            "are Skip, MBConv-K3-E3, MBConv-K5-E3, DMDC_Conv, and the "
+            "literature-derived CFEM sonar context candidate."
         ),
         "fixed_macroarchitecture": fixed_macroarchitecture(),
         "stage2_candidates": stage2,
@@ -408,14 +436,24 @@ def make_payloads() -> dict[str, dict[str, Any]]:
         "excluded_from_current_space": excluded_operator_definitions(),
         "stage2_candidate_count": len(stage2),
         "stage4_candidate_count": len(stage4),
-        "candidate_count": len(rows),
+        "raw_network_count": len(rows),
         "enumeration_method": "deterministic_cartesian_product",
-        "forbidden_search_methods": ["RL", "Aging", "Random", "Evolutionary sampling"],
+        "forbidden_methods": [
+            "training",
+            "NAS search",
+            "HLS",
+            "RTL",
+            "Vivado route",
+            "bitstream",
+            "power measurement",
+            "ZCU104 hardware test",
+            "hardware LUT measurement",
+        ],
         "source_file_sha256": source_file_hashes(),
     }
     operator_definition = {
         "schema_version": "1.0",
-        "search_space_version": "fourstage_dmdc16_v1",
+        "search_space_version": "fourstage_cfem20_v1",
         "status": "FROZEN_OPERATOR_DEFINITIONS",
         "stage2_operator_definitions": stage2,
         "active_stage4_operator_definitions": stage4,
@@ -424,40 +462,41 @@ def make_payloads() -> dict[str, dict[str, Any]]:
     }
     manifest = {
         "schema_version": "1.0",
-        "search_space_version": "fourstage_dmdc16_v1",
+        "search_space_version": "fourstage_cfem20_v1",
         "status": "FROZEN_CANDIDATE_MANIFEST",
-        "candidate_count": len(rows),
+        "raw_network_count": len(rows),
         "rows": rows,
     }
     audit = {
         "schema_version": "1.0",
-        "search_space_version": "fourstage_dmdc16_v1",
+        "search_space_version": "fourstage_cfem20_v1",
         "status": "PASS" if all(audit_checks.values()) else "FAIL",
         "checks": audit_checks,
         "fixed_macroarchitecture_errors": fixed_macro_errors,
         "historical_manifest_checks": historical,
         "builder_checks": builder,
-        "candidate_count": len(rows),
+        "raw_network_count": len(rows),
         "active_stage2_candidates": [row["candidate_key"] for row in stage2],
         "active_stage4_candidates": [row["candidate_key"] for row in stage4],
         "pending_stage4_operators": ["msconv_sonar"],
         "active_architecture_ids": arch_ids,
         "claim_boundary": {
             "training": "NOT_RUN",
+            "nas_search": "NOT_RUN",
             "formal_evaluation": "NOT_RUN",
-            "hardware_cost_table": "NOT_MEASURED",
+            "hardware_lut": "NOT_MEASURED",
             "hls": "NOT_RUN",
             "rtl": "NOT_RUN",
             "route": "NOT_RUN",
             "bitstream": "NOT_GENERATED",
-            "board": "NOT_RUN",
+            "zcu104_board": "NOT_RUN",
             "power": "NOT_MEASURED",
         },
     }
     return {
         "search_space_definition.json": definition,
         "operator_definition.json": operator_definition,
-        "candidate_manifest_16.json": manifest,
+        "candidate_manifest_20.json": manifest,
         "search_space_audit.json": audit,
     }
 
@@ -479,7 +518,7 @@ def main() -> int:
             {
                 "status": audit["status"],
                 "output_dir": rel(args.output_dir),
-                "candidate_count": audit["candidate_count"],
+                "raw_network_count": audit["raw_network_count"],
                 "checks": audit["checks"],
             },
             ensure_ascii=False,
