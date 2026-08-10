@@ -43,6 +43,23 @@ checkpoint_selection:
   fold: 0
   seed: 42
   rule: fixed deployment representative; no outer-validation metric is used for checkpoint selection
+formal_checkpoint_registry:
+  expected_candidate_count: 4
+  folds: [0, 1, 2, 3, 4]
+  seeds: [42, 43, 44]
+  expected_checkpoint_count: 60
+  expected_outer_prediction_count: 60
+  representative_checkpoints_bound_in_this_config: 4
+  local_source_presence_preflight:
+    status: PASS_PRESENCE_ONLY
+    checkpoint_count: 60
+    outer_prediction_count: 60
+    source_worktree: E:/1/hwnas/hwnas-sonar-fourstage-operator-closure
+  fingerprint_registration:
+    status: PENDING
+    owner: codex/zcu104-evidence-lane
+    handoff_manifest: artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json
+  claim_boundary: File presence is not formal fingerprint registration; the gate remains PENDING until the evidence lane handoff is merged and reverified by control.
 candidates:
 - role: original_baseline
   arch_id: fourstage_s2_k3_e3_s4_mbconv_k3_e3
@@ -168,6 +185,8 @@ legacy_gate_policy:
   preserve_without_overwrite: true
   old_g4_candidate: rl_arch_193
 campaign_ledger: artifacts/zcu104_full_campaign_v1/campaign_ledger.json
+parallel_work_registry: artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json
+handoff_layout: "artifacts/zcu104_full_campaign_v1/handoffs/{hardware_lane,runtime_lane,evidence_lane}/"
 deployment_binding: artifacts/zcu104_full_campaign_v1/deployment/deployment_binding.json
 power_manifest_template: artifacts/zcu104_full_campaign_v1/power/zcu104_power_manifest.template.json
 environment_card: artifacts/zcu104_full_campaign_v1/environment_card.json
