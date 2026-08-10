@@ -285,5 +285,3 @@ HLS资源和周期仅是 HLS 层证据，不得写成 post-route 或板级实测
 8. 失败、缺失和排除必须按预注册规则报告；
 9. Pareto以原始物理目标为主，不用单一加权分数替代；
 10. cross-board比较必须统一候选、checkpoint、clock、toolchain、runtime和功率范围，否则只做描述。
-
-

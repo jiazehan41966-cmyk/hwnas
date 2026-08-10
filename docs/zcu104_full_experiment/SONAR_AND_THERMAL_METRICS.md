@@ -165,5 +165,3 @@ PS/PL 初始化期间不要轮询 PL 温度；应在 bitstream 配置和 runtime
 - [AMD Zynq UltraScale+ MPSoC AMS](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18842163/Zynq%20UltraScale%20MPSoC%20AMS)
 - [AMD Vivado UG908 System Monitor](https://docs.amd.com/r/en-US/ug908-vivado-programming-debugging/System-Monitor)
 - [AMD ZCU104 Evaluation Board User Guide UG1267](https://docs.amd.com/v/u/en-US/ug1267-zcu104-eval-bd)
-
-

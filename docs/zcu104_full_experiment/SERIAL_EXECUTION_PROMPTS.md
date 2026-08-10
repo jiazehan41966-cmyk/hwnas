@@ -9,7 +9,6 @@ P0 的唯一集成工作树已经固定为 `E:\1\hwnas\hwnas-zcu104-full-campaig
 ```text
 ssh -p 7889 jiajia@10.70.23.121
 ```
-
 认证信息必须交互输入或通过安全凭据机制提供，不得写入仓库、命令记录、日志、环境卡或 prompt 产物。
 
 ---
@@ -296,4 +295,3 @@ C2/C3额外在100/150/200 MHz运行频率敏感性；每个频率使用独立rou
 
 只有最终evidence ledger全部通过才声明完整实验完成，并输出machine-readable CSV/JSON、Markdown报告、命令清单和SHA256索引。
 ```
-

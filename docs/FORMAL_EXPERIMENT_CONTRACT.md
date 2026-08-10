@@ -106,5 +106,3 @@ binding，把候选、checkpoint、HLS parity、bitstream 和验证清单按 SHA
 
 只有同一候选、同一冻结链路的证据可以合并成候选级联合工作点。嵌套 NAS 的
 方法级泛化结果必须单列，不能伪装成某一个部署候选的共同结果。
-
-
