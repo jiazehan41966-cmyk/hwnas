@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "registered_at": "2026-08-10T18:20:00+08:00",
+  "status": "PREREGISTERED_BEFORE_CANDIDATE_SYNTHESIS_OR_MEASUREMENT_RESULTS",
+  "candidate_hls_route_or_board_outcomes_inspected": false,
+  "target": {
+    "board": "AMD ZCU104",
+    "part": "xczu7ev-ffvc1156-2-e",
+    "clock_period_ns": 5.0,
+    "target_clock_mhz": 200.0
+  },
+  "official_sources": [
+    {
+      "document": "AMD Zynq UltraScale+ MPSoC Product Selection Guide XMP104 v2.8",
+      "url": "https://docs.amd.com/v/u/en-US/zynq-ultrascale-plus-product-selection-guide",
+      "used_for": "ZU7EV resource totals"
+    },
+    {
+      "document": "AMD ZCU104 Evaluation Board User Guide UG1267 v1.1",
+      "url": "https://docs.amd.com/v/u/en-US/ug1267-zcu104-eval-bd",
+      "used_for": "board operating environment, 12 V input, JTAG/UART, PMBus and VCC12 INA226 topology"
+    },
+    {
+      "document": "AMD Zynq UltraScale+ MPSoC DS925 recommended operating conditions",
+      "url": "https://docs.amd.com/r/en-US/ds925-zynq-ultrascale-plus/Recommended-Operating-Conditions",
+      "used_for": "extended-grade junction temperature and SysMon error margin"
+    }
+  ],
+  "vivado_2022_2_part_database_capacity": {
+    "lut": 230400,
+    "ff": 460800,
+    "dsp": 1728,
+    "bram36": 312,
+    "bram18_equivalent": 624,
+    "uram": 96,
+    "max_operating_temperature_c": 100
+  },
+  "live_board_basis": {
+    "probe_evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json",
+    "pl_power_status": 1,
+    "pl_temperature_c": 32.4,
+    "ps_temperature_c": 33.1,
+    "over_temperature_alarm": 0,
+    "vcc12_ina226_live_read": "PENDING_BOARD_OS_AUTHENTICATION"
+  },
+  "resource_gate": {
+    "scope": "full post-route design including PS-PL clock/reset, AXI DMA, interconnect and operator IP",
+    "capacity_fraction": 0.70,
+    "rounding": "floor",
+    "lut_max": 161280,
+    "ff_advisory_max": 322560,
+    "dsp_max": 1209,
+    "bram18_max": 436,
+    "bram36_max": 218,
+    "uram_max": 67,
+    "rationale": "Thirty percent is reserved for DMA and control shell growth, routing congestion, clock/reset infrastructure and later full-network integration. FF remains recorded/advisory rather than an operator rejection metric."
+  },
+  "timing_gate": {
+    "wns_ns_min": 0.2,
+    "tns_ns_required": 0.0,
+    "clock_period_ns": 5.0,
+    "rationale": "A positive 0.2 ns margin is required instead of accepting a zero-margin route at 200 MHz."
+  },
+  "board_performance_gate": {
+    "latency_board_ms_max": 25.0,
+    "dynamic_power_w_max": 15.0,
+    "dynamic_energy_mj_per_op_max": 375.0,
+    "power_rail": "VCC12 board input total",
+    "energy_definition": "integrated active energy minus matched idle baseline energy divided by completed operations",
+    "rationale": "The latency and incremental-power ceilings are fixed before outcomes; the energy ceiling is their conservative product and is verified against integrated energy, not substituted for it."
+  },
+  "thermal_gate": {
+    "junction_temperature_c_max": 85.0,
+    "emergency_abort_c": 90.0,
+    "ambient_temperature_c_max": 45.0,
+    "official_device_max_c": 100.0,
+    "rationale": "The normal gate leaves at least 12 C after accounting for the DS925 example of plus/minus 3 C SysMon error; 90 C is a safety stop, not a passing threshold."
+  },
+  "measurement_quality_gate": {
+    "idle_active_pair_repetitions_min": 5,
+    "capture_duration_s_min": 60,
+    "idle_sample_count_min": 100,
+    "active_sample_count_min": 100,
+    "active_completed_ops_min": 1000,
+    "latency_timed_ops_min": 1000,
+    "coefficient_of_variation_max": 0.05,
+    "negative_dynamic_power": "FAIL_PRESERVE_RAW_SAMPLES",
+    "below_noise_floor": "FAIL_BELOW_DETECTION_LIMIT"
+  },
+  "claim_boundary": "These are engineering admission budgets, not AMD guaranteed deployment limits and not candidate measurements. They do not promote any HLS, route, bitstream, latency, power or energy gate."
+}

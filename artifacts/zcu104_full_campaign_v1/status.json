@@ -1,15 +1,15 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T18:30:00+08:00",
+  "generated_at": "2026-08-10T18:45:00+08:00",
   "baseline_status": "PASS_CFEM20_FREEZE_AND_COST_KEY_SCAFFOLD",
-  "campaign_execution_status": "EXECUTION_STARTED_BLOCKED_AT_PREREGISTRATION_AUTH_AND_PL_POWER",
+  "campaign_execution_status": "EXECUTION_READY_FOR_7_SUPPORTED_HLS_BLOCKED_2_SEMANTIC_PATHS_AND_BOARD_OS_AUTH",
   "integration": {
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
     "branch": "codex/zcu104-full-campaign-v1",
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "ed7763208f42d4038ecefe61399def71e10a0ea9",
-    "frozen_source_head": "2b9c5e532f4974b269ad133cf3977677202b71bf",
+    "frozen_source_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
     "main_worktree_used_for_writes": false
   },
   "control_preparation": {
@@ -19,18 +19,21 @@
     },
     "source_freeze": {
       "status": "PASS",
-      "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_freeze_manifest.json",
-      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json",
-      "manifest_sha256": "0c6bb62bb441ea89784bdd2a088f7db78219074aef1333adc694d287cbdc3b19",
+      "superseded_manifests": [
+        "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_freeze_manifest.json",
+        "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json"
+      ],
+      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json",
+      "manifest_sha256": "9106b4594f412ecca61c3e0ef7717b57c68a692b772ff78d3d9ec63c3459ba87",
       "content_source": "git-head",
-      "frozen_git_head": "2b9c5e532f4974b269ad133cf3977677202b71bf",
+      "frozen_git_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
       "expected_file_count": 638,
       "missing": [],
       "unexpected": [],
       "changed": [],
-      "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_snapshot.zip",
-      "archive_sha256": "9dde543357e81fc90ccc9636b7bf64e898d3a6247b26880a20f291fa9e06e77a",
-      "archive_bytes": 1778737
+      "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_snapshot.zip",
+      "archive_sha256": "6b6630e00299126e1307d68df0e603488f8806af18be0aedbc7632f50e3691ba",
+      "archive_bytes": 1779234
     },
     "scope_revision": {
       "status": "PASS_RECORDED",
@@ -104,7 +107,7 @@
       "full_5x3_split_binding": "PRESERVED_PROTOCOL_INPUT_NOT_BOUND_TO_HISTORICAL_CHECKPOINTS"
     },
     "server_toolchain": {
-      "status": "PASS_CAPTURED_20260809_LIVE_RECHECK_PENDING",
+      "status": "PASS_CAPTURED_AND_LIVE_RECHECKED_20260810",
       "evidence": "artifacts/zcu104_full_campaign_v1/environment_card.json",
       "authoritative_versions": {
         "vivado": "2022.2",
@@ -115,16 +118,19 @@
         "cuda": "12.8"
       },
       "live_recheck_20260810": {
-        "status": "BLOCKED_INTERACTIVE_AUTH_REQUIRED",
+        "status": "PASS_INTERACTIVE_AUTH_TOOLCHAIN_CONFIRMED",
         "endpoint": "10.70.23.121:7889",
-        "authentication_secret_persisted": false
+        "authentication_secret_persisted": false,
+        "vivado": "2022.2 build 3671981",
+        "vitis_hls": "2022.2 build 3670227"
       }
     },
     "target_board": {
       "model": "AMD ZCU104",
       "target_part": "xczu7ev-ffvc1156-2-e",
       "board_part": "xilinx.com:zcu104:part0:1.1",
-      "latest_physical_probe": "DETECTED_PL_POWER_OFF"
+      "latest_physical_probe": "PASS_ZCU104_PRESENT_PL_POWERED_CONFIGURED_EXISTING_BITSTREAM_UNKNOWN",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json"
     },
     "parallel_worktrees": {
       "status": "PASS_ALL_LANES_AT_CONTROL_HANDOFF",
@@ -161,9 +167,11 @@
       "board_measured_rows": 0
     },
     "operator_cost_execution_start": {
-      "status": "BLOCKED_PREREGISTRATION_AUTH_AND_PL_POWER",
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_start_20260810.json",
+      "status": "READY_FOR_7_SUPPORTED_HLS_BLOCKED_2_SEMANTIC_PATHS_AND_BOARD_OS_AUTH",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_readiness_20260810.json",
       "candidate_measurement_outcomes_inspected": false,
+      "supported_hls_rows_ready": 7,
+      "board_os_authentication": "PENDING",
       "missing_hls_templates": [
         "dmdc_conv_sonar",
         "cfem_sonar"
@@ -178,10 +186,10 @@
     "operator_pool_v1_identity": "PASS_9_OF_9_DEFINED",
     "operator_exact_macro_shapes": "PASS",
     "raw_candidate_cost_key_mapping": "PASS_20_OF_20_STRUCTURAL_ONLY",
-    "device_deployment_budgets": "PENDING_PREREGISTRATION",
-    "remote_server_authentication": "BLOCKED_INTERACTIVE_INPUT_REQUIRED",
-    "zcu104_pl_available": "BLOCKED_DETECTED_PL_POWER_OFF",
-    "zcu104_onboard_sensor_path": "PENDING_LIVE_PROBE",
+    "device_deployment_budgets": "PASS_PREREGISTERED_20260810",
+    "remote_server_authentication": "PASS_INTERACTIVE_SECRET_NOT_PERSISTED",
+    "zcu104_pl_available": "PASS_LIVE_PL_PWR_STS_1",
+    "zcu104_onboard_sensor_path": "PASS_OFFICIAL_PATH_BOARD_OS_READ_PENDING_AUTH",
     "fresh_hls_source_generation": "PASS_7_OF_9_LOCAL_ONLY",
     "fresh_hls_9_of_9": "BLOCKED_2_OPERATOR_TEMPLATES_MISSING",
     "fresh_route_9_of_9": "PENDING",
@@ -191,7 +199,7 @@
     "fresh_dynamic_energy_9_of_9": "PENDING_MEASUREMENT",
     "hardware_cost_lut_key_definition_coverage": "PASS_9_OF_9_STRUCTURAL_ONLY",
     "hardware_cost_lut_measured_coverage": "PENDING_0_OF_9",
-    "hardware_gate": "FROZEN_UNTIL_BUDGETS_AND_MEASUREMENTS_PASS",
+    "hardware_gate": "PREREGISTERED_MEASUREMENTS_PENDING",
     "raw_search_space": "PASS_FROZEN_FOURSTAGE_CFEM20_V1",
     "hardware_feasibility_mask": "PENDING_HARDWARE_GATE",
     "new_search": "FROZEN_UNTIL_9_OF_9_ACCEPTED_COST_COVERAGE_AND_HARDWARE_GATE",
@@ -214,6 +222,11 @@
       "passed": 24,
       "subtests_passed": 16,
       "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json"
+    },
+    "hardware_gate_preregistration_tests": {
+      "status": "PASS_AFTER_RECORDED_STALE_ASSERTION_FIX",
+      "passed": 13,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json"
     },
     "corrected_test_command_failure": {
       "status": "RECORDED",
@@ -240,12 +253,12 @@
     "git_diff_check": "PASS"
   },
   "next_required_actions": [
-    "Preregister ZCU104 deployment budgets without inspecting candidate measurement outcomes.",
-    "Establish interactive SSH authentication without persisting the password, then rerun the live server and board probe.",
+    "Obtain board-side SSH or Jupyter authentication without persisting the secret, then read the U183 VCC12 INA226 path.",
+    "Transfer and verify the v3 source freeze on the clean remote server workspace before HLS execution.",
     "Implement and prove INT8/HLS semantic paths for dmdc_conv_sonar and cfem_sonar before treating those rows as synthesizable.",
+    "Run fresh HLS for the seven exact-semantics rows and preserve every failure, timeout and resource-overrun record.",
     "Generate all 9 exact-shape operator rows from scratch and do not import any historical cost row.",
-    "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
-    "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
+    "After per-row HLS, route, runtime and sensor prerequisites pass, measure board latency, idle/active/dynamic power, temperature and integrated energy for all 9 rows before enabling search."
   ],
-  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. Seven of nine exact-shape rows now have reproducible local HLS source generation, but no row has fresh HLS synthesis, route, bitstream, board latency, onboard power, temperature, or energy evidence; measured coverage remains 0/9. Remote interactive authentication, PL power, numerical budget preregistration, DMDC/CFEM HLS support, and AXI DMA runtime binding are blocking. Search remains disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The ZCU104 JTAG chain and powered PL are live, official sensor topology is identified, and numerical hardware budgets are preregistered. Seven of nine exact-shape rows have reproducible local HLS source generation; DMDC and CFEM remain blocked on exact INT8/HLS semantics. No row has fresh HLS synthesis, route, experiment-owned bitstream, board latency, onboard power, temperature-series, or energy evidence; measured coverage remains 0/9. Board OS authentication and AXI DMA runtime binding remain blocking for onboard measurement. Search remains disabled."
 }

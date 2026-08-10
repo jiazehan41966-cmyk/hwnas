@@ -1,8 +1,8 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T18:30:00+08:00",
-  "status": "CFEM20_FROZEN_COST_LUT_SCAFFOLD_BUILT_EXECUTION_BLOCKED",
+  "generated_at": "2026-08-10T18:45:00+08:00",
+  "status": "CFEM20_FROZEN_HARDWARE_GATES_PREREGISTERED_7_HLS_ROWS_READY",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
     "search_proxy",
@@ -50,10 +50,10 @@
     },
     "current_source_freeze": {
       "status": "PASS",
-      "frozen_git_head": "2b9c5e532f4974b269ad133cf3977677202b71bf",
-      "manifest_sha256": "0c6bb62bb441ea89784bdd2a088f7db78219074aef1333adc694d287cbdc3b19",
-      "archive_sha256": "9dde543357e81fc90ccc9636b7bf64e898d3a6247b26880a20f291fa9e06e77a",
-      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json"
+      "frozen_git_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
+      "manifest_sha256": "9106b4594f412ecca61c3e0ef7717b57c68a692b772ff78d3d9ec63c3459ba87",
+      "archive_sha256": "6b6630e00299126e1307d68df0e603488f8806af18be0aedbc7632f50e3691ba",
+      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json"
     },
     "public_protocol_migration": {
       "status": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
@@ -85,11 +85,12 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/coverage_audit.json"
     },
     "device_deployment_budgets": {
-      "status": "PENDING_PREREGISTRATION_BEFORE_MEASUREMENT_RESULTS"
+      "status": "PASS_PREREGISTERED_BEFORE_MEASUREMENT_RESULTS",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json"
     },
     "operator_cost_execution_start": {
-      "status": "BLOCKED_PREREGISTRATION_AUTH_AND_PL_POWER",
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_start_20260810.json",
+      "status": "READY_FOR_7_SUPPORTED_HLS_BLOCKED_2_SEMANTIC_PATHS_AND_BOARD_OS_AUTH",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_readiness_20260810.json",
       "candidate_measurement_outcomes_inspected": false,
       "missing_hls_templates": [
         "dmdc_conv_sonar",
@@ -97,11 +98,12 @@
       ]
     },
     "remote_toolchain_2022_2": {
-      "status": "PASS_CAPTURED_20260809_LIVE_RECHECK_PENDING",
-      "evidence": "artifacts/zcu104_full_campaign_v1/environment_card.json"
+      "status": "PASS_LIVE_RECHECKED_20260810",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json"
     },
     "zcu104_physical_access": {
-      "status": "BLOCKED_PL_POWER_OFF"
+      "status": "PASS_JTAG_PL_POWERED_EXISTING_CONFIGURATION_UNATTRIBUTED",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json"
     },
     "fresh_exact_shape_hls_9_rows": {
       "status": "BLOCKED_2_TEMPLATES_MISSING_7_LOCAL_SOURCES_ONLY",
@@ -124,7 +126,7 @@
       "status": "PENDING"
     },
     "zcu104_vcc12_onboard_power": {
-      "status": "PENDING_LIVE_SENSOR_PROBE_AND_MEASUREMENT",
+      "status": "OFFICIAL_SENSOR_PATH_CONFIRMED_LIVE_READ_PENDING_BOARD_OS_AUTH",
       "measurement_source": "zcu104_vcc12_ina226_i2c",
       "rail_scope": "board_input_total_12v"
     },
@@ -136,7 +138,8 @@
       "status": "PENDING_MEASURED_0_OF_9"
     },
     "hardware_gate": {
-      "status": "FROZEN_UNTIL_PREREGISTERED_BUDGETS_AND_9_OF_9_MEASUREMENTS_PASS"
+      "status": "PREREGISTERED_MEASUREMENTS_PENDING",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json"
     },
     "formal_hardware_aware_search": {
       "status": "FROZEN_UNTIL_9_OF_9_ACCEPTED_COST_COVERAGE_AND_HARDWARE_GATE"
@@ -153,5 +156,5 @@
     "local_pass_does_not_promote_formal_gate": true,
     "preserve_fail_timeout_resource_infeasible": true
   },
-  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. Seven exact-shape HLS source projects are locally reproducible and two operator templates remain missing. Measured coverage is still 0/9; no fresh HLS synthesis, route, bitstream, board latency, onboard power, temperature, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows remain excluded; search is disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The live ZCU104 is visible through JTAG with PL power on, and the hardware budgets were preregistered before candidate outcomes. Seven exact-shape HLS source projects are locally reproducible and two exact semantic paths remain missing. Measured coverage is still 0/9; no fresh HLS synthesis, route, experiment-owned bitstream, board latency, onboard power, temperature-series, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows remain excluded; search is disabled."
 }

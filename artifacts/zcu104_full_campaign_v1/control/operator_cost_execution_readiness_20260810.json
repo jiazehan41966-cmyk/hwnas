@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "recorded_at": "2026-08-10T18:45:00+08:00",
+  "source_freeze": {
+    "git_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
+    "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json",
+    "manifest_sha256": "9106b4594f412ecca61c3e0ef7717b57c68a692b772ff78d3d9ec63c3459ba87",
+    "verification": "PASS_638_FILES"
+  },
+  "passed_prerequisites": {
+    "server_interactive_authentication": "PASS_SECRET_NOT_PERSISTED",
+    "server_toolchain": "PASS_VIVADO_AND_VITIS_HLS_2022_2",
+    "zcu104_jtag": "PASS_XCZU7EV_AND_ARM_DAP_VISIBLE",
+    "zcu104_pl_power": "PASS_PL_PWR_STS_1",
+    "hardware_gate_preregistration": "PASS_BEFORE_CANDIDATE_OUTCOMES",
+    "exact_hls_source_generation": "PASS_7_OF_9_LOCAL"
+  },
+  "ready_hls_rows": [
+    "stage2_mbconv_k3_e3",
+    "stage2_mbconv_k3_e6",
+    "stage2_mbconv_k5_e3",
+    "stage2_mbconv_k5_e6",
+    "stage4_skip",
+    "stage4_mbconv_k3_e3",
+    "stage4_mbconv_k5_e3"
+  ],
+  "blocked_rows": {
+    "stage4_dmdc_conv_sonar": "BLOCKED_EXACT_INT8_AND_HLS_SEMANTICS_MISSING",
+    "stage4_cfem_sonar": "BLOCKED_EXACT_INT8_AND_HLS_SEMANTICS_MISSING"
+  },
+  "board_measurement_blockers": {
+    "board_os_authentication": "PENDING",
+    "vcc12_ina226_live_read": "PENDING_BOARD_OS_AUTHENTICATION",
+    "experiment_owned_bitstream": "PENDING_HLS_ROUTE_AND_BITSTREAM",
+    "axi_dma_runtime_binding": "PENDING"
+  },
+  "fresh_measurement_coverage": "0_OF_9",
+  "search_enabled": false,
+  "evidence": [
+    "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json",
+    "artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json",
+    "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json"
+  ],
+  "claim_boundary": "This readiness record permits remote HLS execution only for seven rows after remote source-freeze verification. It does not claim HLS, route, bitstream, board-latency, power, temperature or energy results and does not enable search."
+}

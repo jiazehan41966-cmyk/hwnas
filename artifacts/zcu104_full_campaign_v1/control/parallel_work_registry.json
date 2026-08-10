@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T17:10:00+08:00",
+  "generated_at": "2026-08-10T18:45:00+08:00",
   "status": "PASS_ALL_LANES_AT_CONTROL_HANDOFF",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
@@ -9,8 +9,10 @@
     "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
     "control_handoff_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
     "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json",
-    "current_execution_source_head": "2b9c5e532f4974b269ad133cf3977677202b71bf",
-    "current_execution_source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json"
+    "current_execution_source_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
+    "current_execution_source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json",
+    "hardware_gate_preregistration": "artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json",
+    "live_hardware_probe": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
   "public_context_files": [
