@@ -450,6 +450,124 @@ class GhostBottleneckBlock(nn.Module):
         return x
 
 
+class DMDCScaleBranch(nn.Module):
+    """One scale branch from the paper DMDC_Conv diagram.
+
+    Each scale keeps both paper-required paths: a 3x3 dilated-convolution path
+    and an adaptive-pooling regional-context path.  The context path is resized
+    back to the input feature-map resolution only to make the paper fusion
+    operation well-defined inside the fixed 32x28x28 Stage4 slot.
+    """
+
+    def __init__(self, channels: int, dilation_rate: int):
+        super().__init__()
+        self.dilation_rate = int(dilation_rate)
+        self.context_region_size = int(dilation_rate)
+        self.dilated_path = nn.Sequential(
+            nn.Conv2d(
+                channels,
+                channels,
+                kernel_size=3,
+                stride=1,
+                padding=self.dilation_rate,
+                dilation=self.dilation_rate,
+                bias=False,
+            ),
+            nn.BatchNorm2d(channels),
+            nn.ReLU6(inplace=True),
+            nn.Conv2d(channels, channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(channels),
+            nn.ReLU6(inplace=True),
+            nn.Conv2d(channels, channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(channels),
+        )
+        self.context_path = nn.Sequential(
+            nn.AdaptiveAvgPool2d(
+                (self.context_region_size, self.context_region_size)
+            ),
+            nn.Conv2d(channels, channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(channels),
+            nn.ReLU6(inplace=True),
+            nn.Conv2d(
+                channels,
+                channels,
+                kernel_size=self.context_region_size,
+                stride=1,
+                padding=self.context_region_size // 2,
+                bias=False,
+            ),
+            nn.BatchNorm2d(channels),
+            nn.ReLU6(inplace=True),
+        )
+        self.scale_projection = nn.Sequential(
+            nn.Conv2d(channels, channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(channels),
+            nn.ReLU6(inplace=True),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        dilated_features = self.dilated_path(x)
+        regional_features = self.context_path(x)
+        if regional_features.shape[-2:] != x.shape[-2:]:
+            regional_features = F.interpolate(
+                regional_features,
+                size=x.shape[-2:],
+                mode="bilinear",
+                align_corners=False,
+            )
+        return self.scale_projection(dilated_features * regional_features)
+
+
+class DMDCConvSonarBlock(nn.Module):
+    """Paper-derived Dynamic Multiscale Dilated Convolution Stage4 block.
+
+    Source: Wang et al., "Fused Adaptive Receptive Field Mechanism and Dynamic
+    Multiscale Dilated Convolution for Side-Scan Sonar Image Segmentation",
+    IEEE TGRS 2022.  The active HW-NAS candidate keeps the DMDC_Conv core:
+    k={1,3,5} dilated 3x3 branches, adaptive regional-context generation, branch
+    fusion, channel concatenation, and final 1x1 compression.
+    """
+
+    operator_name = "dmdc_conv_sonar"
+    source_type = "literature_operator"
+    source_task = "side_scan_sonar_segmentation"
+    sonar_specific = True
+    source_doi = "10.1109/TGRS.2022.3201248"
+    core_mechanism = "dynamic_multiscale_dilated_convolution"
+    dilation_rates = (1, 3, 5)
+    implementation_status = "implemented"
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+    ):
+        super().__init__()
+        if (in_channels, out_channels, stride) != (32, 32, 1):
+            raise ValueError(
+                f"{self.operator_name} is frozen to 32->32, stride=1 Stage4"
+            )
+        self.scale_branches = nn.ModuleList(
+            DMDCScaleBranch(in_channels, dilation_rate)
+            for dilation_rate in self.dilation_rates
+        )
+        self.channel_compression = nn.Sequential(
+            nn.Conv2d(
+                in_channels * len(self.dilation_rates),
+                out_channels,
+                kernel_size=1,
+                bias=False,
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU6(inplace=True),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        multiscale_features = [branch(x) for branch in self.scale_branches]
+        return self.channel_compression(torch.cat(multiscale_features, dim=1))
+
+
 class SkipBlock(nn.Module):
     """跳过连接块"""
 
@@ -1041,6 +1159,13 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
             kernel_size=block_spec.kernel_size,
             stride=block_spec.stride,
             expand_ratio=block_spec.expand_ratio,
+        )
+
+    elif op == "dmdc_conv_sonar":
+        return DMDCConvSonarBlock(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            stride=block_spec.stride,
         )
 
     elif op == "skip":

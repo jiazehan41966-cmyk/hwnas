@@ -1,0 +1,85 @@
+{
+  "active_architecture_ids": [
+    "fourstage_s2_k3_e3_s4_skip",
+    "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k3_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k3_e3_s4_dmdc_conv_sonar",
+    "fourstage_s2_k3_e6_s4_skip",
+    "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k3_e6_s4_mbconv_k5_e3",
+    "fourstage_s2_k3_e6_s4_dmdc_conv_sonar",
+    "fourstage_s2_k5_e3_s4_skip",
+    "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e3_s4_dmdc_conv_sonar",
+    "fourstage_s2_k5_e6_s4_skip",
+    "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e6_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e6_s4_dmdc_conv_sonar"
+  ],
+  "active_stage2_candidates": [
+    "k3_e3",
+    "k3_e6",
+    "k5_e3",
+    "k5_e6"
+  ],
+  "active_stage4_candidates": [
+    "skip",
+    "mbconv_k3_e3",
+    "mbconv_k5_e3",
+    "dmdc_conv_sonar"
+  ],
+  "builder_checks": {
+    "dmdc_builder_recognized": true,
+    "dmdc_dilation_rates": [
+      1,
+      3,
+      5
+    ],
+    "dmdc_implementation_status": "implemented"
+  },
+  "candidate_count": 16,
+  "checks": {
+    "architecture_id_unique": true,
+    "dmdc_builder_recognized": true,
+    "dmdc_dilation_rates_eq_1_3_5": true,
+    "fixed_macroarchitecture_unchanged": true,
+    "fused_and_ghost_excluded_from_current_space": true,
+    "historical_configs_compatible": true,
+    "msconv_pending_not_in_active_space": true,
+    "stage2_candidate_count_eq_4": true,
+    "stage4_candidate_count_eq_4": true,
+    "total_candidate_count_eq_16": true
+  },
+  "claim_boundary": {
+    "bitstream": "NOT_GENERATED",
+    "board": "NOT_RUN",
+    "formal_evaluation": "NOT_RUN",
+    "hardware_cost_table": "NOT_MEASURED",
+    "hls": "NOT_RUN",
+    "power": "NOT_MEASURED",
+    "route": "NOT_RUN",
+    "rtl": "NOT_RUN",
+    "training": "NOT_RUN"
+  },
+  "fixed_macroarchitecture_errors": [],
+  "historical_manifest_checks": {
+    "base8_manifest_exists": true,
+    "base8_manifest_path": "artifacts/sonar_fourstage_operator_v2/base8_candidates/base8_manifest.json",
+    "base8_runtime_count": 8,
+    "extended12_runtime_count": 12,
+    "extended16_runtime_count": 16,
+    "extended_manifest_exists": true,
+    "extended_manifest_path": "artifacts/sonar_fourstage_operator_v2/extended_candidates/extended_manifest.json",
+    "raw20_historical_manifest_exists": true,
+    "raw20_historical_manifest_path": "artifacts/sonar_fourstage_operator_v2/frozen_search_space_v3_raw20/candidate_manifest_20.json",
+    "raw20_runtime_count": 20
+  },
+  "payload_sha256": "8a4a86aa22387ee48021514cdaedf38d56dcce97a7ae55aff5d39e5e8f2a7480",
+  "pending_stage4_operators": [
+    "msconv_sonar"
+  ],
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_dmdc16_v1",
+  "status": "PASS"
+}

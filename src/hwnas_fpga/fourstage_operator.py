@@ -45,6 +45,32 @@ RAW20_STAGE4_LABELS = {
     "fused_mbconv_e3": "Fused-MBConv-e3",
     "ghost_bottleneck": "Ghost-Bottleneck",
 }
+DMDC16_STAGE4_CHOICES = (
+    "skip",
+    "mbconv_k3_e3",
+    "mbconv_k5_e3",
+    "dmdc_conv_sonar",
+)
+DMDC16_STAGE4_LABELS = {
+    "skip": "Skip",
+    "mbconv_k3_e3": "MBConv-k3-e3",
+    "mbconv_k5_e3": "MBConv-k5-e3",
+    "dmdc_conv_sonar": "DMDC_Conv",
+}
+PENDING_STAGE4_OPERATORS = {
+    "msconv_sonar": {
+        "implementation_status": "pending_adaptation_review",
+        "reason": (
+            "paper-derived MS-Conv kernel scales, group/channel allocation, "
+            "and CSP split require explicit adaptation confirmation before "
+            "entering the frozen active space"
+        ),
+    }
+}
+EXCLUDED_FROM_CURRENT_STAGE4_SPACE = {
+    "fused_mbconv_e3": "excluded_from_current_space",
+    "ghost_bottleneck": "excluded_from_current_space",
+}
 
 
 @dataclass(frozen=True)
@@ -85,6 +111,10 @@ def build_fourstage_architecture(
     elif stage4_key == "ghost_bottleneck":
         stage4_block = BlockSpec(
             op="ghost_bottleneck", kernel_size=3, expand_ratio=3, stride=1
+        )
+    elif stage4_key == "dmdc_conv_sonar":
+        stage4_block = BlockSpec(
+            op="dmdc_conv_sonar", kernel_size=3, expand_ratio=1, stride=1
         )
     elif stage4_key == "dir_mbconv3_split11_e3_v1":
         stage4_block = BlockSpec(
@@ -249,6 +279,35 @@ def enumerate_raw20() -> tuple[FourStageFactorRow, ...]:
     return tuple(rows)
 
 
+def enumerate_dmdc16() -> tuple[FourStageFactorRow, ...]:
+    """Enumerate the current active 4 x 4 literature-operator search space.
+
+    MS-Conv stays pending and is not enumerated.  Fused-MBConv and Ghost
+    Bottleneck are retained in code/history but excluded from this active
+    candidate space.
+    """
+
+    rows: list[FourStageFactorRow] = []
+    for stage2_name, kernel, expansion in STAGE2_CHOICES:
+        for stage4 in DMDC16_STAGE4_CHOICES:
+            rows.append(
+                FourStageFactorRow(
+                    arch_id=f"fourstage_s2_{stage2_name}_s4_{stage4}",
+                    kernel=kernel,
+                    expansion=expansion,
+                    stage4=DMDC16_STAGE4_LABELS[stage4],
+                    architecture=build_fourstage_architecture(
+                        stage2_kernel=kernel,
+                        stage2_expansion=expansion,
+                        stage4_op=stage4,
+                    ),
+                )
+            )
+    if len(rows) != 16:
+        raise AssertionError(f"DMDC16 enumeration must contain 16 rows")
+    return tuple(rows)
+
+
 def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
     errors: list[str] = []
     if architecture.input_channels != 1:
@@ -316,6 +375,12 @@ def validate_frozen_fourstage(architecture: ArchitectureSpec) -> None:
                 op="ghost_bottleneck",
                 kernel_size=3,
                 expand_ratio=3,
+                stride=1,
+            ),
+            BlockSpec(
+                op="dmdc_conv_sonar",
+                kernel_size=3,
+                expand_ratio=1,
                 stride=1,
             ),
         }
