@@ -236,7 +236,12 @@ def pending_operator_definitions() -> list[dict[str, Any]]:
     return [
         {
             "operator_name": "msconv_sonar",
-            "active_space_status": "pending_adaptation_review",
+            "active_space_status": PENDING_STAGE4_OPERATORS["msconv_sonar"][
+                "implementation_status"
+            ],
+            "active_searchable": PENDING_STAGE4_OPERATORS["msconv_sonar"][
+                "active_searchable"
+            ],
             "source_type": "literature_operator",
             "source_task": "sonar_object_detection",
             "sonar_specific": True,

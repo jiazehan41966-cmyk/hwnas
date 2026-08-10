@@ -13,6 +13,9 @@ from .backbones import (
 )
 from .builder import (
     AdaptiveDenoiseBlock,
+    CFEMCBAMWeight,
+    CFEMScaleAttention,
+    CFEMSonarBlock,
     ConvBlock,
     DenoiseBlock,
     DepthwiseConvBlock,
@@ -37,6 +40,9 @@ from .proxyless import MixedOp, ProxylessSuperNet
 
 __all__ = [
     "AdaptiveDenoiseBlock",
+    "CFEMCBAMWeight",
+    "CFEMScaleAttention",
+    "CFEMSonarBlock",
     "BackboneCandidate",
     "ConvBlock",
     "DenoiseBlock",

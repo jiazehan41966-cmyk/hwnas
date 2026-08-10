@@ -568,6 +568,154 @@ class DMDCConvSonarBlock(nn.Module):
         return self.channel_compression(torch.cat(multiscale_features, dim=1))
 
 
+class CFEMScaleAttention(nn.Module):
+    """Channel attention that yields paper CFEM alpha/beta/gamma weights."""
+
+    def __init__(self, channels: int, reduction: int = 4):
+        super().__init__()
+        fused_channels = channels * 3
+        hidden_channels = max(1, fused_channels // int(reduction))
+        self.shared_mlp = nn.Sequential(
+            nn.Conv2d(fused_channels, hidden_channels, kernel_size=1, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden_channels, fused_channels, kernel_size=1, bias=True),
+        )
+
+    def forward(
+        self,
+        fused_features: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        avg_descriptor = F.adaptive_avg_pool2d(fused_features, 1)
+        max_descriptor = F.adaptive_max_pool2d(fused_features, 1)
+        weights = torch.sigmoid(
+            self.shared_mlp(max_descriptor) + self.shared_mlp(avg_descriptor)
+        )
+        return torch.chunk(weights, chunks=3, dim=1)
+
+
+class CFEMCBAMWeight(nn.Module):
+    """CBAM-style attention weight used by the paper CFEM fusion equation."""
+
+    def __init__(self, channels: int, reduction: int = 4):
+        super().__init__()
+        hidden_channels = max(1, channels // int(reduction))
+        self.channel_mlp = nn.Sequential(
+            nn.Conv2d(channels, hidden_channels, kernel_size=1, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden_channels, channels, kernel_size=1, bias=True),
+        )
+        self.spatial_conv = nn.Conv2d(
+            2,
+            1,
+            kernel_size=7,
+            stride=1,
+            padding=3,
+            bias=True,
+        )
+
+    def channel_weight(self, x: torch.Tensor) -> torch.Tensor:
+        avg_descriptor = F.adaptive_avg_pool2d(x, 1)
+        max_descriptor = F.adaptive_max_pool2d(x, 1)
+        return torch.sigmoid(
+            self.channel_mlp(avg_descriptor) + self.channel_mlp(max_descriptor)
+        )
+
+    def spatial_weight(self, x: torch.Tensor) -> torch.Tensor:
+        avg_map = torch.mean(x, dim=1, keepdim=True)
+        max_map, _ = torch.max(x, dim=1, keepdim=True)
+        return torch.sigmoid(self.spatial_conv(torch.cat((avg_map, max_map), dim=1)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        wc = self.channel_weight(x)
+        ws = self.spatial_weight(x * wc)
+        return torch.sigmoid(wc * ws)
+
+
+class CFEMSonarBlock(nn.Module):
+    """Paper-derived Context Feature Extraction Module for Stage4.
+
+    Source: "YOLO-SONAR: A lightweight object detection network for
+    forward-looking sonar images".  The block keeps the paper CFEM core:
+    multiscale atrous convolution with dilation rates 2/3/5, CAM-derived
+    alpha/beta/gamma scale weights, context aggregation, and CBAM-based
+    attention feature fusion between the projected input feature and the
+    context-enhanced feature.
+    """
+
+    operator_name = "cfem_sonar"
+    operator_full_name = "Context Feature Extraction Module"
+    source_type = "literature_operator"
+    source_task = "forward_looking_sonar_object_detection"
+    sonar_specific = True
+    candidate_role = "sonar_context_multiscale_candidate"
+    core_mechanism = "multiscale_dilated_context_extraction_with_attention_fusion"
+    dilation_rates = (2, 3, 5)
+    implementation_status = "implemented"
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+    ):
+        super().__init__()
+        if (in_channels, out_channels, stride) != (32, 32, 1):
+            raise ValueError(
+                f"{self.operator_name} is frozen to 32->32, stride=1 Stage4"
+            )
+        self.context_branches = nn.ModuleList(
+            nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
+                nn.Conv2d(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    stride=1,
+                    padding=dilation_rate,
+                    dilation=dilation_rate,
+                    bias=False,
+                ),
+            )
+            for dilation_rate in self.dilation_rates
+        )
+        self.scale_attention = CFEMScaleAttention(out_channels)
+        self.context_projection = nn.Conv2d(
+            out_channels,
+            out_channels,
+            kernel_size=1,
+            bias=False,
+        )
+        self.input_projection = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size=1,
+            bias=False,
+        )
+        self.fusion_attention = CFEMCBAMWeight(out_channels)
+        self.output_channel_attention = CFEMCBAMWeight(out_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x1, x2, x3 = [branch(x) for branch in self.context_branches]
+        fused_multiscale = torch.cat((x1, x2, x3), dim=1)
+        alpha, beta, gamma = self.scale_attention(fused_multiscale)
+        context_feature = self.context_projection(
+            alpha * x1 + beta * x2 + gamma * x3
+        )
+        input_feature = self.input_projection(x)
+        fusion_weight = self.fusion_attention(input_feature + context_feature)
+        fused_feature = (
+            input_feature * fusion_weight
+            + context_feature * (1.0 - fusion_weight)
+        )
+        post_channel_weight = self.output_channel_attention.channel_weight(
+            fused_feature
+        )
+        post_spatial_weight = self.output_channel_attention.spatial_weight(
+            fused_feature * post_channel_weight
+        )
+        return torch.sigmoid(fused_feature * post_spatial_weight)
+
+
 class SkipBlock(nn.Module):
     """跳过连接块"""
 
@@ -1163,6 +1311,13 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
 
     elif op == "dmdc_conv_sonar":
         return DMDCConvSonarBlock(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            stride=block_spec.stride,
+        )
+
+    elif op == "cfem_sonar":
+        return CFEMSonarBlock(
             in_channels=in_channels,
             out_channels=out_channels,
             stride=block_spec.stride,

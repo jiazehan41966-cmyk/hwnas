@@ -1,0 +1,95 @@
+{
+  "active_architecture_ids": [
+    "fourstage_s2_k3_e3_s4_skip",
+    "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k3_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k3_e3_s4_dmdc_conv_sonar",
+    "fourstage_s2_k3_e3_s4_cfem_sonar",
+    "fourstage_s2_k3_e6_s4_skip",
+    "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k3_e6_s4_mbconv_k5_e3",
+    "fourstage_s2_k3_e6_s4_dmdc_conv_sonar",
+    "fourstage_s2_k3_e6_s4_cfem_sonar",
+    "fourstage_s2_k5_e3_s4_skip",
+    "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e3_s4_dmdc_conv_sonar",
+    "fourstage_s2_k5_e3_s4_cfem_sonar",
+    "fourstage_s2_k5_e6_s4_skip",
+    "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+    "fourstage_s2_k5_e6_s4_mbconv_k5_e3",
+    "fourstage_s2_k5_e6_s4_dmdc_conv_sonar",
+    "fourstage_s2_k5_e6_s4_cfem_sonar"
+  ],
+  "active_stage2_candidates": [
+    "k3_e3",
+    "k3_e6",
+    "k5_e3",
+    "k5_e6"
+  ],
+  "active_stage4_candidates": [
+    "skip",
+    "mbconv_k3_e3",
+    "mbconv_k5_e3",
+    "dmdc_conv_sonar",
+    "cfem_sonar"
+  ],
+  "builder_checks": {
+    "cfem_builder_recognized": true,
+    "cfem_dilation_rates": [
+      2,
+      3,
+      5
+    ],
+    "cfem_implementation_status": "implemented"
+  },
+  "checks": {
+    "architecture_ids_unique": true,
+    "cfem_builder_recognized": true,
+    "cfem_dilation_rates_eq_2_3_5": true,
+    "fixed_macroarchitecture_unchanged": true,
+    "fused_and_ghost_excluded_from_current_space": true,
+    "historical_configs_compatible": true,
+    "msconv_pending_not_in_active_space": true,
+    "msconv_pending_original_spec": true,
+    "raw_network_count_eq_20": true,
+    "stage2_candidate_count_eq_4": true,
+    "stage4_candidate_count_eq_5": true
+  },
+  "claim_boundary": {
+    "bitstream": "NOT_GENERATED",
+    "formal_evaluation": "NOT_RUN",
+    "hardware_lut": "NOT_MEASURED",
+    "hls": "NOT_RUN",
+    "nas_search": "NOT_RUN",
+    "power": "NOT_MEASURED",
+    "route": "NOT_RUN",
+    "rtl": "NOT_RUN",
+    "training": "NOT_RUN",
+    "zcu104_board": "NOT_RUN"
+  },
+  "fixed_macroarchitecture_errors": [],
+  "historical_manifest_checks": {
+    "base8_manifest_exists": true,
+    "base8_manifest_path": "artifacts/sonar_fourstage_operator_v2/base8_candidates/base8_manifest.json",
+    "base8_runtime_count": 8,
+    "dmdc16_runtime_count": 16,
+    "dmdc16_v4_manifest_exists": true,
+    "dmdc16_v4_manifest_path": "artifacts/sonar_fourstage_operator_v2/frozen_search_space_v4_dmdc16/candidate_manifest_16.json",
+    "extended12_runtime_count": 12,
+    "extended16_manifest_exists": true,
+    "extended16_manifest_path": "artifacts/sonar_fourstage_operator_v2/extended_candidates/extended_manifest.json",
+    "extended16_runtime_count": 16,
+    "raw20_runtime_count": 20,
+    "raw20_v3_manifest_exists": true,
+    "raw20_v3_manifest_path": "artifacts/sonar_fourstage_operator_v2/frozen_search_space_v3_raw20/candidate_manifest_20.json"
+  },
+  "payload_sha256": "c20ee17ed85444c1bcde5907dc4abd08ecebd057900568022ec1c9e54c36bb1f",
+  "pending_stage4_operators": [
+    "msconv_sonar"
+  ],
+  "raw_network_count": 20,
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_cfem20_v1",
+  "status": "PASS"
+}

@@ -1,0 +1,1629 @@
+{
+  "payload_sha256": "12cd5cf5ef94bb2e6ee245770d738032f1bc05b0554ae6c1cdad865127599d27",
+  "raw_network_count": 20,
+  "rows": [
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_skip",
+      "architecture_sha256": "d900357ca51bcc483213b2b0e0868728ad93e8e70600c94e06f81d1d8a5762b4",
+      "candidate_index": 1,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_mbconv_k3_e3",
+      "architecture_sha256": "f002bb611b03681991b40a22c76ff08e5e86cdd9772c7533e428a74fe47fde98",
+      "candidate_index": 2,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_mbconv_k5_e3",
+      "architecture_sha256": "df4762b92ee8ed9423a1f2c2c093c728d8687cb4b27f881539d5acc63b21a2f1",
+      "candidate_index": 3,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "dmdc_conv_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_dmdc_conv_sonar",
+      "architecture_sha256": "77963797419a41ea4115ba245f9e5a401ee508fe6111b031c728db8aaeecfafd",
+      "candidate_index": 4,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "dmdc_conv_sonar",
+        "op_name": "DMDC_Conv"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "cfem_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e3_s4_cfem_sonar",
+      "architecture_sha256": "8c5bfa8fd8d5e479c22d7cff35e24e9cd3c864960cd7ccef7f6887aebf993d49",
+      "candidate_index": 5,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A1",
+        "candidate_key": "k3_e3",
+        "expand_ratio": 3,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "cfem_sonar",
+        "op_name": "CFEM"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_skip",
+      "architecture_sha256": "11ef7c5193b0f31f3a58f5a277698a23cfccb65c12110c46cb4dc8f1a6818df0",
+      "candidate_index": 6,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_mbconv_k3_e3",
+      "architecture_sha256": "cad054d5706c8e30a32b655981b5fea4446af428010b498cb07aadc1d4a23a7a",
+      "candidate_index": 7,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_mbconv_k5_e3",
+      "architecture_sha256": "aea0c521cd72e8b6db44f4231a3c0997001a16913cd30e7d9435224d1f4c1da0",
+      "candidate_index": 8,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "dmdc_conv_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_dmdc_conv_sonar",
+      "architecture_sha256": "b0e9db4cc9d4e93a6cfdd99b9826479c895df07a72a1f32e128f4c4cc3f7f689",
+      "candidate_index": 9,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "dmdc_conv_sonar",
+        "op_name": "DMDC_Conv"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "cfem_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k3_e6_s4_cfem_sonar",
+      "architecture_sha256": "7191d07a21adf317eab65de9e02c78dc55bdda674b4a52ba89a1bd3b1e976a87",
+      "candidate_index": 10,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A2",
+        "candidate_key": "k3_e6",
+        "expand_ratio": 6,
+        "kernel": 3,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "cfem_sonar",
+        "op_name": "CFEM"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_skip",
+      "architecture_sha256": "bad74e2eb939546fafdfceb1365c2081aa9e2094affc31494ec20aa36b9d23b9",
+      "candidate_index": 11,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_mbconv_k3_e3",
+      "architecture_sha256": "6e01d4ef53a838ed82d0f61d59c5e8f9f52bb2e1f82ab337d1f05248f7c7bc8f",
+      "candidate_index": 12,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "architecture_sha256": "ec31ff7f91e91f00ae2ce303b335db98a6befdfe7303f92884fc8a1cdc42295d",
+      "candidate_index": 13,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "dmdc_conv_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_dmdc_conv_sonar",
+      "architecture_sha256": "95f60d35d54af465959ae385d8cc00183eec7508f0f1c54a076f4f0b12d342c3",
+      "candidate_index": 14,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "dmdc_conv_sonar",
+        "op_name": "DMDC_Conv"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "cfem_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e3_s4_cfem_sonar",
+      "architecture_sha256": "df207271c3768775961979da253353b3bc626b70af4451448eabf608d0c69293",
+      "candidate_index": 15,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A3",
+        "candidate_key": "k5_e3",
+        "expand_ratio": 3,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "cfem_sonar",
+        "op_name": "CFEM"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "skip",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_skip",
+      "architecture_sha256": "1fb67b177b483b8aabce6717ddc5109ea9d331e797ca0f4f6463d43ee409bfcd",
+      "candidate_index": 16,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B1",
+        "candidate_key": "skip",
+        "op_name": "Skip"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_mbconv_k3_e3",
+      "architecture_sha256": "9bc6c8ffb814f3c5e8fd4d4b1087042af9cbfd5597e1d7185c2a25b4c9d7e93d",
+      "candidate_index": 17,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B2",
+        "candidate_key": "mbconv_k3_e3",
+        "op_name": "MBConv-k3-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_mbconv_k5_e3",
+      "architecture_sha256": "c098d28a661777dc8454f5fa5af7b9ca4f3db3792e527a3c8d680bf3fb54c6a9",
+      "candidate_index": 18,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B3",
+        "candidate_key": "mbconv_k5_e3",
+        "op_name": "MBConv-k5-e3"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "dmdc_conv_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_dmdc_conv_sonar",
+      "architecture_sha256": "d58605f3f3b0f67415557b7b947c1cbc03df3ae8e79f8543b385ea081cf7b52f",
+      "candidate_index": 19,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B4",
+        "candidate_key": "dmdc_conv_sonar",
+        "op_name": "DMDC_Conv"
+      }
+    },
+    {
+      "architecture": {
+        "head_channels": null,
+        "head_conv_channels": null,
+        "input_channels": 1,
+        "num_classes": 8,
+        "post_stem_downsample_stride": 1,
+        "stages": [
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 1,
+                "op": "conv",
+                "stride": 1
+              }
+            ],
+            "channels": 16,
+            "depth": 1,
+            "stride": 1
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 6,
+                "kernel_size": 5,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 24,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 3,
+                "kernel_size": 3,
+                "op": "mbconv",
+                "stride": 2
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 2
+          },
+          {
+            "blocks": [
+              {
+                "expand_ratio": 1,
+                "kernel_size": 3,
+                "op": "cfem_sonar",
+                "stride": 1
+              }
+            ],
+            "channels": 32,
+            "depth": 1,
+            "stride": 1
+          }
+        ],
+        "stem_channels": 32,
+        "stem_stride": 2
+      },
+      "architecture_id": "fourstage_s2_k5_e6_s4_cfem_sonar",
+      "architecture_sha256": "79d5b9e6eaae3f98a7a53cf34f2e51bb5301f4726aee9fba72165b0250a9a67b",
+      "candidate_index": 20,
+      "claim_boundary": "RAW candidate definition only; no accuracy, hardware feasibility, deployability, LUT, route, board, or power claim is made here.",
+      "stage2": {
+        "candidate_id": "A4",
+        "candidate_key": "k5_e6",
+        "expand_ratio": 6,
+        "kernel": 5,
+        "op_name": "MBConv"
+      },
+      "stage4": {
+        "candidate_id": "B5",
+        "candidate_key": "cfem_sonar",
+        "op_name": "CFEM"
+      }
+    }
+  ],
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_cfem20_v1",
+  "status": "FROZEN_CANDIDATE_MANIFEST"
+}

@@ -127,8 +127,9 @@ def test_dmdc16_freeze_script_writes_current_search_space(tmp_path):
     assert definition["candidate_count"] == 16
     assert definition["pending_stage4_operators"][0]["operator_name"] == "msconv_sonar"
     assert definition["pending_stage4_operators"][0]["active_space_status"] == (
-        "pending_adaptation_review"
+        "pending_original_spec"
     )
+    assert definition["pending_stage4_operators"][0]["active_searchable"] is False
     excluded = {
         row["operator_name"]: row["active_space_status"]
         for row in definition["excluded_from_current_space"]
