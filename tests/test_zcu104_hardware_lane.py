@@ -7,7 +7,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "hls_lut_builder" / "scripts"))
 
-from common import build_cases, load_config  # noqa: E402
+from common import build_cases, load_config, materialize_case_project  # noqa: E402
 
 
 CONFIG = (
@@ -65,8 +65,12 @@ def test_generated_existing_templates_are_zcu104_exact_shape_and_resolve(tmp_pat
     cases = build_cases(config, project_root_override=tmp_path)
 
     for case in cases:
+        materialize_case_project(case)
         text = case.template_path.read_text(encoding="utf-8")
         assert "__TOP_FUNCTION__" in text
+        assert "-Iinclude" in case.tcl_path.read_text(encoding="utf-8")
+        assert (case.project_dir / "include" / "common_defs.h").is_file()
+        assert (case.project_dir / "include" / "common_types.h").is_file()
         assert case.parameters["target_clock_ns"] == 5.0
         if case.op_spec["frozen_operator_id"].startswith("k"):
             assert case.parameters["feature_h"] == 112

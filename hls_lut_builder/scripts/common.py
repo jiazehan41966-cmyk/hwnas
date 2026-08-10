@@ -138,7 +138,7 @@ def load_template(path: Path) -> str:
 
 
 def build_tcl(case: HlsCase) -> str:
-    include_dir = (BUILDER_ROOT / "include").as_posix()
+    include_dir = "include"
     lines = [
         "open_project project",
         f"set_top {case.top_function}",
@@ -285,6 +285,10 @@ def materialize_case_project(case: HlsCase, *, force: bool = False) -> None:
         _safe_remove_tree(case.project_dir)
 
     (case.project_dir / "src").mkdir(parents=True, exist_ok=True)
+    case_include_dir = case.project_dir / "include"
+    case_include_dir.mkdir(parents=True, exist_ok=True)
+    for header_path in sorted((BUILDER_ROOT / "include").glob("*.h")):
+        shutil.copy2(header_path, case_include_dir / header_path.name)
     template_text = load_template(case.template_path)
     rendered_source = render_template(
         template_text,
