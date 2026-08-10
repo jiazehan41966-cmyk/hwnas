@@ -77,7 +77,7 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(
             config["protocol"]["source_freeze_manifest"],
             "artifacts/zcu104_full_campaign_v1/"
-            "source_freeze_revision_20260809/source_freeze_manifest.json",
+            "source_freeze_control_20260810/source_freeze_manifest.json",
         )
 
     def test_clock_generator_bypasses_7_series_mmcm_for_ps_fclk(self) -> None:
