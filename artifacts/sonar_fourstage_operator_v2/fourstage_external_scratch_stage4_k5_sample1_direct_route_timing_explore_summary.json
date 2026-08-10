@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-09T05:19:40.130176+00:00",
+  "status": "FAIL",
+  "gate": "full_network_external_scratch_direct_route",
+  "implementation_style": "external_scratch_pixel_tiled_v1",
+  "route_scope": "vivado_ooc_generated_hls_rtl_without_rtl_cosim",
+  "impl_profile": "timing_explore",
+  "target_part": "xc7k325tffg900-2",
+  "target_clock_ns": 5.0,
+  "route_dsp_limit": 700,
+  "hls_summary": {
+    "path": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\artifacts\\sonar_fourstage_operator_v2\\fourstage_external_scratch_stage4_k5_sample1_hls_shortpath_summary.json",
+    "sha256": "e5dc57a4e8f2a038d4d41c1b0365ff04596ca0f0ed2c2b524d846d48d44c04a3",
+    "size_bytes": 5219
+  },
+  "vivado": {
+    "path": "F:\\vivado\\Vivado\\2023.2\\bin\\vivado.bat",
+    "exists": true
+  },
+  "git": {
+    "head": "3f0713f11efc2c6919cd19920310a657c70cb0d1",
+    "branch": "codex/sonar-fourstage-operator-closure",
+    "status_porcelain": []
+  },
+  "candidate_count": 1,
+  "formal_candidate_count": 4,
+  "formal_scope": false,
+  "candidate_limit": null,
+  "selected_roles": [
+    "stage4_k5_representative"
+  ],
+  "rtl_cosim": {
+    "status": "SKIPPED_FOR_BOARD_BRINGUP",
+    "claim_boundary": "No bit-exact RTL co-simulation parity is claimed."
+  },
+  "candidates": [
+    {
+      "role": "stage4_k5_representative",
+      "arch_id": "fourstage_s2_k5_e3_s4_mbconv_k5_e3",
+      "hls_project_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative",
+      "rtl_dir": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\verilog",
+      "route_work_dir": "E:\\hxs_s4k5_route_timing_explore\\stage4_k5_representative",
+      "impl_profile": "timing_explore",
+      "generated": {
+        "tcl": {
+          "path": "E:\\hxs_s4k5_route_timing_explore\\stage4_k5_representative\\run_route.tcl",
+          "sha256": "a946b74efeb3ef6f48f06772f064f26829a4909e834fc9d159fba3bc7aa4bf42",
+          "size_bytes": 3159
+        },
+        "copied_dat_count": 24
+      },
+      "source_hls_candidate": {
+        "csim_result": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\csim_result.json",
+          "sha256": "d41287e04fbf90fb7e9641773e7ee2fead08e1321c360bc89b3a976022a53d74",
+          "size_bytes": 144
+        },
+        "vitis_log": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\vitis_hls_external_scratch.log",
+          "sha256": "c9021a0ce51816901a94028fa4acff966f0db7984fd48f217caba0c888885207",
+          "size_bytes": 211956
+        },
+        "csynth_report": {
+          "path": "E:\\hxs_s4k5_1\\stage4_k5_representative\\project\\solution1\\syn\\report\\fourstage_top_hls_csynth.xml",
+          "sha256": "94bcabf79659c8f91e21ec13cb8b2b34fabf2179fd236d734ff5a9dd2ce8c912",
+          "size_bytes": 76564
+        },
+        "metrics": {
+          "cycles": 48296830,
+          "latency_ns": 241000000.0,
+          "ii": 0,
+          "depth": 0,
+          "bram": 30,
+          "bram_18k": 30,
+          "bram_36k": 0,
+          "dsp": 274,
+          "lut": 112137,
+          "ff": 109753,
+          "power_w": null,
+          "estimated_clock_period_ns": 3.957,
+          "fmax_est_mhz": 252.71670457417235,
+          "report_format": "xml"
+        }
+      },
+      "rtl_cosim": {
+        "status": "SKIPPED_FOR_BOARD_BRINGUP",
+        "claim_boundary": "No bit-exact RTL co-simulation parity is claimed."
+      },
+      "timeout_minutes": 240,
+      "bitstream": {
+        "status": "NOT_GENERATED_OOC_ROUTE_ONLY",
+        "reason": "The generated HLS RTL is not wrapped in a board harness yet."
+      },
+      "status": "FAIL",
+      "vivado_execution": "RAN_VIVADO",
+      "vivado_returncode": 0,
+      "failure_category": "EXTERNAL_SCRATCH_DIRECT_ROUTE_WNS_FAIL",
+      "vivado_log": {
+        "path": "E:\\hxs_s4k5_route_timing_explore\\stage4_k5_representative\\vivado_ooc_route.log",
+        "sha256": "bc508e771d14e2e63a7530fd778d8bf681320c3d1d1142f8c7fa0c647fd4a419",
+        "size_bytes": 2026864
+      },
+      "acceptance": {
+        "target_clock_ns": 5.0,
+        "wns_ns": -1.501,
+        "wns_pass": false,
+        "route_dsp": 370,
+        "route_dsp_limit": 700,
+        "route_dsp_pass": true
+      },
+      "metrics": {
+        "timing": {
+          "setup_wns_ns": -1.501,
+          "setup_tns_ns": -11984.973,
+          "hold_whs_ns": 0.066,
+          "hold_ths_ns": 0.0,
+          "target_clock_ns": 5.0,
+          "data_path_delay_ns": 6.507,
+          "logic_delay_ns": 0.653,
+          "route_delay_ns": 5.854,
+          "fmax_est_mhz": 153.82248884786958,
+          "report_format": "text"
+        },
+        "utilization": {
+          "lut": 62202,
+          "ff": 61113,
+          "block_ram_tile": 16.0,
+          "ramb36": 4,
+          "ramb18": 24,
+          "dsp": 370,
+          "report_format": "text"
+        },
+        "power_estimate": {
+          "power_w": 2.196,
+          "power_source": "implementation_vectorless_report",
+          "report_format": "text"
+        },
+        "reports": {
+          "post_route_timing": {
+            "path": "E:\\hxs_s4k5_route_timing_explore\\stage4_k5_representative\\vivado_ooc_route\\reports\\post_route_timing_summary.rpt",
+            "sha256": "1b3a8a2691f6601fea006edcba0757b1c92123e96c66d723101a53d03f388e59",
+            "size_bytes": 294596
+          },
+          "post_route_utilization": {
+            "path": "E:\\hxs_s4k5_route_timing_explore\\stage4_k5_representative\\vivado_ooc_route\\reports\\post_route_utilization.rpt",
+            "sha256": "064e500a990345431ec447acc4413d848e337b5d7e73cb9e48c43775cbf733b1",
+            "size_bytes": 11372
+          },
+          "post_route_power": {
+            "path": "E:\\hxs_s4k5_route_timing_explore\\stage4_k5_representative\\vivado_ooc_route\\reports\\post_route_power.rpt",
+            "sha256": "dd41e9f0b1eef7efc37fe2239f0c9fa77aaf6b96588bb22809863a957768424c",
+            "size_bytes": 20297
+          }
+        }
+      },
+      "claim_boundary": "Out-of-context direct route with RTL co-simulation skipped. This is not bit-exact RTL parity, a board bitstream, a board run, or measured power."
+    }
+  ],
+  "downstream_gates": {
+    "board_harness_bitstream": "NOT_RUN_ROUTE_NOT_PASSED",
+    "com5_board_latency": "NOT_RUN",
+    "external_meter_power": "NOT_MEASURED"
+  },
+  "claim_boundary": "Direct route was used to prioritize board bring-up after RTL co-simulation was skipped. This does not prove bit-exact RTL parity and does not by itself produce a deployable board bitstream.",
+  "payload_sha256": "e0b82b8c38f760a4be194a9c82074035c0e55f1b31f1d296018c432508691787"
+}
