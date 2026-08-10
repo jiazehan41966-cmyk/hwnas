@@ -129,4 +129,3 @@ E_dynamic/op = 1000 × [integral(P_active(t) dt) - P_idle × T_active]
 - AMD ZCU104 用户指南 UG1267：板卡电源系统和监测拓扑。
 - AMD Zynq UltraScale+ MPSoC 数据表 DS891：XCZU7EV 器件资源总量。
 - PYNQ PMBus 文档：`get_rails()`、`DataRecorder` 及 ZCU104 传感器配置支持。
-
