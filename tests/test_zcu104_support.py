@@ -77,7 +77,7 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(
             config["protocol"]["source_freeze_manifest"],
             "artifacts/zcu104_full_campaign_v1/"
-            "source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json",
+            "source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json",
         )
         self.assertNotIn("candidates", config)
         self.assertNotIn("formal_checkpoint_registry", config)
@@ -100,6 +100,19 @@ class Zcu104BoardSupportTests(unittest.TestCase):
             },
         )
         self.assertEqual(config["operator_pool_v1"]["expected_operator_row_count"], 9)
+        budgets = config["hardware"]["deployment_budgets"]
+        self.assertEqual(
+            budgets["status"], "PREREGISTERED_20260810_BEFORE_CANDIDATE_RESULTS"
+        )
+        self.assertEqual(budgets["resource_fraction_of_device_capacity"], 0.70)
+        self.assertEqual(budgets["lut_max"], 161280)
+        self.assertEqual(budgets["dsp_max"], 1209)
+        self.assertEqual(budgets["bram18_max"], 436)
+        self.assertEqual(budgets["uram_max"], 67)
+        self.assertEqual(budgets["wns_ns_min"], 0.2)
+        self.assertEqual(budgets["latency_board_ms_max"], 25.0)
+        self.assertEqual(budgets["dynamic_power_w_max"], 15.0)
+        self.assertEqual(budgets["dynamic_energy_mj_per_op_max"], 375.0)
         self.assertEqual(
             config["operator_pool_v1"]["cost_lut_scaffold"]
             ["operator_key_definition_coverage"],
@@ -116,7 +129,6 @@ class Zcu104BoardSupportTests(unittest.TestCase):
             "0_of_9_pending",
         )
         self.assertFalse(config["operator_pool_v1"]["search_enabled"])
-        self.assertIsNone(config["hardware"]["deployment_budgets"]["dsp_max"])
 
     def test_clock_generator_bypasses_7_series_mmcm_for_ps_fclk(self) -> None:
         config = yaml.safe_load(

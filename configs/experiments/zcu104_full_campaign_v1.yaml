@@ -41,7 +41,7 @@ protocol:
   path: configs/evaluation/nksid_frozen_protocol_v2.yaml
   sha256: f5a1f41a0a0bd1a44ea9d28a4dc62830bf91f7d080ba4632a7773ebce2d90358
   freeze_record: artifacts/zcu104_full_campaign_v1/protocol_freeze.json
-  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json
 dataset:
   name: NKSID
   dataset_manifest:
@@ -265,7 +265,8 @@ hardware:
   target_part: xczu7ev-ffvc1156-2-e
   expected_board_part: xilinx.com:zcu104:part0:1.1
   clock_period_ns: 5.0
-  route_wns_min_ns: 0.0
+  route_wns_min_ns: 0.2
+  route_tns_required_ns: 0.0
   device_capacity_not_deployment_budget:
     lut: 230400
     ff: 460800
@@ -276,14 +277,26 @@ hardware:
     hls_gate_bram_unit: BRAM18
     uram_separate: true
   deployment_budgets:
-    status: PENDING_PREREGISTRATION_BEFORE_MEASUREMENT_RESULTS
-    lut_max: null
-    dsp_max: null
-    bram18_max: null
-    latency_board_ms_max: null
-    dynamic_power_w_max: null
-    dynamic_energy_mj_per_op_max: null
-    policy: Device totals and legacy AV7K325 thresholds are forbidden as deployment budgets.
+    status: PREREGISTERED_20260810_BEFORE_CANDIDATE_RESULTS
+    evidence: artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json
+    resource_scope: full_post_route_design_including_axi_dma_shell
+    resource_fraction_of_device_capacity: 0.70
+    resource_rounding: floor_to_whole_primitive
+    lut_max: 161280
+    ff_advisory_max: 322560
+    dsp_max: 1209
+    bram18_max: 436
+    bram36_max: 218
+    uram_max: 67
+    wns_ns_min: 0.2
+    tns_ns_required: 0.0
+    latency_board_ms_max: 25.0
+    dynamic_power_w_max: 15.0
+    dynamic_energy_mj_per_op_max: 375.0
+    junction_temperature_c_max: 85.0
+    emergency_temperature_abort_c: 90.0
+    ambient_temperature_c_max: 45.0
+    policy: Device totals and legacy AV7K325 thresholds are forbidden as deployment budgets; every candidate must pass the same preregistered full-route and board-measurement gates.
   transport:
     type: axi_dma
     id: axi_dma_0
@@ -321,9 +334,15 @@ hardware:
     auxiliary_source: irps5401_pmbus_rail_breakdown
     auxiliary_only: true
     vivado_estimate_is_measured_power: false
-    idle_active_pair_repetitions_min: 3
+    idle_active_pair_repetitions_min: 5
     capture_duration_s_min: 60
     active_completed_ops_min: 1000
+    idle_sample_count_min: 100
+    active_sample_count_min: 100
+    latency_timed_ops_min: 1000
+    coefficient_of_variation_max: 0.05
+    negative_dynamic_power_policy: fail_preserve_raw_samples
+    below_noise_floor_policy: fail_as_below_detection_limit
     dynamic_power_definition: p_active_w_minus_p_idle_w
     primary_energy_definition: integrated_active_energy_minus_idle_baseline_energy_divided_by_completed_ops
     latency_product_role: consistency_check_only_when_duty_cycle_and_scope_match
