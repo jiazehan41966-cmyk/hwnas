@@ -21,7 +21,8 @@ workspace:
 measurement_contract:
   contract_id: zcu104_fourstage_cfem20_exact_shape_int8_v1
   search_space_version: fourstage_cfem20_v1
-  frozen_source_head: ae48beb1498e8820aca2ba551fa415be9fff4336
+  source_binding_mode: source_freeze_manifest
+  source_freeze_manifest: artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v4_20260810/source_freeze_manifest.json
   target_board: ZCU104
   target_part: xczu7ev-ffvc1156-2-e
   declaration: Fresh exact-shape operator measurement only; historical cost rows are forbidden.
