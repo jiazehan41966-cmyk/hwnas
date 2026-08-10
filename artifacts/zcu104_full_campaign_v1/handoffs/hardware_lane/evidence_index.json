@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "lane": "hardware",
+  "status": "LOCAL_PREFLIGHT_EVIDENCE_ONLY",
+  "source_commit": "010759ed70bf09b307924ca2573f199edb8fa22a",
+  "evidence": [
+    {
+      "kind": "operator_hls_config",
+      "path": "hls_lut_builder/configs/candidate_kernels_zcu104_cfem20_v1.yaml",
+      "sha256": "a0d28bb7472c61efb300240e32e90ac7e974d8a523d3f1693e3871f9dac736e6",
+      "claim": "Defines nine frozen cost keys and enables reproducible source generation for seven supported rows."
+    },
+    {
+      "kind": "focused_test",
+      "path": "tests/test_zcu104_hardware_lane.py",
+      "sha256": "6d0c7aa38f69cf40c5323dceb6c06f2f97fd76b4270291a099424ae84e3d1d54",
+      "claim": "Checks exact keys, shapes, part, clock, implementation parameters, and fail-closed DMDC/CFEM exclusions."
+    },
+    {
+      "kind": "reproducible_generated_output",
+      "path": "results/zcu104_full_campaign_v1/hardware_lane/operator_cost_hls/p",
+      "tracked": false,
+      "claim": "Seven local HLS source directories were generated; these are not synthesis or measurement results."
+    }
+  ],
+  "absent_evidence": [
+    "csynth reports",
+    "RTL co-simulation reports",
+    "post-route utilization and timing reports",
+    "Vivado post-route power reports",
+    "bitstream hashes",
+    "board latency receipts",
+    "raw board power samples",
+    "temperature samples",
+    "energy-per-operation results"
+  ]
+}
