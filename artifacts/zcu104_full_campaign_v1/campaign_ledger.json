@@ -26,6 +26,7 @@
       "status": "PARALLEL_READY_LANE_FAST_FORWARD_REQUIRED",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "control_handoff_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
       "evidence": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     },
     "focused_zcu104_tests": {

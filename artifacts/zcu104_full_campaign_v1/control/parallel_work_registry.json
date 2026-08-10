@@ -7,6 +7,7 @@
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
     "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+    "control_handoff_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
     "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
@@ -52,6 +53,7 @@
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "refresh_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
       "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for the 9 fourstage_cfem20_v1 operator rows; no historical cost-row import.",
       "allowed_exact_files": [
         "src/hwnas_fpga/hardware/boards.py",
@@ -90,7 +92,7 @@
         "artifacts/zcu104_full_campaign_v1/operator_cost_lut/fourstage_cfem20_v1/hardware_cost_lut.scaffold.json"
       ],
       "immediate_work": [
-        "verify the existing lane is clean, then refresh it from the recorded control input commit",
+        "verify the existing lane is clean, then fast-forward it to the recorded control handoff commit",
         "after refresh, map Stage2 A1-A4 and Stage4 Skip/MBConv-K3-E3/MBConv-K5-E3/DMDC_Conv/CFEM to fresh HLS and route configurations",
         "extend source generation and focused tests without launching complete HLS or route",
         "define bitstream and report SHA256 evidence receipts"
@@ -113,6 +115,7 @@
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "refresh_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
       "purpose": "ZCU104 continuous-repeat operator micro-benchmark runtime, board-latency receipts, onboard VCC12 sampling integration, and host-side validation tests.",
       "allowed_exact_files": [
         "src/hwnas_fpga/deploy/board_protocol.py",
@@ -151,7 +154,7 @@
         "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json"
       ],
       "immediate_work": [
-        "verify the existing lane is clean, then refresh it from the recorded control input commit",
+        "verify the existing lane is clean, then fast-forward it to the recorded control handoff commit",
         "after refresh, implement host-side mock continuous-repeat runtime",
         "validate timeout, CRC, cache, address, length, completed-op count, and duration receipts",
         "test requested/effective sample-rate and idle/active capture metadata"
@@ -175,6 +178,7 @@
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "refresh_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
       "purpose": "Fresh fourstage_cfem20_v1 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
       "allowed_exact_files": [
         "scripts/audit_zcu104_operator_cost_lut.py",
@@ -211,7 +215,7 @@
         "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md"
       ],
       "immediate_work": [
-        "verify the existing lane is clean, then refresh it from the recorded control input commit",
+        "verify the existing lane is clean, then fast-forward it to the recorded control handoff commit",
         "after refresh, define the 9-row machine-readable operator-cost schema",
         "audit identity, exact shape, report and bitstream hashes, raw power captures, completed-op receipts, and failure preservation",
         "audit 9-of-9 operator rows and 100-percent search-key coverage",

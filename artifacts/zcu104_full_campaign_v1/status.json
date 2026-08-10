@@ -129,6 +129,7 @@
     "parallel_worktrees": {
       "status": "PARALLEL_READY_LANE_FAST_FORWARD_REQUIRED",
       "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "control_handoff_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "registry": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json",
       "hardware": {
@@ -214,7 +215,7 @@
   },
   "next_required_actions": [
     "Preregister ZCU104 deployment budgets without inspecting candidate measurement outcomes.",
-    "Safely fast-forward each clean lane to input commit ae48beb1498e8820aca2ba551fa415be9fff4336 before any lane work.",
+    "Safely fast-forward each clean lane to control handoff commit 9240b0a39a3613609d60577d92e4aef2c8d7db44 before any lane work; its frozen source input is ae48beb1498e8820aca2ba551fa415be9fff4336.",
     "Update lane handoffs so all 9 exact-shape operator rows are generated from scratch and no historical cost row is imported.",
     "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
     "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
