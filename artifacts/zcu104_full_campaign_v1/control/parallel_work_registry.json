@@ -9,8 +9,8 @@
     "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
     "control_handoff_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
     "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json",
-    "current_execution_source_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
-    "current_execution_source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json",
+    "current_execution_source_head": "ea6a6421c209dc5a5c8ad0e6dc53a609146396b1",
+    "current_execution_source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v4_20260810/source_freeze_manifest.json",
     "hardware_gate_preregistration": "artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json",
     "live_hardware_probe": "artifacts/zcu104_full_campaign_v1/control/hardware_interface_probe_20260810.json"
   },
