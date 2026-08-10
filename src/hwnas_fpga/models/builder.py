@@ -367,6 +367,89 @@ class FusedMBConvBlock(nn.Module):
         return x
 
 
+class GhostModule(nn.Module):
+    """Mature GhostNet-style feature generation module.
+
+    The ratio is fixed at 2 for the current four-stage search-space freeze; it
+    is intentionally not exposed as a new search dimension.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, *, relu: bool = True):
+        super().__init__()
+        primary_channels = (out_channels + 1) // 2
+        cheap_channels = out_channels - primary_channels
+        self.primary = nn.Sequential(
+            nn.Conv2d(in_channels, primary_channels, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(primary_channels),
+            nn.ReLU6(inplace=True) if relu else nn.Identity(),
+        )
+        self.cheap_channels = int(cheap_channels)
+        if cheap_channels > 0:
+            self.cheap = nn.Sequential(
+                nn.Conv2d(
+                    primary_channels,
+                    cheap_channels,
+                    3,
+                    1,
+                    1,
+                    groups=primary_channels,
+                    bias=False,
+                ),
+                nn.BatchNorm2d(cheap_channels),
+                nn.ReLU6(inplace=True) if relu else nn.Identity(),
+            )
+        else:
+            self.cheap = nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        primary = self.primary(x)
+        if self.cheap_channels <= 0:
+            return primary
+        return torch.cat((primary, self.cheap(primary)), dim=1)
+
+
+class GhostBottleneckBlock(nn.Module):
+    """Mature Ghost Bottleneck for stride-1 same-shape Stage4 candidates."""
+
+    operator_name = "ghost_bottleneck"
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        expand_ratio: int = 3,
+    ):
+        super().__init__()
+        hidden_channels = int(in_channels) * int(expand_ratio)
+        padding = int(kernel_size) // 2
+        self.ghost_expand = GhostModule(in_channels, hidden_channels, relu=True)
+        self.depthwise = nn.Sequential(
+            nn.Conv2d(
+                hidden_channels,
+                hidden_channels,
+                int(kernel_size),
+                int(stride),
+                padding,
+                groups=hidden_channels,
+                bias=False,
+            ),
+            nn.BatchNorm2d(hidden_channels),
+        )
+        self.ghost_project = GhostModule(hidden_channels, out_channels, relu=False)
+        self.use_residual = int(stride) == 1 and int(in_channels) == int(out_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        x = self.ghost_expand(x)
+        x = self.depthwise(x)
+        x = self.ghost_project(x)
+        if self.use_residual:
+            x = x + identity
+        return x
+
+
 class SkipBlock(nn.Module):
     """跳过连接块"""
 
@@ -944,6 +1027,15 @@ def build_block(block_spec: BlockSpec, in_channels: int, out_channels: int) -> n
 
     elif op == "fused_mbconv":
         return FusedMBConvBlock(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=block_spec.kernel_size,
+            stride=block_spec.stride,
+            expand_ratio=block_spec.expand_ratio,
+        )
+
+    elif op == "ghost_bottleneck":
+        return GhostBottleneckBlock(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=block_spec.kernel_size,
