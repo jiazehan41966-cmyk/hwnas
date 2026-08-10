@@ -39,7 +39,9 @@
     "source_verification": "PASS_638_OF_638",
     "generated_project_archive_sha256": "8527a79127bb76f580ded24b4d51886d11c21e937bb11fa7e9662b4a09612382",
     "hls_status": "PASS_7_OF_7_SUPPORTED_ROWS_2_BLOCKED",
-    "evidence": "artifacts/zcu104_full_campaign_v1/control/remote_hls_execution_complete_20260810.json"
+    "hls_evidence": "artifacts/zcu104_full_campaign_v1/control/remote_hls_execution_complete_20260810.json",
+    "ooc_route_status": "PASS_7_OF_7_SUPPORTED_ROWS_2_BLOCKED_FORMAL_FULL_ROUTE_PENDING",
+    "ooc_route_evidence": "artifacts/zcu104_full_campaign_v1/control/remote_ooc_route_execution_complete_20260810.json"
   },
   "fresh_measurement_coverage": "0_OF_9",
   "search_enabled": false,

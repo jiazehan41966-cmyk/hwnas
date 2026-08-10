@@ -3,7 +3,7 @@
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-10T18:45:00+08:00",
   "baseline_status": "PASS_CFEM20_FREEZE_AND_COST_KEY_SCAFFOLD",
-  "campaign_execution_status": "HLS_PASS_7_SUPPORTED_ROWS_OOC_ROUTE_1_PASS_6_RUNNING_2_BLOCKED_FULL_ROUTE_AND_BOARD_PENDING",
+  "campaign_execution_status": "HLS_AND_OOC_ROUTE_PASS_7_SUPPORTED_ROWS_2_BLOCKED_FULL_ROUTE_BITSTREAM_AND_BOARD_PENDING",
   "integration": {
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
     "branch": "codex/zcu104-full-campaign-v1",
@@ -187,8 +187,8 @@
       "board_measurement_coverage": "0_OF_9"
     },
     "remote_ooc_route_execution": {
-      "status": "RUNNING_1_PASS_6_SUPPORTED_RUNNING_OR_QUEUED_2_BLOCKED",
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/remote_ooc_route_execution_start_20260810.json",
+      "status": "PASS_7_OF_7_SUPPORTED_OPERATOR_OOC_ROUTES_2_BLOCKED",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/remote_ooc_route_execution_complete_20260810.json",
       "runner_pid": 1383979,
       "scope": "OPERATOR_ONLY_OOC_NOT_FORMAL_FULL_ROUTE"
     }
@@ -207,7 +207,7 @@
     "zcu104_onboard_sensor_path": "PASS_OFFICIAL_PATH_BOARD_OS_READ_PENDING_AUTH",
     "fresh_hls_source_generation": "PASS_7_OF_9_LOCAL_ONLY",
     "fresh_hls_9_of_9": "PARTIAL_PASS_7_SYNTHESIZED_2_OPERATOR_TEMPLATES_MISSING",
-    "fresh_route_9_of_9": "IN_PROGRESS_OPERATOR_ONLY_OOC_1_PASS_6_RUNNING_OR_QUEUED_2_BLOCKED_FORMAL_FULL_ROUTE_PENDING",
+    "fresh_route_9_of_9": "PARTIAL_PASS_7_OPERATOR_ONLY_OOC_2_BLOCKED_FORMAL_FULL_ROUTE_PENDING",
     "fresh_bitstream_runtime_bindings_9_of_9": "PENDING",
     "fresh_board_latency_9_of_9": "PENDING_MEASUREMENT",
     "fresh_onboard_power_9_of_9": "PENDING_MEASUREMENT",
@@ -271,9 +271,9 @@
     "Obtain board-side SSH or Jupyter authentication without persisting the secret, then read the U183 VCC12 INA226 path.",
     "Transfer and verify the v3 source freeze on the clean remote server workspace before HLS execution.",
     "Implement and prove INT8/HLS semantic paths for dmdc_conv_sonar and cfem_sonar before treating those rows as synthesizable.",
-    "Allow the owned six-case operator-only OOC Vivado runner to complete and preserve every failure or timeout.",
+    "Implement and verify the full AXI DMA micro-benchmark harness before any full route, bitstream or board programming.",
     "Generate all 9 exact-shape operator rows from scratch and do not import any historical cost row.",
     "After per-row HLS, route, runtime and sensor prerequisites pass, measure board latency, idle/active/dynamic power, temperature and integrated energy for all 9 rows before enabling search."
   ],
-  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The portable v5 source passed 638/638 remote verification, all seven rows with exact HLS semantics synthesized successfully, and Skip passed operator-only OOC route with WNS 2.412 ns and TNS 0; six supported OOC routes are running or queued. DMDC and CFEM remain blocked. OOC route excludes the AXI DMA and full board shell, and Vivado power is only an estimate. No experiment-owned bitstream or board latency, onboard power, temperature-series, or energy evidence exists, so measured hardware-cost coverage remains 0/9. Board OS authentication and AXI DMA runtime binding remain blocking. Search remains disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The portable v5 source passed 638/638 remote verification, and all seven rows with exact HLS semantics passed HLS synthesis and operator-only OOC route screening; minimum OOC WNS is 0.469 ns and all TNS values are zero. DMDC and CFEM remain blocked. OOC route excludes the AXI DMA and full board shell, and Vivado power remains only an estimate. No experiment-owned bitstream or board latency, onboard power, temperature-series, or energy evidence exists, so measured hardware-cost coverage remains 0/9. Full harness implementation, board OS authentication and runtime binding remain blocking. Search remains disabled."
 }

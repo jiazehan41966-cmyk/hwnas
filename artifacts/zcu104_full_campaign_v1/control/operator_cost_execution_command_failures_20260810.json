@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "status": "RECORDED_NON_MEASUREMENT_COMMAND_FAILURES",
+  "records": [
+    {
+      "step": "source_freeze_v3_diff_check",
+      "failure": "Generated CRLF manifest was reported as trailing whitespace.",
+      "resolution": "Normalized the manifest to LF, updated its SHA256, and reran git diff check successfully.",
+      "experiment_impact": "none_after_correction"
+    },
+    {
+      "step": "portable_project_diagnostic",
+      "failure": "A Windows rg command used a shell wildcard path and returned an invalid-path error.",
+      "resolution": "Reran with rg -g synth.tcl and verified all seven portable include paths.",
+      "experiment_impact": "none"
+    },
+    {
+      "step": "remote_route_evidence_pretransfer_check",
+      "failure": "A PowerShell Test-Path expression bound PathType twice.",
+      "resolution": "The subsequent scp transfer completed; both received files were verified by SHA256 and parsed successfully.",
+      "experiment_impact": "none"
+    },
+    {
+      "step": "remote_python_environment",
+      "failure": "Server Python 3.13.11 does not provide PyYAML and no reusable project virtual environment was present.",
+      "resolution": "No package was installed. Seven portable projects were generated locally from the frozen source, archived, SHA256-verified remotely, and executed through the installed vendor tools directly.",
+      "experiment_impact": "environment_workaround_recorded"
+    }
+  ]
+}
