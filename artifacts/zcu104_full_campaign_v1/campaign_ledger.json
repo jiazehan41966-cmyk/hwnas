@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T18:45:00+08:00",
+  "generated_at": "2026-08-10T19:29:04+08:00",
   "status": "CFEM20_FROZEN_HLS_AND_OPERATOR_OOC_ROUTE_7_SUPPORTED_PASS",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
@@ -45,7 +45,7 @@
       "passed": 526,
       "failed": 17,
       "skipped": 3,
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_verification_20260810.json",
       "scope_related_failures": 0
     },
     "current_source_freeze": {

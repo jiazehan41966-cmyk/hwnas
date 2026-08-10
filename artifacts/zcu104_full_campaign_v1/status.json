@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T18:45:00+08:00",
+  "generated_at": "2026-08-10T19:29:04+08:00",
   "baseline_status": "PASS_CFEM20_FREEZE_AND_COST_KEY_SCAFFOLD",
   "campaign_execution_status": "HLS_AND_OOC_ROUTE_PASS_7_SUPPORTED_ROWS_2_BLOCKED_FULL_ROUTE_BITSTREAM_AND_BOARD_PENDING",
   "integration": {
@@ -255,7 +255,7 @@
       "skipped": 3,
       "warnings": 1,
       "subtests_passed": 28,
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_verification_20260810.json",
       "scope_related_failures": 0
     },
     "source_freeze_reverification": {
@@ -265,14 +265,18 @@
       "unexpected": [],
       "changed": []
     },
-    "git_diff_check": "PASS"
+    "git_diff_check": "PASS",
+    "operator_cost_execution_verification": {
+      "status": "PASS_TARGETED_FULL_SUITE_FAILURES_PRESERVED",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/operator_cost_execution_verification_20260810.json"
+    }
   },
   "next_required_actions": [
     "Obtain board-side SSH or Jupyter authentication without persisting the secret, then read the U183 VCC12 INA226 path.",
-    "Transfer and verify the v3 source freeze on the clean remote server workspace before HLS execution.",
     "Implement and prove INT8/HLS semantic paths for dmdc_conv_sonar and cfem_sonar before treating those rows as synthesizable.",
-    "Implement and verify the full AXI DMA micro-benchmark harness before any full route, bitstream or board programming.",
-    "Generate all 9 exact-shape operator rows from scratch and do not import any historical cost row.",
+    "Export the seven supported HLS kernels as IP and implement an operator-specific ZCU104 PS plus AXI DMA plus BRAM weight/bias micro-benchmark harness.",
+    "Freeze the DMA buffers, cache policy, control/register map, completion protocol and completed-operation counter before full route or bitstream generation.",
+    "Generate the remaining two exact-shape operator rows from scratch after their exact semantics pass; do not import any historical cost row.",
     "After per-row HLS, route, runtime and sensor prerequisites pass, measure board latency, idle/active/dynamic power, temperature and integrated energy for all 9 rows before enabling search."
   ],
   "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The portable v5 source passed 638/638 remote verification, and all seven rows with exact HLS semantics passed HLS synthesis and operator-only OOC route screening; minimum OOC WNS is 0.469 ns and all TNS values are zero. DMDC and CFEM remain blocked. OOC route excludes the AXI DMA and full board shell, and Vivado power remains only an estimate. No experiment-owned bitstream or board latency, onboard power, temperature-series, or energy evidence exists, so measured hardware-cost coverage remains 0/9. Full harness implementation, board OS authentication and runtime binding remain blocking. Search remains disabled."
