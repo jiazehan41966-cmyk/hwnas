@@ -1,0 +1,303 @@
+{
+  "candidate_count": 16,
+  "description": "Fixed MobileNetV2-style 4-Stage macroarchitecture; Stage2 keeps mature MBConv choices, while current active Stage4 choices are Skip, MBConv-K3-E3, MBConv-K5-E3, and the literature-derived DMDC_Conv sonar operator.",
+  "enumeration_method": "deterministic_cartesian_product",
+  "excluded_from_current_space": [
+    {
+      "active_space_status": "excluded_from_current_space",
+      "operator_name": "fused_mbconv_e3",
+      "reason": "removed from the current active Stage4 space; historical implementation retained"
+    },
+    {
+      "active_space_status": "excluded_from_current_space",
+      "operator_name": "ghost_bottleneck",
+      "reason": "removed from the current active Stage4 space; historical implementation retained"
+    }
+  ],
+  "fixed_macroarchitecture": {
+    "head": {
+      "conv_head": null,
+      "num_classes": 8,
+      "op": "GAP->FC8"
+    },
+    "input": {
+      "channels": 1,
+      "height": 224,
+      "width": 224
+    },
+    "stage1": {
+      "depth": 1,
+      "in_channels": 32,
+      "op": "Conv1x1",
+      "out_channels": 16,
+      "output_shape": [
+        16,
+        112,
+        112
+      ],
+      "searchable": false,
+      "stride": 1
+    },
+    "stage2": {
+      "depth": 1,
+      "in_channels": 16,
+      "op_family": "MBConv",
+      "out_channels": 24,
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "searchable": true,
+      "stride": 2
+    },
+    "stage3": {
+      "depth": 1,
+      "in_channels": 24,
+      "op": "MBConv-k3-e3",
+      "out_channels": 32,
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "searchable": false,
+      "stride": 2
+    },
+    "stage4": {
+      "depth": 1,
+      "in_channels": 32,
+      "out_channels": 32,
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "searchable": true,
+      "stride": 1
+    },
+    "stem": {
+      "in_channels": 1,
+      "op": "Conv3x3",
+      "out_channels": 32,
+      "output_shape": [
+        32,
+        112,
+        112
+      ],
+      "stride": 2
+    }
+  },
+  "forbidden_search_methods": [
+    "RL",
+    "Aging",
+    "Random",
+    "Evolutionary sampling"
+  ],
+  "payload_sha256": "ab6fb5b4a7b3b87c327f1428d56187755e8798095037efc55820e15898584db5",
+  "pending_stage4_operators": [
+    {
+      "active_space_status": "pending_adaptation_review",
+      "core_mechanism": "multiscale_group_convolution_with_csp",
+      "operator_name": "msconv_sonar",
+      "pending_reason": "paper-derived MS-Conv kernel scales, group/channel allocation, and CSP split require explicit adaptation confirmation before entering the frozen active space",
+      "sonar_specific": true,
+      "source_doi": "10.1109/TGRS.2022.3214748",
+      "source_paper": "MLFFNet: Multilevel Feature Fusion Network for Object Detection in Sonar Images",
+      "source_task": "sonar_object_detection",
+      "source_type": "literature_operator"
+    }
+  ],
+  "schema_version": "1.0",
+  "search_space_version": "fourstage_dmdc16_v1",
+  "source_file_sha256": {
+    "scripts/freeze_fourstage_search_space_dmdc16.py": "9f9d294c6c8ed8106b6571dc0ca57a21dab892ff786e13bad52012f0931e1d25",
+    "src/hwnas_fpga/fourstage_operator.py": "f5782d494780e1a50a53e8685f082f1ddec9c905d6d84646ce8ba8420578382c",
+    "src/hwnas_fpga/models/__init__.py": "75c26683e64bd72d623fb4f077c304c3c8d93d4df5ed4ff58268ecb752934a12",
+    "src/hwnas_fpga/models/builder.py": "6988fdd3b4decbc2fd5b744722f16221ba4638c6e810e93e3729cbc9ed24376d"
+  },
+  "stage2_candidate_count": 4,
+  "stage2_candidates": [
+    {
+      "candidate_id": "A1",
+      "candidate_key": "k3_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 3,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    },
+    {
+      "candidate_id": "A2",
+      "candidate_key": "k3_e6",
+      "expand_ratio": 6,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 3,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    },
+    {
+      "candidate_id": "A3",
+      "candidate_key": "k5_e3",
+      "expand_ratio": 3,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 5,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    },
+    {
+      "candidate_id": "A4",
+      "candidate_key": "k5_e6",
+      "expand_ratio": 6,
+      "input_shape": [
+        16,
+        112,
+        112
+      ],
+      "kernel": 5,
+      "op_name": "MBConv",
+      "output_shape": [
+        24,
+        56,
+        56
+      ],
+      "residual_condition": "disabled because stride=2 and channels change from 16 to 24",
+      "stride": 2,
+      "structure": "1x1 expand -> depthwise spatial convolution -> 1x1 project"
+    }
+  ],
+  "stage4_candidate_count": 4,
+  "stage4_candidates": [
+    {
+      "candidate_id": "B1",
+      "candidate_key": "skip",
+      "expand_ratio": 1,
+      "implementation_status": "implemented_existing",
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": null,
+      "op_name": "Skip",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "identity is valid only when stride=1 and channels match",
+      "stride": 1,
+      "structure": "identity mapping"
+    },
+    {
+      "candidate_id": "B2",
+      "candidate_key": "mbconv_k3_e3",
+      "expand_ratio": 3,
+      "implementation_status": "implemented_existing",
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 3,
+      "op_name": "MBConv-K3-E3",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "enabled because stride=1 and channels are 32->32",
+      "stride": 1,
+      "structure": "1x1 expand -> depthwise 3x3 -> 1x1 project -> residual add"
+    },
+    {
+      "candidate_id": "B3",
+      "candidate_key": "mbconv_k5_e3",
+      "expand_ratio": 3,
+      "implementation_status": "implemented_existing",
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 5,
+      "op_name": "MBConv-K5-E3",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "enabled because stride=1 and channels are 32->32",
+      "stride": 1,
+      "structure": "1x1 expand -> depthwise 5x5 -> 1x1 project -> residual add"
+    },
+    {
+      "adaptation_note": "sealed as a 32->32 stride-1 Stage4 block; regional context features are resized back to 28x28 for the paper fusion operation without removing the dynamic/context branch",
+      "candidate_id": "B4",
+      "candidate_key": "dmdc_conv_sonar",
+      "core_mechanism": "dynamic_multiscale_dilated_convolution",
+      "dilation_rates": [
+        1,
+        3,
+        5
+      ],
+      "expand_ratio": 1,
+      "implementation_status": "implemented",
+      "input_shape": [
+        32,
+        28,
+        28
+      ],
+      "kernel": 3,
+      "op_name": "DMDC_Conv",
+      "operator_name": "dmdc_conv_sonar",
+      "output_shape": [
+        32,
+        28,
+        28
+      ],
+      "residual_condition": "not added; no residual connection is shown inside the paper DMDC_Conv module",
+      "sonar_specific": true,
+      "source_doi": "10.1109/TGRS.2022.3201248",
+      "source_paper": "Fused Adaptive Receptive Field Mechanism and Dynamic Multiscale Dilated Convolution for Side-Scan Sonar Image Segmentation",
+      "source_task": "side_scan_sonar_segmentation",
+      "source_type": "literature_operator",
+      "stride": 1,
+      "structure": "parallel k={1,3,5} DMDC branches; each branch has a 3x3 dilated-convolution path and an adaptive-pooling regional context path, branch fusion, 1x1 branch projection, channel concat, and final 1x1 channel compression"
+    }
+  ],
+  "status": "FROZEN_SEARCH_SPACE_DEFINITION"
+}
