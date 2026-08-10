@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "recorded_at": "2026-08-10T18:30:00+08:00",
+  "integration_branch": "codex/zcu104-full-campaign-v1",
+  "hardware_branch": "codex/zcu104-hardware-lane",
+  "hardware_code_commit": "010759ed70bf09b307924ca2573f199edb8fa22a",
+  "hardware_handoff_commit": "f6cde37",
+  "merge_commit": "49000c7",
+  "post_merge_source_commit": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
+  "ownership_audit": {
+    "status": "PASS",
+    "changed_files": [
+      "hls_lut_builder/configs/candidate_kernels_zcu104_cfem20_v1.yaml",
+      "tests/test_zcu104_hardware_lane.py",
+      "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/handoff.json",
+      "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json",
+      "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/evidence_index.json"
+    ],
+    "out_of_scope_files": []
+  },
+  "operator_source_preflight": {
+    "status": "PASS_7_OF_9_LOCAL_SOURCE_GENERATED",
+    "frozen_operator_rows": 9,
+    "generated_rows": 7,
+    "blocked_rows": [
+      "stage4__dmdc_conv__32x28x28_to_32x28x28__s1",
+      "stage4__cfem__32x28x28_to_32x28x28__s1"
+    ],
+    "hls_synthesized_rows": 0,
+    "route_rows": 0,
+    "bitstream_rows": 0,
+    "board_measured_rows": 0
+  },
+  "tests": {
+    "lane_focused": {
+      "status": "PASS",
+      "command": "python -m pytest tests/test_hls_template_contract.py tests/test_hls_builder_pilot.py tests/test_hls_run_synthesis.py tests/test_zcu104_hardware_lane.py tests/test_zcu104_support.py -q -p no:cacheprovider",
+      "passed": 20,
+      "subtests_passed": 16
+    },
+    "first_post_merge_targeted": {
+      "status": "FAIL_RECORDED",
+      "passed": 23,
+      "failed": 1,
+      "failure": "tests/test_zcu104_control_plane.py expected the superseded PARALLEL_READY registry state",
+      "resolution": "Updated the assertion to PASS_ALL_LANES_AT_CONTROL_HANDOFF and reran the same scope."
+    },
+    "post_fix_targeted": {
+      "status": "PASS",
+      "command": "python -m pytest tests/test_hls_template_contract.py tests/test_hls_builder_pilot.py tests/test_hls_run_synthesis.py tests/test_zcu104_hardware_lane.py tests/test_zcu104_support.py tests/test_zcu104_control_plane.py tests/test_zcu104_cfem20_operator_cost_scaffold.py -q -p no:cacheprovider",
+      "passed": 24,
+      "subtests_passed": 16
+    },
+    "full_suite": {
+      "status": "FAIL_RECORDED",
+      "command": "python -m pytest tests -q -p no:cacheprovider",
+      "passed": 526,
+      "failed": 17,
+      "skipped": 3,
+      "warnings": 1,
+      "subtests_passed": 28,
+      "scope_related_failures": 0,
+      "failure_groups": {
+        "missing_or_incomplete_external_baseline_archives": 8,
+        "missing_historical_av7k325_lut_inputs": 7,
+        "preexisting_phase0_readiness_state": 2
+      },
+      "failed_tests": [
+        "tests/test_benchmark_dmcl.py::test_dmcl_author_loss_loads_from_verified_isolated_archive",
+        "tests/test_benchmark_esda.py::test_esda_author_artifacts_preserve_class_c_boundary",
+        "tests/test_benchmark_esda.py::test_author_power_archive_does_not_change_project_power_status",
+        "tests/test_benchmark_hwpr.py::test_pinned_author_checkout_is_explicitly_not_runtime_ready",
+        "tests/test_benchmark_plud.py::test_plud_author_push_loss_loads_from_verified_isolated_archive",
+        "tests/test_benchmark_registry_archive.py::test_checked_out_source_pins_match_registry",
+        "tests/test_benchmark_sure.py::test_sure_author_components_are_loaded_from_pinned_isolated_checkout",
+        "tests/test_benchmark_sure.py::test_sure_indexed_loader_and_author_cosine_head",
+        "tests/test_nas_board_lut_strict_current84_arch84.py::NasBoardLutStrictCurrent84Arch84Tests::test_generator_counts_and_preserves_raw_ledgers",
+        "tests/test_nas_board_lut_strict_current84_arch84.py::NasBoardLutStrictCurrent84Arch84Tests::test_lut_loader_keeps_timing_fail_reference_out_of_measured_lut",
+        "tests/test_nas_board_lut_strict_current84_arch84.py::NasBoardLutStrictCurrent84Arch84Tests::test_relaxed_timing_profile_is_isolated_from_tight_lut",
+        "tests/test_nas_board_lut_strict_current84_arch84.py::NasBoardLutStrictCurrent84Arch84Tests::test_short_nksid_config_all_choices_have_strict_lut_coverage",
+        "tests/test_nas_board_lut_strict_current84_arch84.py::NasBoardLutStrictCurrent84Arch84Tests::test_smoke_config_evaluates_exact_arch84_candidate_without_strict_miss",
+        "tests/test_phase0_full_pipeline_scripts.py::Phase0FullPipelineScriptTests::test_prepare_route_gate_marks_uncovered_full_route_skipped_when_pareto_exists",
+        "tests/test_phase0_full_pipeline_scripts.py::Phase0FullPipelineScriptTests::test_sonar_launch_readiness_writes_manual_command_bundle_only",
+        "tests/test_strict40_lut_search.py::Strict40LutSearchTests::test_status_authoritative_generation_produces_40_entries",
+        "tests/test_strict40_lut_search.py::Strict40LutSearchTests::test_strict40_short_config_candidates_have_no_lut_misses_or_deferred_hits"
+      ]
+    }
+  },
+  "source_freeze": {
+    "status": "PASS",
+    "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_freeze_manifest.json",
+    "manifest_sha256": "c16c4bbb38b17108673302e67856d8b346487a7fcb10378b9c3a121b1fba24ce",
+    "archive": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_snapshot.zip",
+    "archive_sha256": "42c095b01ce1f27c2ebeedd6766ec9c89f95759d98e06facd38c388e91a096cf",
+    "frozen_git_head": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
+    "expected_file_count": 638,
+    "missing": [],
+    "unexpected": [],
+    "changed": []
+  },
+  "blocking_gates": [
+    "numeric ZCU104 hardware budgets require preregistration before candidate outcomes are inspected",
+    "interactive SSH authentication is unavailable to the task",
+    "the retained ZCU104 probe reports PL power off",
+    "DMDC_Conv and CFEM HLS/export/INT8 parity paths are missing",
+    "AXI DMA platform and runtime register binding are not frozen"
+  ],
+  "claim_boundary": "The merge establishes reproducible exact-shape source generation for seven rows only. It provides zero fresh HLS, route, bitstream, board latency, board power, temperature, or energy measurements."
+}

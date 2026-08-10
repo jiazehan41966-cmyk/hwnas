@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T17:10:00+08:00",
+  "generated_at": "2026-08-10T18:30:00+08:00",
   "baseline_status": "PASS_CFEM20_FREEZE_AND_COST_KEY_SCAFFOLD",
   "campaign_execution_status": "EXECUTION_STARTED_BLOCKED_AT_PREREGISTRATION_AUTH_AND_PL_POWER",
   "integration": {
@@ -9,7 +9,7 @@
     "branch": "codex/zcu104-full-campaign-v1",
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "ed7763208f42d4038ecefe61399def71e10a0ea9",
-    "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+    "frozen_source_head": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
     "main_worktree_used_for_writes": false
   },
   "control_preparation": {
@@ -19,18 +19,18 @@
     },
     "source_freeze": {
       "status": "PASS",
-      "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
-      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json",
-      "manifest_sha256": "aa8f850c08d2e8dd0e507d68c871c4a54e8bc8a78e005a728d6948063deac1d8",
+      "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json",
+      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_freeze_manifest.json",
+      "manifest_sha256": "c16c4bbb38b17108673302e67856d8b346487a7fcb10378b9c3a121b1fba24ce",
       "content_source": "git-head",
-      "frozen_git_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
-      "expected_file_count": 636,
+      "frozen_git_head": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
+      "expected_file_count": 638,
       "missing": [],
       "unexpected": [],
       "changed": [],
-      "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_snapshot.zip",
-      "archive_sha256": "0651b4bf246351049b80dfe7cb3a6e3bf7e4a4960f8535b42689d1a572078b34",
-      "archive_bytes": 1776043
+      "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_snapshot.zip",
+      "archive_sha256": "42c095b01ce1f27c2ebeedd6766ec9c89f95759d98e06facd38c388e91a096cf",
+      "archive_bytes": 1778734
     },
     "scope_revision": {
       "status": "PASS_RECORDED",
@@ -115,7 +115,7 @@
         "cuda": "12.8"
       },
       "live_recheck_20260810": {
-        "status": "PENDING_CONNECTION_TIMEOUT",
+        "status": "BLOCKED_INTERACTIVE_AUTH_REQUIRED",
         "endpoint": "10.70.23.121:7889",
         "authentication_secret_persisted": false
       }
@@ -135,8 +135,8 @@
       "hardware": {
         "branch": "codex/zcu104-hardware-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
-        "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
-        "status": "PASS_FAST_FORWARDED_CLEAN"
+        "head": "f6cde37",
+        "status": "PASS_HANDOFF_INTEGRATED_LOCAL_SOURCE_PREFLIGHT"
       },
       "runtime": {
         "branch": "codex/zcu104-runtime-lane",
@@ -150,6 +150,15 @@
         "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
         "status": "PASS_FAST_FORWARDED_CLEAN"
       }
+    },
+    "hardware_lane_source_preflight": {
+      "status": "PASS_7_OF_9_LOCAL_SOURCE_GENERATED",
+      "merge_commit": "49000c7",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json",
+      "generated_rows": 7,
+      "blocked_rows": 2,
+      "hls_synthesized_rows": 0,
+      "board_measured_rows": 0
     },
     "operator_cost_execution_start": {
       "status": "BLOCKED_PREREGISTRATION_AUTH_AND_PL_POWER",
@@ -173,6 +182,7 @@
     "remote_server_authentication": "BLOCKED_INTERACTIVE_INPUT_REQUIRED",
     "zcu104_pl_available": "BLOCKED_DETECTED_PL_POWER_OFF",
     "zcu104_onboard_sensor_path": "PENDING_LIVE_PROBE",
+    "fresh_hls_source_generation": "PASS_7_OF_9_LOCAL_ONLY",
     "fresh_hls_9_of_9": "BLOCKED_2_OPERATOR_TEMPLATES_MISSING",
     "fresh_route_9_of_9": "PENDING",
     "fresh_bitstream_runtime_bindings_9_of_9": "PENDING",
@@ -199,6 +209,12 @@
         "python -m pytest tests/test_zcu104_control_plane.py -q -p no:cacheprovider"
       ]
     },
+    "hardware_lane_integration_tests": {
+      "status": "PASS_TARGETED_AFTER_RECORDED_STALE_ASSERTION_FIX",
+      "passed": 24,
+      "subtests_passed": 16,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json"
+    },
     "corrected_test_command_failure": {
       "status": "RECORDED",
       "reason": "one attempted test path did not exist; corrected target passed",
@@ -206,17 +222,17 @@
     },
     "full_pytest": {
       "status": "FAIL_RECORDED",
-      "passed": 524,
+      "passed": 526,
       "failed": 17,
       "skipped": 3,
       "warnings": 1,
       "subtests_passed": 28,
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json",
       "scope_related_failures": 0
     },
     "source_freeze_reverification": {
       "status": "PASS",
-      "expected_file_count": 636,
+      "expected_file_count": 638,
       "missing": [],
       "unexpected": [],
       "changed": []
@@ -231,5 +247,5 @@
     "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
     "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
   ],
-  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS, and all three execution lanes are refreshed. The 9/9 operator-key definitions and 20/20 RAW candidate mappings are structural only; measured coverage remains 0/9. Remote interactive authentication, PL power, numerical budget preregistration, and DMDC/CFEM HLS support are blocking. Zero operators currently has fresh ZCU104 HLS/route/bitstream/latency/power/energy evidence. Search remains disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. Seven of nine exact-shape rows now have reproducible local HLS source generation, but no row has fresh HLS synthesis, route, bitstream, board latency, onboard power, temperature, or energy evidence; measured coverage remains 0/9. Remote interactive authentication, PL power, numerical budget preregistration, DMDC/CFEM HLS support, and AXI DMA runtime binding are blocking. Search remains disabled."
 }

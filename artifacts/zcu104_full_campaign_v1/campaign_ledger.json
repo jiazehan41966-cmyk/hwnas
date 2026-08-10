@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T17:10:00+08:00",
+  "generated_at": "2026-08-10T18:30:00+08:00",
   "status": "CFEM20_FROZEN_COST_LUT_SCAFFOLD_BUILT_EXECUTION_BLOCKED",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
@@ -34,20 +34,26 @@
       "passed": 55,
       "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json"
     },
+    "hardware_lane_integration": {
+      "status": "PASS_7_OF_9_LOCAL_SOURCE_PREFLIGHT_ONLY",
+      "hardware_handoff_commit": "f6cde37",
+      "merge_commit": "49000c7",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json"
+    },
     "full_test_suite": {
       "status": "FAIL_RECORDED",
-      "passed": 524,
+      "passed": 526,
       "failed": 17,
       "skipped": 3,
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json",
       "scope_related_failures": 0
     },
     "current_source_freeze": {
       "status": "PASS",
-      "frozen_git_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
-      "manifest_sha256": "aa8f850c08d2e8dd0e507d68c871c4a54e8bc8a78e005a728d6948063deac1d8",
-      "archive_sha256": "0651b4bf246351049b80dfe7cb3a6e3bf7e4a4960f8535b42689d1a572078b34",
-      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json"
+      "frozen_git_head": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
+      "manifest_sha256": "c16c4bbb38b17108673302e67856d8b346487a7fcb10378b9c3a121b1fba24ce",
+      "archive_sha256": "42c095b01ce1f27c2ebeedd6766ec9c89f95759d98e06facd38c388e91a096cf",
+      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_freeze_manifest.json"
     },
     "public_protocol_migration": {
       "status": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
@@ -98,7 +104,9 @@
       "status": "BLOCKED_PL_POWER_OFF"
     },
     "fresh_exact_shape_hls_9_rows": {
-      "status": "PENDING"
+      "status": "BLOCKED_2_TEMPLATES_MISSING_7_LOCAL_SOURCES_ONLY",
+      "local_source_rows": 7,
+      "synthesized_rows": 0
     },
     "operator_rtl_cosim": {
       "status": "PENDING"
@@ -145,5 +153,5 @@
     "local_pass_does_not_promote_formal_gate": true,
     "preserve_fail_timeout_resource_infeasible": true
   },
-  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. The cost scaffold defines all 9 operator keys and maps all 20 RAW candidates, but these are structural checks only: measured coverage is 0/9 and search_ready is false. No fresh HLS, route, bitstream, board latency, onboard power, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows are excluded; search is disabled."
+  "claim_boundary": "fourstage_cfem20_v1 is frozen and audited PASS. Seven exact-shape HLS source projects are locally reproducible and two operator templates remain missing. Measured coverage is still 0/9; no fresh HLS synthesis, route, bitstream, board latency, onboard power, temperature, or dynamic-energy evidence exists. Historical networks, checkpoints, and cost rows remain excluded; search is disabled."
 }

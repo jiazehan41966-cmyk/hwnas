@@ -249,6 +249,21 @@
       "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44"
     }
   },
+  "merge_receipts": {
+    "hardware": {
+      "status": "PASS_HANDOFF_INTEGRATED_LOCAL_SOURCE_PREFLIGHT_ONLY",
+      "handoff_commit": "f6cde37",
+      "merge_commit": "49000c7",
+      "post_merge_source_commit": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/hardware_lane_integration_record_20260810.json"
+    },
+    "runtime": {
+      "status": "NOT_MERGED"
+    },
+    "evidence": {
+      "status": "NOT_MERGED"
+    }
+  },
   "merge_policy": {
     "one_branch_at_a_time": true,
     "recommended_order": [
