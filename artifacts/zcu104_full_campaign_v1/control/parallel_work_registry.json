@@ -59,6 +59,7 @@
         "src/hwnas_fpga/hardware/boards.py",
         "configs/hardware/zcu104.yaml",
         "hls_lut_builder/board_harness/configs/board_zcu104.yaml",
+        "hls_lut_builder/configs/candidate_kernels_zcu104_cfem20_v1.yaml",
         "hls_lut_builder/board_harness/scripts/generate_harness.py",
         "scripts/generate_zcu104_platform.py",
         "scripts/run_fourstage_external_scratch_hls_gate.py",
