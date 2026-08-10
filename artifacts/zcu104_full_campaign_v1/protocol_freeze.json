@@ -26,7 +26,7 @@
     "missing": [],
     "unexpected": [],
     "changed": [],
-    "manifest_sha256": "debdd63c8a419ef20bd9306a3e1a588d7fe2bbed605bfb08f150f7e20be32366",
+    "manifest_sha256": "e5c15fe9a41bf0e032dc52c78906a2384ab72010902d89c00d4fde1bc4928186",
     "frozen_git": {
       "head": "dddfe573b53c7c59556eface2d64f28991f291fa",
       "branch": "codex/zcu104-full-campaign-v1",
