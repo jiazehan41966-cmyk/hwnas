@@ -5,7 +5,7 @@
   "source_freeze": {
     "git_head": "5e6edec9407625752fcc7ee4ce809095e8b06bf0",
     "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v3_20260810/source_freeze_manifest.json",
-    "manifest_sha256": "9106b4594f412ecca61c3e0ef7717b57c68a692b772ff78d3d9ec63c3459ba87",
+    "manifest_sha256": "5d4a8ffb1cca361d8769c859e526ffab4b902580e92deed07f8e62a89d5d1418",
     "verification": "PASS_638_FILES"
   },
   "passed_prerequisites": {
