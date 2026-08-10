@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "recorded_at": "2026-08-10T18:00:00+08:00",
+  "requested_scope": "Build the fresh fourstage_cfem20_v1 ZCU104 operator cost LUT and collect real board metrics.",
+  "source_binding": {
+    "search_space_version": "fourstage_cfem20_v1",
+    "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+    "control_handoff_commit": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
+    "source_freeze_manifest_sha256": "aa8f850c08d2e8dd0e507d68c871c4a54e8bc8a78e005a728d6948063deac1d8"
+  },
+  "lane_refresh": {
+    "hardware": {
+      "branch": "codex/zcu104-hardware-lane",
+      "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
+      "status": "PASS_FAST_FORWARDED_CLEAN"
+    },
+    "runtime": {
+      "branch": "codex/zcu104-runtime-lane",
+      "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
+      "status": "PASS_FAST_FORWARDED_CLEAN"
+    },
+    "evidence": {
+      "branch": "codex/zcu104-evidence-lane",
+      "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44",
+      "status": "PASS_FAST_FORWARDED_CLEAN"
+    }
+  },
+  "remote_access_probe": {
+    "endpoint": "10.70.23.121:7889",
+    "method": "ssh_batch_mode_without_persisted_secret",
+    "network_reachable": true,
+    "status": "BLOCKED_INTERACTIVE_AUTHENTICATION_REQUIRED",
+    "error": "Permission denied (publickey,password).",
+    "authentication_secret_persisted": false
+  },
+  "board_preflight": {
+    "latest_retained_probe": "DETECTED_PL_POWER_OFF",
+    "live_recheck_status": "BLOCKED_UNTIL_REMOTE_AUTHENTICATION",
+    "programming_attempted": false,
+    "flash_or_qspi_attempted": false
+  },
+  "operator_hardware_source_preflight": {
+    "existing_reusable_template_families": [
+      "mbconv",
+      "skip"
+    ],
+    "missing_operator_specific_hls_templates": [
+      "dmdc_conv_sonar",
+      "cfem_sonar"
+    ],
+    "status": "BLOCKED_2_OF_9_OPERATOR_ROWS_REQUIRE_NEW_HLS_IMPLEMENTATION",
+    "claim_boundary": "PyTorch implementation and frozen identity do not establish HLS, INT8 export, RTL parity, route, or board support."
+  },
+  "deployment_budget_preflight": {
+    "status": "BLOCKED_PREREGISTRATION_REQUIRED_BEFORE_CANDIDATE_OUTCOMES",
+    "candidate_measurement_outcomes_inspected": false
+  },
+  "forbidden_actions_executed": [],
+  "measurement_coverage": {
+    "hls": "0_OF_9",
+    "route": "0_OF_9",
+    "bitstream": "0_OF_9",
+    "board_latency": "0_OF_9",
+    "onboard_power": "0_OF_9",
+    "dynamic_energy": "0_OF_9"
+  },
+  "status": "EXECUTION_STARTED_BLOCKED_AT_PREREGISTRATION_AUTH_AND_PL_POWER",
+  "claim_boundary": "Execution preparation has started, but no hardware metric has been produced or promoted."
+}

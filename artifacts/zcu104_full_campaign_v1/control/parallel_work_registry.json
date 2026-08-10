@@ -2,7 +2,7 @@
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
   "generated_at": "2026-08-10T17:10:00+08:00",
-  "status": "PARALLEL_READY",
+  "status": "PASS_ALL_LANES_AT_CONTROL_HANDOFF",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
@@ -236,16 +236,16 @@
   },
   "worktree_creation_receipt": {
     "hardware": {
-      "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED",
-      "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
+      "status": "PASS_FAST_FORWARDED_CLEAN",
+      "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44"
     },
     "runtime": {
-      "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED",
-      "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
+      "status": "PASS_FAST_FORWARDED_CLEAN",
+      "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44"
     },
     "evidence": {
-      "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED",
-      "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
+      "status": "PASS_FAST_FORWARDED_CLEAN",
+      "head": "9240b0a39a3613609d60577d92e4aef2c8d7db44"
     }
   },
   "merge_policy": {
