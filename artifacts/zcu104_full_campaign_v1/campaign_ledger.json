@@ -50,10 +50,10 @@
     },
     "current_source_freeze": {
       "status": "PASS",
-      "frozen_git_head": "992eb51124755577e1cc9a2d011f97ab8ca4e842",
-      "manifest_sha256": "c16c4bbb38b17108673302e67856d8b346487a7fcb10378b9c3a121b1fba24ce",
-      "archive_sha256": "42c095b01ce1f27c2ebeedd6766ec9c89f95759d98e06facd38c388e91a096cf",
-      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v1_20260810/source_freeze_manifest.json"
+      "frozen_git_head": "2b9c5e532f4974b269ad133cf3977677202b71bf",
+      "manifest_sha256": "0c6bb62bb441ea89784bdd2a088f7db78219074aef1333adc694d287cbdc3b19",
+      "archive_sha256": "9dde543357e81fc90ccc9636b7bf64e898d3a6247b26880a20f291fa9e06e77a",
+      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_execution_v2_20260810/source_freeze_manifest.json"
     },
     "public_protocol_migration": {
       "status": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
