@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "search_space_id": "fourstage_cfem20_v1",
+  "status": "TEMPLATE_INTERFACE_DEFINED_PLATFORM_BINDING_PENDING",
+  "formal_transport": "AXI_DMA",
+  "legacy_uart_transport_allowed_for_formal_measurement": false,
+  "kernel_interfaces": {
+    "input": "AXI4-Stream",
+    "output": "AXI4-Stream",
+    "weights": "BRAM",
+    "biases": "BRAM",
+    "control": "AXI4-Lite ap_ctrl_hs"
+  },
+  "stream_order": "pixel_major",
+  "data_format": "signed_int8",
+  "accumulator_format": "signed_int32",
+  "stage2": {
+    "input_shape_chw": [16, 112, 112],
+    "output_shape_chw": [24, 56, 56],
+    "stride": 2,
+    "input_axis_bits": 128,
+    "output_axis_bits": 192
+  },
+  "stage4": {
+    "input_shape_chw": [32, 28, 28],
+    "output_shape_chw": [32, 28, 28],
+    "stride": 1,
+    "input_axis_bits": 256,
+    "output_axis_bits": 256
+  },
+  "pending_bindings": [
+    "ZCU104 processing-system and AXI DMA block design",
+    "DMA buffer allocation and cache-coherency procedure",
+    "kernel control base address and register map",
+    "weights and biases BRAM address map",
+    "interrupt or polling completion protocol",
+    "completed-operation counter for continuous-repeat power measurement"
+  ],
+  "safety": {
+    "flash_or_qspi_write_allowed": false,
+    "volatile_PL_programming_only": true,
+    "password_persistence_allowed": false
+  },
+  "claim_boundary": "The HLS template interface is defined, but no ZCU104 block design, bitstream, address map, or runtime binding has yet been generated or validated."
+}
