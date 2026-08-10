@@ -26,6 +26,17 @@
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "evidence": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     },
+    "focused_zcu104_tests": {
+      "status": "PASS",
+      "passed": 11
+    },
+    "full_test_suite": {
+      "status": "FAIL_RECORDED",
+      "passed": 508,
+      "failed": 17,
+      "skipped": 3,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
+    },
     "current_source_freeze": {
       "status": "PASS",
       "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json"

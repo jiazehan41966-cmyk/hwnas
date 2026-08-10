@@ -141,6 +141,29 @@
     "calibration_holdout": "FROZEN",
     "new_search": "FROZEN_UNTIL_REQUIRED_GATES_PASS"
   },
+  "verification": {
+    "focused_zcu104_tests": {
+      "status": "PASS",
+      "passed": 11
+    },
+    "full_pytest": {
+      "status": "FAIL_RECORDED",
+      "passed": 508,
+      "failed": 17,
+      "skipped": 3,
+      "warnings": 1,
+      "subtests_passed": 28,
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
+    },
+    "source_freeze_reverification": {
+      "status": "PASS",
+      "expected_file_count": 627,
+      "missing": [],
+      "unexpected": [],
+      "changed": []
+    },
+    "git_diff_check": "PASS"
+  },
   "next_required_actions": [
     "Run the evidence lane 60-checkpoint and 60-prediction SHA256 audit; control must reverify before promoting the gate.",
     "Run hardware source/interface development and runtime mock development only; do not launch complete HLS, route, training, or board measurements in control.",
