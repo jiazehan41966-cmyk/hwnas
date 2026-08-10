@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:40:12+08:00",
-  "status": "PAUSED_SCOPE_REVISION_REBASE_REQUIRED",
+  "generated_at": "2026-08-10T14:45:28+08:00",
+  "status": "PAUSED_INPUT_COMMIT_RECORDED_LANE_REFRESH_REQUIRED",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
-    "frozen_source_head": "PENDING_OPERATOR_COST_ROUTE_COMMIT",
+    "frozen_source_head": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
     "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
@@ -51,7 +51,7 @@
       "branch": "codex/zcu104-hardware-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "PENDING_CONTROL_SCOPE_REVISION_HANDOFF",
+      "input_commit": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
       "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for all 9 operator rows; no historical cost-row import.",
       "allowed_exact_files": [
         "src/hwnas_fpga/hardware/boards.py",
@@ -89,13 +89,13 @@
         "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json"
       ],
       "immediate_work": [
-        "wait for the control scope-revision input commit",
-        "after handoff, map all 9 exact-shape rows to fresh HLS and route configurations",
+        "verify the existing lane is clean, then refresh it from the recorded control input commit",
+        "after refresh, map all 9 exact-shape rows to fresh HLS and route configurations",
         "extend source generation and focused tests without launching complete HLS or route",
         "define bitstream and report SHA256 evidence receipts"
       ],
       "must_wait": [
-        "any lane work until the new control input commit is recorded",
+        "any lane work until the worktree is verified clean and refreshed to the recorded input commit",
         "complete 9-row HLS",
         "formal RTL co-sim",
         "full Route and bitstream generation",
@@ -111,7 +111,7 @@
       "branch": "codex/zcu104-runtime-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "PENDING_CONTROL_SCOPE_REVISION_HANDOFF",
+      "input_commit": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
       "purpose": "ZCU104 continuous-repeat operator micro-benchmark runtime, board-latency receipts, onboard VCC12 sampling integration, and host-side validation tests.",
       "allowed_exact_files": [
         "src/hwnas_fpga/deploy/board_protocol.py",
@@ -149,13 +149,13 @@
         "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json"
       ],
       "immediate_work": [
-        "wait for the control scope-revision input commit",
-        "after handoff, implement host-side mock continuous-repeat runtime",
+        "verify the existing lane is clean, then refresh it from the recorded control input commit",
+        "after refresh, implement host-side mock continuous-repeat runtime",
         "validate timeout, CRC, cache, address, length, completed-op count, and duration receipts",
         "test requested/effective sample-rate and idle/active capture metadata"
       ],
       "must_wait": [
-        "any lane work until the new control input commit is recorded",
+        "any lane work until the worktree is verified clean and refreshed to the recorded input commit",
         "real register/address binding until hardware interface handoff",
         "real board execution",
         "full-sample board validation",
@@ -172,7 +172,7 @@
       "branch": "codex/zcu104-evidence-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": "PENDING_CONTROL_SCOPE_REVISION_HANDOFF",
+      "input_commit": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
       "purpose": "Fresh 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
       "allowed_exact_files": [
         "scripts/audit_zcu104_operator_cost_lut.py",
@@ -207,14 +207,14 @@
         "docs/zcu104_full_experiment/ZCU104_OPERATOR_COST_LUT_CONTRACT_V1.md"
       ],
       "immediate_work": [
-        "wait for the control scope-revision input commit",
-        "after handoff, define the 9-row machine-readable operator-cost schema",
+        "verify the existing lane is clean, then refresh it from the recorded control input commit",
+        "after refresh, define the 9-row machine-readable operator-cost schema",
         "audit identity, exact shape, report and bitstream hashes, raw power captures, completed-op receipts, and failure preservation",
         "audit 9-of-9 operator rows and 100-percent search-key coverage",
         "generate a local handoff only; do not promote any formal gate"
       ],
       "must_wait": [
-        "any lane work until the new control input commit is recorded",
+        "any lane work until the worktree is verified clean and refreshed to the recorded input commit",
         "formal gate promotion until control merges and reverifies",
         "measurement-result audit until fresh HLS, route, runtime, and power artifacts exist"
       ],

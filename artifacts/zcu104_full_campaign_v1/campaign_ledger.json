@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:40:12+08:00",
+  "generated_at": "2026-08-10T14:45:28+08:00",
   "status": "OPERATOR_COST_LUT_V1_CONTRACT_FROZEN_EXECUTION_BLOCKED",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
@@ -23,7 +23,7 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/status.json"
     },
     "parallel_worktrees": {
-      "status": "PAUSED_SCOPE_REVISION_NOT_YET_PROPAGATED",
+      "status": "PAUSED_INPUT_COMMIT_RECORDED_NOT_YET_PROPAGATED",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "evidence": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     },
@@ -39,8 +39,11 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
     },
     "current_source_freeze": {
-      "status": "PENDING_ROUTE_COMMIT_AND_REFREEZE",
-      "planned_evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
+      "status": "PASS",
+      "frozen_git_head": "7a8a5af5ab5df27b7d0daeae9cf23dcbb5431981",
+      "manifest_sha256": "b0dada3878ddf56a81ba13ffddbc8b8a8202eae5ed52d8afac13267249d6ab56",
+      "archive_sha256": "003cda0086139ad8476f4817ab4b7b7032da3e9764f96135c8734bc36263ab5e",
+      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
     },
     "public_protocol_migration": {
       "status": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
