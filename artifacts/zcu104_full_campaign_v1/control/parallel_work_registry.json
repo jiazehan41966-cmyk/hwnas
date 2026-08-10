@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:55:24+08:00",
-  "status": "PAUSED_CFEM20_CONTROL_INPUT_COMMIT_PENDING",
+  "generated_at": "2026-08-10T17:10:00+08:00",
+  "status": "PARALLEL_READY",
   "integration": {
     "branch": "codex/zcu104-full-campaign-v1",
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
-    "frozen_source_head": null,
+    "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
     "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json"
   },
   "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
@@ -51,7 +51,7 @@
       "branch": "codex/zcu104-hardware-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": null,
+      "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
       "purpose": "Fresh ZCU104 exact-shape operator HLS/route/bitstream micro-benchmark generation for the 9 fourstage_cfem20_v1 operator rows; no historical cost-row import.",
       "allowed_exact_files": [
         "src/hwnas_fpga/hardware/boards.py",
@@ -112,7 +112,7 @@
       "branch": "codex/zcu104-runtime-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": null,
+      "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
       "purpose": "ZCU104 continuous-repeat operator micro-benchmark runtime, board-latency receipts, onboard VCC12 sampling integration, and host-side validation tests.",
       "allowed_exact_files": [
         "src/hwnas_fpga/deploy/board_protocol.py",
@@ -174,7 +174,7 @@
       "branch": "codex/zcu104-evidence-lane",
       "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
       "previous_input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-      "input_commit": null,
+      "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
       "purpose": "Fresh fourstage_cfem20_v1 9-row operator-cost schema, HLS/route/bitstream/latency/power evidence audit, lookup-key coverage audit, and fail-closed tests.",
       "allowed_exact_files": [
         "scripts/audit_zcu104_operator_cost_lut.py",
@@ -232,15 +232,15 @@
   },
   "worktree_creation_receipt": {
     "hardware": {
-      "status": "EXISTING_NOT_AUTHORIZED_FOR_NEW_SCOPE",
+      "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED",
       "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
     },
     "runtime": {
-      "status": "EXISTING_NOT_AUTHORIZED_FOR_NEW_SCOPE",
+      "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED",
       "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
     },
     "evidence": {
-      "status": "EXISTING_NOT_AUTHORIZED_FOR_NEW_SCOPE",
+      "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED",
       "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
     }
   },
@@ -259,5 +259,5 @@
     "source_freeze_reverification_required": true,
     "formal_ledger_update_by_control_only": true
   },
-  "claim_boundary": "No lane is authorized until control records the new CFEM20 input commit and verifies each worktree remains safe to reuse. fourstage_cfem20_v1 is the only active RAW search-space identity. Historical networks, checkpoints, predictions, and cost rows are outside scope. This registry never promotes HLS, route, bitstream, board latency, power, energy, or search gates."
+  "claim_boundary": "PARALLEL_READY authorizes each clean lane to fast-forward to the recorded CFEM20 input commit and then perform only its registered immediate work. It does not authorize HLS/route/bitstream/board execution in this control task. fourstage_cfem20_v1 is the only active RAW search-space identity. Historical networks, checkpoints, predictions, and cost rows are outside scope. This registry never promotes HLS, route, bitstream, board latency, power, energy, or search gates."
 }

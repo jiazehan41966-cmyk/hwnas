@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:55:24+08:00",
+  "generated_at": "2026-08-10T17:10:00+08:00",
   "status": "CFEM20_FROZEN_COST_LUT_SCAFFOLD_BUILT_EXECUTION_BLOCKED",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
@@ -23,28 +23,30 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/status.json"
     },
     "parallel_worktrees": {
-      "status": "PAUSED_INPUT_COMMIT_RECORDED_NOT_YET_PROPAGATED",
+      "status": "PARALLEL_READY_LANE_FAST_FORWARD_REQUIRED",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
       "evidence": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     },
     "focused_zcu104_tests": {
       "status": "PASS_CURRENT_SCOPE",
-      "passed": 53,
+      "passed": 55,
       "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json"
     },
     "full_test_suite": {
       "status": "FAIL_RECORDED",
-      "passed": 508,
+      "passed": 524,
       "failed": 17,
       "skipped": 3,
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json",
+      "scope_related_failures": 0
     },
     "current_source_freeze": {
-      "status": "PENDING_REFRESH_AFTER_CFEM20_INTEGRATION",
-      "frozen_git_head": null,
-      "manifest_sha256": "4ed091d64100a90aac46f2113af1c832ab03fa0563e34fba62280bb0819445dd",
-      "archive_sha256": "8a78d9982bde4fa92effc16fdd5658196283d812a22fdb6cd2367219d5d48680",
-      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json"
+      "status": "PASS",
+      "frozen_git_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "manifest_sha256": "aa8f850c08d2e8dd0e507d68c871c4a54e8bc8a78e005a728d6948063deac1d8",
+      "archive_sha256": "0651b4bf246351049b80dfe7cb3a6e3bf7e4a4960f8535b42689d1a572078b34",
+      "evidence": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json"
     },
     "public_protocol_migration": {
       "status": "PASS_WITH_DOCUMENTED_ADAPTATIONS",

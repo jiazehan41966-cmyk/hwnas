@@ -50,6 +50,23 @@
         "tests/test_zcu104_control_plane.py::test_parallel_registry_has_three_non_overlapping_control_bound_lanes"
       ],
       "preexisting_or_external_evidence_failures": 17
+    },
+    {
+      "command": "python -m pytest tests/test_zcu104_control_plane.py tests/test_zcu104_support.py tests/test_zcu104_cfem20_operator_cost_scaffold.py tests/test_fourstage_cfem20_search_space.py tests/test_power_measurement_v2.py -q -p no:cacheprovider",
+      "status": "PASS_AFTER_CONTROL_ARTIFACT_FINALIZATION",
+      "passed": 20,
+      "failed": 0
+    },
+    {
+      "command": "python -m pytest tests -q -p no:cacheprovider",
+      "status": "FAIL_RECORDED_BASELINE_ONLY",
+      "passed": 524,
+      "failed": 17,
+      "skipped": 3,
+      "warnings": 1,
+      "subtests_passed": 28,
+      "scope_related_failures": 0,
+      "failure_boundary": "All 17 failures are pre-existing external author-checkout, archived historical LUT/evidence, or phase0 readiness dependencies; none is in the CFEM20/ZCU104 cost-scaffold targeted set."
     }
   ],
   "forbidden_experiment_actions_executed": [],

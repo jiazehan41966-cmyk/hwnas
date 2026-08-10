@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T14:55:24+08:00",
+  "generated_at": "2026-08-10T17:10:00+08:00",
   "baseline_status": "PASS_CFEM20_FREEZE_AND_COST_KEY_SCAFFOLD",
   "campaign_execution_status": "BLOCKED_MEASURED_OPERATOR_COVERAGE_0_OF_9",
   "integration": {
@@ -9,7 +9,7 @@
     "branch": "codex/zcu104-full-campaign-v1",
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "ed7763208f42d4038ecefe61399def71e10a0ea9",
-    "frozen_source_head": null,
+    "frozen_source_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
     "main_worktree_used_for_writes": false
   },
   "control_preparation": {
@@ -18,19 +18,19 @@
       "evidence": "artifacts/zcu104_full_campaign_v1/control/documentation_migration.json"
     },
     "source_freeze": {
-      "status": "PENDING_REFRESH_AFTER_CFEM20_INTEGRATION",
-      "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json",
-      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
-      "manifest_sha256": "4ed091d64100a90aac46f2113af1c832ab03fa0563e34fba62280bb0819445dd",
+      "status": "PASS",
+      "superseded_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_freeze_manifest.json",
+      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_freeze_manifest.json",
+      "manifest_sha256": "aa8f850c08d2e8dd0e507d68c871c4a54e8bc8a78e005a728d6948063deac1d8",
       "content_source": "git-head",
-      "frozen_git_head": "8cd395f937924b8490c72421b7fcd42997e2fa1f",
-      "expected_file_count": 628,
+      "frozen_git_head": "ae48beb1498e8820aca2ba551fa415be9fff4336",
+      "expected_file_count": 636,
       "missing": [],
       "unexpected": [],
       "changed": [],
-      "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_operator_cost_lut_v1_20260810/source_snapshot.zip",
-      "archive_sha256": "8a78d9982bde4fa92effc16fdd5658196283d812a22fdb6cd2367219d5d48680",
-      "archive_bytes": 1746794
+      "archive_path": "artifacts/zcu104_full_campaign_v1/source_freeze_cfem20_operator_cost_v1_20260810/source_snapshot.zip",
+      "archive_sha256": "0651b4bf246351049b80dfe7cb3a6e3bf7e4a4960f8535b42689d1a572078b34",
+      "archive_bytes": 1776043
     },
     "scope_revision": {
       "status": "PASS_RECORDED",
@@ -127,26 +127,27 @@
       "latest_physical_probe": "DETECTED_PL_POWER_OFF"
     },
     "parallel_worktrees": {
-      "status": "PAUSED_INPUT_COMMIT_RECORDED_NOT_YET_PROPAGATED",
+      "status": "PARALLEL_READY_LANE_FAST_FORWARD_REQUIRED",
+      "input_commit": "ae48beb1498e8820aca2ba551fa415be9fff4336",
       "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
       "registry": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json",
       "hardware": {
         "branch": "codex/zcu104-hardware-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
         "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-        "status": "PAUSED_PENDING_CONTROL_HANDOFF_UPDATE"
+        "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED"
       },
       "runtime": {
         "branch": "codex/zcu104-runtime-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
         "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-        "status": "PAUSED_PENDING_CONTROL_HANDOFF_UPDATE"
+        "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED"
       },
       "evidence": {
         "branch": "codex/zcu104-evidence-lane",
         "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
         "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
-        "status": "PAUSED_PENDING_CONTROL_HANDOFF_UPDATE"
+        "status": "CLEAN_BRANCH_MATCH_FAST_FORWARD_REQUIRED"
       }
     }
   },
@@ -179,11 +180,12 @@
   "verification": {
     "focused_zcu104_tests": {
       "status": "PASS_CURRENT_SCOPE",
-      "passed": 53,
+      "passed": 55,
       "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json",
       "commands": [
         "python -m pytest tests/test_fourstage_cfem20_search_space.py tests/test_fourstage_dmdc16_search_space.py tests/test_zcu104_cfem20_operator_cost_scaffold.py tests/test_zcu104_support.py tests/test_power_measurement_v2.py -q -p no:cacheprovider",
-        "python -m pytest tests/test_fourstage_operator_v2.py tests/test_hardware.py -q -p no:cacheprovider"
+        "python -m pytest tests/test_fourstage_operator_v2.py tests/test_hardware.py -q -p no:cacheprovider",
+        "python -m pytest tests/test_zcu104_control_plane.py -q -p no:cacheprovider"
       ]
     },
     "corrected_test_command_failure": {
@@ -193,16 +195,17 @@
     },
     "full_pytest": {
       "status": "FAIL_RECORDED",
-      "passed": 508,
+      "passed": 524,
       "failed": 17,
       "skipped": 3,
       "warnings": 1,
       "subtests_passed": 28,
-      "evidence": "artifacts/zcu104_full_campaign_v1/control/baseline_test_record_20260810.json"
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/cfem20_integration_test_record_20260810.json",
+      "scope_related_failures": 0
     },
     "source_freeze_reverification": {
       "status": "PASS",
-      "expected_file_count": 628,
+      "expected_file_count": 636,
       "missing": [],
       "unexpected": [],
       "changed": []
@@ -211,8 +214,7 @@
   },
   "next_required_actions": [
     "Preregister ZCU104 deployment budgets without inspecting candidate measurement outcomes.",
-    "Refresh the source freeze after the CFEM20 integration and record the new control input commit.",
-    "Safely refresh each clean lane from the newly recorded control input commit before any lane work.",
+    "Safely fast-forward each clean lane to input commit ae48beb1498e8820aca2ba551fa415be9fff4336 before any lane work.",
     "Update lane handoffs so all 9 exact-shape operator rows are generated from scratch and no historical cost row is imported.",
     "Power or boot the ZCU104 and verify the U183 VCC12 INA226 hwmon path before any formal measurement.",
     "After prerequisites pass, measure HLS, route, board latency, idle/active/dynamic power, and integrated energy for all 9 rows before enabling search."
