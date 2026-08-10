@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T04:40:35.999594+00:00",
+  "generated_at": "2026-08-10T10:40:16.3582959+08:00",
   "status": "PASS",
   "git": {
     "source_branch": "codex/sonar-fourstage-operator-closure",
     "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
     "campaign_branch": "codex/zcu104-full-campaign-v1",
-    "campaign_head_at_generation": "8f36e3daac747bbf01053e0a73b9c8a4b39451ae"
+    "campaign_head_at_generation": "dddfe573b53c7c59556eface2d64f28991f291fa"
   },
   "protocol": {
     "path": "configs/evaluation/nksid_frozen_protocol_v2.yaml",
@@ -20,22 +20,22 @@
   },
   "source_freeze": {
     "status": "PASS",
-    "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_freeze_manifest.json",
+    "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_control_20260810\\source_freeze_manifest.json",
     "content_source": "git-head",
-    "expected_file_count": 618,
+    "expected_file_count": 627,
     "missing": [],
     "unexpected": [],
     "changed": [],
-    "manifest_sha256": "7ccb3befb1a8581180b8daabcc3687068b10359f728fd632778f3ae1317b73ae",
+    "manifest_sha256": "debdd63c8a419ef20bd9306a3e1a588d7fe2bbed605bfb08f150f7e20be32366",
     "frozen_git": {
-      "head": "8f36e3daac747bbf01053e0a73b9c8a4b39451ae",
+      "head": "dddfe573b53c7c59556eface2d64f28991f291fa",
       "branch": "codex/zcu104-full-campaign-v1",
       "status_porcelain": []
     },
     "archive": {
-      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
-      "bytes": 1694506,
-      "sha256": "0cd26f4a700c520cecedba5431b3ba4553df4555e6f6f2ddb9c47ab0d88429d5"
+      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_control_20260810\\source_snapshot.zip",
+      "bytes": 1740947,
+      "sha256": "2fa140fc98ffb9d8faec9ce25565d80567184c42719dbf47509f989055987cb3"
     }
   },
   "dataset": {
@@ -169,11 +169,29 @@
       "selection_rule": "fixed fold0/seed42 deployment representative; no outer-validation metric was used for checkpoint selection"
     }
   ],
+  "formal_checkpoint_registry": {
+    "expected_candidate_count": 4,
+    "folds": [0, 1, 2, 3, 4],
+    "seeds": [42, 43, 44],
+    "expected_checkpoint_count": 60,
+    "expected_outer_prediction_count": 60,
+    "representative_checkpoint_count": 4,
+    "local_source_presence_preflight": {
+      "status": "PASS_PRESENCE_ONLY",
+      "checkpoint_count": 60,
+      "outer_prediction_count": 60
+    },
+    "fingerprint_registration": {
+      "status": "PENDING",
+      "owner": "codex/zcu104-evidence-lane",
+      "handoff_manifest": "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json"
+    }
+  },
   "traceability_verification": {
     "status": "PASS",
     "missing": [],
     "unexpected": [],
     "changed": []
   },
-  "claim_boundary": "This record proves frozen-input traceability only. It does not establish ZCU104 HLS, route, bitstream, board classification, latency, or measured power."
+  "claim_boundary": "The current source freeze and four representative checkpoints are traceable. The 60-checkpoint fingerprint registry remains PENDING. This record does not establish ZCU104 HLS, route, bitstream, board classification, latency, or measured power."
 }

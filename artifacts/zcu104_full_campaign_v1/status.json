@@ -1,50 +1,35 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-09T04:40:36.120670+00:00",
-  "baseline_status": "PASS",
-  "campaign_execution_status": "IMPLEMENTATION_IN_PROGRESS",
-  "execution_lanes": {
-    "provenance_and_inputs": "PASS",
-    "remote_hls_route_toolchain_2022_2": "READY_NOT_EXECUTED",
-    "physical_zcu104": "DETECTED_PL_POWER_OFF",
-    "onboard_power_interface": "PENDING_READOUT"
+  "generated_at": "2026-08-10T10:40:16.3582959+08:00",
+  "baseline_status": "PASS_CONTROL_BASELINE",
+  "campaign_execution_status": "READY_TO_CREATE_PARALLEL_WORKTREES",
+  "integration": {
+    "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
+    "branch": "codex/zcu104-full-campaign-v1",
+    "source_branch": "codex/sonar-fourstage-operator-closure",
+    "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
+    "frozen_source_head": "dddfe573b53c7c59556eface2d64f28991f291fa",
+    "main_worktree_used_for_writes": false
   },
-  "acceptance_gates": {
-    "isolated_worktree": {
-      "status": "PASS",
-      "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
-      "branch": "codex/zcu104-full-campaign-v1",
-      "source_branch": "codex/sonar-fourstage-operator-closure",
-      "source_commit": "cae9be4f01d1a55576bc4449b6b41680b4a889d9",
-      "dirty_main_worktree_used": false
-    },
-    "worktree_clean": {
-      "status": "PASS_AFTER_BASELINE_COMMIT",
-      "verification_command": "git status --porcelain=v1",
-      "required_output": []
+  "control_preparation": {
+    "required_documents": {
+      "status": "PASS_MIGRATED_WITH_DOCUMENTED_ADAPTATIONS",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/documentation_migration.json"
     },
     "source_freeze": {
       "status": "PASS",
-      "manifest": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_freeze_manifest.json",
+      "manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json",
+      "manifest_sha256": "debdd63c8a419ef20bd9306a3e1a588d7fe2bbed605bfb08f150f7e20be32366",
       "content_source": "git-head",
-      "expected_file_count": 618,
+      "frozen_git_head": "dddfe573b53c7c59556eface2d64f28991f291fa",
+      "expected_file_count": 627,
       "missing": [],
       "unexpected": [],
       "changed": [],
-      "manifest_sha256": "7ccb3befb1a8581180b8daabcc3687068b10359f728fd632778f3ae1317b73ae",
-      "frozen_git": {
-        "head": "8f36e3daac747bbf01053e0a73b9c8a4b39451ae",
-        "branch": "codex/zcu104-full-campaign-v1",
-        "status_porcelain": []
-      },
-      "archive": {
-        "path": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1\\artifacts\\zcu104_full_campaign_v1\\source_freeze_revision_20260809\\source_snapshot.zip",
-        "bytes": 1694506,
-        "sha256": "0cd26f4a700c520cecedba5431b3ba4553df4555e6f6f2ddb9c47ab0d88429d5"
-      }
+      "archive_sha256": "2fa140fc98ffb9d8faec9ce25565d80567184c42719dbf47509f989055987cb3"
     },
-    "candidate_traceability": {
+    "candidates": {
       "status": "PASS",
       "count": 4,
       "arch_ids": [
@@ -54,101 +39,95 @@
         "fourstage_s2_k5_e3_s4_skip"
       ]
     },
-    "checkpoint_traceability": {
-      "status": "PASS",
-      "count": 4,
-      "fold": 0,
-      "seed": 42
-    },
-    "dataset_and_split_traceability": {
-      "status": "PASS",
-      "dataset_manifest_sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
-      "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
-      "split_manifest_sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1"
-    },
-    "environment_versions": {
-      "status": "PASS_REMOTE_CAPTURED",
-      "execution_plane": "10.70.23.121:7889",
-      "base_python": "3.13.11",
-      "pytorch_environment": "PASS_READY",
-      "gpu_count": 4,
-      "gpu_model": "NVIDIA GeForce RTX 5090",
-      "vivado": "2022.2",
-      "vitis_hls": "2022.2"
-    },
-    "zcu104_target_part": {
-      "status": "PASS",
-      "user_declared_board_model": "ZCU104",
-      "target_part": "xczu7ev-ffvc1156-2-e",
-      "target_part_count": 1,
-      "board_part": "xilinx.com:zcu104:part0:1.1",
-      "board_parts": [
-        "xilinx.com:zcu104:part0:1.1"
-      ]
-    },
-    "physical_zcu104_connection": {
-      "status": "DETECTED_PL_POWER_OFF",
-      "usb": {
-        "vendor_product_id": "0403:6011",
-        "model": "Xilinx JTAG+3Serial / FT4232H",
-        "serial": "36708",
-        "uart_devices": [
-          "/dev/ttyUSB1",
-          "/dev/ttyUSB2",
-          "/dev/ttyUSB3"
-        ]
+    "checkpoints": {
+      "representative_bindings": {
+        "status": "PASS",
+        "count": 4,
+        "fold": 0,
+        "seed": 42
       },
-      "vivado_hardware_manager": {
-        "hw_target": "localhost:3121/xilinx_tcf/Xilinx/366708A",
-        "device_count": 2,
-        "devices": [
-          {
-            "name": "xczu7_0",
-            "part": "xczu7"
-          },
-          {
-            "name": "arm_dap_1",
-            "part": "arm_dap"
-          }
+      "local_60_file_presence_preflight": {
+        "status": "PASS_PRESENCE_ONLY",
+        "checkpoint_count": 60,
+        "outer_prediction_count": 60,
+        "folds": [
+          0,
+          1,
+          2,
+          3,
+          4
         ],
-        "warning": "xczu7_0 PL Power Status OFF, cannot connect PL TAP; check POR_B signal"
+        "seeds": [
+          42,
+          43,
+          44
+        ],
+        "source_worktree": "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure"
+      },
+      "formal_60_fingerprint_registry": {
+        "status": "PENDING",
+        "owner": "codex/zcu104-evidence-lane",
+        "expected_checkpoint_count": 60,
+        "expected_outer_prediction_count": 60,
+        "handoff": "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json"
       }
     },
-    "portable_hls_inputs": {
-      "status": "PASS",
-      "path": "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json",
-      "candidate_count": 4
+    "dataset_and_split": {
+      "status": "PASS_REPRESENTATIVE_FOLD0_SEED42",
+      "dataset_manifest_sha256": "f06e76125b4dd9f7e68f0860eaef870944965da46b40332dc33ccbef6f1fb781",
+      "dataset_content_sha256": "e3d060a1daff3596cc07fb858c4aa059b1489ff0c1ab9c834c10b8c2372abae5",
+      "split_manifest_sha256": "953fc9e8d917ba551425712c36c15e2fd8dc9edd30ffcf03cf0627ef1446b2e1",
+      "full_5x3_split_binding": "PENDING_WITH_60_FINGERPRINT_REGISTRY"
     },
-    "zcu104_hls_source_preflight": {
-      "status": "PASS_SOURCE_GENERATION_ONLY",
-      "path": "artifacts/zcu104_full_campaign_v1/hls_source_preflight.json",
+    "server_toolchain": {
+      "status": "PASS_CAPTURED_20260809_LIVE_RECHECK_PENDING",
+      "evidence": "artifacts/zcu104_full_campaign_v1/environment_card.json",
+      "authoritative_versions": {
+        "vivado": "2022.2",
+        "vitis_hls": "2022.2",
+        "python": "3.13.11",
+        "pytorch": "2.7.1+cu128",
+        "torchvision": "0.22.1+cu128",
+        "cuda": "12.8"
+      },
+      "live_recheck_20260810": {
+        "status": "PENDING_CONNECTION_TIMEOUT",
+        "endpoint": "10.70.23.121:7889",
+        "authentication_secret_persisted": false
+      }
+    },
+    "target_board": {
+      "model": "AMD ZCU104",
       "target_part": "xczu7ev-ffvc1156-2-e",
-      "candidate_count": 4
+      "board_part": "xilinx.com:zcu104:part0:1.1",
+      "latest_physical_probe": "DETECTED_PL_POWER_OFF"
     },
-    "external_scratch_hls_2022_2": {
-      "status": "PENDING"
-    },
-    "rtl_cosim": {
-      "operator_complete": "PENDING",
-      "network_representative": "PENDING"
-    },
-    "zcu104_route_bitstream_board": {
-      "route": "PENDING",
-      "bitstream": "PENDING",
-      "board_full_sample_zero_mismatch": "PENDING"
-    },
-    "zcu104_vcc12_onboard_power": {
-      "status": "NOT_MEASURED",
-      "measurement_source": "zcu104_vcc12_ina226_i2c",
-      "rail_scope": "board_input_total_12v",
-      "capture_script": "scripts/capture_zcu104_onboard_power.py"
+    "parallel_worktrees": {
+      "status": "PENDING_CREATION",
+      "registry": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     }
   },
-  "next_required_action": [
-    "Transfer the corrected branch and portable HLS input bundle to the short Linux campaign path, then run all four external-scratch candidates with Vitis HLS 2022.2 on xczu7ev-ffvc1156-2-e.",
-    "Power or boot the ZCU104 so the PL TAP is accessible, then repeat the Vivado hardware-manager probe.",
-    "After the byte-stable artifact commit is transferred, rerun the remote SHA256 traceability audit before launching training.",
-    "After the ZCU104 boots, verify the U183 VCC12 INA226 hwmon node (PS I2C1, mux 0x74 channel 3, sensor 0x40) and run three idle/active captures per candidate."
+  "acceptance_gates": {
+    "checkpoint_registry_60": "PENDING",
+    "external_scratch_hls_2022_2": "PENDING",
+    "rtl_cosim_operator": "PENDING",
+    "rtl_cosim_network_representative": "PENDING",
+    "full_route": "PENDING",
+    "xsa_hwh_bitstream_binding": "PENDING",
+    "board_full_sample_classification": "PENDING",
+    "latency_blocks": "PENDING",
+    "thermal_stability": "PENDING",
+    "onboard_vcc12_power": "NOT_MEASURED",
+    "external_instrument_board_input_power": "NOT_MEASURED",
+    "calibration_holdout": "FROZEN",
+    "new_search": "FROZEN_UNTIL_REQUIRED_GATES_PASS"
+  },
+  "next_required_actions": [
+    "Create or safely reuse the three registered execution worktrees from the verified lane base commit.",
+    "Run the evidence lane 60-checkpoint and 60-prediction SHA256 audit; control must reverify before promoting the gate.",
+    "Run hardware source/interface development and runtime mock development only; do not launch complete HLS, route, training, or board measurements in control.",
+    "Restore server reachability and reverify the actual remote repository/toolchain before remote execution.",
+    "Power or boot the ZCU104 so the PL TAP is accessible before programming or board tests."
   ],
-  "claim_boundary": "Baseline and portable-input PASS prove traceability and source generation only. HLS 2022.2, RTL co-sim, route, bitstream, board full-sample zero mismatch, latency, and measured power remain separate pending gates."
+  "claim_boundary": "Control preparation and source traceability PASS do not establish HLS, RTL, route, bitstream, board classification, latency, thermal stability, or measured power. Four representative checkpoints are bound; the formal 60-checkpoint fingerprint registry remains PENDING."
 }
