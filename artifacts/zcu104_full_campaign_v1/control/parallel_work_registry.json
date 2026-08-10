@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "campaign_id": "zcu104_full_campaign_v1",
+  "generated_at": "2026-08-10T10:49:00+08:00",
+  "status": "PARALLEL_READY",
+  "integration": {
+    "branch": "codex/zcu104-full-campaign-v1",
+    "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
+    "frozen_source_head": "dddfe573b53c7c59556eface2d64f28991f291fa",
+    "source_freeze_manifest": "artifacts/zcu104_full_campaign_v1/source_freeze_control_20260810/source_freeze_manifest.json"
+  },
+  "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+  "public_context_files": [
+    "docs/PROJECT_MEMORY.md",
+    "docs/FORMAL_EXPERIMENT_CONTRACT.md",
+    "docs/zcu104_full_experiment/README.md",
+    "docs/zcu104_full_experiment/MODIFICATION_PLAN.md",
+    "docs/zcu104_full_experiment/EXPERIMENT_PLAN.md",
+    "docs/zcu104_full_experiment/METRICS_AND_ACCEPTANCE.md",
+    "docs/zcu104_full_experiment/SONAR_AND_THERMAL_METRICS.md",
+    "docs/zcu104_full_experiment/PARALLEL_WORK_PROMPTS.md",
+    "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+    "artifacts/zcu104_full_campaign_v1/status.json"
+  ],
+  "control_only_files": [
+    "configs/experiments/zcu104_full_campaign_v1.yaml",
+    "artifacts/zcu104_full_campaign_v1/status.json",
+    "artifacts/zcu104_full_campaign_v1/campaign_ledger.json",
+    "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
+  ],
+  "control_only_prefixes": [
+    "docs/",
+    "artifacts/zcu104_full_campaign_v1/control/",
+    "artifacts/zcu104_full_campaign_v1/final/",
+    "results/zcu104_full_campaign_v1/12_final_reports/"
+  ],
+  "common_rules": {
+    "formal_gate_promotion": "control_only",
+    "preserve_failure_timeout_resource_infeasible": true,
+    "server_authentication": "interactive_secret_not_persisted",
+    "no_complete_training_hls_route_or_board_measurement_in_control": true,
+    "no_flash_qspi_or_nonvolatile_board_writes_without_user_authorization": true
+  },
+  "lanes": {
+    "hardware": {
+      "branch": "codex/zcu104-hardware-lane",
+      "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
+      "input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "purpose": "ZCU104 board profile, external-scratch HLS generation, RTL testbench, Vivado/BD interface contract, and focused tests.",
+      "allowed_exact_files": [
+        "src/hwnas_fpga/hardware/boards.py",
+        "configs/hardware/zcu104.yaml",
+        "hls_lut_builder/board_harness/configs/board_zcu104.yaml",
+        "hls_lut_builder/board_harness/scripts/generate_harness.py",
+        "scripts/generate_zcu104_platform.py",
+        "scripts/run_fourstage_external_scratch_hls_gate.py",
+        "scripts/run_fourstage_external_scratch_rtl_cosim_gate.py",
+        "tests/test_zcu104_support.py",
+        "tests/test_zcu104_hardware_lane.py"
+      ],
+      "allowed_prefixes": [
+        "hls_lut_builder/board_harness/templates/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/",
+        "results/zcu104_full_campaign_v1/hardware_lane/",
+        "logs/zcu104_full_campaign_v1/hardware_lane/"
+      ],
+      "forbidden_exact_files": [
+        "configs/experiments/zcu104_full_campaign_v1.yaml",
+        "artifacts/zcu104_full_campaign_v1/status.json",
+        "artifacts/zcu104_full_campaign_v1/campaign_ledger.json",
+        "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
+      ],
+      "forbidden_prefixes": [
+        "docs/",
+        "artifacts/zcu104_full_campaign_v1/final/",
+        "results/zcu104_full_campaign_v1/12_final_reports/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/"
+      ],
+      "required_inputs": [
+        "configs/experiments/zcu104_full_campaign_v1.yaml",
+        "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+        "artifacts/zcu104_full_campaign_v1/inputs/hls_reference/summary.json"
+      ],
+      "immediate_work": [
+        "board profile and clock/backend code",
+        "external-scratch/shared-compute generator and testbench",
+        "board interface contract",
+        "source generation, mock, and short focused tests"
+      ],
+      "must_wait": [
+        "complete four-candidate HLS",
+        "formal RTL co-sim",
+        "Full Route and bitstream",
+        "board programming and measurement"
+      ],
+      "handoff_files": [
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/handoff.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/evidence_index.json"
+      ]
+    },
+    "runtime": {
+      "branch": "codex/zcu104-runtime-lane",
+      "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
+      "input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "purpose": "ZCU104 A53 runtime, simulated AXI DMA transport, receipts, deployment binding, and host-side validation tests.",
+      "allowed_exact_files": [
+        "src/hwnas_fpga/deploy/board_protocol.py",
+        "src/hwnas_fpga/hardware/deployment_binding.py",
+        "src/hwnas_fpga/hardware/validation_report.py",
+        "src/hwnas_fpga/hardware/acceptance_audit.py",
+        "src/hwnas_fpga/runtime.py",
+        "hls_lut_builder/board_harness/scripts/run_dynamic_validation.py",
+        "hls_lut_builder/board_harness/scripts/run_power_repeat.py",
+        "tests/test_zcu104_runtime_lane.py"
+      ],
+      "allowed_prefixes": [
+        "runtime/zcu104/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/",
+        "results/zcu104_full_campaign_v1/runtime_lane/",
+        "logs/zcu104_full_campaign_v1/runtime_lane/"
+      ],
+      "forbidden_exact_files": [
+        "configs/experiments/zcu104_full_campaign_v1.yaml",
+        "artifacts/zcu104_full_campaign_v1/status.json",
+        "artifacts/zcu104_full_campaign_v1/campaign_ledger.json",
+        "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
+      ],
+      "forbidden_prefixes": [
+        "docs/",
+        "artifacts/zcu104_full_campaign_v1/final/",
+        "results/zcu104_full_campaign_v1/12_final_reports/",
+        "hls_lut_builder/board_harness/templates/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/"
+      ],
+      "required_inputs": [
+        "configs/experiments/zcu104_full_campaign_v1.yaml",
+        "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/board_interface_contract.json"
+      ],
+      "immediate_work": [
+        "host-side mock runtime and transport abstraction",
+        "timeout, CRC, cache, address, and length checks",
+        "receipt and deployment-binding schema tests"
+      ],
+      "must_wait": [
+        "real register/address binding until hardware interface handoff",
+        "real board execution",
+        "full-sample board validation",
+        "latency and power measurement"
+      ],
+      "handoff_files": [
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/handoff.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/runtime_interface.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/receipt_schema.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/evidence_index.json"
+      ]
+    },
+    "evidence": {
+      "branch": "codex/zcu104-evidence-lane",
+      "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
+      "input_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "purpose": "Read-only source evidence audit, 60-checkpoint and prediction fingerprint registries, handoff validation, and focused fail-closed tests.",
+      "allowed_exact_files": [
+        "scripts/audit_zcu104_checkpoint_registry.py",
+        "scripts/audit_zcu104_lane_handoff.py",
+        "tests/test_zcu104_evidence_lane.py"
+      ],
+      "allowed_prefixes": [
+        "schemas/zcu104_full_campaign_v1/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/",
+        "results/zcu104_full_campaign_v1/evidence_lane/",
+        "logs/zcu104_full_campaign_v1/evidence_lane/"
+      ],
+      "forbidden_exact_files": [
+        "configs/experiments/zcu104_full_campaign_v1.yaml",
+        "artifacts/zcu104_full_campaign_v1/status.json",
+        "artifacts/zcu104_full_campaign_v1/campaign_ledger.json",
+        "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
+      ],
+      "forbidden_prefixes": [
+        "docs/",
+        "artifacts/zcu104_full_campaign_v1/final/",
+        "results/zcu104_full_campaign_v1/12_final_reports/",
+        "hls_lut_builder/board_harness/templates/",
+        "runtime/zcu104/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/hardware_lane/",
+        "artifacts/zcu104_full_campaign_v1/handoffs/runtime_lane/"
+      ],
+      "required_inputs": [
+        "configs/experiments/zcu104_full_campaign_v1.yaml",
+        "artifacts/zcu104_full_campaign_v1/protocol_freeze.json",
+        "E:\\1\\hwnas\\hwnas-sonar-fourstage-operator-closure\\results\\sonar_fourstage_operator_v2"
+      ],
+      "immediate_work": [
+        "audit the 4 x 5 folds x 3 seeds checkpoint Cartesian product",
+        "audit the matching 60 outer prediction files",
+        "record file sizes, SHA256, candidate identity, fold, seed, and source paths",
+        "generate a local handoff only; do not promote the formal gate"
+      ],
+      "must_wait": [
+        "formal gate promotion until control merges and reverifies",
+        "remote-copy traceability until server reachability returns"
+      ],
+      "handoff_files": [
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/handoff.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/checkpoint_registry_60.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/prediction_registry_60.json",
+        "artifacts/zcu104_full_campaign_v1/handoffs/evidence_lane/evidence_index.json"
+      ]
+    }
+  },
+  "worktree_creation_receipt": {
+    "hardware": {
+      "status": "PASS_CLEAN",
+      "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
+    },
+    "runtime": {
+      "status": "PASS_CLEAN",
+      "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
+    },
+    "evidence": {
+      "status": "PASS_CLEAN",
+      "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7"
+    }
+  },
+  "merge_policy": {
+    "one_branch_at_a_time": true,
+    "recommended_order": [
+      "hardware",
+      "runtime",
+      "evidence"
+    ],
+    "inspect_handoff_commit_tests_first": true,
+    "ownership_audit_required": true,
+    "targeted_tests_required": true,
+    "full_tests_required": true,
+    "diff_check_required": true,
+    "source_freeze_reverification_required": true,
+    "formal_ledger_update_by_control_only": true
+  },
+  "claim_boundary": "PARALLEL_READY authorizes code/interface work, runtime mocks, and the 60-file fingerprint audit. It does not authorize complete HLS, route, board programming, full-sample board tests, latency, thermal, or power measurements."
+}

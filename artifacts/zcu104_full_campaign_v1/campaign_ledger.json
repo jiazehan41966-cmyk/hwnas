@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T10:40:16.3582959+08:00",
-  "status": "CONTROL_BASELINE_READY",
+  "generated_at": "2026-08-10T10:49:00+08:00",
+  "status": "PARALLEL_READY",
   "control_owner": "codex/zcu104-full-campaign-v1",
   "immutable_evidence_layers": [
     "search_proxy",
@@ -20,6 +20,11 @@
     "control_worktree_and_branch": {
       "status": "PASS",
       "evidence": "artifacts/zcu104_full_campaign_v1/status.json"
+    },
+    "parallel_worktrees": {
+      "status": "PASS_CLEAN_AT_LANE_BASE",
+      "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "evidence": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
     },
     "current_source_freeze": {
       "status": "PASS",

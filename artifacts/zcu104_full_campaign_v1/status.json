@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
   "campaign_id": "zcu104_full_campaign_v1",
-  "generated_at": "2026-08-10T10:40:16.3582959+08:00",
+  "generated_at": "2026-08-10T10:49:00+08:00",
   "baseline_status": "PASS_CONTROL_BASELINE",
-  "campaign_execution_status": "READY_TO_CREATE_PARALLEL_WORKTREES",
+  "campaign_execution_status": "PARALLEL_READY",
   "integration": {
     "worktree": "E:\\1\\hwnas\\hwnas-zcu104-full-campaign-v1",
     "branch": "codex/zcu104-full-campaign-v1",
@@ -103,8 +103,27 @@
       "latest_physical_probe": "DETECTED_PL_POWER_OFF"
     },
     "parallel_worktrees": {
-      "status": "PENDING_CREATION",
-      "registry": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json"
+      "status": "PASS_CLEAN_AT_LANE_BASE",
+      "lane_base_commit": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+      "registry": "artifacts/zcu104_full_campaign_v1/control/parallel_work_registry.json",
+      "hardware": {
+        "branch": "codex/zcu104-hardware-lane",
+        "worktree": "E:\\1\\hwnas\\hwnas-zcu104-hardware",
+        "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+        "status": "PASS_CLEAN"
+      },
+      "runtime": {
+        "branch": "codex/zcu104-runtime-lane",
+        "worktree": "E:\\1\\hwnas\\hwnas-zcu104-runtime",
+        "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+        "status": "PASS_CLEAN"
+      },
+      "evidence": {
+        "branch": "codex/zcu104-evidence-lane",
+        "worktree": "E:\\1\\hwnas\\hwnas-zcu104-evidence",
+        "head": "76c830e20fe72204bef3b3ebfa3c76c95f9775e7",
+        "status": "PASS_CLEAN"
+      }
     }
   },
   "acceptance_gates": {
@@ -123,7 +142,6 @@
     "new_search": "FROZEN_UNTIL_REQUIRED_GATES_PASS"
   },
   "next_required_actions": [
-    "Create or safely reuse the three registered execution worktrees from the verified lane base commit.",
     "Run the evidence lane 60-checkpoint and 60-prediction SHA256 audit; control must reverify before promoting the gate.",
     "Run hardware source/interface development and runtime mock development only; do not launch complete HLS, route, training, or board measurements in control.",
     "Restore server reachability and reverify the actual remote repository/toolchain before remote execution.",
