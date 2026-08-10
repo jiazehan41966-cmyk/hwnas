@@ -77,7 +77,7 @@ class Zcu104BoardSupportTests(unittest.TestCase):
         self.assertEqual(
             config["protocol"]["source_freeze_manifest"],
             "artifacts/zcu104_full_campaign_v1/"
-            "source_freeze_operator_cost_execution_v4_20260810/source_freeze_manifest.json",
+            "source_freeze_operator_cost_execution_v5_20260810/source_freeze_manifest.json",
         )
         self.assertNotIn("candidates", config)
         self.assertNotIn("formal_checkpoint_registry", config)

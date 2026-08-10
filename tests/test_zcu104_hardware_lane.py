@@ -25,7 +25,7 @@ def test_cfem20_hardware_config_binds_target_and_all_frozen_cost_keys(tmp_path):
     assert raw["measurement_contract"]["search_space_version"] == "fourstage_cfem20_v1"
     assert raw["measurement_contract"]["source_binding_mode"] == "source_freeze_manifest"
     assert raw["measurement_contract"]["source_freeze_manifest"].endswith(
-        "source_freeze_operator_cost_execution_v4_20260810/source_freeze_manifest.json"
+        "source_freeze_operator_cost_execution_v5_20260810/source_freeze_manifest.json"
     )
     assert "frozen_source_head" not in raw["measurement_contract"]
 
