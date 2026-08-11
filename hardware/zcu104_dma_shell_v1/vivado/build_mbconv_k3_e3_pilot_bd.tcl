@@ -144,10 +144,11 @@ set rst [create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:* proc_sys_r
 set_property CONFIG.C_EXT_RESET_HIGH {0} $rst
 
 set weights_ctrl [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:* weights_axi_bram_ctrl]
-set_property -dict [list CONFIG.DATA_WIDTH {32} CONFIG.SINGLE_PORT_BRAM {0}] $weights_ctrl
+set_property -dict [list CONFIG.DATA_WIDTH {32} CONFIG.SINGLE_PORT_BRAM {1}] $weights_ctrl
 set weights_mem [create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:* weights_bram]
 set_property -dict [list \
     CONFIG.Memory_Type {True_Dual_Port_RAM} \
+    CONFIG.use_bram_block {Stand_Alone} \
     CONFIG.Use_Byte_Write_Enable {true} \
     CONFIG.Byte_Size {8} \
     CONFIG.Write_Width_A {32} \
@@ -159,10 +160,11 @@ set_property -dict [list \
 ] $weights_mem
 
 set biases_ctrl [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:* biases_axi_bram_ctrl]
-set_property -dict [list CONFIG.DATA_WIDTH {32} CONFIG.SINGLE_PORT_BRAM {0}] $biases_ctrl
+set_property -dict [list CONFIG.DATA_WIDTH {32} CONFIG.SINGLE_PORT_BRAM {1}] $biases_ctrl
 set biases_mem [create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:* biases_bram]
 set_property -dict [list \
     CONFIG.Memory_Type {True_Dual_Port_RAM} \
+    CONFIG.use_bram_block {Stand_Alone} \
     CONFIG.Use_Byte_Write_Enable {true} \
     CONFIG.Byte_Size {8} \
     CONFIG.Write_Width_A {32} \
@@ -198,9 +200,9 @@ connect_bd_intf_net [get_bd_intf_pins $wrapper/M_AXIS_DMA] [get_bd_intf_pins $dm
 connect_bd_intf_net [get_bd_intf_pins $wrapper/M_AXIS_CORE] [get_bd_intf_pins $core/input_stream]
 connect_bd_intf_net [get_bd_intf_pins $core/output_stream] [get_bd_intf_pins $wrapper/S_AXIS_CORE]
 connect_bd_intf_net [get_bd_intf_pins $weights_ctrl/BRAM_PORTA] [get_bd_intf_pins $weights_mem/BRAM_PORTA]
-connect_bd_intf_net [get_bd_intf_pins $core/weights] [get_bd_intf_pins $weights_mem/BRAM_PORTB]
+connect_bd_intf_net [get_bd_intf_pins $core/weights_PORTA] [get_bd_intf_pins $weights_mem/BRAM_PORTB]
 connect_bd_intf_net [get_bd_intf_pins $biases_ctrl/BRAM_PORTA] [get_bd_intf_pins $biases_mem/BRAM_PORTA]
-connect_bd_intf_net [get_bd_intf_pins $core/biases] [get_bd_intf_pins $biases_mem/BRAM_PORTB]
+connect_bd_intf_net [get_bd_intf_pins $core/biases_PORTA] [get_bd_intf_pins $biases_mem/BRAM_PORTB]
 
 connect_bd_net [get_bd_pins $wrapper/core_ap_start] [get_bd_pins $core/ap_start]
 connect_bd_net [get_bd_pins $core/ap_done] [get_bd_pins $wrapper/core_ap_done]

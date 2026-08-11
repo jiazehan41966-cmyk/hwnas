@@ -50,7 +50,7 @@ puts $result_file "  \"clock_period_ns\": 5.0,"
 puts $result_file "  \"operator\": \"stage4_mbconv_k3_e3\","
 puts $result_file "  \"vlnv\": \"hwnas.org:hls:zcu104_stage4_k3_e3_kernel:1.0\","
 puts $result_file "  \"component_xml\": \"$component_xml\","
-puts $result_file "  \"mathematical_semantics\": \"frozen_generated_source; only AXI-Lite control pragma changed to direct ap_ctrl_hs\","
+puts $result_file "  \"mathematical_semantics\": \"frozen calculation; control changed to direct ap_ctrl_hs and parameter BRAMs constrained to ram_1p\","
 puts $result_file "  \"claim_boundary\": \"HLS synthesis and IP export only; not Vivado implementation or board execution.\""
 puts $result_file "}"
 close $result_file

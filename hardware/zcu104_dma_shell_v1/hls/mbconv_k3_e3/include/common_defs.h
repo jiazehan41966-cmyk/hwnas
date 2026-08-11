@@ -12,8 +12,8 @@ typedef data_t weight_t;
     _Pragma("HLS INTERFACE axis port=output_stream")
 
 #define DECLARE_BRAM_WEIGHTS() \
-    _Pragma("HLS INTERFACE bram port=weights") \
-    _Pragma("HLS INTERFACE bram port=biases")
+    _Pragma("HLS INTERFACE bram storage_type=ram_1p port=weights") \
+    _Pragma("HLS INTERFACE bram storage_type=ram_1p port=biases")
 
 #define DECLARE_CONTROL_INTERFACE() \
     _Pragma("HLS INTERFACE s_axilite port=return bundle=control")

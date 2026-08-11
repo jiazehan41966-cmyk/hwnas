@@ -12,6 +12,12 @@
     "to": "#pragma HLS INTERFACE ap_ctrl_hs port=return",
     "replacement_count": 1
   },
+  "allowed_storage_interface_constraint": {
+    "file": "include/common_defs.h",
+    "change": "weights and biases BRAM interfaces constrained to ram_1p",
+    "reason": "reserve the second true-dual-port BRAM port for PS preload through AXI BRAM Controller",
+    "mathematical_effect": "none"
+  },
   "unchanged": [
     "calculation body",
     "signed INT8 activation and weight types",

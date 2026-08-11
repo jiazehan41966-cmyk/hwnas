@@ -8,11 +8,12 @@ space, train a network, change operator mathematics, integrate any other core,
 run board software, or measure latency or power.
 
 The generated operator source is retained byte-for-byte after LF normalization
-except for one interface-only edit: its software-visible HLS AXI4-Lite return
-port becomes direct `ap_ctrl_hs`. The wrapper remains the only control register
-bank. Weights use a 7,008-byte BRAM master; biases use 224 signed INT32 entries
-(896 bytes). PS access is provided through two AXI BRAM Controllers at
-`0xA0100000` and `0xA0200000`.
+except for interface-only edits: its software-visible HLS AXI4-Lite return port
+becomes direct `ap_ctrl_hs`, and the weights/biases BRAM ports are constrained
+to single-port access so the other physical ports remain available to the two
+AXI BRAM Controllers. The wrapper remains the only control register bank.
+Weights use a 7,008-byte BRAM master; biases use 224 signed INT32 entries
+(896 bytes). PS access remains at `0xA0100000` and `0xA0200000`.
 
 ## Frozen target
 
