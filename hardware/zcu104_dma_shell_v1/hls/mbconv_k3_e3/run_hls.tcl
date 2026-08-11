@@ -7,7 +7,10 @@ set include_dir [file join $script_dir include]
 set part_name {xczu7ev-ffvc1156-2-e}
 
 file mkdir $result_root
-open_project -reset $project_dir
+cd $result_root
+# Vitis HLS 2022.2 rejects an absolute path as the project name.  Keep the
+# artifact path fixed by changing into result_root, then open a relative name.
+open_project -reset project
 set_top zcu104_stage4_k3_e3_kernel
 add_files $source_file -cflags "-std=c++14 -O3 -I$include_dir"
 open_solution -reset solution1 -flow_target vivado
