@@ -50,7 +50,19 @@ if {$wns < 0.0 || $tns != 0.0} {
     error "Post-route timing gate failed: WNS=$wns ns, TNS=$tns ns. Bitstream and XSA intentionally not generated."
 }
 
-write_bitstream -force [file join $result_root zcu104_dma_shell_mbconv_k3_e3_pilot_v1.bit]
+close_design
+launch_runs impl_1 -to_step write_bitstream -jobs 4
+wait_on_run impl_1
+if {[get_property STATUS [get_runs impl_1]] ne "write_bitstream Complete!"} {
+    error "Bitstream run failed: [get_property STATUS [get_runs impl_1]]"
+}
+set impl_run_dir [get_property DIRECTORY [get_runs impl_1]]
+set impl_bit_files [glob -nocomplain -directory $impl_run_dir *.bit]
+if {[llength $impl_bit_files] != 1} {
+    error "Expected exactly one implementation bitstream in $impl_run_dir, found [llength $impl_bit_files]."
+}
+file copy -force [lindex $impl_bit_files 0] \
+    [file join $result_root zcu104_dma_shell_mbconv_k3_e3_pilot_v1.bit]
 write_hw_platform -fixed -include_bit -force [file join $result_root zcu104_dma_shell_mbconv_k3_e3_pilot_v1.xsa]
 
 set result_json [open [file join $result_root build_result.json] w]
