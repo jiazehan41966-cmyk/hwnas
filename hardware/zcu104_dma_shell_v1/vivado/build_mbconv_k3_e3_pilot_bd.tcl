@@ -118,6 +118,7 @@ set_property -dict [list \
     CONFIG.PSU__USE__M_AXI_GP1 {0} \
     CONFIG.PSU__USE__S_AXI_GP2 {1} \
     CONFIG.PSU__USE__IRQ0 {0} \
+    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__SRCSEL {RPLL} \
     CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {200} \
 ] $ps
 
