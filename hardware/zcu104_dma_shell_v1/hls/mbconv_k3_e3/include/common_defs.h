@@ -1,0 +1,119 @@
+#ifndef HLS_LUT_COMMON_DEFS_H_
+#define HLS_LUT_COMMON_DEFS_H_
+
+#include "common_types.h"
+
+typedef data_t weight_t;
+
+#define MAKE_AXIS_TYPE(width_bits) ap_axiu<width_bits, 0, 0, 0>
+
+#define DECLARE_AXIS_INTERFACE() \
+    _Pragma("HLS INTERFACE axis port=input_stream") \
+    _Pragma("HLS INTERFACE axis port=output_stream")
+
+#define DECLARE_BRAM_WEIGHTS() \
+    _Pragma("HLS INTERFACE bram port=weights") \
+    _Pragma("HLS INTERFACE bram port=biases")
+
+#define DECLARE_CONTROL_INTERFACE() \
+    _Pragma("HLS INTERFACE s_axilite port=return bundle=control")
+
+template <int CHANNELS>
+static inline void unpack_packed_channels(
+    const ap_uint<CHANNELS * 8> &packed,
+    data_t values[CHANNELS]
+) {
+    for (int idx = 0; idx < CHANNELS; ++idx) {
+        values[idx] = static_cast<data_t>(packed.range(((idx + 1) * 8) - 1, idx * 8));
+    }
+}
+
+template <int CHANNELS, typename AxisPacket>
+static inline void unpack_axis_channels(
+    const AxisPacket &packet,
+    data_t values[CHANNELS]
+) {
+    unpack_packed_channels<CHANNELS>(packet.data, values);
+}
+
+template <int CHANNELS>
+static inline ap_uint<CHANNELS * 8> pack_channels(
+    const data_t values[CHANNELS]
+) {
+    ap_uint<CHANNELS * 8> packed = 0;
+    for (int idx = 0; idx < CHANNELS; ++idx) {
+        packed.range(((idx + 1) * 8) - 1, idx * 8) = static_cast<ap_uint<8>>(values[idx]);
+    }
+    return packed;
+}
+
+template <int TOTAL_CHANNELS, int PACK_CHANNELS>
+static inline void unpack_packed_channel_segment(
+    const ap_uint<PACK_CHANNELS * 8> &packed,
+    int base_channel,
+    data_t values[TOTAL_CHANNELS]
+) {
+    for (int lane = 0; lane < PACK_CHANNELS; ++lane) {
+#pragma HLS UNROLL
+        const int channel = base_channel + lane;
+        if (channel < TOTAL_CHANNELS) {
+            values[channel] = static_cast<data_t>(packed.range(((lane + 1) * 8) - 1, lane * 8));
+        }
+    }
+}
+
+template <int TOTAL_CHANNELS, int PACK_CHANNELS, typename AxisPacket>
+static inline void unpack_axis_channel_segment(
+    const AxisPacket &packet,
+    int base_channel,
+    data_t values[TOTAL_CHANNELS]
+) {
+    unpack_packed_channel_segment<TOTAL_CHANNELS, PACK_CHANNELS>(packet.data, base_channel, values);
+}
+
+template <int TOTAL_CHANNELS, int PACK_CHANNELS>
+static inline ap_uint<PACK_CHANNELS * 8> pack_channel_segment(
+    const data_t values[TOTAL_CHANNELS],
+    int base_channel
+) {
+    ap_uint<PACK_CHANNELS * 8> packed = 0;
+    for (int lane = 0; lane < PACK_CHANNELS; ++lane) {
+#pragma HLS UNROLL
+        const int channel = base_channel + lane;
+        ap_uint<8> value = 0;
+        if (channel < TOTAL_CHANNELS) {
+            value = static_cast<ap_uint<8>>(values[channel]);
+        }
+        packed.range(((lane + 1) * 8) - 1, lane * 8) = value;
+    }
+    return packed;
+}
+
+template <typename AxisPacket, int CHANNELS>
+static inline AxisPacket make_axis_packet(
+    const data_t values[CHANNELS],
+    bool last
+) {
+    AxisPacket packet;
+    packet.data = pack_channels<CHANNELS>(values);
+    packet.keep = -1;
+    packet.strb = -1;
+    packet.last = last ? 1 : 0;
+    return packet;
+}
+
+template <typename AxisPacket, int TOTAL_CHANNELS, int PACK_CHANNELS>
+static inline AxisPacket make_axis_segment_packet(
+    const data_t values[TOTAL_CHANNELS],
+    int base_channel,
+    bool last
+) {
+    AxisPacket packet;
+    packet.data = pack_channel_segment<TOTAL_CHANNELS, PACK_CHANNELS>(values, base_channel);
+    packet.keep = -1;
+    packet.strb = -1;
+    packet.last = last ? 1 : 0;
+    return packet;
+}
+
+#endif  // HLS_LUT_COMMON_DEFS_H_

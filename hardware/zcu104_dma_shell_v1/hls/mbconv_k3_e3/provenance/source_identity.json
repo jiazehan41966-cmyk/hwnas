@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "operator": "stage4__mbconv_k3_e3__32x28x28_to_32x28x28__s1",
+  "source_archive": "generated_projects_0bd41da.zip",
+  "source_archive_sha256": "8527a79127bb76f580ded24b4d51886d11c21e937bb11fa7e9662b4a09612382",
+  "source_member": "mbconv_stage4_k3_e3_stage4_32x28x28_to_32x28x28_s1_balanced_pi4_po4_u1_main_5ns/src/zcu104_stage4_k3_e3_kernel.cpp",
+  "source_member_original_crlf_sha256": "9dca4050cf3697363168ab33529becbd62595f3e9515279a3d298d0a684d1ddc",
+  "source_member_normalized_lf_sha256": "ffaebdbc0178a50b1db9e7e0077eca998a0cfbae5685dab9404f822f8d7393c9",
+  "pilot_source_sha256": "d031351362e3c53d6922bf5655e3ce155f1cb52a015cfff454090e6bb1a555b7",
+  "allowed_interface_only_change": {
+    "from": "DECLARE_CONTROL_INTERFACE()",
+    "to": "#pragma HLS INTERFACE ap_ctrl_hs port=return",
+    "replacement_count": 1
+  },
+  "unchanged": [
+    "calculation body",
+    "signed INT8 activation and weight types",
+    "signed INT32 accumulators and biases",
+    "pixel-major HWC packing",
+    "weight and bias index layout",
+    "residual addition",
+    "ReLU6 and saturation behavior"
+  ]
+}
