@@ -117,6 +117,7 @@ if {[llength $board_parts] == 1} {
 }
 set_property -dict [list \
     CONFIG.PSU__USE__M_AXI_GP0 {1} \
+    CONFIG.PSU__USE__M_AXI_GP1 {0} \
     CONFIG.PSU__USE__S_AXI_GP0 {1} \
     CONFIG.PSU__USE__IRQ0 {1} \
     CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {200} \

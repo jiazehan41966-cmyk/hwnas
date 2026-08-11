@@ -109,6 +109,7 @@ def test_vivado_script_contains_complete_ps_dma_shell_and_target_only_implementa
         "S_AXIS_S2MM",
         "S_AXI_HPC0_FPD",
         "M_AXI_HPM0_FPD",
+        "CONFIG.PSU__USE__M_AXI_GP1 {0}",
         "0xA0000000",
         "0xA0010000",
         "launch_runs impl_1 -to_step write_bitstream",
