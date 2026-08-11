@@ -83,3 +83,11 @@ reports, routed DCP, `.bit`, `.xsa`, logs, and `sha256sums.txt`.
 
 None of these files constitutes board execution, PS/DMA end-to-end latency, or
 power evidence.
+
+If synthesis and implementation are already complete but post-route evidence
+or artifact writing was interrupted, resume without rebuilding by running:
+
+```bash
+/opt/Xilinx/Vivado/2022.2/bin/vivado -mode batch -nolog -nojournal -notrace \
+  -source hardware/zcu104_dma_shell_v1/vivado/finalize_mbconv_k3_e3_pilot.tcl
+```

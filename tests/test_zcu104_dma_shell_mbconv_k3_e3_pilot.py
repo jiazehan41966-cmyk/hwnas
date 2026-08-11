@@ -14,6 +14,13 @@ PILOT_BD = (
     / "vivado"
     / "build_mbconv_k3_e3_pilot_bd.tcl"
 )
+PILOT_FINALIZE = (
+    ROOT
+    / "hardware"
+    / "zcu104_dma_shell_v1"
+    / "vivado"
+    / "finalize_mbconv_k3_e3_pilot.tcl"
+)
 
 
 def sha256(data: bytes) -> str:
@@ -96,6 +103,21 @@ def test_pilot_bd_keeps_dma_shell_and_adds_only_parameter_brams():
         assert token in script
     assert "stage4_skip" not in script
     assert "2023.2" not in script
+
+
+def test_pilot_finalize_resumes_only_from_completed_route():
+    script = PILOT_FINALIZE.read_text(encoding="utf-8")
+    for token in (
+        "synth_design Complete!",
+        "route_design Complete!",
+        "open_run impl_1",
+        "timing_gate.json",
+        "write_bitstream",
+        "write_hw_platform -fixed -include_bit",
+        "board_programmed\\\": false",
+        "power_measured\\\": false",
+    ):
+        assert token in script
 
 
 def test_pilot_status_excludes_runtime_latency_power_and_other_operators():

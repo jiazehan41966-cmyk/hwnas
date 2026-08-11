@@ -294,11 +294,15 @@ foreach failing_path [get_timing_paths -delay_type max -max_paths 100000 -nworst
 }
 
 set timing_json [open [file join $result_root timing_gate.json] w]
+set timing_met_json false
+if {$wns >= 0.0 && $tns == 0.0} {
+    set timing_met_json true
+}
 puts $timing_json "{"
 puts $timing_json "  \"schema_version\": 1,"
 puts $timing_json "  \"wns_ns\": $wns,"
 puts $timing_json "  \"tns_ns\": $tns,"
-puts $timing_json "  \"timing_met\": [expr {$wns >= 0.0 && $tns == 0.0 ? \"true\" : \"false\"}]"
+puts $timing_json "  \"timing_met\": $timing_met_json"
 puts $timing_json "}"
 close $timing_json
 
@@ -319,7 +323,7 @@ puts $result_json "  \"board_part\": \"$board_part_name\","
 puts $result_json "  \"clock_hz\": 200000000,"
 puts $result_json "  \"wns_ns\": $wns,"
 puts $result_json "  \"tns_ns\": $tns,"
-puts $result_json "  \"timing_met\": [expr {$wns >= 0.0 ? \"true\" : \"false\"}],"
+puts $result_json "  \"timing_met\": $timing_met_json,"
 puts $result_json "  \"wrapper_base\": \"0xA0000000\","
 puts $result_json "  \"dma_base\": \"0xA0010000\","
 puts $result_json "  \"weights_base\": \"0xA0100000\","
