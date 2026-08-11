@@ -88,6 +88,15 @@ def test_skip_core_keeps_frozen_pixel_major_identity_semantics():
     assert "m_axi" not in source.lower()
 
 
+def test_skip_hls_uses_vitis_2022_2_compatible_relative_project_name():
+    script = (PLATFORM_ROOT / "hls" / "skip_core" / "run_hls.tcl").read_text(
+        encoding="utf-8"
+    )
+    assert "cd $result_root" in script
+    assert "open_project -reset project" in script
+    assert "open_project -reset $project_dir" not in script
+
+
 def test_vivado_script_contains_complete_ps_dma_shell_and_target_only_implementation():
     script = (PLATFORM_ROOT / "vivado" / "build_bd.tcl").read_text(encoding="utf-8")
     for token in (

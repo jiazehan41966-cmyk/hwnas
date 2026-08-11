@@ -4,7 +4,9 @@ set result_root [file join $repo_root results zcu104_dma_shell_v1 hls skip_core]
 set project_dir [file join $result_root project]
 
 file mkdir $result_root
-open_project -reset $project_dir
+cd $result_root
+# Vitis HLS 2022.2 accepts a project name here, not an absolute path.
+open_project -reset project
 set_top zcu104_stage4_skip_core
 add_files [file join $script_dir zcu104_stage4_skip_core.cpp] -cflags "-std=c++14"
 add_files -tb [file join $script_dir tb.cpp] -cflags "-std=c++14"
