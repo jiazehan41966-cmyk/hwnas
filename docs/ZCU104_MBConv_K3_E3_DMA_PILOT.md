@@ -84,6 +84,38 @@ reports, routed DCP, `.bit`, `.xsa`, logs, and `sha256sums.txt`.
 None of these files constitutes board execution, PS/DMA end-to-end latency, or
 power evidence.
 
+## Verified remote build result
+
+The first real ZCU104 pilot build completed on 2026-08-11 from commit
+`e803939c08b81fd1a6247202d1459c45bd704777`. Vitis HLS 2022.2 exported the
+operator as `hwnas.org:hls:zcu104_stage4_k3_e3_kernel:1.0`; its
+`component.xml` SHA-256 is
+`2697a79c2b2a963684b7039190f86f3f35f4fd06ddbd6fa95b904ee7dc6b234a`.
+The existing DMA shell then passed `validate_bd_design`, synthesis,
+implementation, and route on `xczu7ev-ffvc1156-2-e` at 200 MHz.
+
+Post-route timing closed with WNS `+0.980 ns`, TNS `0.000 ns`, WHS
+`+0.010 ns`, and THS `0.000 ns`. Full-shell utilization was 24,549 CLB LUTs
+(10.65%), 30,200 CLB registers (6.55%), 71.5 block-RAM tiles (22.92%), and
+12 DSPs (0.69%). These utilization values cover the complete DMA pilot shell,
+not `operator_core` in isolation.
+
+Bitstream and XSA generation both passed. Their SHA-256 values are respectively
+`e472079ed848ec8207d5c1396db03e21bd3c90823578f13911aa43d5aa877d51`
+and `31d12a73a71ae655b4b151afacd18733127b2ede797d00d1f4d096b97b938db0`.
+The selected raw evidence archive was downloaded and independently matched the
+server SHA-256
+`61ee31c5ed4bcffd487eca7ce83d291ce433e06918bcb5dbdd9e9bdef350ef4b`.
+The tracked evidence summary is
+`artifacts/zcu104_dma_shell_mbconv_k3_e3_pilot_v1/remote_build_evidence.json`.
+
+The HLS report estimates 817,830--826,088 cycles for the synthesized top-level
+transaction. This is an HLS scheduling estimate only. It is neither the frozen
+wrapper's `operator_core_latency` counter nor PS/DMA end-to-end board latency.
+No board was programmed, no PS control software was run, and no latency or
+power measurement was performed. Vivado's automatically generated vector-less
+power report is intentionally not used as power evidence.
+
 If synthesis and implementation are already complete but post-route evidence
 or artifact writing was interrupted, resume without rebuilding by running:
 

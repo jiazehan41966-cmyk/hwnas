@@ -138,6 +138,40 @@ def test_pilot_status_excludes_runtime_latency_power_and_other_operators():
     assert status["gates"]["power"] == "NOT_MEASURED"
 
 
+def test_remote_pilot_evidence_records_full_build_without_board_claims():
+    artifact_dir = (
+        ROOT / "artifacts" / "zcu104_dma_shell_mbconv_k3_e3_pilot_v1"
+    )
+    status = json.loads((artifact_dir / "status.json").read_text(encoding="utf-8"))
+    evidence = json.loads(
+        (artifact_dir / "remote_build_evidence.json").read_text(encoding="utf-8")
+    )
+
+    assert status["status"] == "PASS_REMOTE_HLS_AND_FULL_IMPLEMENTATION"
+    for gate in (
+        "hls_ip_export",
+        "component_xml_vlnv",
+        "validate_bd_design",
+        "synthesis",
+        "implementation",
+        "wns_tns",
+        "bitstream",
+        "xsa",
+    ):
+        assert status["gates"][gate] == "PASS"
+
+    assert evidence["operator"]["vlnv"] == (
+        "hwnas.org:hls:zcu104_stage4_k3_e3_kernel:1.0"
+    )
+    assert evidence["post_route_timing"]["wns_ns"] == 0.980
+    assert evidence["post_route_timing"]["tns_ns"] == 0.0
+    assert evidence["vivado_gates"]["bitstream"] == "PASS"
+    assert evidence["vivado_gates"]["xsa_with_bitstream"] == "PASS"
+    assert evidence["execution_boundary"]["board_programmed"] is False
+    assert evidence["execution_boundary"]["ps_runtime_executed"] is False
+    assert evidence["execution_boundary"]["power_measured"] is False
+
+
 def test_pilot_software_header_freezes_parameter_windows_without_runtime_claim():
     header = (
         ROOT

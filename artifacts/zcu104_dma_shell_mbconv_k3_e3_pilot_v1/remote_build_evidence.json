@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "pilot_id": "zcu104_dma_shell_mbconv_k3_e3_pilot_v1",
+  "recorded_on": "2026-08-11",
+  "branch": "codex/zcu104-dma-shell-v1",
+  "built_commit": "e803939c08b81fd1a6247202d1459c45bd704777",
+  "server_workspace": "/home/jiajia/experiments/zcu104_dma_shell_mbconv_k3_e3_pilot_v1/repo",
+  "toolchain": {
+    "vitis_hls": "2022.2 build 3670227",
+    "vivado": "2022.2 build 3671981",
+    "part": "xczu7ev-ffvc1156-2-e",
+    "board_part": "xilinx.com:zcu104:part0:1.1"
+  },
+  "operator": {
+    "name": "stage4__mbconv_k3_e3__32x28x28_to_32x28x28__s1",
+    "operator_id": "0x00040002",
+    "vlnv": "hwnas.org:hls:zcu104_stage4_k3_e3_kernel:1.0",
+    "component_xml_sha256": "2697a79c2b2a963684b7039190f86f3f35f4fd06ddbd6fa95b904ee7dc6b234a",
+    "hls_export_zip_sha256": "2a3139bd04c6336e9f226677bb9f3db87dd254c9c98ec9927499e8ca419626532"
+  },
+  "hls_synthesis_estimate": {
+    "target_clock_ns": 5.0,
+    "estimated_clock_ns": 4.073,
+    "latency_cycles_min": 817830,
+    "latency_cycles_max": 826088,
+    "latency_absolute_min_ms": 4.089,
+    "latency_absolute_max_ms": 4.130,
+    "evidence_class": "HLS estimate only; not operator_core counter or PS/DMA board latency"
+  },
+  "vivado_gates": {
+    "validate_bd_design": "PASS",
+    "synthesis": "PASS",
+    "implementation_and_route": "PASS",
+    "timing_constraints": "PASS",
+    "bitstream": "PASS",
+    "xsa_with_bitstream": "PASS"
+  },
+  "post_route_timing": {
+    "wns_ns": 0.980,
+    "tns_ns": 0.0,
+    "whs_ns": 0.010,
+    "ths_ns": 0.0
+  },
+  "post_route_full_shell_utilization": {
+    "clb_luts": 24549,
+    "clb_luts_percent": 10.65,
+    "lut_as_logic": 20262,
+    "lut_as_memory": 4287,
+    "clb_registers": 30200,
+    "clb_registers_percent": 6.55,
+    "block_ram_tiles": 71.5,
+    "block_ram_tiles_percent": 22.92,
+    "ramb36": 32,
+    "ramb18": 79,
+    "dsps": 12,
+    "dsps_percent": 0.69,
+    "scope": "complete DMA pilot shell, not operator_core alone"
+  },
+  "generated_artifacts": {
+    "routed_dcp_sha256": "beb9b1de09a7fc9b3d7ec98212942e826b150f7c3120db7812ed33e7649b26c5",
+    "bitstream_sha256": "e472079ed848ec8207d5c1396db03e21bd3c90823578f13911aa43d5aa877d51",
+    "xsa_sha256": "31d12a73a71ae655b4b151afacd18733127b2ede797d00d1f4d096b97b938db0",
+    "evidence_archive_sha256": "61ee31c5ed4bcffd487eca7ce83d291ce433e06918bcb5dbdd9e9bdef350ef4b"
+  },
+  "execution_boundary": {
+    "board_programmed": false,
+    "ps_runtime_executed": false,
+    "operator_core_counter_measured": false,
+    "ps_dma_end_to_end_latency_measured": false,
+    "power_measured": false,
+    "note": "Vivado may emit a vector-less implementation power report automatically; it is not accepted as formal power evidence."
+  }
+}
