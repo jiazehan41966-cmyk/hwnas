@@ -115,7 +115,7 @@ if {[llength $board_parts] == 1} {
 }
 set_property -dict [list \
     CONFIG.PSU__USE__M_AXI_GP0 {1} \
-    CONFIG.PSU__USE__S_AXI_GP0 {1} \
+    CONFIG.PSU__USE__S_AXI_GP2 {1} \
     CONFIG.PSU__USE__IRQ0 {0} \
     CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {200} \
 ] $ps
@@ -141,7 +141,6 @@ set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {4}] $ctrl_smc
 set mem_smc [create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:* axi_smc_mem]
 set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {1}] $mem_smc
 set rst [create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:* proc_sys_reset_0]
-set_property CONFIG.C_EXT_RESET_HIGH {0} $rst
 
 set weights_ctrl [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:* weights_axi_bram_ctrl]
 set_property -dict [list CONFIG.DATA_WIDTH {32} CONFIG.SINGLE_PORT_BRAM {1}] $weights_ctrl
