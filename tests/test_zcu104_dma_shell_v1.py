@@ -107,7 +107,7 @@ def test_vivado_script_contains_complete_ps_dma_shell_and_target_only_implementa
         "proc_sys_reset",
         "M_AXIS_MM2S",
         "S_AXIS_S2MM",
-        "S_AXI_HP0_FPD",
+        "S_AXI_HPC0_FPD",
         "M_AXI_HPM0_FPD",
         "0xA0000000",
         "0xA0010000",

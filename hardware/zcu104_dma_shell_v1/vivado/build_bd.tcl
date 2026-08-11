@@ -161,7 +161,7 @@ connect_bd_intf_net [get_bd_intf_pins $ctrl_smc/M01_AXI] [get_bd_intf_pins $dma/
 
 connect_bd_intf_net [get_bd_intf_pins $dma/M_AXI_MM2S] [get_bd_intf_pins $mem_smc/S00_AXI]
 connect_bd_intf_net [get_bd_intf_pins $dma/M_AXI_S2MM] [get_bd_intf_pins $mem_smc/S01_AXI]
-connect_bd_intf_net [get_bd_intf_pins $mem_smc/M00_AXI] [get_bd_intf_pins $ps/S_AXI_HP0_FPD]
+connect_bd_intf_net [get_bd_intf_pins $mem_smc/M00_AXI] [get_bd_intf_pins $ps/S_AXI_HPC0_FPD]
 
 connect_bd_intf_net [get_bd_intf_pins $dma/M_AXIS_MM2S] [get_bd_intf_pins $wrapper/S_AXIS_DMA]
 connect_bd_intf_net [get_bd_intf_pins $wrapper/M_AXIS_DMA] [get_bd_intf_pins $dma/S_AXIS_S2MM]
@@ -176,7 +176,7 @@ connect_bd_net [get_bd_pins $core/ap_ready] [get_bd_pins $wrapper/core_ap_ready]
 set pl_clk [get_bd_pins $ps/pl_clk0]
 foreach clock_pin [list \
     [get_bd_pins $ps/maxihpm0_fpd_aclk] \
-    [get_bd_pins $ps/saxihp0_fpd_aclk] \
+    [get_bd_pins $ps/saxihpc0_fpd_aclk] \
     [get_bd_pins $ctrl_smc/aclk] \
     [get_bd_pins $mem_smc/aclk] \
     [get_bd_pins $dma/s_axi_lite_aclk] \
