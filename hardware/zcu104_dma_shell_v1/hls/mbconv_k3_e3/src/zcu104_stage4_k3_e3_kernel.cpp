@@ -279,6 +279,46 @@ static void project_stage(
     }
 }
 
+static void load_parameters(
+    const weight_t weights[WEIGHT_SIZE],
+    const acc_t biases[BIAS_SIZE],
+    weight_t expand_weights[EXP_CH][IN_CH],
+    weight_t depthwise_weights[EXP_CH][K][K],
+    weight_t project_weights[OUT_CH][EXP_CH],
+    acc_t expand_bias[EXP_CH],
+    acc_t depthwise_bias[EXP_CH],
+    acc_t project_bias[OUT_CH]
+) {
+#pragma HLS INLINE off
+
+    const int expand_weight_base = 0;
+    const int depthwise_weight_base = EXPAND_WEIGHT_SIZE;
+    const int project_weight_base = EXPAND_WEIGHT_SIZE + DEPTHWISE_WEIGHT_SIZE;
+    const int depthwise_bias_base = EXPAND_BIAS_SIZE;
+    const int project_bias_base = EXPAND_BIAS_SIZE + DEPTHWISE_BIAS_SIZE;
+
+    for (int ec = 0; ec < EXP_CH; ++ec) {
+        expand_bias[ec] = biases[ec];
+        depthwise_bias[ec] = biases[depthwise_bias_base + ec];
+        for (int ic = 0; ic < IN_CH; ++ic) {
+            expand_weights[ec][ic] = weights[expand_weight_base + (ec * IN_CH) + ic];
+        }
+        for (int kh = 0; kh < K; ++kh) {
+            for (int kw = 0; kw < K; ++kw) {
+                depthwise_weights[ec][kh][kw] =
+                    weights[depthwise_weight_base + (ec * K * K) + (kh * K) + kw];
+            }
+        }
+    }
+
+    for (int oc = 0; oc < OUT_CH; ++oc) {
+        project_bias[oc] = biases[project_bias_base + oc];
+        for (int ec = 0; ec < EXP_CH; ++ec) {
+            project_weights[oc][ec] = weights[project_weight_base + (oc * EXP_CH) + ec];
+        }
+    }
+}
+
 void zcu104_stage4_k3_e3_kernel(
     hls::stream<input_axis_t> &input_stream,
     hls::stream<output_axis_t> &output_stream,
@@ -313,34 +353,17 @@ DECLARE_BRAM_WEIGHTS()
 #pragma HLS STREAM variable=depthwise_stream depth=4
 #pragma HLS STREAM variable=residual_stream depth=30
 
-    const int expand_weight_base = 0;
-    const int depthwise_weight_base = EXPAND_WEIGHT_SIZE;
-    const int project_weight_base = EXPAND_WEIGHT_SIZE + DEPTHWISE_WEIGHT_SIZE;
-    const int depthwise_bias_base = EXPAND_BIAS_SIZE;
-    const int project_bias_base = EXPAND_BIAS_SIZE + DEPTHWISE_BIAS_SIZE;
-
-    for (int ec = 0; ec < EXP_CH; ++ec) {
-        expand_bias[ec] = biases[ec];
-        depthwise_bias[ec] = biases[depthwise_bias_base + ec];
-        for (int ic = 0; ic < IN_CH; ++ic) {
-            expand_weights[ec][ic] = weights[expand_weight_base + (ec * IN_CH) + ic];
-        }
-        for (int kh = 0; kh < K; ++kh) {
-            for (int kw = 0; kw < K; ++kw) {
-                depthwise_weights[ec][kh][kw] =
-                    weights[depthwise_weight_base + (ec * K * K) + (kh * K) + kw];
-            }
-        }
-    }
-
-    for (int oc = 0; oc < OUT_CH; ++oc) {
-        project_bias[oc] = biases[project_bias_base + oc];
-        for (int ec = 0; ec < EXP_CH; ++ec) {
-            project_weights[oc][ec] = weights[project_weight_base + (oc * EXP_CH) + ec];
-        }
-    }
-
 #pragma HLS DATAFLOW
+    load_parameters(
+        weights,
+        biases,
+        expand_weights,
+        depthwise_weights,
+        project_weights,
+        expand_bias,
+        depthwise_bias,
+        project_bias
+    );
     expand_stage(input_stream, expanded_stream, residual_stream, expand_weights, expand_bias);
     depthwise_stage(expanded_stream, depthwise_stream, depthwise_weights, depthwise_bias);
     project_stage(depthwise_stream, residual_stream, output_stream, project_weights, project_bias);

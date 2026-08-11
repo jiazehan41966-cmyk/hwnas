@@ -7,6 +7,9 @@ interface: the original HLS AXI4-Lite return port becomes direct
 register bank. The external weights and biases BRAM interfaces are constrained
 to `ram_1p`; this leaves the other physical port of each true-dual-port BRAM
 available for PS preload through its AXI BRAM Controller.
+The two original parameter-copy loops are grouped into a single non-inlined
+`load_parameters` dataflow process so each single-port external BRAM has one
+reader. The loop bodies and all index expressions are unchanged.
 
 The calculation body, INT8/INT32 types, pixel-major stream order, residual,
 weight layout, bias layout, saturation, and ReLU6 behavior are unchanged.

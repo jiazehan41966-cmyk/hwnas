@@ -6,7 +6,7 @@
   "source_member": "mbconv_stage4_k3_e3_stage4_32x28x28_to_32x28x28_s1_balanced_pi4_po4_u1_main_5ns/src/zcu104_stage4_k3_e3_kernel.cpp",
   "source_member_original_crlf_sha256": "9dca4050cf3697363168ab33529becbd62595f3e9515279a3d298d0a684d1ddc",
   "source_member_normalized_lf_sha256": "ffaebdbc0178a50b1db9e7e0077eca998a0cfbae5685dab9404f822f8d7393c9",
-  "pilot_source_sha256": "d031351362e3c53d6922bf5655e3ce155f1cb52a015cfff454090e6bb1a555b7",
+  "pilot_source_sha256": "e54c41460c9356616ba0baf3aaf1c9e6cd7c7acd441558130e5db1cb422fe6f0",
   "allowed_interface_only_change": {
     "from": "DECLARE_CONTROL_INTERFACE()",
     "to": "#pragma HLS INTERFACE ap_ctrl_hs port=return",
@@ -16,6 +16,11 @@
     "file": "include/common_defs.h",
     "change": "weights and biases BRAM interfaces constrained to ram_1p",
     "reason": "reserve the second true-dual-port BRAM port for PS preload through AXI BRAM Controller",
+    "mathematical_effect": "none"
+  },
+  "allowed_schedule_only_change": {
+    "change": "the two unchanged parameter-copy loops are moved into one non-inlined load_parameters dataflow process",
+    "reason": "a ram_1p external parameter interface requires exactly one dataflow reader",
     "mathematical_effect": "none"
   },
   "unchanged": [

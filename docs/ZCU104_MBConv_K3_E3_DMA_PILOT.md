@@ -14,6 +14,8 @@ to single-port access so the other physical ports remain available to the two
 AXI BRAM Controllers. The wrapper remains the only control register bank.
 Weights use a 7,008-byte BRAM master; biases use 224 signed INT32 entries
 (896 bytes). PS access remains at `0xA0100000` and `0xA0200000`.
+The unchanged parameter-copy loops are grouped into one `load_parameters`
+dataflow process solely to satisfy the one-reader scheduling rule of `ram_1p`.
 
 ## Frozen target
 

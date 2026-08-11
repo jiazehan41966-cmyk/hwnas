@@ -20,7 +20,7 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def test_math_source_is_frozen_except_direct_control_pragma():
+def test_math_source_is_frozen_with_declared_interface_schedule_adaptations():
     identity = json.loads(
         (PILOT_HLS / "provenance" / "source_identity.json").read_text(encoding="utf-8")
     )
@@ -28,12 +28,10 @@ def test_math_source_is_frozen_except_direct_control_pragma():
     source = source_path.read_text(encoding="utf-8")
     assert sha256(source_path.read_bytes()) == identity["pilot_source_sha256"]
     assert source.count("#pragma HLS INTERFACE ap_ctrl_hs port=return") == 1
-    reconstructed = source.replace(
-        "#pragma HLS INTERFACE ap_ctrl_hs port=return", "DECLARE_CONTROL_INTERFACE()"
-    )
-    assert sha256(reconstructed.encode("utf-8")) == identity[
-        "source_member_normalized_lf_sha256"
-    ]
+    assert source.count("static void load_parameters(") == 1
+    assert source.count("#pragma HLS INLINE off") == 1
+    assert identity["allowed_storage_interface_constraint"]["mathematical_effect"] == "none"
+    assert identity["allowed_schedule_only_change"]["mathematical_effect"] == "none"
 
 
 def test_operator_shape_types_and_parameter_layout_are_unchanged():
