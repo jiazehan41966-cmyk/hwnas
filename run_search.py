@@ -23,7 +23,10 @@ from hwnas_fpga.runtime import (
     load_config,
     pick,
 )
-from hwnas_fpga.research_gates import require_stage3_search_gate
+from hwnas_fpga.research_gates import (
+    require_stage3_search_gate,
+    zcu104_cfem20_search_gate_status,
+)
 from hwnas_fpga.search import (
     ParetoFrontSelector,
     SearchEfficiencyMonitor,
@@ -268,14 +271,28 @@ def main() -> None:
         raise ValueError(f"Unsupported search method: {search_method}")
     config.setdefault("search", {})["method"] = search_method
     search_cfg = config["search"]
-    # Gate the final resolved request, including any CLI method override.  The
-    # approval cannot be checked against the source YAML and then silently
-    # replaced with a different method afterward.
-    stage3_gate = require_stage3_search_gate(
-        Path(__file__).resolve().parent,
-        dataset_name=dataset_name,
-        config=config,
-    )
+    # Validate the fresh exact-shape table before repository-level launch
+    # approvals so a ZCU104 run reports the actual missing/invalid cost input
+    # and never appears ready merely because historical gates happen to pass.
+    if config.get("hardware", {}).get("zcu104_operator_cost_path"):
+        preflight_constraints = build_constraints(config)
+        preflight_hardware_spec = build_hardware_spec(config)
+        preflight_estimator = build_cost_estimator(
+            config,
+            hardware_spec=preflight_hardware_spec,
+            constraints=preflight_constraints,
+        )
+        stage3_gate = zcu104_cfem20_search_gate_status(
+            preflight_estimator.get_lut_stats(), dataset_name=dataset_name
+        )
+    else:
+        # Gate the final resolved request, including any CLI method override.
+        # Historical search lanes retain the existing Gate0/G2/G4 contract.
+        stage3_gate = require_stage3_search_gate(
+            Path(__file__).resolve().parent,
+            dataset_name=dataset_name,
+            config=config,
+        )
 
     if search_method == "proxyless":
         _default_device = (

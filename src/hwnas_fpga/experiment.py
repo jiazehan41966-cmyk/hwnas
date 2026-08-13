@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import sys
 from contextlib import AbstractContextManager
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 import torch
+from hwnas_fpga.search_space import ArchitectureSpec
 import yaml
 
 from hwnas_fpga.hardware import CostEstimate
@@ -25,6 +27,14 @@ def _utc_timestamp() -> str:
         .isoformat()
         .replace("+00:00", "Z")
     )
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _slugify(value: str) -> str:
@@ -259,9 +269,15 @@ class ExperimentTracker:
         history: Optional[Mapping[str, Any]] = None,
         extra: Optional[Mapping[str, Any]] = None,
     ) -> None:
+        config_path = self.root_dir / "config.yaml"
         payload = {
             "saved_at": _utc_timestamp(),
             "candidate": self._candidate_to_dict(candidate),
+            "search_config": (
+                {"path": str(config_path.resolve()), "sha256": _sha256_file(config_path)}
+                if config_path.is_file()
+                else None
+            ),
             "history": dict(history) if history is not None else None,
             "extra": dict(extra) if extra is not None else {},
         }
@@ -271,6 +287,7 @@ class ExperimentTracker:
             checkpoint = {
                 "saved_at": _utc_timestamp(),
                 "candidate": payload["candidate"],
+                "search_config": payload["search_config"],
                 "history": payload["history"],
                 "extra": payload["extra"],
                 "model_state_dict": model_state_dict,
@@ -419,9 +436,17 @@ class ExperimentTracker:
     def _candidate_to_dict(self, candidate: Optional[SearchCandidate]) -> Optional[dict[str, Any]]:
         if candidate is None:
             return None
+        encoding = candidate.encoding
         return {
             "arch_id": candidate.arch_id,
-            "encoding": candidate.encoding,
+            "encoding": encoding,
+            "architecture_sha256": hashlib.sha256(
+                json.dumps(
+                    ArchitectureSpec.from_dict(encoding).to_dict(),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
             "metrics": asdict(candidate.metrics),
         }
 

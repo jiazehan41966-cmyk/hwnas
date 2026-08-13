@@ -44,6 +44,7 @@ from .power_measurement import (
 from .deployment_binding import (
     audit_zcu104_deployment_binding,
 )
+from .zcu104_operator_cost import ZCU104CFEM20OperatorCostEstimator
 
 __all__ = [
     "BOARD_PROFILES",
@@ -65,6 +66,7 @@ __all__ = [
     "audit_power_campaign",
     "audit_power_manifest",
     "audit_zcu104_deployment_binding",
+    "ZCU104CFEM20OperatorCostEstimator",
     "classify_route_gate_result",
     "create_dummy_fpga_lut",
     "dedupe_candidates_by_signature",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 from pathlib import Path
 from typing import Any, Optional, Sequence
 import json
@@ -11,6 +12,7 @@ import torch
 import torch.nn as nn
 
 from hwnas_fpga.models import build_model
+from hwnas_fpga.fourstage_operator import architecture_sha256
 from hwnas_fpga.search_space import ArchitectureSpec
 from hwnas_fpga.training.recipe import (
     LogitAdjustedCrossEntropy,
@@ -29,12 +31,36 @@ def load_best_candidate_artifact(path: str | Path) -> dict[str, Any]:
         payload = json.load(handle)
     if "candidate" not in payload or "encoding" not in payload["candidate"]:
         raise ValueError(f"Invalid best candidate artifact: {candidate_path}")
+    search_config = payload.get("search_config")
+    if search_config is not None:
+        config_path = Path(str(search_config.get("path") or "")).expanduser()
+        expected_sha = str(search_config.get("sha256") or "")
+        if not config_path.is_file():
+            raise FileNotFoundError(
+                f"Search config bound by candidate is missing: {config_path}"
+            )
+        digest_builder = hashlib.sha256()
+        with config_path.open("rb") as handle:
+            for block in iter(lambda: handle.read(1024 * 1024), b""):
+                digest_builder.update(block)
+        digest = digest_builder.hexdigest()
+        if digest != expected_sha:
+            raise ValueError(
+                f"Search config SHA256 mismatch for {config_path}: {expected_sha} != {digest}"
+            )
     return payload
 
 
 def load_architecture_from_artifact(path: str | Path) -> ArchitectureSpec:
     payload = load_best_candidate_artifact(path)
-    return ArchitectureSpec.from_dict(payload["candidate"]["encoding"])
+    architecture = ArchitectureSpec.from_dict(payload["candidate"]["encoding"])
+    expected = payload["candidate"].get("architecture_sha256")
+    actual = architecture_sha256(architecture)
+    if expected is not None and str(expected) != actual:
+        raise ValueError(
+            f"Architecture SHA256 mismatch in {Path(path).resolve()}: {expected} != {actual}"
+        )
+    return architecture
 
 
 @torch.no_grad()

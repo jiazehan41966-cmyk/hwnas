@@ -75,7 +75,8 @@ from hwnas_fpga.experiment_contract import (
     load_experiment_contract,
     validate_formal_values_against_contract,
 )
-from hwnas_fpga.training import load_architecture_from_artifact
+from hwnas_fpga.training import load_architecture_from_artifact, load_best_candidate_artifact
+from hwnas_fpga.fourstage_operator import architecture_sha256
 from hwnas_fpga.training.recipe import RecipeConfig, train_with_recipe
 from hwnas_fpga.training.protocol_reporting import (
     canonical_sha256,
@@ -272,6 +273,7 @@ def build_run_model(args: argparse.Namespace, num_classes: int) -> tuple[nn.Modu
             "model_source": "candidate",
             "candidate_path": str(Path(args.candidate_path).resolve()),
             "architecture": architecture.to_dict(),
+            "architecture_sha256": architecture_sha256(architecture),
         }
 
     model, metadata = build_backbone(
@@ -672,6 +674,14 @@ def main() -> int:
                         help="use grayscale-adapted ImageNet weights (backbones only)")
     parser.add_argument("--candidate-path", default=None,
                         help="ArchitectureSpec candidate artifact; overrides --arch")
+    parser.add_argument(
+        "--initial-checkpoint",
+        default=None,
+        help=(
+            "Optional retrained checkpoint to evaluate without another training pass. "
+            "Only supported for one fold/seed smoke or explicit checkpoint evaluation."
+        ),
+    )
     parser.add_argument("--folds", default="0,1,2,3,4")
     parser.add_argument("--seeds", default="42,43,44")
     parser.add_argument("--epochs", type=int, default=150)
@@ -755,6 +765,10 @@ def main() -> int:
     seeds = parse_int_list(args.seeds)
     if len(folds) != len(set(folds)) or len(seeds) != len(set(seeds)):
         raise ValueError("folds and seeds must not contain duplicates")
+    if args.initial_checkpoint and not args.candidate_path:
+        raise ValueError("--initial-checkpoint requires --candidate-path")
+    if args.initial_checkpoint and (len(folds) != 1 or len(seeds) != 1):
+        raise ValueError("--initial-checkpoint requires exactly one fold and one seed")
     selection_provenance = args.selection_provenance or (
         "legacy_fold0_selected" if args.candidate_path else "baseline_predeclared"
     )
@@ -970,9 +984,129 @@ def main() -> int:
     candidate_provenance = None
     if args.candidate_path:
         candidate_path = Path(args.candidate_path).expanduser().resolve()
+        candidate_payload = load_best_candidate_artifact(candidate_path)
+        candidate_architecture = load_architecture_from_artifact(candidate_path)
         candidate_provenance = {
             "path": str(candidate_path),
             "sha256": sha256_file(candidate_path),
+            "arch_id": candidate_payload["candidate"].get("arch_id"),
+            "architecture_sha256": architecture_sha256(candidate_architecture),
+            "search_config": candidate_payload.get("search_config"),
+        }
+    initial_checkpoint_provenance = None
+    initial_checkpoint_split_sha256 = None
+    if args.initial_checkpoint:
+        initial_checkpoint_path = Path(args.initial_checkpoint).expanduser().resolve()
+        checkpoint_payload = torch.load(
+            initial_checkpoint_path, map_location="cpu", weights_only=False
+        )
+        checkpoint_arch_sha = str(checkpoint_payload.get("architecture_sha256") or "")
+        expected_arch_sha = str(candidate_provenance["architecture_sha256"])
+        checkpoint_architecture = checkpoint_payload.get("architecture")
+        if not isinstance(checkpoint_architecture, dict):
+            raise ValueError("initial checkpoint is missing its architecture definition")
+        observed_checkpoint_arch_sha = canonical_sha256(checkpoint_architecture)
+        if observed_checkpoint_arch_sha != checkpoint_arch_sha:
+            raise ValueError(
+                "initial checkpoint architecture definition does not match its SHA256"
+            )
+        if checkpoint_arch_sha != expected_arch_sha:
+            raise ValueError(
+                "initial checkpoint architecture SHA256 does not match candidate: "
+                f"{checkpoint_arch_sha} != {expected_arch_sha}"
+            )
+        source_candidate_sha = str(
+            checkpoint_payload.get("source_candidate_file_sha256") or ""
+        )
+        if source_candidate_sha != str(candidate_provenance["sha256"]):
+            raise ValueError(
+                "initial checkpoint source candidate SHA256 does not match candidate file"
+            )
+        checkpoint_split = checkpoint_payload.get("data_split_config")
+        training_config = checkpoint_payload.get("training_config")
+        if not isinstance(training_config, dict) or not training_config:
+            raise ValueError("initial checkpoint is missing its training config")
+        if not isinstance(checkpoint_split, dict) or not checkpoint_split:
+            raise ValueError("initial checkpoint is missing its data split config")
+        training_config_sha = str(checkpoint_payload.get("training_config_sha256") or "")
+        if canonical_sha256(training_config) != training_config_sha:
+            raise ValueError("initial checkpoint training config SHA256 mismatch")
+        split_config_sha = str(checkpoint_payload.get("data_split_config_sha256") or "")
+        if canonical_sha256(checkpoint_split) != split_config_sha:
+            raise ValueError("initial checkpoint data split config SHA256 mismatch")
+        required_recipe = {
+            **active_recipe,
+            "scheduler": "cosine_with_warmup",
+            "batch_size": args.batch_size,
+            "image_size": args.image_size,
+            "input_channels": 1,
+        }
+        recipe_mismatches = {
+            key: {"checkpoint": training_config.get(key), "protocol": expected}
+            for key, expected in required_recipe.items()
+            if training_config.get(key) != expected
+        }
+        if recipe_mismatches:
+            raise ValueError(
+                "initial checkpoint training config does not match Protocol V2: "
+                f"{recipe_mismatches}"
+            )
+        if checkpoint_split.get("dataset") != "nksid":
+            raise ValueError("initial checkpoint must use the NKSID dataset")
+        if checkpoint_split.get("split_mode") != "frozen_inner":
+            raise ValueError("initial checkpoint must use split_mode='frozen_inner'")
+        if float(checkpoint_split.get("inner_val_fraction", -1.0)) != float(
+            args.inner_val_fraction
+        ):
+            raise ValueError(
+                "initial checkpoint inner_val_fraction does not match Protocol V2"
+            )
+        if int(checkpoint_split.get("image_size", -1)) != int(args.image_size):
+            raise ValueError("initial checkpoint image_size does not match Protocol V2")
+        checkpoint_dataset_files = (
+            checkpoint_split.get("dataset_provenance", {}).get("split_files", {})
+        )
+        dataset_file_mismatches = {
+            name: {
+                "checkpoint": checkpoint_dataset_files.get(name, {}).get("sha256"),
+                "protocol": data_provenance["files"][name]["sha256"],
+            }
+            for name in data_provenance["files"]
+            if checkpoint_dataset_files.get(name, {}).get("sha256")
+            != data_provenance["files"][name]["sha256"]
+        }
+        if dataset_file_mismatches:
+            raise ValueError(
+                "initial checkpoint frozen dataset files do not match Protocol V2: "
+                f"{dataset_file_mismatches}"
+            )
+        checkpoint_fold = checkpoint_split.get("fold")
+        checkpoint_seed = checkpoint_payload.get("seed")
+        if checkpoint_fold is None or int(checkpoint_fold) != int(folds[0]):
+            raise ValueError(
+                f"initial checkpoint fold {checkpoint_fold} does not match requested fold {folds[0]}"
+            )
+        if checkpoint_seed is None or int(checkpoint_seed) != int(seeds[0]):
+            raise ValueError(
+                f"initial checkpoint seed {checkpoint_seed} does not match requested seed {seeds[0]}"
+            )
+        if int(checkpoint_split.get("split_seed", -1)) != int(seeds[0]):
+            raise ValueError(
+                "initial checkpoint split_seed does not match the requested Protocol V2 seed"
+            )
+        initial_checkpoint_split_sha256 = str(
+            checkpoint_payload.get("data_split_sha256") or ""
+        )
+        if len(initial_checkpoint_split_sha256) != 64:
+            raise ValueError("initial checkpoint is missing its exact data split SHA256")
+        initial_checkpoint_provenance = {
+            "path": str(initial_checkpoint_path),
+            "sha256": sha256_file(initial_checkpoint_path),
+            "architecture_sha256": checkpoint_arch_sha,
+            "source_candidate_file_sha256": source_candidate_sha,
+            "training_config_sha256": checkpoint_payload.get("training_config_sha256"),
+            "data_split_sha256": checkpoint_payload.get("data_split_sha256"),
+            "data_split_config_sha256": checkpoint_payload.get("data_split_config_sha256"),
         }
     code_provenance = git_code_provenance(run_dir)
     protocol_name = (
@@ -1027,6 +1161,7 @@ def main() -> int:
         "arch": args.arch,
         "pretrained": args.pretrained,
         "candidate": candidate_provenance,
+        "initial_checkpoint": initial_checkpoint_provenance,
         "selection_provenance": selection_provenance,
         "dataset": data_provenance,
         "runtime": runtime_provenance(),
@@ -1132,9 +1267,23 @@ def main() -> int:
                     protocol_path=args.open_set_config,
                     **loader_kwargs,
                 )
+            split_payload = bundle["split"].to_dict()
+            split_sha256 = canonical_sha256(split_payload)
+            if (
+                initial_checkpoint_split_sha256 is not None
+                and split_sha256 != initial_checkpoint_split_sha256
+            ):
+                raise ValueError(
+                    "initial checkpoint exact data split SHA256 does not match Protocol V2: "
+                    f"{initial_checkpoint_split_sha256} != {split_sha256}"
+                )
             num_classes = bundle["num_classes"]
             class_names = bundle["classes"]
             model, model_meta = build_run_model(args, num_classes)
+            if candidate_provenance is not None:
+                model_meta["candidate_file_sha256"] = candidate_provenance["sha256"]
+            if args.initial_checkpoint:
+                model.load_state_dict(load_checkpoint_state(Path(args.initial_checkpoint)))
             if sure_components is not None and sure_recipe is not None:
                 model_meta["sure_cosine_classifier"] = apply_author_cosine_classifier(
                     model,
@@ -1183,7 +1332,7 @@ def main() -> int:
                     components=plud_components,
                     device=device,
                 )
-            else:
+            elif not args.initial_checkpoint:
                 result = train_with_recipe(
                     model,
                     train_loader=bundle["train_loader"],
@@ -1194,6 +1343,13 @@ def main() -> int:
                     class_counts=bundle["train_class_counts"].tolist(),
                 )
 
+            if args.initial_checkpoint:
+                class _CheckpointResult:
+                    best_epoch = None
+                    best_inner_eval = {}
+                    best_state = model.state_dict()
+
+                result = _CheckpointResult()
             model.load_state_dict(result.best_state)
             model = model.to(device)
             threshold_metadata = None
@@ -1238,8 +1394,6 @@ def main() -> int:
                     seed=seed,
                 )
 
-            split_payload = bundle["split"].to_dict()
-            split_sha256 = canonical_sha256(split_payload)
             record = {
                 "task": args.task,
                 "fold": fold,
@@ -1302,6 +1456,7 @@ def main() -> int:
                     "dataset": data_provenance,
                     "candidate": candidate_provenance,
                     "source_freeze": source_freeze,
+                    "initial_checkpoint": initial_checkpoint_provenance,
                 },
             }
             if args.save_checkpoints:
@@ -1313,6 +1468,8 @@ def main() -> int:
                     "seed": seed,
                     "model_state_dict": result.best_state,
                     "architecture": model_meta.get("architecture"),
+                    "architecture_sha256": model_meta.get("architecture_sha256"),
+                    "candidate_file_sha256": model_meta.get("candidate_file_sha256"),
                     "source_candidate": candidate_provenance,
                     "model": model_meta,
                     "metrics": record["outer_val"],

@@ -20,6 +20,7 @@ from hwnas_fpga.hardware import (
     FPGACostEstimator,
     LutQueryEngine,
     LutTable,
+    ZCU104CFEM20OperatorCostEstimator,
     create_dummy_fpga_lut,
     resolve_board_profile,
 )
@@ -362,7 +363,7 @@ def build_cost_estimator(
     constraints: SearchConstraints,
 ) -> FPGACostEstimator:
     hardware_cfg = config.get("hardware", {})
-    return FPGACostEstimator(
+    estimator_kwargs = dict(
         hardware_spec=hardware_spec,
         constraints=constraints,
         quantization_bits=hardware_cfg.get("quantization_bits", 8),
@@ -376,6 +377,21 @@ def build_cost_estimator(
         use_lut_for_head_layers=bool(hardware_cfg.get("use_lut_for_head_layers", False)),
         analytic_calibration=load_analytic_calibration(config),
     )
+    operator_cost_path = hardware_cfg.get("zcu104_operator_cost_path")
+    if operator_cost_path:
+        coverage_path = hardware_cfg.get("zcu104_operator_cost_coverage_path")
+        if not coverage_path:
+            raise ValueError(
+                "hardware.zcu104_operator_cost_path requires "
+                "hardware.zcu104_operator_cost_coverage_path"
+            )
+        return ZCU104CFEM20OperatorCostEstimator(
+            **estimator_kwargs,
+            operator_cost_path=operator_cost_path,
+            coverage_path=coverage_path,
+            allow_test_data=bool(hardware_cfg.get("allow_test_operator_cost_data", False)),
+        )
+    return FPGACostEstimator(**estimator_kwargs)
 
 
 def create_data_pipeline(
@@ -395,7 +411,18 @@ def create_data_pipeline(
     image_error_policy: str = "raise",
     split_mode: str = "legacy_kfold",
     inner_val_fraction: float = 0.15,
-) -> tuple[Any, Any, Optional[torch.Tensor], int]:
+    return_metadata: bool = False,
+) -> tuple[Any, ...]:
+    def _result(
+        train_loader: Any,
+        val_loader: Any,
+        class_weights: Optional[torch.Tensor],
+        resolved_num_classes: int,
+        metadata: dict[str, Any],
+    ) -> tuple[Any, ...]:
+        base = (train_loader, val_loader, class_weights, resolved_num_classes)
+        return (*base, metadata) if return_metadata else base
+
     pin_memory = device.startswith("cuda")
 
     if dataset_name == "nksid":
@@ -427,11 +454,25 @@ def create_data_pipeline(
                     "configured num_classes disagrees with the frozen NKSID protocol"
                 )
             # Deliberately do not expose outer_val_loader to the search path.
-            return (
+            metadata: dict[str, Any] = {"split_mode": "frozen_inner"}
+            if return_metadata:
+                if "split" not in bundle or "transform_contract" not in bundle:
+                    raise ValueError(
+                        "frozen_inner metadata requires split and transform_contract"
+                    )
+                metadata.update(
+                    {
+                        "split": bundle["split"].to_dict(),
+                        "transform_contract": bundle["transform_contract"],
+                        "outer_validation_exposed": False,
+                    }
+                )
+            return _result(
                 bundle["train_loader"],
                 bundle["inner_val_loader"],
                 class_weights,
                 int(resolved_num_classes),
+                metadata,
             )
         if split_mode not in {"legacy_kfold", "legacy_random_valid"}:
             raise ValueError(f"Unsupported NKSID split_mode: {split_mode}")
@@ -448,7 +489,19 @@ def create_data_pipeline(
             image_error_policy=image_error_policy,
         )
         resolved_num_classes = num_classes or NKSIDDataset.NUM_CLASSES
-        return train_loader, val_loader, class_weights, resolved_num_classes
+        return _result(
+            train_loader,
+            val_loader,
+            class_weights,
+            resolved_num_classes,
+            {
+                "split_mode": split_mode,
+                "split_seed": split_seed,
+                "fold": fold,
+                "valid_size": valid_size,
+                "use_kfold": use_kfold,
+            },
+        )
 
     resolved_num_classes = num_classes or 8
     train_loader, val_loader = create_dummy_dataloaders(
@@ -459,4 +512,14 @@ def create_data_pipeline(
         num_train=500,
         num_val=100,
     )
-    return train_loader, val_loader, None, resolved_num_classes
+    return _result(
+        train_loader,
+        val_loader,
+        None,
+        resolved_num_classes,
+        {
+            "split_mode": "dummy_fixed_sizes",
+            "num_train": len(train_loader.dataset),
+            "num_val": len(val_loader.dataset),
+        },
+    )
