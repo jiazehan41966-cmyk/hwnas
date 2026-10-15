@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "software_layout": "CHW_batch1",
+  "stream_layout": "HWC_channel0_low_byte",
+  "dma_bits": 256,
+  "tail": "zero_pad_frame_to_32_bytes_full_TKEEP_TSTRB",
+  "ddr_alignment": 64,
+  "endianness": "little",
+  "schedule": "one_DMA_transaction_per_present_level_in_increasing_stride",
+  "base_address": "caller_supplied_64byte_aligned_PS_DDR",
+  "completion": "all_descriptor_padded_bytes_handshaken_TLAST_and_DMA_done",
+  "bridge_capacity": "IN_BYTES+OUT_BYTES",
+  "fifo_depth": 4,
+  "parameter_alignment": 64
+}

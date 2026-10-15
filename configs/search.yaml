@@ -1,0 +1,101 @@
+version: sonar_hwnas_layered_v1
+space_version: elastic_neck72_v1
+baseline: configs/baseline_sonar_frozen.yaml
+dataset:
+  id: cylinder2_v6_dataset_a
+  num_classes: 2
+  split_status: frozen_train_valid
+  root: null
+search_seed: 42
+independent_search_seeds_required_for_main_table:
+- 42
+- 43
+- 44
+budgets:
+- 40
+- 60
+- 80
+populations:
+- 72
+- 54
+- 36
+shortlist: 12
+confirmation_seeds:
+- 42
+- 43
+- 44
+training:
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  initialization: independent_from_scratch
+checkpoint_selection: best_valid_mAP50_95_earliest_tie
+quant_profiles:
+- W8A8
+- HEAD_W8A16
+- HEAD_W16A16
+quantization_dispatcher: quant.executor
+calibration:
+  split: train
+  images: 64
+  augmentation: false
+admission:
+  absolute_drop: 0.003
+  relative_drop: 0.2
+  improved_seeds: 2
+mapping_policies:
+- reference_low
+- reference_high
+- reference_min_latency
+- reference_min_dsp
+- reference_min_lut
+- reference_min_bram
+hardware_budget:
+  scope: operator_peak_and_serial_compute
+  limits:
+    latency_us: 120000
+    lut: 161280
+    dsp: 1209
+    bram18: 436
+  latency_unit: us
+  bram_unit: BRAM18
+  claim: preliminary_operator_screen_only_not_full_network_admission
+hardware_cost_backend: hw.evaluate
+hardware_cost_evidence: null
+promotion:
+  metric: budget_feasible_quantized_mAP50_95_pareto
+  fraction: 0.15
+  accuracy_epsilon: 0.001
+  resource_fraction: 0.9
+  single_seed_admission: provisional_only
+rejection_audit: one_per_E0_E1_per_stage_to_80_quantized_stop_above_final_top5
+comparison:
+  common_decision_space: architecture72_x_quantization3_x_mapping6
+  common_decision_space_status: REQUIREMENT_NOT_FROZEN
+  modnas_decision_interface_status: JOINT_CHOICE_ENCODING_ONLY_LOSS_RUNTIME_COST_NOT_IMPLEMENTED
+  gpu_model: null
+  gpu_h_cap_per_method_per_independent_search: null
+  charge_method_specific_initialization_supernet_predictor_search_screening_ptq: true
+  common_hardware_library_cost: report_once_and_amortization_separately
+evaluation_split: valid
+test_policy: sealed
+unknown_cost_policy: needs_measurement_excluded_from_pareto
+deployment_claim: false
+hardware:
+  device: xczu7ev-ffvc1156-2-e
+  clock_mhz: 200.0
+  backend: hls_report
+  tool_version: null
+  scope: operator_hls
+  allow_operator_screening: true
+  evidence_index: null
+  cache_path: hw/cache.db
+migration:
+  source_tag: archive/sonar-hwnas-source-20261015
+  formal_comparison_gate: NOT_PASSED_BY_REFACTOR
+  training_started: false
+  legacy_software_backend_evidence: results/modnas_vs_ours_20261007/ptq_real_dataset_a/mixed_head_v1/real_data_mixed_ptq_gate.json
+  legacy_software_backend_evidence_sha256: 6652fd2829598d77df89a0e13bfe4397f36818d87a4f5aa3f1cf9cd35a22ba89

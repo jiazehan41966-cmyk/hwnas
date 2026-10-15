@@ -1,0 +1,6 @@
+# Numeric contracts retain byte-identical provenance across Windows and Linux.
+* text=auto eol=lf
+/quant/runtime/contracts/* -text whitespace=cr-at-eol
+/configs/baseline_sonar_frozen.yaml -text whitespace=cr-at-eol
+/configs/search_space_sonar_v0_1.yaml -text whitespace=cr-at-eol
+/configs/detector_elastic_pilot_model.yaml -text whitespace=cr-at-eol

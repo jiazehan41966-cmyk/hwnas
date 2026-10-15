@@ -1,0 +1,5940 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/jiazehan41966-cmyk/hwnas",
+  "source_files": {
+    "tools/modnas_elastic/model.py": "1459b2e08b0503538739765ffa57be25bb6495c92c90fbba3d0546069628cfca",
+    "tools/detector_elastic_pilot/model.py": "530137618a8a0c88bbd51b2c4d8f00fd30d31b9336629a2da67ffb51f453b0ee",
+    "src/hwnas_fpga/models/builder.py": "e24d3592424be37045bcddda3790957759affced03fc529554197b3356062496",
+    "src/hwnas_fpga/models/detection.py": "6e8e4cd62a0e0148ebb03a2edbafce88d43f2ac66a95135e8171ba8a912e956a",
+    "src/hwnas_fpga/models/sonar_candidate/__init__.py": "528ee2ed45682de90971ee05e69a30d7347422b18aeea9fab0148c94b2453e62",
+    "src/hwnas_fpga/models/sonar_candidate_v0_2/__init__.py": "3114d5b2b336eca3b2b9fd12f6b0260142f32a4db819a340c911ab2d63f03016",
+    "configs/search_space_sonar_v0_1.yaml": "ebb1708b394af20258c920eb29204d5cc9504f5908fdfdae62a62d78042eb7c4",
+    "src/hwnas_fpga/training/detection_trainer.py": "eb8d1a628fb750d37fe225457de7d81ecdfad65d146663f03ca23ad46c9b6c4c",
+    "src/hwnas_fpga/training/detection_metrics.py": "82f476a1ac5046b030a740c471d453502eabd528d194f99847f3ed75980f1057",
+    "src/hwnas_fpga/training/detection_coco_eval.py": "4d8e0edcd5f9406431a93e34e39b79f33e0267559d83e4a07aca74082de8b77a",
+    "src/hwnas_fpga/data/detection.py": "f48dca1b3be5d63d4c85f41fdcf1ba90006eee60ccf5cd7431985f74e94c8907",
+    "tools/sonar_analysis/baseline.py": "11db6662245d548fb3ce7d5596a5c144f2a060d7fd1f71aa614221dbbe4a67a3",
+    "tools/sonar_analysis/analyze_dataset.py": "34555b65029a4b894120a62f7008c30003fc28d323023f36f73c99d2143c2afa",
+    "scripts/detection_controlled_study.py": "5f2454c366cb74ed6f228e68ebd194927b392f7010c2f5cab1b8cf03867c24c3",
+    "tools/sonar_spec/formal_runner.py": "9d5c8a22d00b0c5d488b4e570ea37eb7b09aa1fad8efe5c514be9225e1ac1259"
+  },
+  "extracted_subset": {
+    "models": "Fixed B1 primitives/backbone, selected E0/E1 neck, direct head, semantic k5 initialization only",
+    "loss": "DenseAnchorDetectionLoss, decoder and numerical assignment helpers retained",
+    "evaluation": "Frozen baseline COCO-style all-area AP and micro P/R",
+    "data": "YOLO grayscale square resize, augmentation/sampler, strict label manifest"
+  },
+  "intentional_changes": [
+    "Genotype is the public builder argument",
+    "loss_config_for_model moved to train to remove reverse dependency",
+    "No discarded generic detector or supernet is constructed",
+    "Only train/valid are accessible",
+    "Resumable checkpoints bind genotype/config/data and explicit budgets"
+  ],
+  "validation": {
+    "torch_version": "2.7.0+cu126",
+    "cpu_threads": 2,
+    "training_run": false,
+    "hls_run": false,
+    "remote_run": false,
+    "state_combinations": 216,
+    "forward_combinations": 3,
+    "elapsed_seconds": 24.203828199999407,
+    "status": "PASS_EXACT_OLD_NEW_TENSOR_AND_FORWARD_PARITY"
+  },
+  "golden_states": [
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "08f20d6414e74ad1e4abae6c0aaa20d05280c5f5de6db2052d27e61726d6970a",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "bbd3a2ed59128f896d0d92928931dec68bcb93b7df8f27bf1804904d00f3d7ba",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "b6459bff4dba01eac1691d1c559ff11c398fdf817b12800e75504da510d58ab2",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "6387571e042c784dfc76c43baf8b835a3c21f2940d194009f09b9405a90ac906",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "a781be48c0c31fa7d6444ff560f7fc1bd47a24614f97ee8530cc1348dfaf28cf",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "fd63eee8d9284239a761bb994c788bda48e46675e225988a169b2976cf1a1033",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "c6add549225c8d305be340037a71b6891e2862b5c5c56fb50c5b4b294d0c8f74",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "b981107dffd2e0ed9413c2397eb8aa4f007c48d614fe496b9efd9d756df943b5",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "017f19c8976ea95bec89924bfeeda5f45c1546df3afa3d0c59ecacac9f8361e0",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "a87fcaf7cd33b7bbc508d9d64dd224c383720fe410ab265e5a73c44311aec5a8",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "99d0eb67b26228f2d0028485425b2b6f076f53f9863cb7a3342c11a25e954cb5",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "d4cc24471b9ba598e69be83978bed355c8996753b935f49737281e6882aea6fd",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "1662fc52507e56bd3b0ff2bfb58fa52fca6e2af5a5190410bc5b3eac4746a188",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "4b1d1494c2787d9cc8ef20866e36f58026140283a989d92d367d7df984f81ecb",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "f815c59d52bc8a753c9606b29ff44874a2383368511a80f427dfc005245c3c8b",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "583d701212aa845d80c50c50ed80a09d5fee7f2d874bb4791dd9546b0953cd3a",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "6d67f0c6c1e086a71f7c01c0f7d342b795a9c49778d485562c9c10d4d402cb71",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "0a05a8a07a5e1ae319e44f4ab6ba942a50cdad06f6bd3c33cbcb0d039da38437",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "9528669662118d8c836ed21db4e40470d9a893364a56e768512adb45d39d9644",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "6646518e2185bdb8cf9564d83a09196ac89d8cc1aa13159854b2b79b2821a69a",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "ac64a278fdc73b14edb082459c4eb192122dae9cf49c724107708c8c93569bde",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "state_sha256": "be7b4771ac411ff1ac223bc3fa40dafebb1ff845d96481c5d5b42001f6438f59",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 43,
+      "state_sha256": "d26c4f82f1a78072ea77b33dddea4e4e458e370a1e0eb09c24373827949482e1",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": []
+      },
+      "seed": 44,
+      "state_sha256": "a0dc8301c5479c868bd05b9d0051d8bade421f61f26b80fa2ead0b5a686f1912",
+      "tensor_count": 206
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "57f98a341c28adf7479e71d04d8dd0f90cbf51d8ac80187b5f5635c76aed5a6a",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "96e21d334c02ee942e79f45575d898c907bbdcd53d60ff0dab56207e3a0d8103",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "174aba4d52ec70b6805259254a57e53866a7cd41ff5231232940cecc86d8f5f5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "2de033edf9df3c33053219cc97ae0102f6fc0dc72346bd398d28684c84f23e3d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "b8fc3cc92fe25ff71701faf517e35929f12b79555b2cc5b6c4a74e257867cbc4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "cec6c2cd5266c5a88f53d35a6c6f8e28d0d69b447c16e8b1621eb9003ea435fe",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "1e06775894e347072142d2c32edc18d6fe131e10cfd679f7764f66b046ba094a",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "27c85bfacafcb4d05b9ce0e4ae6cd5a132a11398b87024544bc03512a637e8c4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "ad6eb4f762e750fc69684e53fe5e34fb0278d5b785833d913a1818507198bb3b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "3b3e4cdf0d5302669c16facfb92813f158d43c93bdaf98652e5d76ae0264eb07",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "996c7d156454095dbf2e4a7910480f4a359da3afb3d19e505525c51c553e49f5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "31e7650c596e04c641b89eaf7dee40293e07b151908c57249d5b0d9ed1cbd278",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "ae6538fa764ed5bf6d9cf8d211c740fc469c2296f4d0f19b3e0d6d9ab585c759",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "917676e81c1925c2ba5103d827c5248f8d4eac115abe5c81cf02cea100bc50e0",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "5a6b944a9d31f47484387b34d148bbca724a2f5da003128fcce3dc236edcbd77",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "fd306f44f9549ecd5015ecd50f0a8e0b415520dbd42711ac1d13545583f50375",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "bbefbbd138a3f94e380718cc2460cebdc9e58a4b58b19d26a81da0681229a6a1",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "d3aa9af497725a948eb0e2b05fb6e1f573120c222b4e85c5a0b5a37dbb6dd0d0",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "86e2a282fff65e939dedaacc4f5adb25f03c5727aa9bbc9b10ef0f51b22e065c",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "7b77fc84e06137602564a50f9277a7d42fc91a4a426673b99cd243add91f38d9",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "3dd929e7def3e9e8e09414e68e75e1e63554b492f98dba81bc2fe9964570cec1",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "3cb6bfa1f7d02ba3a8576b7352abb8b9f4b1393468451af6b384f1a66c46d4db",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "dabd21c9f7ada02ca09807628e3c13293f4fc43007b448270003863aa7b64415",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "81d1640a77114dbcbaf554cd5af6c8d2dd1201aa89250355328fa83809341ccd",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "0d93e0600cdc5e38666c17fae8c3dd8e146bb9463d7619299e08b41cd9d9d8fe",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "ca59e55d91468f3ec41e12b768908eda0f6888b49c1ec46011c4adda673213af",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "9a5aef7cfa0f0cadd9470a2f9b5c6afac1b49fdf24600ee0615c18350f1c8f05",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "35124f4cb9b11114efbee0a19be1f2320c432e8974e7c1a339899f64fc4e5bc2",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "a6756dfc4066a9300926c7cc796a06db920141af69e0dba8c936624464890d53",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "a1d5994c1de5891f3061ceb9b6d5194bea69c83c91c0854a8f7ddf5ad1fd7827",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "a96ecd9dfe29d1b6eca19c3fe787b39e1316d701aac5d543efbd210494034b06",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "0cd9452d48824890ffb58c9cd2c2fb4d35625b942b3bf2c50a7edc03b7bd7b01",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "b5639509b97dfdec144ea81ef38f8a6981dac8715c93b428736181c4b71a7db0",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "ac884a0750275aaca4161720b31a64530b9fd0ce53798aac45d8e0a11ddf13f2",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "223b768d5fded2a0f3d5ca8b5441abb6767eaedc10dccb5693af809dba6e37c7",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "f7e2c77148202cc56078fe040a65fad698be38c5ce04e6152d7d3812bbaf7a96",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "e3f41c5c897b93fa3d85a6d1095b71d97a55bd0b642dca6c336b6bc393f153ad",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "a87571784eb8b6bb4c028c92fca14dbbbb1325732ec6603ce985694f5ec4e3a5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "81e25dfdb9a2b2591ef0a4dabd309c2c24530d5bf0f06f7a500ebef835c0ef37",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "96beba6afe23f9fce3068a6f3284dafe22e7dbcd60fbb11aece718120b2c0d30",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "85e63eb79938c167ca9efbd500b841f9408498bc0d7d9f46b4012faeeaa785e5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "0b6685aa06449137c5225e57ab5441164dece2de84a583dff6a22c766ab2e10b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "24a631e6f8b29ef8b3b89e7b778aa6ce7eb90412506f26576bf27745fc3eabc8",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "9cee14092583452d4cdb52dd928cae2d8111e47434ff337eba89352abfc16fdd",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "9f05f682c01ab5aff133bc908821ceeeb40e14f65d48277af5fa6881c3ac83c5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "46e697be55be4188d3d842a18832328152a1d7425090f7af40bbda5424c92647",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "d912f5a811b55dd3f3ff4c3042e4e4e5af03372433b6258569a6650c2f6d4ff6",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "db2d7381717fc37c4ef3567c1121daa083b20aea947310076ee55586a01f91d4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "b91e4e0eb46ef5fcceeda28c7497561ce2809231c4ed9911664eb9cd84d639e4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "21c5c857b8c3e811ae0397385188c45ffac13d1f9df1b6aa569536bcbc1ffe1c",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "92a9174c5e60af34e6f70675894b2dbb51b0c53e9a76e383edf254913125ac86",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "8a53761a470e6706f6066ffa894058f4753fef35d763348ceaad559be41cf684",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "4b9d7b94179f6826fdd589b0fb0f7d9a8ab2b0bc262f089cd3c2917499aa967a",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "29676afa2459e1f8d4b4122f1d157dac2940fd6777086eba81ecc4b7e4cfa5ed",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "50d8c217b511d7c2ef4723f1d2dea0da7bfa084cda022ab7ea8929027718ab17",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "7a8b30064b1a33cab5048ee296e68e4f6954b74b74e1ffb2dde0901c8a414b6e",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "1a9c18c694a3cb56472ffc208bf6d8050327c6fc4dcf3b5fd4bbd0be5e88839c",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "ab2ca3ac248807dadeef71d87776a1fcf9e87cb7012dedcbe400bbf29e58a54d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "4439bc5287f31eacf3ce782b90c470e80237411687fb86eeea78ff891ee1cd37",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "806e5fc896e40459e0e612897a3108f3e602513721fa762b83f62c4732ee904e",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "5e487513eb5e5ff483abcd8a8a8ce524b6e0874a4d02a4d18ab96662f8614f0e",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "a5c17cc4a4d61a546b921f16de1cf316570ab62f582406848a96f4963dd73101",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "216ccc59d92480bf35fcfc2d2af143e87cf923e33fe8d771bade42f256e8ad48",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "19ee404b8cc09b98c1f47df93dcf9dcbd3667d8b524896cde7a981845808a9ef",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "606955d2bcd3f7491c96f29ff65d0b08ea85ed97ad1101df2bf093fe2f3752c4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "0170ba96b63132915fdc2dfe8880918e6ea851584d0e85a2d947b0207a6f02bf",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "84f3324577bdb3a2a756aa0ee907fc5a368d503e2b033125eec4a71699218f15",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "42d9e94cf692b3ed1ce304d33605d92b560bf29e3ffa6c39deb70dbbf27b08cf",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "222f4d66eaf69b253655630d1e9abc02a33fd5e8fad805043c7fed9a6240a188",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "11bb8bd9bb62f7b849eca0cc5639b41587eea8c0381d1bfc1169949a751878ca",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "27b969400c88e2b88f88b1abc87cc9b8f7e6c3042a9d7c5b290e85da80e8d43c",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "50e1cfb398867f229a1b426b67fa75d5bf48a609dba0aa9c6f1dd4bbb37ce48f",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "cc70e403b4cd9717ad7d294636ac4a973e3a84fd53cbd8186162514c07a05578",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "6137212927ff0af71c59982c5b447126e29aabb5f9d97f1f7222947f030f78e1",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "7dfd0f2b778b0f435c783e65d916039c5b678c141e38f132ecd309748e79a398",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "27d4624d7ad6dabb6c28c8eda0eeedf50ac57e42e1f3ae8a0f4660e61755c7bb",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "e1fcaaf99c24fdbf7536c83129837c378cb921f0cc511006941364e98c8732bd",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "758ebb8b9185d837b9f5ce85ad8551b81567b5727228452cff725c4fbe4c9648",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "771d711b97c3d2ac9f63a198934fe0d2dba8e3946693acd64acd702940092aed",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "756e89af4b2d89c8250804cc9018579b71f5bb827c98bf5bdff5bccdd8f93a65",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "87d156957a86130a55b99526975a5b14c60be66afc28f132a8c60d27181ddd26",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "7db216737acc735f0c7b4b740b9a063e63a0cce8b8eba1d95a0559d2150f2e30",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "b06da1b1d6e4f19fbe6a2ef05258e778ad42f7319ae0bcb95503075bc0d0c443",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "5157e920d59d2fe8e14a2d4ad28786dba10912c0eae4bf47cc0dbfcc6f8ce1d4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "087b652300a5c21a16c8f479113619991c207a9517e6b5dfd7eafdfaaef99ba9",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "4d04bf00df0af16e6c88998314f3634451c5a6c09548ddaad44c2df36bf832bd",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "904c1be3e41a78b150eb0370666ca6605e0ecc7fc902ef9e123e1126ca209940",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "a924957adc895f7f91dcabeebf9b1030edc21c36c588bdcc2f1b55cc1d376f44",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "9c7cf388d384983316878266671f39c72f696e6c24b6ceca12f10e6960164705",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "ee822cd76745070e523d9e4157160a4cd5e780f4d378df61cf1444de5d4eba03",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "c0e1857faa307e7ee74f74db4863defeac45c8c1cb5ff78dbece7494f81bc55f",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "f0633366993b9e1d5af7b9c738420e9ce1d1057af79652d560a440a6981fa323",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "62df2bfcec3a8f4defaf468b7568ed2c1977ba02d2692ce103f7756564eecdac",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "a213e8eedd946e9513fe6d02ff1f791aa1a5fee6afaa57372750940093f372a8",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "be83c794bea9b27f5e2c391fec588e6bcc7547802c4d28839d322f440a93ca77",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          3,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "11a3e322ef5feaccc0e3f51219ffc8cea5cd67da4d4ba42f7de8b815911b658a",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "ee6d55a834a0087da074bf7eb872d8f4d6c4dfbf00b34efa1c734f9ef56d2089",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "3c2f547aa81b38ac8daaee981248843f8bd838de50db905e9aeb6d43cf126792",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "ffdd5ad64ad156d1bb42715a35b1d16874ef583ff8841948fb6c4a6307c67e0a",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "064a4b783db762e2a36264382e31355f7c6e9f91a9578c4599dd0e03c1af2464",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "8098bb6cb6f424fc958d53cf4ce5eedc7541b6626fb9b235a1d60cd6fcc84e1c",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "daf141aafa829af55baf8d31282e1992c971cf1f2bcee0e751dc4edf9ef75a11",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "1ca34b5da1300decdcd83f1900c98e6ea3e27ba00f905d677f84b0ec2ff5a5d4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "6a7e3c434187a82ebcabe389b638d25f7d1f90d7f6118f03aeedb8c13ee87a3b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "bc0c5ecb17584fbbf2c93cf88a75e04d39f74c0acb32403e47be2bf8ff3b0c28",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "4fe720f36f1c4165bb29b2f6f71f7a4c537bdacf6e7e0840996e3f3de4634020",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "597d4bad7370c5b35c9936c4492256227c7c7b5c8b13cf9ebe6ef7fbc48d9606",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "76a1dda35e4e324bf2d7fbd17cd514c7d1a6b68001958064d5133cfcc3b2d8d8",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "0918c2fd9bedf25912cfc682dda6d59ff4f7aac3a282f773bedda508277b71f0",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "6278361247d4087b53c3080dcc5977c7c62a01ae48b86b3d4a70e03a94a011df",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "869614fa6d100e3f0c0087fb9136ef79aa2787e24cb5a7a3f430205c2af54199",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "63d4dc62355e4b179439bd31021ee6e0de923ec88c4eae888f96e552a91b4f47",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "b3bef5d4797d256601c59b8c26f67fe216558a556519f6afb30f40a5e1c9dd9b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "7697051e7aef6d57980dd7003bf190d7813f8c3e1b9409a14182a6536c77c6d1",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "dc76be4f95f0e409a5b427bafe88c997117d4b47daf72da1be30e65009d71dc3",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "241f2c8a259161a808340cab0df4050f3f6fc22d525bab53fc98c685b74ffdbf",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "310f0e65110512d44fd5f5e22ea07aff82167f8dfa768445d66e48e713cd779d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "bbc20c62de6d6d964e7aa3ed0b188e422dd4b10efa09a02c69cd6adad12cd7d5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "3675e4b6aa4cf2f22baddb507206f2bc408185da7b4e53b35d6a460d7c075048",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "d9807dcbe4b5d00143fb24f07e850f523a1bd28130be45ddab9d12af36bae42b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "1f7e57d6c2a568739175ff543dd02d74dfd8925ea1c8c2787b84fb3c32cc928d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "4badd46a723ca9c726010de4b4bf175e436e225f2a7c162dbb20860c2cfbc033",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "1685353770df83b9a0bd7a94c44384411947b7619544d781c2768cf08f4a035a",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "cb9e00acf12d08ce33cacff004eeb13687b91d302ca828a0247a6a404f647ce5",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "ec91f8eab7c4e73e4dda9bf4f1cf2b613d6caa9ac0f9a902a522bbee534d60e0",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "8aba0b9a32b1bbe85fe3cf56e5cdffb27f557febbd687d64ab516427f1a924d6",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "5aaa8664f32686d4c17ad87f7e88c330010c1532c6e4752a1acc2d7cc1616593",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "92a1b9cd965274d682e1c4aa993090f6f8786215ab1700bf13cb9e0cb9d5f7be",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "4b101ca91bb29ebc709feead63ba47635afbe27d3be475ef7cd7b2f3b078bd66",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "060fd5f4325a91ad8a407a4a7dea513147e8c99ac124b98246f65111bf47ef55",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "16090f761c62992c5acb4df2591677baf8d09e18bddb0de1f4ee265001cad3ba",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "72cd35b0107b4d8ef21cae8aeaf2079297b58a752f534fa862fe7594b1eaa734",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "5c4f533a1da7b485432769246fe5f9819c28e2b4af054c1bc0119c27e0128ec3",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "6453ec1c74411ae1421c05bcc57c2d38e41dc327dc5014468bc57f0bf63c27e7",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "2408bedc86756b373e2db7b8a0e4fdefb3797b3ca02040411476d210c324dfcb",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "222e27ff4cf94dc76a0f40761cb1c3c7a48ca5f1dac6c653def5defee6b4bd6c",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "1ac985112403317408a30aea0ecdf23ec68f6e1825407139d2eb6f48c8130d4d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "e88bde8dababf26e0d5e7bf7e7e6657f570a47e6bb77e53302c8e304984aaa41",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "c45e56ab650ec7a664c30018a568d732e69bfabf8b501e15c6a15068e16e96ea",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "3a1c8d09ce6e94fd5a81ec4f5e8dbaec7cd55bd5523f50a21dfeb0027218c914",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "09f5f61e2092c72a8ed83b1ac41c35a2f4244ddf35c7d310257bc19057be43b2",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "1b1923cb26e02925bc28d3ef8200ecda7081fd23ef347208f4d550610c1942ff",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "891f87d76e541dcddad17f064fd24dbf7719efa8166f9e791515935a6a20b93f",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "a72a293d4e48002793f8b5bfba68fa2c55e1df97ac36f4024c4368648f0b65aa",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "56d23c5fdb1af863b235c1b65064616e32a9e567177228dc6d6aab547aabcbd4",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "a38dafc7fec89cd339727467430952bef3cd945ae552c427abbbc516aca665ac",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "aae19b69ab4ddaa046ca66ef89f3b7215f07bbfc695d43cea742372b56816287",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "a474880fc3886c35f0bf78f6fa64675d7d5339771ef1f45232792221e65719c9",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "689226abd14434204007571dc53ac09122fe979657b33baf269538994c794812",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "7ef6d84d90ffb0357de3c86bcbcffc0380f0ba5042bf393ee8d8445c617f561d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "f0dd10848f63520a40f16ae3e9a344a5e4579afa7a4dbfe4f8d43fecb5b1ba44",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "a13ed1970c5729405d52563bcf380dcef19073d1bf905d89f5886b0ba8b95efa",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "723ac59c80c57ab28915e0c68c2a9bf2cc30bc9f1c8bcbac316808beac80fd24",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "ed7783824010872e0ea9fc0db0df3096fdba6cacb29e9272822dfe5694d33823",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "1aaedfa812f2c60183909332ebc94fe7f6aa0a538988d3a3ead4b0e2de91a32e",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "8a3450ad14f3425a3c02c91618918d590d9a388a5444ea21a0bb5ee5c15a0fae",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "9059a0ed963ae294aee0c65ea4064adbad90df1a39e2f61a2f85d3e76c5ccbcb",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "34c6f7073736957b98c06e467bce9080fb31978c5f628094cfbaa24b9df46741",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "68cc8ecdca2205783b387339a919d05c10f4b16d81bca071b65e88da3e204958",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "869989cac8340e3b64b0aa7d35c81988154dfcb1d2d9ee826c9353402e69ce51",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "ed8d04ee7bd4af1d198a5269763cb90c730dbad2d24cecd454af13261bdb900f",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "5acbc197d7c966db3e41299129eaa56cc037c84981996fbd4ec0cc2b2ed72a74",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "3e6164eb9ea960c64a1b9219e33e4d3bac671462de6d61d831e4402f025617cf",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "87a52d11f93e85e60f7a963ccd775ba152b8570716bf44b7b286b1df44063388",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "12f0742e9578e7532eb192dbaf548593bec99001b1f43569ed53f45816af16cc",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "0fcd9a7b561a93c7ce0d005a54dd45bf388fe757a84b811330d8372e8f0ef1a1",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "f7b4407bb3d50737729a49cf53b39120653e5113e9f426276da898804dc2f99f",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          3
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "8a88330304a9d1f02a3375d080aa0cc944bdcfef2d77b135be3175a00299a195",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "ddabf4c51c7cc9f5abcda34730e441ed58eee60b4ba3753390855239da7842bd",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "8055ef145992c37bab3f236c7e365568a427eb7802498878f57d73c59cac92ba",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "a43ce978e4a20b16a8f2c8f70471f913ccedf51c48988590005af45bcb85a62e",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "809002dac17a215fe10d3f0a0b759b35509d2c3f5567412425283c5adbae0408",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "1590ed49231f941d6f6ec2f716e275776c43d2598b0dbdd0a5326f77fa68e9ba",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "3e8cc85437c7fe88a090902887d4f244f06c1a164b225512fc4190ac034b1789",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "7539cbb4ec755f444457f47d9b7ab2285323ff1b91edd46e1dc74a2c3d186c1b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "9214052ab0a819046df282f1166d83d34f5833fa8dba4d3e458959b787f477a0",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "136f47b0e8e2b8c15f54b51f6ac89cf988d6a0dd5a37ad3347bf5a8285c66f3d",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "97f5e2dcb9e7a4d4178d60021d2958246a1dd9d23c727732e7ef7eb38bc1ab04",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "41e919d55ff0f90b880e1b82bcdd3eff6babbfe134f82752ec420ee4e3fd9364",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "8f3b4c58e9232873175a04bb4ef61df1cb7459c633a887d0ad6b509b6fa4dd58",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "80f4eaf66246c974bedff09a3dcf7f254ccc3331b3ea843d88e961dfc3255582",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "26caed4a35d56eb05d6f7baa4306495e3144154b24a49ca75b581eb3c466c337",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "ace2f2796d03f41023ff6c2674b2c55e06cccfc07fa609c63bd8394bc1b24a89",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "cb6ef3fead67bab851cf0b01d6dfbb05c3c88064f7f798906247f62e49825af8",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "ee424b5a6618bc93d698dc007da8be892a7e0b22c4209ca82f31195fbe5b6e6b",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          3,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "a70acb8892820924725290ce957abeb65f8c22bd100d887442f6c231ce39faf7",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "6a8c11aca3d010ba48b09797ff817a8c4d0c479f9bcc328e709b323de397fce7",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "dc24f7992be9c58442a8b2fc6b2e3588a1c521a15952ac878df96948bb42f8da",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          3
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "f668812008aac3540d5c8bca957b1ab97fe364e21a55a895cf2bcd1b3d052003",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "state_sha256": "5b88a3eda6b25e9ade5153a99db97db56487195453d9e31705fe70fb0c5e4d35",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 43,
+      "state_sha256": "31815ceab2c13b7017fe8484e40cf11d91ec284f18669cbeff642f308b7f9b57",
+      "tensor_count": 278
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 44,
+      "state_sha256": "2a6f268ec39bf031bcf77ac838004743366dcd7d3f7f6b06efd8262e598f395a",
+      "tensor_count": 278
+    }
+  ],
+  "golden_outputs": [
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": false,
+        "td_kernels": [
+          3,
+          3,
+          3
+        ],
+        "pan_kernels": []
+      },
+      "seed": 42,
+      "input_seed": 917,
+      "outputs_sha256": "18f89af7063d07075ba133efcb87c7c96413c13f2b95ce7f39f778111b98bfa6",
+      "prediction_shapes": [
+        [
+          1,
+          21,
+          160,
+          160
+        ],
+        [
+          1,
+          21,
+          80,
+          80
+        ],
+        [
+          1,
+          21,
+          40,
+          40
+        ],
+        [
+          1,
+          21,
+          20,
+          20
+        ]
+      ]
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 2,
+        "pan": true,
+        "td_kernels": [
+          5,
+          3,
+          5
+        ],
+        "pan_kernels": [
+          3,
+          5,
+          3
+        ]
+      },
+      "seed": 42,
+      "input_seed": 917,
+      "outputs_sha256": "df7b280c8a6d9b9b8259d576d1a477e6d6a0080e0bac780d228ebf00e39ad476",
+      "prediction_shapes": [
+        [
+          1,
+          21,
+          160,
+          160
+        ],
+        [
+          1,
+          21,
+          80,
+          80
+        ],
+        [
+          1,
+          21,
+          40,
+          40
+        ],
+        [
+          1,
+          21,
+          20,
+          20
+        ]
+      ]
+    },
+    {
+      "genotype": {
+        "schema_version": 1,
+        "space_version": "elastic_neck72_v1",
+        "model_contract_version": "elastic72_b1_gray640_u48_mb3e3_direct_head_v1",
+        "input_chw": [
+          1,
+          640,
+          640
+        ],
+        "num_classes": 3,
+        "pan": true,
+        "td_kernels": [
+          5,
+          5,
+          5
+        ],
+        "pan_kernels": [
+          5,
+          5,
+          5
+        ]
+      },
+      "seed": 42,
+      "input_seed": 917,
+      "outputs_sha256": "b363f325998e3b47421b7540e17e9aea1c2359d2c5e833b424b14a91032f0fd6",
+      "prediction_shapes": [
+        [
+          1,
+          24,
+          160,
+          160
+        ],
+        [
+          1,
+          24,
+          80,
+          80
+        ],
+        [
+          1,
+          24,
+          40,
+          40
+        ],
+        [
+          1,
+          24,
+          20,
+          20
+        ]
+      ]
+    }
+  ]
+}

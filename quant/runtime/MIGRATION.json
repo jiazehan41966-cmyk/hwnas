@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "scope": "elastic72 train-only W8A8/body8-head16 PTQ software execution; no QAT, model construction, HLS or board execution",
+  "source_files": [
+    {
+      "source": "reports/fpga_h2_contract/numeric_contract_v1.json",
+      "target": "contracts/numeric_contract_v1.json",
+      "source_sha256": "943eb977b48c257adb35b0b8c1eb13d533d0616eb3b7c127403be46784d187e0",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "reports/fpga_h2_contract/interface_contract_v1.json",
+      "target": "contracts/interface_contract_v1.json",
+      "source_sha256": "5f8bb4efd3a67fafc365f8e54d183886c6b7e278663fa7acb2a850b004888031",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "reports/fpga_h2_contract/closure_manifest.json",
+      "target": "contracts/closure_manifest.json",
+      "source_sha256": "275b37df885e97b81e4ef69facf6c4bb563a70da456bad7e6708e8b8eb60fe1b",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "configs/search_space_sonar_v0_1.yaml",
+      "target": "contracts/backbone_spec.yaml",
+      "source_sha256": "ebb1708b394af20258c920eb29204d5cc9504f5908fdfdae62a62d78042eb7c4",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "src/hwnas_fpga/deploy/h2_contract.py",
+      "target": "h2_contract.py",
+      "source_sha256": "9927cc85de8ee8a52a0cfec5fb96a13fc4be8b4de71dfacd4111db8f4bff7565",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "tools/fpga_h2/numeric.py",
+      "target": "numeric.py",
+      "source_sha256": "423d26c356585040f71686212a1c80bc6493bb91a49240a8e8fc8038dfc9de84",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "tools/fpga_h4/quant_contracts.py",
+      "target": "quant_contracts.py",
+      "source_sha256": "8426e72012eb04ab89b7e4118e5d749b123db61b0862890de1646e9305a17bda",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "src/hwnas_fpga/deploy/ptq_eval.py",
+      "target": "folding.py",
+      "source_sha256": "b790073211c72d749ba67affa0b51122730785570a38ea17231750eb08aaa43c",
+      "retained": "fold_batch_norms_inplace only"
+    },
+    {
+      "source": "src/hwnas_fpga/deploy/h2_ptq.py",
+      "target": "h2_ptq.py",
+      "source_sha256": "5dac2b2df5fd57c255ca5f222ae9034fd3fff2b41c499da5b2a92a47caf9e3ce",
+      "retained": "signed scale/quantization functions and H2FakeQuantConv only; historical FPN/executors excluded"
+    },
+    {
+      "source": "tools/modnas_elastic/cost_graph.py",
+      "target": "cost_graph.py",
+      "source_sha256": "28fb5682e3a22ee37c5ab74e20037913efcbcc912385456f92e50b031efcafe5",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "tools/modnas_comparison/quantization.py",
+      "target": "quantization.py",
+      "source_sha256": "b4b528208c4a6de91dd10f4877787a97d5a56732d3a23c9ad7f8901ed9d3d0e5",
+      "retained": "full module with documented import/path changes"
+    },
+    {
+      "source": "tools/modnas_comparison/quantization_mixed.py",
+      "target": "quantization_mixed.py",
+      "source_sha256": "801d25a7aa49d8e1f8a9c1c252ed5b501c78164026d80be3f09c2257743a4264",
+      "retained": "full module with documented import/path changes"
+    }
+  ],
+  "changes": [
+    "Imports are local quant.runtime imports.",
+    "Only required H2 numeric primitives and BN-fold function retained from generic modules.",
+    "Model is externally supplied; concrete detector type test removed.",
+    "Cost graph receives model attributes and never builds model.",
+    "Frozen contracts and B1 YAML are bundled, verified by original hashes.",
+    "Source runtime provenance paths are package-relative file names.",
+    "Saved integer parameter packages and artifact manifests carry injected arch_hash/q_hash/genotype/quantization_plan."
+  ],
+  "files": {
+    "__init__.py": "bb689f0427e959b7b4f0d9c74e549dbffc26472c88c876554d916f12252ac3e0",
+    "contracts/backbone_spec.yaml": "ebb1708b394af20258c920eb29204d5cc9504f5908fdfdae62a62d78042eb7c4",
+    "contracts/closure_manifest.json": "275b37df885e97b81e4ef69facf6c4bb563a70da456bad7e6708e8b8eb60fe1b",
+    "contracts/interface_contract_v1.json": "5f8bb4efd3a67fafc365f8e54d183886c6b7e278663fa7acb2a850b004888031",
+    "contracts/numeric_contract_v1.json": "943eb977b48c257adb35b0b8c1eb13d533d0616eb3b7c127403be46784d187e0",
+    "cost_graph.py": "dd544c080f2e2cbeeae9b7dcaddd60ddf18768bbd89bb0c2c5063ec893e46625",
+    "folding.py": "88b419065709746d3f06d8fa5f22b8cf1cb699974dbde251b03b2e3d77c5693a",
+    "h2_contract.py": "95a7caedb05212df54368f964b3b848d9b5dbc1dd57b1603931fba7335119672",
+    "h2_ptq.py": "f0111a0c09ffdbcb697e3b3b5c04d02335a57b46638fd29d1168ea1c64e5b356",
+    "numeric.py": "103b2d8e4c803181a81a67026ec13e7c2249a725200037d434810235b9c18db0",
+    "quant_contracts.py": "fdbee0bf46f4610beac7a411c3802d70488ee2a27b8ff70e0494dcc46e6e9c7f",
+    "quantization.py": "ea90781e8a4653cd8a5b417adb39bd04b56b056903cc4b192549a62c756e93f1",
+    "quantization_mixed.py": "291c2c8a0b01a93cd1110195edc54086eaae020d41441ad321322cc4e5bf761a"
+  }
+}

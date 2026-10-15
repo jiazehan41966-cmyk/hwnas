@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "activation_bits": 8,
+  "weight_bits": 8,
+  "accumulator_bits": 32,
+  "range": [
+    -128,
+    127
+  ],
+  "zero_point": 0,
+  "rounding": "nearest_even",
+  "overflow": "twos_complement_modulo_2pow32",
+  "scale": "positive_power_of_two_exponent_int32",
+  "scale_exponent_range": [
+    -24,
+    16
+  ],
+  "multiplier_range": [
+    1,
+    2147483647
+  ],
+  "shift_range": [
+    0,
+    31
+  ],
+  "bias": "signed_int32_little_endian_at_input_times_weight_scale",
+  "add": "align_each_to_common_INT8_then_INT32_sum_then_requant_to_output",
+  "common_scale": "max(input_scales)",
+  "activation": "linear_relu_scaled_relu6_after_requant",
+  "requant_product_bits": 64
+}

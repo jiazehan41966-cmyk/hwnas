@@ -1,0 +1,7 @@
+{
+  "source": "tools/sonar_joint_v2/policy.py",
+  "source_sha256": "3d1e57dcc7b1be0c6f5aedb34db38d7cfc7ea157941e30023dc835ae73d05c26",
+  "changes": [
+    "Extract finite/score/dominates/fronts/point_key/promote verbatim; runtime and historical configuration validation removed"
+  ]
+}
