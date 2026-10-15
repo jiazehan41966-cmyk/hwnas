@@ -7,9 +7,9 @@ already speaks the same operator vocabulary.
 
 Primary entry points:
 
-- [candidate_kernels.yaml](/E:/1/hwnas/hwnas/hls_lut_builder/configs/candidate_kernels.yaml)
-- [LATENCY_SCOPE.md](/E:/1/hwnas/hwnas/hls_lut_builder/LATENCY_SCOPE.md)
-- [kernel_specification.md](/E:/1/hwnas/hwnas/hls_lut_builder/docs/kernel_specification.md)
+- [candidate_kernels.yaml](configs/candidate_kernels.yaml)
+- [LATENCY_SCOPE.md](LATENCY_SCOPE.md)
+- [kernel_specification.md](docs/kernel_specification.md)
 
 ## Core Operator Set
 

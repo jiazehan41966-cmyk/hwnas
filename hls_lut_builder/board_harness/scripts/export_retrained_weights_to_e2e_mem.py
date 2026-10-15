@@ -202,9 +202,64 @@ def role_param_prefix(role: str) -> tuple[str, str | None]:
             return f"{base}.dw_conv", f"{base}.dw_bn"
         if role.endswith("_pw_project"):
             return f"{base}.project_conv", f"{base}.project_bn"
-    if role == "l7_fc_classifier_fc":
+    if role in {"l7_fc_classifier_fc", "l7_fc_classifier_direct"}:
         return "head.fc", None
     raise KeyError(f"No checkpoint mapping for harness role: {role}")
+
+
+def stage_base_for_role(role: str) -> str:
+    if role.startswith("l3_stage1_block0_"):
+        return "stages.1.0"
+    if role.startswith("l4_stage2_block0_"):
+        return "stages.2.0"
+    if role.startswith("l5_stage3_block0_"):
+        return "stages.3.0"
+    raise KeyError(f"No MBConv checkpoint base for harness role: {role}")
+
+
+def is_direct_mbconv_role(role: str) -> bool:
+    return role.endswith("_direct") and any(
+        role.startswith(prefix)
+        for prefix in ("l3_stage1_block0_", "l4_stage2_block0_", "l5_stage3_block0_")
+    )
+
+
+def has_direct_mbconv_state(state: dict[str, torch.Tensor], role: str) -> bool:
+    try:
+        base = stage_base_for_role(role)
+    except KeyError:
+        return False
+    return all(
+        f"{base}.{name}.weight" in state
+        for name in ("expand_conv", "dw_conv", "project_conv")
+    )
+
+
+def direct_mbconv_tensors(
+    state: dict[str, torch.Tensor],
+    role: str,
+    consumed: set[str],
+) -> dict[str, torch.Tensor]:
+    base = stage_base_for_role(role)
+    expand_w, expand_b = fold_conv_bn(state, f"{base}.expand_conv", f"{base}.expand_bn", consumed)
+    depthwise_w, depthwise_b = fold_conv_bn(state, f"{base}.dw_conv", f"{base}.dw_bn", consumed)
+    project_w, project_b = fold_conv_bn(state, f"{base}.project_conv", f"{base}.project_bn", consumed)
+    return {
+        "weight_fp32": torch.cat(
+            [
+                tensor_for_hls(f"{role}_pw_expand", expand_w).reshape(-1),
+                tensor_for_hls(f"{role}_dw", depthwise_w).reshape(-1),
+                tensor_for_hls(f"{role}_pw_project", project_w).reshape(-1),
+            ]
+        ).contiguous(),
+        "bias_fp32": torch.cat(
+            [
+                expand_b.contiguous().reshape(-1),
+                depthwise_b.contiguous().reshape(-1),
+                project_b.contiguous().reshape(-1),
+            ]
+        ).contiguous(),
+    }
 
 
 def apply_activation(values: torch.Tensor, *, relu: bool) -> torch.Tensor:
@@ -227,7 +282,11 @@ def tensor_for_hls(role: str, weight: torch.Tensor) -> torch.Tensor:
         if weight.ndim != 4 or weight.shape[1] != 1:
             raise ValueError(f"Depthwise weight must be [C,1,K,K], got {tuple(weight.shape)} for {role}")
         return weight[:, 0, :, :].contiguous()
-    if role in {"l2_stage0_block0_direct", "l7_fc_classifier_fc"} or role.endswith("_pw_expand") or role.endswith("_pw_project"):
+    if (
+        role in {"l2_stage0_block0_direct", "l7_fc_classifier_fc", "l7_fc_classifier_direct"}
+        or role.endswith("_pw_expand")
+        or role.endswith("_pw_project")
+    ):
         return weight.reshape(weight.shape[0], weight.shape[1], -1).squeeze(-1).contiguous()
     return weight.contiguous()
 
@@ -240,7 +299,12 @@ def build_role_tensors(
     role_tensors: dict[str, dict[str, torch.Tensor]] = {}
     for component in manifest.get("components", []):
         role = str(component.get("role", ""))
-        if role == "l6_global_avg_pool_gap":
+        if role == "l6_global_avg_pool_gap" or "global_avg_pool" in role:
+            continue
+        if is_direct_mbconv_role(role) and has_direct_mbconv_state(state, role):
+            role_tensors[role] = direct_mbconv_tensors(state, role, consumed)
+            continue
+        if is_direct_mbconv_role(role):
             continue
         conv_or_linear, bn = role_param_prefix(role)
         if bn is None:
@@ -258,12 +322,132 @@ def resolve_case_dir(case_name: str) -> Path:
     return variant.resolve_case_dir(case_name)
 
 
-def build_component_specs(manifest: dict[str, Any], project_root: Path) -> list[dict[str, Any]]:
+def infer_stride_from_words(component: dict[str, Any]) -> int:
+    try:
+        input_words = int(component.get("input_word_count", 0))
+        output_words = int(component.get("output_word_count", 0))
+    except (TypeError, ValueError):
+        return 1
+    input_side = int(math.isqrt(input_words))
+    output_side = int(math.isqrt(output_words))
+    if input_side > 0 and output_side > 0 and input_side * input_side == input_words:
+        if output_side * output_side == output_words and input_side % output_side == 0:
+            return max(1, input_side // output_side)
+    return 1
+
+
+def fallback_component_spec(
+    component: dict[str, Any],
+    project_root: Path,
+    state: dict[str, torch.Tensor],
+    role_tensors: dict[str, dict[str, torch.Tensor]],
+) -> dict[str, Any]:
+    role = str(component["role"])
+    case_name = str(component["case_name"])
+    renamed_module = str(component.get("renamed_module") or "")
+    if not renamed_module:
+        raise FileNotFoundError(f"No renamed_module in manifest component for {role}")
+    rtl_path = project_root / "export_rtl" / f"{renamed_module}.v"
+    if not rtl_path.exists():
+        raise FileNotFoundError(rtl_path)
+    top_ports = gh.parse_top_ports(rtl_path.read_text(encoding="utf-8", errors="replace"))
+    param_interfaces = {
+        "weights": gh.detect_param_interface(top_ports, "weights"),
+        "biases": gh.detect_param_interface(top_ports, "biases"),
+    }
+    constants: dict[str, int] = {}
+    case_meta = {
+        "input_word_count": int(component.get("input_word_count", 1)),
+        "output_word_count": int(component.get("output_word_count", 1)),
+        "weights_depth": 1,
+        "biases_depth": 1,
+    }
+    tensors = role_tensors.get(role)
+    if tensors is not None:
+        weight = tensors["weight_fp32"]
+        bias = tensors["bias_fp32"]
+        case_meta["weights_depth"] = int(weight.numel())
+        case_meta["biases_depth"] = int(bias.numel())
+        if is_direct_mbconv_role(role) and has_direct_mbconv_state(state, role):
+            base = stage_base_for_role(role)
+            expand = state[f"{base}.expand_conv.weight"]
+            depthwise = state[f"{base}.dw_conv.weight"]
+            project = state[f"{base}.project_conv.weight"]
+            constants.update(
+                {
+                    "IN_CH": int(expand.shape[1]),
+                    "OUT_CH": int(project.shape[0]),
+                    "EXP_CH": int(expand.shape[0]),
+                    "K": int(depthwise.shape[2]),
+                    "STRIDE": infer_stride_from_words(component),
+                    "PADDING": int(depthwise.shape[2]) // 2,
+                    "WEIGHT_SIZE": int(weight.numel()),
+                    "BIAS_SIZE": int(bias.numel()),
+                }
+            )
+        elif weight.ndim == 4:
+            constants.update(
+                {
+                    "OUT_CH": int(weight.shape[0]),
+                    "IN_CH": int(weight.shape[1]),
+                    "K": int(weight.shape[2]),
+                    "STRIDE": 2 if "stem" in role else infer_stride_from_words(component),
+                    "PADDING": 1 if "stem" in role else int(weight.shape[2]) // 2,
+                }
+            )
+        elif weight.ndim == 3:
+            constants.update(
+                {
+                    "OUT_CH": int(weight.shape[0]),
+                    "IN_CH": int(weight.shape[0]),
+                    "K": int(weight.shape[1]),
+                    "STRIDE": infer_stride_from_words(component),
+                    "PADDING": int(weight.shape[1]) // 2,
+                }
+            )
+        elif weight.ndim == 2:
+            constants.update(
+                {
+                    "OUT_CH": int(weight.shape[0]),
+                    "IN_CH": int(weight.shape[1]),
+                    "K": 1,
+                    "STRIDE": 1,
+                    "PADDING": 0,
+                }
+            )
+    return {
+        "role": role,
+        "case_name": case_name,
+        "case_dir": "",
+        "module_name": renamed_module,
+        "renamed_module": renamed_module,
+        "constants": constants,
+        "case_meta": case_meta,
+        "top_ports": top_ports,
+        "param_interfaces": param_interfaces,
+        "spec_source": "manifest_export_rtl_fallback",
+    }
+
+
+def build_component_specs(
+    manifest: dict[str, Any],
+    project_root: Path,
+    state: dict[str, torch.Tensor],
+    role_tensors: dict[str, dict[str, torch.Tensor]],
+) -> list[dict[str, Any]]:
     specs: list[dict[str, Any]] = []
     for component in manifest.get("components", []):
         case_name = str(component["case_name"])
         role = str(component["role"])
-        spec = fullcombo.build_component_spec(role, case_name, resolve_case_dir(case_name), project_root / "export_rtl")
+        try:
+            spec = fullcombo.build_component_spec(
+                role,
+                case_name,
+                resolve_case_dir(case_name),
+                project_root / "export_rtl",
+            )
+        except FileNotFoundError:
+            spec = fallback_component_spec(component, project_root, state, role_tensors)
         spec.update(component)
         specs.append(spec)
     return specs
@@ -404,6 +588,8 @@ def checksum_for_output(output: torch.Tensor) -> tuple[int, int, int]:
 def software_forward(
     project_root: Path,
     quantized_roles: dict[str, dict[str, torch.Tensor]],
+    specs_by_role: dict[str, dict[str, Any]],
+    component_order: list[str],
 ) -> dict[str, Any]:
     x = read_input_tensor(project_root)
 
@@ -424,24 +610,74 @@ def software_forward(
         )
         return apply_activation(torch.round(y), relu=role_uses_relu(role)).float()
 
-    x = conv("l1_stem_direct", stride=2, padding=1)
-    x = conv("l2_stage0_block0_direct", stride=1, padding=0)
-    x = conv("l3_stage1_block0_pw_expand", stride=1, padding=0)
-    x = conv("l3_stage1_block0_dw", stride=2, padding=1, groups=int(x.shape[1]))
-    x = conv("l3_stage1_block0_pw_project", stride=1, padding=0)
-    x = conv("l4_stage2_block0_pw_expand", stride=1, padding=0)
-    x = conv("l4_stage2_block0_dw", stride=2, padding=1, groups=int(x.shape[1]))
-    x = conv("l4_stage2_block0_pw_project", stride=1, padding=0)
-    x = conv("l5_stage3_block0_pw_expand", stride=1, padding=0)
-    x = conv("l5_stage3_block0_dw", stride=1, padding=1, groups=int(x.shape[1]))
-    x = conv("l5_stage3_block0_pw_project", stride=1, padding=0)
+    def direct_mbconv(role: str) -> torch.Tensor:
+        spec = specs_by_role[role]
+        constants = spec["constants"]
+        in_ch = int(constants["IN_CH"])
+        out_ch = int(constants["OUT_CH"])
+        exp_ch = int(constants["EXP_CH"])
+        kernel = int(constants["K"])
+        stride = int(constants.get("STRIDE", 1))
+        padding = int(constants.get("PADDING", kernel // 2))
+        params = quantized_roles[role]
+        weights = params["weight_q"].reshape(-1).float()
+        biases = params["bias_q"].reshape(-1).float()
 
-    sums = x.to(torch.int32).sum(dim=(2, 3))
-    x = torch.div(sums, 28 * 28, rounding_mode="trunc").clamp(-128, 127).float()
+        expand_size = exp_ch * in_ch
+        depthwise_size = exp_ch * kernel * kernel
+        project_size = out_ch * exp_ch
+        expected_weights = expand_size + depthwise_size + project_size
+        expected_biases = exp_ch + exp_ch + out_ch
+        if int(weights.numel()) != expected_weights:
+            raise ValueError(f"{role} direct MBConv weights={weights.numel()} expected={expected_weights}")
+        if int(biases.numel()) != expected_biases:
+            raise ValueError(f"{role} direct MBConv biases={biases.numel()} expected={expected_biases}")
 
-    fc = quantized_roles["l7_fc_classifier_fc"]
-    logits = F.linear(x.float(), fc["weight_q"].float(), fc["bias_q"].float())
-    output = apply_activation(torch.round(logits), relu=False).to(torch.int32)
+        expand_w = weights[:expand_size].reshape(exp_ch, in_ch, 1, 1)
+        depthwise_start = expand_size
+        project_start = expand_size + depthwise_size
+        depthwise_w = weights[depthwise_start:project_start].reshape(exp_ch, 1, kernel, kernel)
+        project_w = weights[project_start:].reshape(out_ch, exp_ch, 1, 1)
+
+        expand_b = biases[:exp_ch]
+        depthwise_b = biases[exp_ch : 2 * exp_ch]
+        project_b = biases[2 * exp_ch :]
+
+        y = F.conv2d(x.float(), expand_w, expand_b, stride=1, padding=0)
+        y = apply_activation(torch.round(y), relu=True).float()
+        y = F.conv2d(y.float(), depthwise_w, depthwise_b, stride=stride, padding=padding, groups=exp_ch)
+        y = apply_activation(torch.round(y), relu=True).float()
+        y = F.conv2d(y.float(), project_w, project_b, stride=1, padding=0)
+        return apply_activation(torch.round(y), relu=False).float()
+
+    output: torch.Tensor | None = None
+    for role in component_order:
+        if role not in specs_by_role:
+            continue
+        if role in quantized_roles:
+            spec = specs_by_role[role]
+            constants = spec["constants"]
+            if is_direct_mbconv_role(role):
+                x = direct_mbconv(role)
+            elif "fc_classifier" in role:
+                fc = quantized_roles[role]
+                logits = F.linear(x.float(), fc["weight_q"].float(), fc["bias_q"].float())
+                output = apply_activation(torch.round(logits), relu=False).to(torch.int32)
+            else:
+                kernel = int(constants.get("K", 1))
+                stride = int(constants.get("STRIDE", 1))
+                padding = int(constants.get("PADDING", 1 if kernel == 3 and "stem" in role else 0))
+                groups = int(x.shape[1]) if role.endswith("_dw") else 1
+                if role.endswith("_dw") and "PADDING" not in constants:
+                    padding = kernel // 2
+                x = conv(role, stride=stride, padding=padding, groups=groups)
+        elif "global_avg_pool" in role:
+            sums = x.to(torch.int32).sum(dim=(2, 3))
+            divisor = int(x.shape[2]) * int(x.shape[3])
+            x = torch.div(sums, divisor, rounding_mode="trunc").clamp(-128, 127).float()
+
+    if output is None:
+        raise ValueError("No classifier output was produced by software parity forward")
     checksum, argmax, packed = checksum_for_output(output)
     return {
         "status": "computed_integer_hls_proxy",
@@ -449,8 +685,9 @@ def software_forward(
         "activation_rules": {
             "relu_layers": "relu6_quant clamps integer accumulator to [0, 6]",
             "project_fc_layers": "saturate_to_data clamps integer accumulator to int8 range",
-            "gap": "integer sum divided by 28*28 with truncation toward zero",
+            "gap": "integer sum divided by current feature map area with truncation toward zero",
         },
+        "component_order": component_order,
         "output_int8": [int(v) for v in output.reshape(-1).tolist()],
         "checksum32": checksum,
         "checksum24": checksum & 0xFFFFFF,
@@ -489,8 +726,9 @@ def export_to_project(
     if unconsumed:
         raise ValueError(f"Unconsumed checkpoint state_dict tensors: {unconsumed}")
 
-    specs = build_component_specs(manifest, project_root)
+    specs = build_component_specs(manifest, project_root, state, role_tensors)
     specs_by_role = {spec["role"]: spec for spec in specs}
+    component_order = [str(component.get("role", "")) for component in manifest.get("components", [])]
     role_exports: list[dict[str, Any]] = []
     quantized_roles: dict[str, dict[str, torch.Tensor]] = {}
 
@@ -498,6 +736,12 @@ def export_to_project(
         spec = specs_by_role[role]
         weight_q, weight_scale = quantize_symmetric(tensors["weight_fp32"], bit_width=8)
         bias_q = quantize_bias(tensors["bias_fp32"], weight_scale)
+        expected_weights = int(spec["case_meta"].get("weights_depth", 0))
+        expected_biases = int(spec["case_meta"].get("biases_depth", 0))
+        if expected_weights and int(weight_q.numel()) != expected_weights:
+            raise ValueError(f"{role} exported {weight_q.numel()} weights but harness expects {expected_weights}")
+        if expected_biases and int(bias_q.numel()) != expected_biases:
+            raise ValueError(f"{role} exported {bias_q.numel()} biases but harness expects {expected_biases}")
         quantized_roles[role] = {
             "weight_q": weight_q.reshape_as(tensors["weight_fp32"]).to(torch.int32),
             "bias_q": bias_q.to(torch.int32),
@@ -523,7 +767,7 @@ def export_to_project(
         bias_export.scale = weight_scale
         role_exports.append({"role": role, "weights": weight_export.__dict__, "biases": bias_export.__dict__})
 
-    parity = software_forward(project_root, quantized_roles)
+    parity = software_forward(project_root, quantized_roles, specs_by_role, component_order)
     parity_path = project_root / "software_board_parity.json"
     write_json(parity_path, parity)
 

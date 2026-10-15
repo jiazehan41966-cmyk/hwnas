@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -53,17 +54,16 @@ def desired_case_kind(role: dict[str, Any]) -> str:
 
 
 def operator_template(kind: str) -> tuple[str, str]:
-    templates = REPO_ROOT / "hls_lut_builder" / "templates"
     if kind == "stem_conv_k3_s2":
-        return str(templates / "stem_conv_k3_s2.cpp.tmpl"), "stem_conv_k3_s2_kernel"
+        return "stem_conv_k3_s2.cpp.tmpl", "stem_conv_k3_s2_kernel"
     if kind == "pw_conv" or kind == "conv":
-        return str(templates / "pw_conv.cpp.tmpl"), "pw_conv_kernel"
+        return "pw_conv.cpp.tmpl", "pw_conv_kernel"
     if kind.startswith("mbconv_e"):
-        return str(templates / "mbconv.cpp.tmpl"), f"{kind}_kernel"
+        return "mbconv.cpp.tmpl", f"{kind}_kernel"
     if kind == "global_avg_pool":
-        return str(templates / "global_avg_pool.cpp.tmpl"), "global_avg_pool_kernel"
+        return "global_avg_pool.cpp.tmpl", "global_avg_pool_kernel"
     if kind == "fc_layer":
-        return str(templates / "fc_layer.cpp.tmpl"), "fc_layer_kernel"
+        return "fc_layer.cpp.tmpl", "fc_layer_kernel"
     raise ValueError(f"No HLS template for missing case kind {kind}")
 
 
@@ -71,19 +71,27 @@ def generate_missing_config(
     missing_roles: list[dict[str, Any]],
     *,
     output_dir: Path,
+    builder_base_config: Path,
 ) -> Path:
-    base = load_builder_config(
-        REPO_ROOT / "hls_lut_builder" / "configs" / "candidate_kernels.yaml"
-    )
+    base = load_builder_config(builder_base_config)
     shapes: dict[str, Any] = {}
     operators: dict[str, Any] = {}
     unique: dict[str, dict[str, Any]] = {}
+    implementation_profiles = base["implementation_profiles"]
+    implementation_ref = (
+        "baseline_pi1_po1_u1"
+        if "baseline_pi1_po1_u1" in implementation_profiles
+        else next(iter(implementation_profiles))
+    )
+    output_dir_abs = output_dir.resolve()
     for role in missing_roles:
         unique.setdefault(normalized_op_key(role["op_spec"]), role)
     for index, role in enumerate(unique.values()):
         spec = role["op_spec"]
         kind = desired_case_kind(role)
-        template, top_function = operator_template(kind)
+        template_name, top_function = operator_template(kind)
+        template_path = REPO_ROOT / "hls_lut_builder" / "templates" / template_name
+        template = os.path.relpath(template_path, start=output_dir_abs).replace(os.sep, "/")
         shape_name = f"shape_{index:04d}"
         operator_name = f"candidate_case_{index:04d}"
         resolution = int(spec["input_resolution"][0])
@@ -105,7 +113,7 @@ def generate_missing_config(
             "top_function": top_function,
             "op_type": kind,
             "shape_refs": [shape_name],
-            "implementation_refs": ["baseline_pi1_po1_u1"],
+            "implementation_refs": [implementation_ref],
             "clock_profile_refs": ["main_5ns"],
             "parameters": {
                 "kernel_size": int(spec["kernel_size"]),
@@ -118,25 +126,18 @@ def generate_missing_config(
     config = {
         "toolchain": base["toolchain"],
         "workspace": {
-            "project_root": str(
-                REPO_ROOT
-                / "hls_lut_builder"
-                / "results"
-                / "candidate_hls_cache"
-            ),
-            "report_archive": str(output_dir / "report_archive"),
-            "csv_path": str(output_dir / "hls.csv"),
-            "manifest_path": str(output_dir / "hls_manifest.yaml"),
-            "synthesis_summary_json": str(output_dir / "synthesis_summary.json"),
-            "parse_summary_json": str(output_dir / "parse_summary.json"),
+            "project_root": "candidate_hls_cache",
+            "report_archive": "report_archive",
+            "csv_path": "hls.csv",
+            "manifest_path": "hls_manifest.yaml",
+            "synthesis_summary_json": "synthesis_summary.json",
+            "parse_summary_json": "parse_summary.json",
         },
         "measurement_contract": base["measurement_contract"],
         "defaults": base["defaults"],
         "clock_profiles": {"main_5ns": base["clock_profiles"]["main_5ns"]},
         "implementation_profiles": {
-            "baseline_pi1_po1_u1": base["implementation_profiles"][
-                "baseline_pi1_po1_u1"
-            ]
+            implementation_ref: implementation_profiles[implementation_ref]
         },
         "representative_shapes": shapes,
         "operators": operators,
@@ -178,10 +179,7 @@ def merge_status(*payloads: dict[str, Any]) -> dict[str, dict[str, Any]]:
         for entry in payload.get("entries", []):
             key = normalized_op_key(entry["op_spec"])
             existing = index.get(key)
-            if existing is None or (
-                existing.get("status") != "measured"
-                and entry.get("status") == "measured"
-            ):
+            if existing is None or entry.get("status") == "measured" or existing.get("status") != "measured":
                 index[key] = dict(entry)
     return index
 
@@ -207,9 +205,27 @@ def main() -> int:
         "--output-dir",
         default="results/candidate_hls_shortlist",
     )
+    parser.add_argument(
+        "--builder-base-config",
+        default=str(REPO_ROOT / "hls_lut_builder" / "configs" / "candidate_kernels.yaml"),
+        help=(
+            "Base hls_lut_builder config used for toolchain, contract, clock, "
+            "and implementation defaults when generating missing candidate cases."
+        ),
+    )
     parser.add_argument("--run-synthesis", action="store_true")
     parser.add_argument("--vitis-hls", default=None)
     parser.add_argument("--timeout-minutes", type=int, default=30)
+    parser.add_argument(
+        "--force-supplement-role",
+        action="append",
+        default=[],
+        help=(
+            "Treat this candidate role/logical op as a deployment supplement "
+            "even when the formal status already has a measured row. "
+            "May be repeated; e.g. classifier."
+        ),
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -237,6 +253,7 @@ def main() -> int:
         Path(args.status).read_text(encoding="utf-8-sig")
     )
     original_index = load_status_index(args.status)
+    force_supplement_roles = {str(item) for item in args.force_supplement_role}
     candidates = []
     missing_roles = []
     for candidate_value in args.candidate:
@@ -247,15 +264,21 @@ def main() -> int:
             if not role["required_hls"]:
                 continue
             entry = original_index.get(normalized_op_key(role["op_spec"]))
-            if entry is None or entry.get("status") != "measured":
+            force_supplement = (
+                str(role.get("role")) in force_supplement_roles
+                or str(role.get("logical_op")) in force_supplement_roles
+            )
+            if entry is None or entry.get("status") != "measured" or force_supplement:
                 missing_roles.append(role)
         candidates.append((path, architecture))
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    builder_base_config = Path(args.builder_base_config)
     missing_config = generate_missing_config(
         missing_roles,
         output_dir=output_dir,
+        builder_base_config=builder_base_config,
     )
     cache_status_path = output_dir / "candidate_hls_cache_status.json"
     if args.run_synthesis and missing_roles:
@@ -312,6 +335,7 @@ def main() -> int:
         "missing_unique_case_count": len(
             {normalized_op_key(role["op_spec"]) for role in missing_roles}
         ),
+        "builder_base_config": str(builder_base_config.resolve()),
         "missing_hls_config": str(missing_config.resolve()),
         "cache_status": str(cache_status_path.resolve()),
         "reports": reports,

@@ -36,10 +36,20 @@ from .builder import (
     build_block,
     build_model,
 )
+from .detection import (
+    DEFAULT_DETECTION_FEATURE_INDICES,
+    FixedDetectionHead,
+    FixedFPNNeck,
+    HWNASFeatureBackbone,
+    HWNASMultiScaleDetector,
+    build_detection_model,
+    detection_feature_channels,
+)
 from .proxyless import MixedOp, ProxylessSuperNet
 
 __all__ = [
     "AdaptiveDenoiseBlock",
+    "DEFAULT_DETECTION_FEATURE_INDICES",
     "CFEMCBAMWeight",
     "CFEMScaleAttention",
     "CFEMSonarBlock",
@@ -54,9 +64,13 @@ __all__ = [
     "EdgeAwareBlock",
     "FBNetLike",
     "FusedMBConvBlock",
+    "FixedDetectionHead",
+    "FixedFPNNeck",
     "GhostBottleneckBlock",
     "GhostModule",
     "HWNASModel",
+    "HWNASFeatureBackbone",
+    "HWNASMultiScaleDetector",
     "MACRO_TEMPLATES",
     "MBConvBlock",
     "MOBILENET_V2_LIKE_STAGE_SPECS",
@@ -69,8 +83,10 @@ __all__ = [
     "ProxylessSuperNet",
     "build_backbone",
     "build_block",
+    "build_detection_model",
     "build_model",
     "default_backbone_candidates",
+    "detection_feature_channels",
     "get_macro_template",
     "list_macro_templates",
 ]

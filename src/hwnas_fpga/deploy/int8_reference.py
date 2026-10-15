@@ -255,6 +255,8 @@ class _IntegerInterpreter(fx.Interpreter):
             if isinstance(module, (nn.ReLU, nn.ReLU6)):
                 tensor, scale = value
                 result = relu_int_reference(tensor)
+                if isinstance(module, nn.ReLU6):
+                    result = result.clamp(max=min(127, max(0, round(6.0 / scale))))
                 self._record(str(n.target), result)
                 return result, scale
             if isinstance(module, nn.MaxPool2d):
@@ -283,7 +285,12 @@ class _IntegerInterpreter(fx.Interpreter):
                 return result, scale
             if isinstance(module, nn.AdaptiveAvgPool2d):
                 tensor, scale = value
-                if module.output_size != (1, 1):
+                output_size = (
+                    (module.output_size, module.output_size)
+                    if isinstance(module.output_size, int)
+                    else tuple(module.output_size)
+                )
+                if output_size != (1, 1):
                     raise UnsupportedIntegerOperatorError(
                         f"AdaptiveAvgPool2d output_size={module.output_size!r} is unsupported"
                     )
@@ -306,6 +313,13 @@ class _IntegerInterpreter(fx.Interpreter):
                 f"module {n.target!r} ({module.__class__.__name__}) is unsupported"
             )
         if n.op == "call_function":
+            if n.target is torch.nn.functional.relu6:
+                tensor, scale = args[0]
+                result = relu_int_reference(tensor).clamp(
+                    max=min(127, max(0, round(6.0 / scale)))
+                )
+                self._record("relu6", result)
+                return result, scale
             if n.target in (operator.add, torch.add):
                 left, left_scale = args[0]
                 right, right_scale = args[1]
@@ -389,10 +403,13 @@ class IntegerReferenceClassifier(nn.Module):
         self.input_kind = input_kind
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        output_device = inputs.device
+        cpu_inputs = inputs.detach().cpu()
+        cpu_model = self.model.cpu()
         result = run_integer_reference(
-            self.model,
-            inputs,
+            cpu_model,
+            cpu_inputs,
             self.package,
             input_kind=self.input_kind,
         )
-        return result.output_float
+        return result.output_float.to(output_device)

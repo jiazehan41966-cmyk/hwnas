@@ -22,8 +22,8 @@ The current formal contract is `packed_stream_v1`.
 - accumulator type: `ap_int<32>`
 - target clock: `5 ns` (`200 MHz`)
 
-All operator templates must include [common_defs.h](/E:/1/hwnas/hwnas/hls_lut_builder/include/common_defs.h).
-[common_types.h](/E:/1/hwnas/hwnas/hls_lut_builder/include/common_types.h) is
+All operator templates must include [common_defs.h](../include/common_defs.h).
+[common_types.h](../include/common_types.h) is
 deprecated as a direct include for operator kernels.
 
 ## Interface Pattern
@@ -80,7 +80,7 @@ The measurement includes only the operator body and excludes host launch
 overhead, AXI interconnect glue, DMA, and board-level transport.
 
 The authoritative latency wording lives in
-[LATENCY_SCOPE.md](/E:/1/hwnas/hwnas/hls_lut_builder/LATENCY_SCOPE.md); this
+[LATENCY_SCOPE.md](../LATENCY_SCOPE.md); this
 document is expected to stay aligned with it.
 
 ## Acceptance

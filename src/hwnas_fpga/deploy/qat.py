@@ -27,8 +27,9 @@ class QATQuantizedOp(nn.Module):
         if not isinstance(module, (nn.Conv2d, nn.Linear)):
             raise TypeError("QATQuantizedOp supports Conv2d and Linear")
         self.module = module
-        self.register_buffer("act_max_abs", torch.zeros(()))
-        self.register_buffer("act_scale", torch.zeros(()))
+        device = module.weight.device
+        self.register_buffer("act_max_abs", torch.zeros((), device=device))
+        self.register_buffer("act_scale", torch.zeros((), device=device))
         self.calibrating = True
 
     def freeze_calibration(self) -> None:

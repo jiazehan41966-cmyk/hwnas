@@ -283,7 +283,7 @@ This is not a kernel refactor, but it should be done immediately after any templ
 
 If only one template should be touched first, start with:
 
-- [dw_conv.cpp.tmpl](/E:/1/hwnas/hwnas/hls_lut_builder/templates/dw_conv.cpp.tmpl)
+- [dw_conv.cpp.tmpl](../templates/dw_conv.cpp.tmpl)
 
 If the goal is highest impact with manageable scope, the first work package should be:
 

@@ -2,9 +2,11 @@
 
 ## 状态
 
-本迁移将 `fourstage_cfem20_v1` 接入已有搜索、模型构建、重新训练和
-Protocol V2 入口。正式搜索仍处于 `WAITING_FOR_FORMAL_OPERATOR_COST_LUT`：
-当前 scaffold 为 0/9 实测行，不能作为搜索输入。
+ARCHIVED / RETIRED：本文件记录旧 `fourstage_cfem20_v1` RAW20 迁移方案。
+旧 9 行 CFEM20 operator-cost adapter 已从当前运行时删除，不再作为本轮
+NKSID RL-HW-NAS / ZCU104 formal LUT 搜索入口。本轮当前 formal LUT 是
+`mobilenetA_full_dmdc_cfem_v2_recovered` 的 88 行 ZCU104 HLS/route
+operator-cost 表。
 
 ## 复用链路与新增边界
 
@@ -17,7 +19,7 @@ Protocol V2 入口。正式搜索仍处于 `WAITING_FOR_FORMAL_OPERATOR_COST_LUT
 本次继续复用 SearchSpace、Random/RL/Aging 搜索器、`build_model()`、训练器、
 ExperimentTracker 和 Protocol V2 数据/指标代码。新增内容仅为：
 
-1. `ZCU104CFEM20OperatorCostEstimator`：严格读取全新的 exact-shape 表和覆盖审计；
+1. 旧 RAW20/CFEM20 9 行 exact-shape adapter：已退役；
 2. `configs/search/zcu104_fourstage_cfem20_v1.yaml`：固定 Stage1/Stage3，
    Stage2 取 4 种、Stage4 取 5 种，空间恰为 20；
 3. candidate、retrain checkpoint 与 Protocol V2 记录之间的 SHA256 校验和传播；其中
@@ -35,8 +37,8 @@ ExperimentTracker 和 Protocol V2 数据/指标代码。新增内容仅为：
   checkpoint 作为历史档案，字段已明确为 `historical_excluded_*`，禁止作为
   本轮 search input、control、calibration 或 deployment target。
 - `run_search.py` 原仓库级 Stage-3 gate 绑定上一轮 Gate0/G2/G4/AV7K325 证据；
-  新 ZCU104 通道现改由 `PASS_ZCU104_CFEM20_OPERATOR_COST` 专用门接管。历史搜索
-  配置仍走原 gate，不受影响。专用门只放行 RAW20 搜索输入，不代表完整网络部署。
+  旧 RAW20/CFEM20 专用门已随 9 行 adapter 退役。历史搜索配置只能作为档案，
+  不作为当前 claimable ZCU104 搜索入口。
 - 旧 `run_search.py -> best_candidate.json -> run_retrain.py` 文件格式继续兼容；
   新写出的 candidate 增加 `architecture_sha256` 和 search config SHA256。
 - `run_eval_protocol.py --candidate-path` 原本总是从头训练；新增
@@ -71,16 +73,15 @@ payload SHA256 正确；`data_kind=FORMAL_ZCU104_MEASURED`；`search_ready=true`
 
 ## 启动方式
 
-当前只允许执行校验：
+当前只允许执行 MobileNetA formal LUT preflight：
 
 ```powershell
-python -m pytest tests/test_zcu104_cfem20_search_migration.py -q
-python -m pytest tests/test_fourstage_cfem20_search_space.py tests/test_zcu104_cfem20_operator_cost_scaffold.py -q
+python scripts/audit_zcu104_mobilenetA_formal_lut_preflight.py
+python -m pytest tests/test_zcu104_mobilenetA_lut_preflight.py tests/test_zcu104_mobilenetA_recovery.py -q
 ```
 
-正式代价表闭合后，把两个 formal 文件写到配置中已登记的路径，并先运行上述
-校验。`run_search.py` 会先做新代价表 preflight（启动前检查），通过后生成
-`PASS_ZCU104_CFEM20_OPERATOR_COST`；它不复用上一轮 AV7K325 Gate0/G2/G4。然后执行：
+正式 MobileNetA-bound estimator 接入前，不要启动 claimable RL search。旧
+RAW20/CFEM20 adapter 已退役；不要再执行：
 
 ```powershell
 python run_search.py --config configs/search/zcu104_fourstage_cfem20_v1.yaml

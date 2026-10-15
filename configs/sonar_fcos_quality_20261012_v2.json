@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "campaign_id": "sonar_fcos_quality_20261012_01_v2",
+  "preregistration_path": "configs/sonar_fcos_quality_prereg_v2.json",
+  "parent_root": "/home/jiajia/experiments/sonar_fcos_quality_20261012_01",
+  "parent_execution_manifest_sha256": "7f3efcee40a56304cb963baa0e9874b35ea0027cef38a277cc66836d813014b8",
+  "baseline_config": "/home/jiajia/experiments/sonar_fcos_pilot_20261008_recovery_v1/configs/sonar_fcos_pilot_recovery_v1.json",
+  "expected_manifest_sha256": "12f5be0d5cec352dcf346149d89f6c527ed4b0388de6d6a72ccf10768a7fd81b",
+  "output_dir": "results/sonar_fcos_quality_20261012_01_v2",
+  "checkpoint_root": "checkpoints/sonar_fcos_quality_20261012_01_v2",
+  "variants": ["AAA", "QFL_DFL"],
+  "seeds": [42, 43, 44],
+  "epochs": 30,
+  "max_formal_runs": 6,
+  "expected_validation_images": 1517,
+  "expected_validation_objects": 2692,
+  "checkpoint_selection": "earliest_best_validation_coco_map50_95",
+  "acceptance": {"mean_paired_ap75_gain_pp_min": 2.0, "mean_nms_first_loss_relative_reduction_min": 0.25},
+  "historical_reference_only": {"nms_first_loss": 333, "raw_no_good_box": 448, "wrong_class_fp": 577, "final_no_good_box": 828},
+  "quality": {"reg_max": 16, "qfl_beta": 2.0, "dfl_weight": 0.25, "giou_weight": 1.0},
+  "scheduling": {"gpu_indices": [0,2,3], "reserved_gpu_indices": [1], "poll_seconds": 20},
+  "test_evaluated": false
+}

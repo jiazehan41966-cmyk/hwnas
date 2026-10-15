@@ -1,0 +1,32 @@
+version: sonar_detector_b1_light_training_20261003
+model_spec: configs/detector_b1_light_model.yaml
+baseline: configs/baseline_sonar_frozen.yaml
+baseline_sha256: 23989d09cae29139be7bd74a92bf9c53f75605047b7d8b2d2e2601b98d2eb56e
+baseline_manifest: reports/baseline_sonar_frozen/freeze_manifest.json
+baseline_manifest_sha256: 450c4db58045d241753f7ed8c8bd0e8ef34b3941d52fe6153917d6d33db4f074
+dataset_metadata_sha256: 9290b9b13a247e106d39f49461b95590fea752760ef3ab8e85f084392dbea85a
+historical_fp32_controls: reports/phase2f_multiseed/multiseed_results.csv
+prototypes: [L1, L0]
+seeds: [42, 43, 44]
+training:
+  epochs: 80
+  input: 640
+  batch_size: 4
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  initialization: shared_B1_backbone_neck_prediction_per_seed_independent_DS_tower
+  checkpoint_selection: earliest_best_valid_mAP50_95_within_80_epochs
+  resume_policy: epoch_boundary_strict_source_config_data_architecture_binding
+protocol_inheritance:
+  augmentation_sampler_loss_assignment_anchors_evaluator: frozen_baseline
+  stride_anchor_override: model_loss_config_only
+test_policy: sealed_no_dataset_mount_or_performance_access
+default_result_root: results/detector_b1_light_20261003
+staging:
+  initial_queue_seeds: [42]
+  queue_concurrency: 1
+  no_automatic_hardware_or_nas_promotion: true

@@ -361,7 +361,14 @@ def main() -> None:
             )
 
             print("Retraining completed")
-            print(f"Best val acc: {metrics['best_val_acc']:.4f}")
+            best_eval = metrics.get("best_eval", {})
+            if isinstance(best_eval, dict):
+                macro_f1 = best_eval.get("macro_f1")
+                top1 = best_eval.get("top1")
+                if macro_f1 is not None:
+                    print(f"Best inner macro_f1: {float(macro_f1):.4f}")
+                if top1 is not None:
+                    print(f"Best inner top1: {float(top1):.4f}")
             print(f"Epochs completed: {metrics['epochs_completed']}")
             print(f"Checkpoint: {tracker.checkpoints_dir / 'final_best_model.pt'}")
     except Exception as exc:

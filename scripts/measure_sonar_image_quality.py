@@ -33,13 +33,23 @@ IMAGE_EXTENSIONS = {".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Measure sonar image PSNR and SSIM")
     parser.add_argument("--data-dir", default="data/NKSID", help="NKSID root for dataset mode")
+    parser.add_argument(
+        "--image-root",
+        default=None,
+        help="Generic image root scanned recursively for dataset-transform mode",
+    )
+    parser.add_argument(
+        "--dataset-name",
+        default=None,
+        help="Dataset identifier recorded when --image-root is used",
+    )
     parser.add_argument("--split", default="val", choices=("train", "val", "full"))
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument(
         "--transforms",
-        default="identity,denoise,edge,edge_enhanced",
+        default="identity,denoise,edge,denoise_edge,edge_enhanced",
         help="Comma-separated transforms for dataset mode",
     )
     parser.add_argument("--reference-dir", default=None, help="Reference image root for paired mode")
@@ -130,6 +140,8 @@ def apply_transform(image: np.ndarray, transform_name: str) -> np.ndarray:
         return lee_filter(image)
     if name == "edge":
         return sobel_magnitude(image)
+    if name == "denoise_edge":
+        return sobel_magnitude(gaussian_denoise(image))
     if name == "edge_enhanced":
         return np.clip(0.75 * image + 0.25 * sobel_magnitude(image), 0.0, 1.0)
     raise ValueError(f"unsupported transform: {transform_name}")
@@ -240,6 +252,55 @@ def dataset_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[s
         "image_size": args.image_size,
         "transforms": transforms,
         "samples": len(samples),
+    }
+    return rows, metadata
+
+
+def image_root_rows(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    image_root = Path(args.image_root).resolve()
+    if not image_root.is_dir():
+        raise FileNotFoundError(f"image root does not exist: {image_root}")
+
+    image_files = sorted(
+        path
+        for path in image_root.rglob("*")
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+    )
+    if args.max_samples:
+        image_files = image_files[: args.max_samples]
+    if not image_files:
+        raise ValueError(f"no supported images found under: {image_root}")
+
+    transforms = [item.strip() for item in args.transforms.split(",") if item.strip()]
+    rows: list[dict[str, Any]] = []
+    for sample_index, path in enumerate(image_files):
+        rel_path = path.relative_to(image_root)
+        group_name = rel_path.parts[0] if len(rel_path.parts) > 1 else "all"
+        reference = image_to_float01(path, image_size=args.image_size)
+        for transform_name in transforms:
+            candidate = apply_transform(reference, transform_name)
+            rows.append(
+                {
+                    "mode": "image_root_transform",
+                    "reference_policy": "input_as_reference",
+                    "transform": transform_name,
+                    "sample_index": sample_index,
+                    "class_name": group_name,
+                    "label": "",
+                    "image_path": str(path.resolve()),
+                    **quality_fields(reference, candidate),
+                }
+            )
+
+    metadata = {
+        "mode": "image_root_transform",
+        "reference_policy": "input_as_reference",
+        "dataset_name": args.dataset_name or image_root.name,
+        "image_root": str(image_root),
+        "image_size": args.image_size,
+        "transforms": transforms,
+        "samples": len(image_files),
+        "grouping": "first_relative_directory",
     }
     return rows, metadata
 
@@ -376,10 +437,15 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    if args.image_root and (args.reference_dir or args.candidate_dir):
+        raise ValueError("--image-root cannot be combined with paired-directory mode")
+
     if args.reference_dir or args.candidate_dir:
         if not args.reference_dir or not args.candidate_dir:
             raise ValueError("--reference-dir and --candidate-dir must be provided together")
         rows, metadata = paired_rows(args)
+    elif args.image_root:
+        rows, metadata = image_root_rows(args)
     else:
         rows, metadata = dataset_rows(args)
 

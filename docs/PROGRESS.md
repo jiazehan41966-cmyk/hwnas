@@ -1,6 +1,10 @@
 # HW-NAS 项目进展
 
+> 2026-09-22 声呐检测分支进度核查：[声呐协同设计当前执行状态](SONAR_WORKFLOW_CURRENT.md)。联合搜索与算子确认正在运行，H4 算子级代价覆盖已补齐，局部 DMA 板测已验收；整网部署仍待完成。下文保留原历史快照，不作为该检测分支的最新状态。
+
 Last updated: 2026-07-19; latest measurement-first ledger: 2026-07-18.
+
+> 文档类别：2026-07-19状态快照。以下“当前”均指该快照及其measurement-first/Phase0范围；其他实验系列和文件整理入口见[文档导航](INDEX.md)。
 
 ## 当前结论
 

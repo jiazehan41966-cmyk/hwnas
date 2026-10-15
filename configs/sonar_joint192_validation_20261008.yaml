@@ -1,0 +1,48 @@
+version: sonar_joint192_validation_20261008_01
+environment_spec: configs/detector_elastic_pilot_environment.yaml
+model_spec: outputs/search_space_definition_20261008_01/search_space.yaml
+baseline: configs/baseline_sonar_frozen.yaml
+baseline_sha256: 23989d09cae29139be7bd74a92bf9c53f75605047b7d8b2d2e2601b98d2eb56e
+baseline_manifest: reports/baseline_sonar_frozen/freeze_manifest.json
+baseline_manifest_sha256: 450c4db58045d241753f7ed8c8bd0e8ef34b3941d52fe6153917d6d33db4f074
+dataset_metadata_sha256: 9290b9b13a247e106d39f49461b95590fea752760ef3ab8e85f084392dbea85a
+historical_fp32_controls: reports/phase2f_multiseed/multiseed_results.csv
+prototypes: [B0, B1, B2, B3]
+seeds: [42, 43, 44]
+arms:
+  B0:
+    backbone: {stage1: {kernel: 3, downsample: strided_dw}, stage2: {kernel: 5}}
+    neck: {td_ops: {P2: mbconv_k3, P3: mbconv_k3, P4: mbconv_k3}, pan: false}
+  B1:
+    backbone: {stage1: {kernel: 3, downsample: blur3_after_dense_dw}, stage2: {kernel: 5}}
+    neck: {td_ops: {P2: mbconv_k3, P3: mbconv_k3, P4: mbconv_k3}, pan: false}
+  B2:
+    backbone: {stage1: {kernel: 3, downsample: strided_dw}, stage2: {kernel: 5}}
+    neck: {td_ops: {P2: identity, P3: mbconv_k3, P4: mbconv_k3}, pan: false}
+  B3:
+    backbone: {stage1: {kernel: 3, downsample: blur3_after_dense_dw}, stage2: {kernel: 5}}
+    neck: {td_ops: {P2: identity, P3: mbconv_k3, P4: mbconv_k3}, pan: false}
+training:
+  epochs: 80
+  input: 640
+  batch_size: 4
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  initialization: shared_all_matching_reference_tensors_per_seed_fixed_blur_buffer
+  checkpoint_selection: earliest_best_valid_mAP50_95_within_80_epochs
+  resume_policy: epoch_boundary_strict_source_config_data_architecture_binding
+staging:
+  workers: {2: [B0, B2], 3: [B1, B3]}
+  concurrency_per_gpu: 1
+  maximum_runs: 12
+  no_automatic_hardware_or_nas_promotion: true
+claims:
+  primary: paired_best_valid_mAP50_95_delta_against_B0
+  mechanism: fixed_threshold_gt_matched_small_lowcontrast_recall_FN_and_background_FP_per_image
+  selection_bias: best_checkpoint_selected_on_valid_so_not_independent_test_generalization
+  acceptance: report_all_three_seed_deltas_and_negative_results_no_posthoc_threshold_sweep
+  scope: controlled_candidate_ablation_not_full192_NAS_or_board_validation

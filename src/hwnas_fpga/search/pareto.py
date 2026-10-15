@@ -17,6 +17,11 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
 import numpy as np
 
+from hwnas_fpga.benchmarks.metrics import (
+    ObjectiveSpec,
+    exact_hypervolume,
+    normalize_objective_rows,
+)
 from hwnas_fpga.interfaces import SearchCandidate, CandidateMetrics
 from hwnas_fpga.interfaces import SearchConstraints
 
@@ -30,7 +35,19 @@ PARETO_ARTIFACT_METRIC_COLUMNS = (
     "weighted_f1",
     "top1",
     "top5",
+    "map",
+    "map50",
+    "map75",
+    "precision",
+    "recall",
+    "f1",
+    "params",
+    "macs",
+    "flops",
     "latency_ms",
+    "fps",
+    "gmac_per_s",
+    "gops",
     "energy_mj",
     "dsp",
     "bram",
@@ -40,12 +57,36 @@ PARETO_ARTIFACT_METRIC_COLUMNS = (
     # accidental use in Pareto claims (2026-07-03 audit finding #4).
     "memory_bandwidth_gbps",
     "offchip_mem_mb",
+    "chip_average_power_w",
+    "dynamic_power_w",
+    "fps_per_w",
+    "fp32_macro_f1",
+    "int8_macro_f1",
+    "board_macro_f1",
+    "delta_int8_macro_f1",
+    "delta_board_macro_f1",
+    "fp32_top1",
+    "int8_top1",
+    "board_top1",
+    "delta_int8_top1",
+    "delta_board_top1",
+    "board_sample_coverage",
+    "board_crc_error_count",
+    "board_status_error_count",
+    "board_argmax_mismatch_count",
     "early_expand_pressure",
     "interconnect_pressure",
     "memory_pressure",
     "fanout_pressure",
     "stream_width",
     "physical_risk",
+    "zcu104_predicted_lut_as_memory_pressure",
+    "zcu104_predicted_bram18_pressure",
+    "zcu104_requested_bram18_before_fallback",
+    "zcu104_predicted_bram18_overflow",
+    "whole_network_storage_calibration_validated",
+    "full_network_route_established",
+    "full_network_power_established",
 )
 
 PHYSICAL_PARETO_METRICS = {
@@ -224,6 +265,16 @@ def build_pareto_objectives(
             or physical.get("max_interconnect_pressure") is not None
         ):
             add("interconnect_pressure", "min")
+        if (
+            physical.get("pareto_zcu104_predicted_lut_as_memory_pressure")
+            or physical.get("max_zcu104_predicted_lut_as_memory_pressure") is not None
+        ):
+            add("zcu104_predicted_lut_as_memory_pressure", "min")
+        if (
+            physical.get("pareto_zcu104_predicted_bram18_pressure")
+            or physical.get("max_zcu104_predicted_bram18_pressure") is not None
+        ):
+            add("zcu104_predicted_bram18_pressure", "min")
 
     return objectives, directions
 
@@ -278,6 +329,12 @@ def resolve_pareto_objectives(
             "weighted_f1",
             "top1",
             "top5",
+            "map",
+            "map50",
+            "map75",
+            "precision",
+            "recall",
+            "f1",
             "selection_score",
         }
         directions = ["max" if objective in maximize else "min" for objective in objectives]
@@ -290,7 +347,25 @@ def resolve_pareto_objectives(
         if any(direction not in {"max", "min"} for direction in directions):
             raise ValueError("pareto.directions entries must be 'max' or 'min'")
     if directions[objectives.index(primary_metric)] != "max":
-        raise ValueError("the primary classification objective must use direction 'max'")
+        raise ValueError("the primary task objective must use direction 'max'")
+    # Explicit task/cost axes do not disable requested physical axes.
+    requested, requested_directions = build_pareto_objectives(
+        {}, constraints, selection_metric=selection_metric,
+    )
+    physical_axes = {
+        "physical_risk",
+        "early_expand_pressure",
+        "zcu104_predicted_lut_as_memory_pressure",
+        "zcu104_predicted_bram18_pressure",
+    }
+    for axis, direction in zip(requested, requested_directions):
+        if axis in physical_axes:
+            if axis in objectives:
+                if directions[objectives.index(axis)] != direction:
+                    raise ValueError(f"physical objective {axis!r} must use {direction!r}")
+            else:
+                objectives.append(axis)
+                directions.append(direction)
     return objectives, directions
 
 
@@ -447,6 +522,7 @@ def build_pareto_selection_summary(
     selection_method: str,
     topk: int,
     hypervolume: float,
+    hypervolume_metadata: Optional[Dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Build the canonical pareto_selection.json payload."""
     ranked_rows = build_pareto_ranked_rows(
@@ -497,7 +573,7 @@ def build_pareto_selection_summary(
         for row in ranked_rows
     ]
 
-    return {
+    payload = {
         "objectives": objectives,
         "directions": directions,
         "selection_method": selection_method,
@@ -514,6 +590,9 @@ def build_pareto_selection_summary(
         "ranks": ranks_payload,
         "ranked_candidates": ranked_rows,
     }
+    if hypervolume_metadata is not None:
+        payload["hypervolume_metadata"] = hypervolume_metadata
+    return payload
 
 
 def build_pareto_representative_roles(
@@ -567,6 +646,24 @@ def build_pareto_representative_roles(
             ),
         )
 
+    def latency_energy_role() -> Optional[SearchCandidate]:
+        valid = [
+            candidate
+            for candidate in complete
+            if getattr(candidate.metrics, "latency_ms", None) is not None
+        ]
+        if not valid:
+            return None
+        return min(
+            valid,
+            key=lambda candidate: (
+                float(getattr(candidate.metrics, "latency_ms")),
+                float(getattr(candidate.metrics, "energy_mj", float("inf")) or float("inf")),
+                -float(getattr(candidate.metrics, objectives[0], 0.0) or 0.0),
+                candidate.arch_id,
+            ),
+        )
+
     ranges: dict[str, tuple[float, float]] = {}
     for objective in objectives:
         values = [float(getattr(candidate.metrics, objective)) for candidate in complete]
@@ -596,8 +693,11 @@ def build_pareto_representative_roles(
             candidate.arch_id,
         ),
     )
-    accuracy_first = maximize_role("f_clean", "f_robust")
+    primary_metric = objectives[0] if objectives else "macro_f1"
+    secondary_metric = "top1" if primary_metric != "top1" else "macro_f1"
+    accuracy_first = maximize_role(primary_metric, secondary_metric)
     sonar_robust = maximize_role("f_robust", "f_clean")
+    latency_energy_first = latency_energy_role()
 
     def role_payload(
         candidate: Optional[SearchCandidate],
@@ -622,7 +722,15 @@ def build_pareto_representative_roles(
     roles = {
         "accuracy_first": role_payload(
             accuracy_first,
-            rule="maximize f_clean on the full Pareto front",
+            rule=f"maximize {primary_metric} on the full Pareto front",
+        ),
+        "knee_point": role_payload(
+            balanced,
+            rule="minimum normalized distance to the multi-objective ideal point",
+        ),
+        "latency_energy_first": role_payload(
+            latency_energy_first,
+            rule="minimize latency_ms, then energy_mj, on the full Pareto front",
         ),
         "sonar_robust": role_payload(
             sonar_robust,
@@ -825,7 +933,7 @@ def compute_hypervolume(
     objectives: List[str] = ["accuracy", "latency_ms"],
     directions: List[str] = ["max", "min"],
 ) -> float:
-    """计算 Pareto 前沿的超体积
+    """计算 Pareto 前沿的精确超体积
 
     Hypervolume 衡量 Pareto 前沿相对于参考点的支配区域大小。
     值越大表示解集质量越好。
@@ -848,38 +956,133 @@ def compute_hypervolume(
     if len(points) == 0:
         return 0.0
 
-    # 转换为最小化问题
-    points_min = np.array(points)
-    ref = np.array(reference_point)
+    points_min, ref_min = _to_minimization_points(points, reference_point, directions)
+    return exact_hypervolume(points_min, ref_min)
 
-    for i, direction in enumerate(directions):
+
+def _to_minimization_points(
+    points: np.ndarray,
+    reference_point: Tuple[float, ...],
+    directions: List[str],
+) -> Tuple[np.ndarray, Tuple[float, ...]]:
+    if len(reference_point) != len(directions):
+        raise ValueError("reference_point must align with directions")
+    points_min = np.asarray(points, dtype=np.float64).copy()
+    ref_min = np.asarray(reference_point, dtype=np.float64).copy()
+    for index, direction in enumerate(directions):
         if direction == "max":
-            # 对于最大化目标，参考点是下界
-            # 需要反转计算
-            points_min[:, i] = -points_min[:, i]
+            points_min[:, index] = -points_min[:, index]
+            ref_min[index] = -ref_min[index]
+        elif direction != "min":
+            raise ValueError("directions entries must be 'max' or 'min'")
+    return points_min, tuple(float(value) for value in ref_min)
 
-    # 计算超体积（2D 情况）
-    if len(objectives) == 2:
-        # 按 x 坐标排序
-        sorted_idx = np.argsort(points_min[:, 0])
-        points_min = points_min[sorted_idx]
 
-        # 计算面积
-        hv = 0.0
-        prev_x = float("-inf")
+def _objective_spec_from_constraints(
+    objective: str,
+    direction: str,
+    constraints: Optional[SearchConstraints],
+) -> ObjectiveSpec:
+    if direction not in {"max", "min"}:
+        raise ValueError("directions entries must be 'max' or 'min'")
+    bounded_unit_metrics = {
+        "accuracy",
+        "f_clean",
+        "f_robust",
+        "robust_worst_macro_f1",
+        "macro_f1",
+        "weighted_f1",
+        "top1",
+        "top5",
+        "map",
+        "map50",
+        "map75",
+        "precision",
+        "recall",
+        "f1",
+        "selection_score",
+        "physical_risk",
+    }
+    if objective in bounded_unit_metrics:
+        return ObjectiveSpec(objective, direction, 0.0, 1.0)
+    constraint_bounds = {
+        "latency_ms": None if constraints is None else constraints.max_latency_ms,
+        "energy_mj": None if constraints is None else constraints.max_energy_mj,
+        "dsp": None if constraints is None else constraints.max_dsp,
+        "bram": None if constraints is None else constraints.max_bram,
+        "lut": None if constraints is None else constraints.max_lut,
+        "power_w": None if constraints is None else constraints.max_power_w,
+        "memory_bandwidth_gbps": (
+            None if constraints is None else constraints.max_memory_bandwidth_gbps
+        ),
+        "offchip_mem_mb": None if constraints is None else constraints.max_offchip_mem_mb,
+    }
+    if objective not in constraint_bounds:
+        raise ValueError(f"no frozen normalization bound for Pareto objective {objective!r}")
+    upper = constraint_bounds[objective]
+    if upper is None or not math.isfinite(float(upper)) or float(upper) <= 0.0:
+        raise ValueError(f"missing positive frozen upper bound for Pareto objective {objective!r}")
+    return ObjectiveSpec(objective, direction, 0.0, float(upper))
 
-        for point in points_min:
-            if point[0] >= prev_x:
-                width = point[0] - prev_x if prev_x != float("-inf") else 0
-                height = point[1]
-                hv += width * height
-                prev_x = point[0]
 
-        return abs(hv)
+def compute_normalized_hypervolume(
+    candidates: List[SearchCandidate],
+    *,
+    objectives: List[str],
+    directions: List[str],
+    constraints: Optional[SearchConstraints],
+) -> tuple[float, dict[str, Any]]:
+    """Compute exact normalized HV with frozen metric bounds.
 
-    # 对于更高维度，使用 WFG 算法（简化实现）
-    # 这里只返回排序后的候选数量作为近似
-    return len(pareto)
+    The normalized minimization vector is stored as:
+    - max objectives: ``1 - value`` for metrics bounded to [0, 1]
+    - min objectives: ``value / frozen_upper_bound``
+
+    Reference point is always ``(1, ..., 1)``.
+    """
+
+    if len(objectives) != len(directions):
+        raise ValueError("objectives and directions must have the same length")
+    specs = [
+        _objective_spec_from_constraints(objective, direction, constraints)
+        for objective, direction in zip(objectives, directions)
+    ]
+    rows: list[dict[str, float]] = []
+    skipped_missing = 0
+    for candidate in candidates:
+        row: dict[str, float] = {}
+        complete = True
+        for objective in objectives:
+            value = getattr(candidate.metrics, objective, None)
+            if value is None:
+                complete = False
+                break
+            row[objective] = float(value)
+        if complete:
+            rows.append(row)
+        else:
+            skipped_missing += 1
+    normalized = normalize_objective_rows(rows, specs) if rows else np.empty((0, len(specs)))
+    hv = exact_hypervolume(normalized, reference=tuple([1.0] * len(specs)))
+    return hv, {
+        "schema_version": 1,
+        "kind": "exact_normalized_hypervolume",
+        "algorithm": "exact_recursive_union_volume",
+        "objectives": list(objectives),
+        "directions": list(directions),
+        "reference_point": [1.0] * len(specs),
+        "normalization": [
+            {
+                "name": spec.name,
+                "direction": spec.direction,
+                "lower": spec.lower,
+                "upper": spec.upper,
+            }
+            for spec in specs
+        ],
+        "complete_candidate_count": len(rows),
+        "skipped_missing_objective_count": skipped_missing,
+    }
 
 
 # ============================================================================

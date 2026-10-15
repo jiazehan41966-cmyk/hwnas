@@ -1,0 +1,52 @@
+version: sonar_head_c01b_20261013_01
+baseline: configs/baseline_sonar_frozen.yaml
+environment_spec: configs/sonar_head_factorial_environment.yaml
+C01_result_root: /home/jiajia/experiments/sonar_head_factorial_20261012_02_stable/results/sonar_head_factorial_20261012_02_stable/remote
+C01_execution_manifest_sha256: af913438b735e864c100770a1e5f70d861e1d01d0cf94e0058310bc920bfec9f
+C01_variant: E0__quality_aware
+C01_reg_max: 16
+C01_raw_output_channels_per_scale: [66, 66, 66, 66]
+C01_box_loss: CIoU
+C01b:
+  backbone: E0
+  head: quality_aware
+  reg_max: 1
+  use_dfl: false
+  raw_output_channels_per_scale: [6, 6, 6, 6]
+  box_loss: GIoU
+  distance_mapping: ReLU_nonnegative_same_in_training_and_decode
+  preserve_regression_hidden_width: 64
+  preserve_classification_hidden_width: 48
+  preserve_shared_head_initialization: true
+seeds: [42, 43, 44]
+training:
+  epochs: 80
+  batch_size: 4
+  input: 640
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  ema: false
+  accumulation: 1
+  save_prediction_epochs: [76, 77, 78, 79, 80]
+decision:
+  primary_checkpoint: mean_epochs_76_80
+  primary_subset: full99
+  direction: C01b_minus_C01
+  minimum_delta_absolute: {mAP50_95: -0.005, AP75: -0.005}
+  bootstrap: {replicates: 2000, random_seed: 20261013, confidence: 0.95}
+  ci_used_in_gate: false
+  on_pass: select_C01b_direct_distance_6_channels
+  on_fail: retain_actual_frozen_C01_DFL_channels
+  automatic_search: false
+subset_contract: results/experiment0_similarity_supplement_20261012_01/subset_contract.json
+subset_contract_sha256: 09c8966f213764e8076318e1404c1201407e0909565af8946971db244deaf824
+gpu_index: 1
+queue:
+  maximum_hours_per_run: 2.0
+  retry: none
+test_policy: sealed_not_mounted
+result_root: results/sonar_head_c01b_20261013_01/remote

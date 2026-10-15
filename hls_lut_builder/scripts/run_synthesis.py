@@ -125,7 +125,7 @@ def main() -> None:
         status_path = case.project_dir / "synthesis_status.json"
         previous_status = _load_status(status_path)
 
-        if report_path is not None and not args.force and previous_status.get("status") not in {"failed", "timeout"}:
+        if report_path is not None and not args.force:
             status = {
                 "case_name": case.case_name,
                 "op_id": case.op_id,

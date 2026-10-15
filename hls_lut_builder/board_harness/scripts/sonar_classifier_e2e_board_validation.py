@@ -11,6 +11,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import re
 import shutil
 import sys
@@ -271,7 +272,51 @@ def adapter_fifo_text(
     fifo_depth: int,
 ) -> str:
     if max(src_width, dst_width) % min(src_width, dst_width) != 0:
-        raise ValueError(f"AXIS width ratio must be integral at boundary {index}: {src_width}->{dst_width}")
+        lcm_width = src_width * dst_width // math.gcd(src_width, dst_width)
+        lcm_keep = max(1, lcm_width // 8)
+        mid_prefix = f"adapt{index:02d}_lcm"
+        return f"""
+wire [{lcm_width - 1}:0] {mid_prefix}_tdata;
+wire [{lcm_keep - 1}:0] {mid_prefix}_tkeep;
+wire [{lcm_keep - 1}:0] {mid_prefix}_tstrb;
+wire {mid_prefix}_tlast;
+wire {mid_prefix}_tvalid;
+wire {mid_prefix}_tready;
+
+axis_width_adapter #(
+    .S_DATA_WIDTH({src_width}),
+    .M_DATA_WIDTH({lcm_width}),
+    .S_KEEP_WIDTH({src_keep}),
+    .M_KEEP_WIDTH({lcm_keep})
+) u_e2e_repack_{index:02d}_to_lcm (
+    .clk(clk_main), .rst_n(rst_n),
+    .s_tdata({src_prefix}_tdata), .s_tkeep({src_prefix}_tkeep), .s_tstrb({src_prefix}_tstrb), .s_tlast({src_prefix}_tlast),
+    .s_tvalid({src_prefix}_tvalid), .s_tready({src_prefix}_tready),
+    .m_tdata({mid_prefix}_tdata), .m_tkeep({mid_prefix}_tkeep), .m_tstrb({mid_prefix}_tstrb), .m_tlast({mid_prefix}_tlast),
+    .m_tvalid({mid_prefix}_tvalid), .m_tready({mid_prefix}_tready)
+);
+
+axis_width_adapter #(
+    .S_DATA_WIDTH({lcm_width}),
+    .M_DATA_WIDTH({dst_width}),
+    .S_KEEP_WIDTH({lcm_keep}),
+    .M_KEEP_WIDTH({dst_keep})
+) u_e2e_repack_{index:02d}_from_lcm (
+    .clk(clk_main), .rst_n(rst_n),
+    .s_tdata({mid_prefix}_tdata), .s_tkeep({mid_prefix}_tkeep), .s_tstrb({mid_prefix}_tstrb), .s_tlast({mid_prefix}_tlast),
+    .s_tvalid({mid_prefix}_tvalid), .s_tready({mid_prefix}_tready),
+    .m_tdata({adapter_prefix}_tdata), .m_tkeep({adapter_prefix}_tkeep), .m_tstrb({adapter_prefix}_tstrb), .m_tlast({adapter_prefix}_tlast),
+    .m_tvalid({adapter_prefix}_tvalid), .m_tready({adapter_prefix}_tready)
+);
+
+axis_simple_fifo #(.DATA_WIDTH({dst_width}), .KEEP_WIDTH({dst_keep}), .DEPTH({fifo_depth})) u_e2e_fifo_{index:02d} (
+    .clk(clk_main), .rst_n(rst_n),
+    .s_tdata({adapter_prefix}_tdata), .s_tkeep({adapter_prefix}_tkeep), .s_tstrb({adapter_prefix}_tstrb), .s_tlast({adapter_prefix}_tlast),
+    .s_tvalid({adapter_prefix}_tvalid), .s_tready({adapter_prefix}_tready),
+    .m_tdata({fifo_prefix}_tdata), .m_tkeep({fifo_prefix}_tkeep), .m_tstrb({fifo_prefix}_tstrb), .m_tlast({fifo_prefix}_tlast),
+    .m_tvalid({fifo_prefix}_tvalid), .m_tready({fifo_prefix}_tready)
+);
+""".strip()
     return f"""
 axis_width_adapter #(
     .S_DATA_WIDTH({src_width}),
@@ -345,6 +390,9 @@ def write_full_network_top(
     gh.copy_tree_files(BOARD_HARNESS_DIR / "modules", rtl_dir)
     (rtl_dir / "axis_simple_fifo.v").write_text(fullcombo.axis_fifo_module_text(fifo_style), encoding="utf-8")
     (rtl_dir / "axis_width_adapter.v").write_text(fullcombo.axis_width_adapter_module_text(), encoding="utf-8")
+    unused_static_rom = rtl_dir / "axis_rom_source.v"
+    if not dynamic_validation and unused_static_rom.exists():
+        unused_static_rom.unlink()
 
     first = specs[0]
     last = specs[-1]
@@ -364,11 +412,8 @@ def write_full_network_top(
             "dynamic validation requires one output word containing exactly 8 INT8 logits"
         )
 
-    input_mem_paths = gh.generate_stream_mem_files(data_dir, "input_stream", input_word_count, input_width)
     input_word_mem = gh.generate_stream_word_mem_file(data_dir, "input_stream_words", input_word_count, input_width)
     input_mem_mapping = {f"INPUT_MEM_FILE_{lane_idx:02d}": '""' for lane_idx in range(32)}
-    for lane_idx, mem_path in enumerate(input_mem_paths):
-        input_mem_mapping[f"INPUT_MEM_FILE_{lane_idx:02d}"] = f'"../data/{mem_path.name}"'
 
     axis_decls = [fullcombo.axis_wire_decl("input", input_width, input_keep)]
     chain_blocks: list[str] = []
@@ -833,12 +878,11 @@ end
 """
         source_logic = f"""
 wire source_done;
-axis_rom_source #(
+axis_word_rom_source #(
     .DATA_WIDTH(INPUT_TDATA_WIDTH),
     .KEEP_WIDTH(INPUT_KEEP_WIDTH),
     .WORD_COUNT(INPUT_WORD_COUNT),
-    .WORD_MEM_FILE("../data/{input_word_mem.name}"),
-    {input_mem_mapping_text(input_mem_mapping)}
+    .WORD_MEM_FILE("../data/{input_word_mem.name}")
 ) u_axis_rom_source (
     .clk(clk_main), .rst_n(rst_n), .start(start_pulse),
     .tdata(input_tdata), .tkeep(input_tkeep), .tstrb(input_tstrb), .tlast(input_tlast),

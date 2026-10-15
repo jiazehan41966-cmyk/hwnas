@@ -1,0 +1,184 @@
+project:
+  name: zcu104-mobilenetA-detection-640-multiscale-fixed-neck-head-roboflow-v6-official-yolov8-trainanchors-noobj03
+  seed: 42
+  output_dir: results/zcu104_mobilenetA_detection_640_multiscale_fixed_neck_head_roboflow_v6_official_yolov8_trainanchors_noobj03
+
+task:
+  name: detection
+  branch: detection_multiscale_v1
+  classification_branch_unchanged: true
+  backbone_search_space_source: configs/search/zcu104_mobilenetA_v2_rl_entropy_pareto_feasible_budget.yaml
+  first_stage_search_scope:
+    backbone: searchable
+    neck: fixed_not_searched
+    head: fixed_not_searched
+  evaluation_metrics: [map, precision, recall, f1]
+
+dataset:
+  name: roboflow_cylider2_v6_official_yolov8_detection
+  data_dir: data/external_redownload_audit_20260909/roboflow_cylider2/extracted/v6_yolov8
+  input_channels: 1
+  image_size: 640
+  num_classes: 2
+  num_workers: 4
+  annotation_format: yolo
+  split: train_valid_test
+
+search_space:
+  macro_type: mobilenetA_full_dmdc_cfem
+  search_space_version: mobilenetA_full_dmdc_cfem_v1_detection640_multiscale
+  stem_channels: 32
+  stem_stride: 2
+  post_stem_downsample_stride: 1
+  stage_strides: [1, 2, 2, 1, 2, 1, 2, 1]
+  stage_channel_choices: [[16], [24], [32], [32], [64], [96], [160], [320]]
+  stage_depth_choices: [[1], [1], [1], [1], [1], [1], [1], [1]]
+  kernel_choices: [1, 3, 5]
+  expand_choices: [1, 3, 6]
+  op_choices: [conv, mbconv, skip, dmdc_conv_sonar, cfem_sonar]
+  stage_block_choices:
+    - [{op: conv, kernel_size: 1, expand_ratio: 1, stride: 1}]
+    -
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 6, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 6, stride: 2}
+    -
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 6, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 6, stride: 2}
+    -
+      - {op: skip, kernel_size: 1, expand_ratio: 1, stride: 1}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 1}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 1}
+      - {op: dmdc_conv_sonar, kernel_size: 3, expand_ratio: 1, stride: 1}
+      - {op: cfem_sonar, kernel_size: 3, expand_ratio: 1, stride: 1}
+    -
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 6, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 6, stride: 2}
+    -
+      - {op: skip, kernel_size: 1, expand_ratio: 1, stride: 1}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 1}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 6, stride: 1}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 1}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 6, stride: 1}
+    -
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 6, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 2}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 6, stride: 2}
+    -
+      - {op: skip, kernel_size: 1, expand_ratio: 1, stride: 1}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 3, stride: 1}
+      - {op: mbconv, kernel_size: 3, expand_ratio: 6, stride: 1}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 3, stride: 1}
+      - {op: mbconv, kernel_size: 5, expand_ratio: 6, stride: 1}
+  head_conv_channels: null
+  head_channels: null
+
+detection:
+  input_size: 640
+  feature_stage_indices: [3, 5, 7]
+  feature_strides: [8, 16, 32]
+  fixed_neck:
+    type: fpn
+    searchable: false
+    out_channels: 96
+  fixed_head:
+    type: dense_anchor_head
+    searchable: false
+    anchors_per_location: 3
+    outputs_per_anchor: 7
+  anchor_sizes:
+    - [[9.25, 13.50], [12.00, 16.25], [15.00, 16.25]]
+    - [[12.62, 20.25], [19.75, 15.25], [15.00, 22.75]]
+    - [[16.50, 22.38], [21.25, 19.50], [21.25, 27.50]]
+  metrics:
+    primary: map
+    secondary: [precision, recall, f1, map50, map75]
+    iou_thresholds: [0.5, 0.75]
+
+constraints:
+  max_latency_ms: 120.0
+  max_energy_mj: 375.0
+  max_power_w: 15.0
+  max_dsp: 1209
+  max_bram: 700
+  max_lut: 161280
+  budget_note: copied hardware-aware search constraints; detection head cost is fixed in stage 1
+
+hardware:
+  target: fpga
+  board: zcu104_xczu7ev
+  max_bram: 700
+  quantization_bits: 8
+  estimator: measured_detection_640_neck_head_supplement
+  detection_cost_table_path: artifacts/detection_multiscale_640/hardware_cost_table.measured.zcu104.json
+  detection_hls_lut_config: hls_lut_builder/configs/candidate_kernels_detection_multiscale_640.yaml
+  detection_formal_lut_path: hls_lut_builder/results/detection_multiscale_640_zcu104/formal_lut.json
+  detection_formal_lut_status_path: hls_lut_builder/results/detection_multiscale_640_zcu104/formal_lut_status.json
+  cost_claim_boundary: ZCU104 XCZU7EV operator-level HLS/Vivado measured fixed Neck/Head supplement was built for the original 3-class head shape; this 2-class official-export software config uses it only as a conservative boundary note until the 2-class head row is measured separately. Backbone/full-network route, board accuracy, runtime, and power remain separate evidence
+
+search:
+  method: rl
+  comparison_scope: detection_branch_only_no_classification_metric_mixing
+  episodes: 200
+  num_candidates: 200
+  eval_epochs: 10
+  eval_early_stopping_patience: 2
+  selection_metric: map
+  objective_weights:
+    accuracy: 1.0
+    latency: 0.2
+    energy: 0.1
+    resource: 0.1
+  pareto:
+    objectives: [map, latency_ms, energy_mj, dsp, bram, lut]
+    directions: [max, min, min, min, min, min]
+    selection_method: rank
+    topk: 5
+
+training:
+  epochs: 150
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 4
+  amp: true
+  detection_loss:
+    type: dense_anchor_yolo_style_v1
+    box_weight: 5.0
+    box_iou_weight: 1.0
+    object_weight: 1.0
+    no_object_weight: 0.3
+    class_weight: 2.0
+    class_loss_weights: [1.0, 1.0]
+    positive_anchor_iou_threshold: 0.65
+    ignore_anchor_iou_threshold: 0.35
+    neighbor_cell_radius: 1
+    object_focal_gamma: 2.0
+    object_focal_alpha: 0.75
+  detection_augmentation:
+    horizontal_flip_prob: 0.5
+    brightness: 0.1
+    contrast: 0.1
+    noise_std: 0.01
+  detection_sampling:
+    class_balanced: true
+  evaluation:
+    score_threshold: 0.01
+    operating_score_thresholds: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7]
+    nms_iou_threshold: 0.5
+    pre_nms_topk: 500
+    max_detections: 50
+
+deployment:
+  run_hls_validation: false
+  required_metrics:
+    detection_task: [map, precision, recall, f1, map50, map75]
+    fpga_performance: [latency_ms, fps, gmac_per_s, gops]
+    fpga_resources: [lut, dsp, bram]
+    measured_power: [power_w, chip_average_power_w, dynamic_power_w, energy_mj, fps_per_w]

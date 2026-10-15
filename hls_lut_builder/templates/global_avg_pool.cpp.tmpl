@@ -5,9 +5,15 @@ static constexpr int OUT_CH = __OUT_CHANNELS__;
 static constexpr int IN_H = __FEATURE_H__;
 static constexpr int IN_W = __FEATURE_W__;
 static constexpr int CH_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+static constexpr int MAX_AXIS_CHANNELS = (__MAX_AXIS_BITS__ / 8);
+static constexpr int IN_PACK_CH = (IN_CH > MAX_AXIS_CHANNELS) ? MAX_AXIS_CHANNELS : IN_CH;
+static constexpr int OUT_PACK_CH = (OUT_CH > MAX_AXIS_CHANNELS) ? MAX_AXIS_CHANNELS : OUT_CH;
+static constexpr int INPUT_PACKETS_PER_PIXEL = (IN_CH + IN_PACK_CH - 1) / IN_PACK_CH;
+static constexpr int OUTPUT_PACKETS = (OUT_CH + OUT_PACK_CH - 1) / OUT_PACK_CH;
 
-typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
-typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+typedef char gap_requires_same_channels[(IN_CH == OUT_CH) ? 1 : -1];
+typedef MAKE_AXIS_TYPE(IN_PACK_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_PACK_CH * 8) output_axis_t;
 
 void __TOP_FUNCTION__(
     hls::stream<input_axis_t> &input_stream,
@@ -22,12 +28,14 @@ DECLARE_CONTROL_INTERFACE()
     (void)weights;
     (void)biases;
 
-    data_t input_channels[IN_CH];
+    data_t packet_channels[IN_PACK_CH];
     data_t output_channels[OUT_CH];
     acc_t channel_sums[OUT_CH];
-#pragma HLS ARRAY_PARTITION variable=input_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=packet_channels dim=1 cyclic factor=CH_TILE
 #pragma HLS ARRAY_PARTITION variable=output_channels dim=1 cyclic factor=CH_TILE
 #pragma HLS ARRAY_PARTITION variable=channel_sums dim=1 cyclic factor=CH_TILE
+#pragma HLS BIND_STORAGE variable=output_channels type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=channel_sums type=ram_2p impl=bram
 
     for (int c = 0; c < OUT_CH; ++c) {
 #pragma HLS PIPELINE II=__PIPELINE_II__
@@ -36,12 +44,17 @@ DECLARE_CONTROL_INTERFACE()
 
     for (int h = 0; h < IN_H; ++h) {
         for (int w = 0; w < IN_W; ++w) {
+            for (int packet_idx = 0; packet_idx < INPUT_PACKETS_PER_PIXEL; ++packet_idx) {
 #pragma HLS PIPELINE II=__PIPELINE_II__
-            input_axis_t in_packet = input_stream.read();
-            unpack_axis_channels<IN_CH>(in_packet, input_channels);
-            for (int c = 0; c < OUT_CH; ++c) {
+                input_axis_t in_packet = input_stream.read();
+                unpack_axis_channels<IN_PACK_CH>(in_packet, packet_channels);
+                for (int lane = 0; lane < IN_PACK_CH; ++lane) {
 #pragma HLS UNROLL factor=CH_TILE
-                channel_sums[c] += static_cast<acc_t>(input_channels[c]);
+                    const int c = (packet_idx * IN_PACK_CH) + lane;
+                    if (c < OUT_CH) {
+                        channel_sums[c] += static_cast<acc_t>(packet_channels[lane]);
+                    }
+                }
             }
         }
     }
@@ -51,6 +64,13 @@ DECLARE_CONTROL_INTERFACE()
         output_channels[c] = saturate_to_data(channel_sums[c] / (IN_H * IN_W));
     }
 
-    output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(output_channels, true);
-    output_stream.write(out_packet);
+    for (int packet_idx = 0; packet_idx < OUTPUT_PACKETS; ++packet_idx) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+        output_axis_t out_packet = make_axis_segment_packet<output_axis_t, OUT_CH, OUT_PACK_CH>(
+            output_channels,
+            packet_idx * OUT_PACK_CH,
+            packet_idx == (OUTPUT_PACKETS - 1)
+        );
+        output_stream.write(out_packet);
+    }
 }

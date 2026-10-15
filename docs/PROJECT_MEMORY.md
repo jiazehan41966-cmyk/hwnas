@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-07-19
+Last updated: 2026-09-14
 
 Purpose: this file is the persistent local memory index for the HW-NAS FPGA Sonar repository. New tasks in this workspace should read this file first when they need repository context, audit history, archive paths, or workflow boundaries.
 
@@ -38,6 +38,7 @@ Supporting result/archive policy documents:
 
 Concrete local archive outputs:
 
+- `E:\1\hwnas\hwnas\results\detection_eval_diagnosis_20260913\`
 - `E:\1\hwnas\hwnas\results\first_principles_audit_20260703\`
 - `E:\1\hwnas\hwnas\results_archive\2026-04-review\`
 - `E:\1\hwnas\hwnas\results_archive\2026-04-review\ARCHIVE_MANIFEST.txt`
@@ -59,6 +60,8 @@ Compact evidence archives:
 - `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary.json`
 - `E:\1\hwnas\hwnas\artifacts\proxy_reliability_gate0\manifest_summary_v2.json`
 - `E:\1\hwnas\hwnas\artifacts\benchmarks\ccf_ab_nksid_av7k325_v1\`
+- `E:\1\hwnas\hwnas\docs\zcu104_full_experiment\CLASSIFICATION_OPERATOR_EVIDENCE.md`
+- `E:\1\hwnas\hwnas\docs\zcu104_full_experiment\MINIMAL_OPERATOR_CHANGE_PROPOSAL.md`
 
 Current Phase0 v3 board-validation outputs:
 
@@ -98,6 +101,11 @@ Covered:
 - Traceable external-sonar dataset registration and local manifest boundaries;
   these detection/mixed-task sources are not merged with NKSID classification
   metrics.
+- Detection evaluation-chain audit and fixed-normalizer checkpoint diagnosis
+  under `results/detection_eval_diagnosis_20260913/`. Project `map` is
+  mean(AP50, AP75), not COCO mAP@[0.50:0.95]. Remaining errors are dominated
+  by confidence discrimination coupled with background interference; automatic
+  texture bins are not sonar-environment labels.
 - Proxy Reliability Gate 0 v1/v2 manifests, execution invariants, and staged
   evidence rules.
 - G5 sonar-operator admission tooling, including matched folded candidates,

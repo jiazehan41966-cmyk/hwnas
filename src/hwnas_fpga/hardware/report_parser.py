@@ -393,12 +393,12 @@ def approximate_fmax_from_wns(*, target_clock_ns: float, wns_ns: Optional[float]
 
 
 def parse_vivado_utilization_text(report_text: str) -> dict[str, Any]:
-    lut = _search_float(r"\|\s*Slice LUTs\*?\s*\|\s*([0-9.]+)\s*\|", report_text)
-    ff = _search_float(r"\|\s*Slice Registers\s*\|\s*([0-9.]+)\s*\|", report_text)
-    block_ram_tile = _search_float(r"\|\s*Block RAM Tile\s*\|\s*([0-9.]+)\s*\|", report_text)
-    ramb36 = _search_float(r"\|\s*RAMB36/FIFO\*?\s*\|\s*([0-9.]+)\s*\|", report_text)
-    ramb18 = _search_float(r"\|\s*RAMB18\s*\|\s*([0-9.]+)\s*\|", report_text)
-    dsp = _search_float(r"\|\s*DSPs\s*\|\s*([0-9.]+)\s*\|", report_text)
+    lut = _search_float(r"\|\s*(?:Slice|CLB) LUTs\*?\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    ff = _search_float(r"\|\s*(?:Slice Registers|CLB Registers)\*?\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    block_ram_tile = _search_float(r"\|\s*Block RAM Tile\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    ramb36 = _search_float(r"\|\s*RAMB36/FIFO\*?\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    ramb18 = _search_float(r"\|\s*RAMB18\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    dsp = _search_float(r"\|\s*DSPs\s*\|\s*([0-9,.]+)\s*\|", report_text)
     return {
         "lut": int(lut) if lut is not None else 0,
         "ff": int(ff) if ff is not None else 0,

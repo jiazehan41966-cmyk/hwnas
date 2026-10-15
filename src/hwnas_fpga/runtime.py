@@ -20,7 +20,7 @@ from hwnas_fpga.hardware import (
     FPGACostEstimator,
     LutQueryEngine,
     LutTable,
-    ZCU104CFEM20OperatorCostEstimator,
+    ZCU104MobileNetAOperatorCostEstimator,
     create_dummy_fpga_lut,
     resolve_board_profile,
 )
@@ -133,6 +133,9 @@ def build_search_space(
     constraints: SearchConstraints,
 ) -> SearchSpace:
     search_cfg = config.get("search_space", {})
+    task_cfg = config.get("task", {})
+    task_name = str(task_cfg.get("name", "")).strip().lower()
+    search_num_classes = None if task_name == "detection" else num_classes
     payload = {
         "family_profile": search_cfg.get("family_profile"),
         "input_channels": input_channels,
@@ -153,13 +156,17 @@ def build_search_space(
         "stage_block_choices": search_cfg.get("stage_block_choices"),
         "head_conv_channels": search_cfg.get("head_conv_channels"),
         "head_channels": search_cfg.get("head_channels"),
-        "num_classes": num_classes,
+        "num_classes": search_num_classes,
         "hardware_constraints": constraints,
     }
     normalized_payload = {key: value for key, value in payload.items() if value is not None}
     for nullable_key in ("head_conv_channels", "head_channels"):
         if nullable_key in search_cfg:
             normalized_payload[nullable_key] = search_cfg.get(nullable_key)
+    if task_name == "detection":
+        normalized_payload["head_conv_channels"] = None
+        normalized_payload["head_channels"] = None
+        normalized_payload["num_classes"] = None
     return SearchSpace(SearchSpaceConfig.from_dict(normalized_payload))
 
 
@@ -363,6 +370,7 @@ def build_cost_estimator(
     constraints: SearchConstraints,
 ) -> FPGACostEstimator:
     hardware_cfg = config.get("hardware", {})
+    estimator_name = str(hardware_cfg.get("estimator") or "").strip()
     estimator_kwargs = dict(
         hardware_spec=hardware_spec,
         constraints=constraints,
@@ -377,19 +385,34 @@ def build_cost_estimator(
         use_lut_for_head_layers=bool(hardware_cfg.get("use_lut_for_head_layers", False)),
         analytic_calibration=load_analytic_calibration(config),
     )
-    operator_cost_path = hardware_cfg.get("zcu104_operator_cost_path")
-    if operator_cost_path:
-        coverage_path = hardware_cfg.get("zcu104_operator_cost_coverage_path")
-        if not coverage_path:
+    if estimator_name == "zcu104_width_e_operator_cost_v1":
+        from hwnas_fpga.hardware.width_e_operator_cost import ZCU104WidthEOperatorCostEstimator
+        return ZCU104WidthEOperatorCostEstimator(
+            **estimator_kwargs,
+            operator_cost_path=hardware_cfg["operator_cost_lut_path"],
+            calibration_path=hardware_cfg["storage_calibration_path"],
+        )
+    if estimator_name == "zcu104_mobilenetA_full_operator_cost_lut_v1":
+        operator_cost_path = hardware_cfg.get("operator_cost_lut_path")
+        coverage_path = hardware_cfg.get("operator_cost_lut_coverage_path")
+        if not operator_cost_path or not coverage_path:
             raise ValueError(
-                "hardware.zcu104_operator_cost_path requires "
-                "hardware.zcu104_operator_cost_coverage_path"
+                "hardware.estimator=zcu104_mobilenetA_full_operator_cost_lut_v1 "
+                "requires hardware.operator_cost_lut_path and "
+                "hardware.operator_cost_lut_coverage_path"
             )
-        return ZCU104CFEM20OperatorCostEstimator(
+        return ZCU104MobileNetAOperatorCostEstimator(
             **estimator_kwargs,
             operator_cost_path=operator_cost_path,
             coverage_path=coverage_path,
-            allow_test_data=bool(hardware_cfg.get("allow_test_operator_cost_data", False)),
+            preflight_path=hardware_cfg.get("operator_cost_lut_preflight_path"),
+        )
+    operator_cost_path = hardware_cfg.get("zcu104_operator_cost_path")
+    if operator_cost_path:
+        raise ValueError(
+            "hardware.zcu104_operator_cost_path refers to the retired RAW20/CFEM20 "
+            "9-row ZCU104 adapter. Use the MobileNetA 88-row formal LUT preflight "
+            "and a MobileNetA-bound estimator before launching a claimable search."
         )
     return FPGACostEstimator(**estimator_kwargs)
 

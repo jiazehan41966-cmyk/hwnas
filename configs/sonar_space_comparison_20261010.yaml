@@ -1,0 +1,49 @@
+version: sonar_space_comparison_20261010_01
+spaces: [elastic_neck72_v1, sonar_backbone_neck192_v1]
+search_order_seeds: [101, 202, 303]
+candidate_training_seed: 42
+confirmation_seeds: [42, 43, 44]
+gpu_hours_per_space_per_search: 6.0
+gpu_indices: [0, 1]
+training:
+  epochs: 80
+  input: 640
+  batch_size: 4
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  initialization: common_E1_reference_matching_tensors_semantic_new_shapes_v1
+  checkpoint_selection: earliest_best_valid_mAP50_95
+sampling: uniform_unique_feasible_architectures_without_replacement
+cost:
+  mac_upper_bound_rule: minimum_of_two_space_maxima
+  matched_band_rule: common_E0_MACs_plus_or_minus_2_percent
+  fixed_blur_macs_included: true
+selection:
+  overall: highest_valid_mAP50_95_then_lower_MACs_then_architecture_id
+  matched: highest_valid_mAP50_95_within_frozen_matched_band
+  empty_matched_band: report_missing_never_replace_posthoc
+confirmation:
+  maximum_distinct_selected_slots: 12
+  maximum_training_runs: 36
+  share_duplicate_architecture_confirmations: false
+  maximum_hours_per_training_run: 2.0
+latency:
+  batch: 1
+  warmup: 20
+  repeats: 100
+  input: first_frozen_validation_image
+  precision: FP32
+  report: [model_forward, model_plus_decode_NMS]
+budget_accounting:
+  search: exclusive_single_GPU_elapsed_including_child_startup_training_validation_checkpoint_and_failure
+  preparation: common_inventory_and_smoke_reported_separately
+  incomplete_candidate: charged_but_excluded_from_ranking
+  timeout: terminate_only_campaign_owned_child_preserve_partial_evidence
+baseline: configs/baseline_sonar_frozen.yaml
+environment_spec: configs/detector_elastic_pilot_environment.yaml
+test_policy: sealed_not_mounted
+claims: within_frozen_valid_split_not_independent_test_generalization

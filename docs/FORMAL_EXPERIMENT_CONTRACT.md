@@ -1,16 +1,16 @@
 # 正式实验与证据流转契约
 
-本文件规定后续实验必须通过的六道门。任何一道门未通过，相关结论保持
+本文件规定六类证据要求（章节C1—C6）。它们与measurement-first产物中的G0—G5阶段编号不是同一命名空间；不修改既有JSON字段或阶段状态。相关证据不足时，结论保持
 `PENDING`、`NOT_MEASURED` 或 `not_ready`，不得用历史结果补齐。
 
-## G1 数据隔离与嵌套搜索
+## C1 数据隔离与嵌套搜索
 
 正式 NKSID 搜索只能使用 `train + inner_val`。外层测试折不参与架构选择和
 最佳 epoch 选择。固定架构完成 5 折×3 种子只能评价该架构；只有每个外层单元
 都独立搜索并通过嵌套选择清单校验，才能令
 `nas_generalization_claimable=true`。
 
-## G2 候选身份与指标绑定
+## C2 候选身份与指标绑定
 
 候选身份由 `arch_id + architecture_sha256` 共同确定，文件名不是证据。分类、
 PSNR/SSIM、HLS/Route、板级分类和功率记录必须携带相同候选身份，并绑定源文件
@@ -32,11 +32,13 @@ python scripts/audit_final_candidate_evidence.py `
 - 全样本板级 Macro-F1、Top-1；
 - PSNR、SSIM，并明确 `paired_clean_target` 或 `input_as_reference`；
 - latency、LUT、DSP、BRAM；
-- power、energy；未完成外部仪表测量时保持 `NOT_MEASURED`。
+- power、energy；未取得所属协议认可的实测记录时保持 `NOT_MEASURED`。历史AV7K325外部仪表与ZCU104板载INA226/hwmon输入功率协议分开；Vivado功率代理不能补齐实测。
 
-## G3 代理筛选与误删保护
+## C3 代理筛选与误删保护
 
-未通过独立校准的资源/时延代理只能用于排序和奖励，不能直接证明候选不可部署。
+未通过独立校准的资源/时延代理不能直接证明候选不可部署。当前MobileNetA估计器
+会按配置检查聚合约束并记录violation；这是搜索预算下的准入判断，不是实测部署失败。
+代理排序、预算性准入与部署可行性结论分别记录。
 `defer_uncalibrated_hardware_constraints=true` 时：
 
 - 算子语义/部署策略违规和可精确计算的模型大小仍可硬拒绝；
@@ -50,7 +52,7 @@ Full Route 证据给出。
 未来启用 `certified_reject` 前，校准报告必须至少给出资源与时延预测误差、排序
 相关性、false-infeasible（错误判不可行）率及安全裕量；不确定区间继续送 HLS。
 
-## G4 搜索方法公平预算
+## C4 搜索方法公平预算
 
 RL、Random、Aging Evolution 和 Proxyless 的正式比较必须使用完全相同的：
 
@@ -61,8 +63,10 @@ RL、Random、Aging Evolution 和 Proxyless 的正式比较必须使用完全相
 - 分类选择指标、Pareto 目标和硬件约束；
 - 硬件代价模型及版本。
 
-`scripts/compare_search_methods.py` 的正式 CLI 默认要求四种方法齐全，并要求每个
-运行声明同一个 `search.formal_budget`：
+上述是对所声明方法比较的公平性要求。RL-only范围不要求追加四种方法。当前
+`scripts/compare_search_methods.py` 接收多个 `--run`，并检查实际候选数、协议与评价器；
+它没有默认要求四方法齐全，也没有直接强制各运行的 `search.formal_budget`。
+声明预算需另行与实际运行核对，例如下面的历史200×3预算（不是当前ZCU104默认值）：
 
 ```yaml
 search:
@@ -81,18 +85,18 @@ Random、Aging 的现有路径属于 `independent_candidate_train`（候选独�
 预算协议后，Proxyless 才能进入正式四方法结论；不能仅把 `epochs` 数字写成相同
 就视为公平。
 
-## G5 板级全样本分类
+## C5 板级全样本分类
 
 固定输入 COM5 重复测试只证明传输、状态码、checksum 和时延稳定性，不能报告
 完整 NKSID 板级准确率。
 
-正式板级分类必须使用
-`hls_lut_builder/board_harness/scripts/run_dynamic_validation.py`，覆盖冻结清单中
+AV7K325 harness的板级分类入口为
+`hls_lut_builder/board_harness/scripts/run_dynamic_validation.py`；ZCU104应使用其部署绑定的板端runtime。两者均须覆盖冻结清单中
 每一个样本，并验证状态、CRC、样本 ID 和 INT8 logits。运行还必须提供 deployment
 binding，把候选、checkpoint、HLS parity、bitstream 和验证清单按 SHA256 绑定。
 缺少绑定时，即使所有样本数值一致，也不能令 `claimable=true`。
 
-## G6 结论分层
+## C6 结论分层
 
 正式报告保持以下证据层互不替代：
 
@@ -102,7 +106,7 @@ binding，把候选、checkpoint、HLS parity、bitstream 和验证清单按 SHA
 4. HLS 与 Full Route；
 5. COM5 固定输入稳定性；
 6. 全样本板级分类；
-7. 外部仪表功率与单次推理能耗。
+7. 所属协议认可的实测功率与单次推理能耗（记录仪器或板载传感器、输入轨及测量边界）。
 
 只有同一候选、同一冻结链路的证据可以合并成候选级联合工作点。嵌套 NAS 的
 方法级泛化结果必须单列，不能伪装成某一个部署候选的共同结果。

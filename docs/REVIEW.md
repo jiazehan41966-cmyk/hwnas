@@ -1,6 +1,10 @@
 # Repository Review
 
-Current review entry point: `docs/FIRST_PRINCIPLES_AUDIT_20260703.md`.
+Historical review entry point: `docs/FIRST_PRINCIPLES_AUDIT_20260703.md`.
+
+This page records the earlier repository review and its corrections. Use the
+[document index](INDEX.md) to distinguish implementation paths, protocols, and
+dated evidence; it is not a current status ledger for every experiment series.
 
 The earlier external review was produced from the pre-merge `main` snapshot
 (`40aaa8a`), which contained only two commits and did not include the local

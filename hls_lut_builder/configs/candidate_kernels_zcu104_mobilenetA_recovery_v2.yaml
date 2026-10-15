@@ -1,0 +1,126 @@
+toolchain:
+  part: xczu7ev-ffvc1156-2-e
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: /opt/Xilinx/Vitis_HLS/2022.2/bin/vitis_hls
+  vivado_bin: /opt/Xilinx/Vivado/2022.2/bin/vivado
+
+workspace:
+  project_root: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/hls/p
+  report_archive: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/hls/reports
+  csv_path: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/hls/hls.csv
+  manifest_path: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/hls/hls_manifest.yaml
+  synthesis_summary_json: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/hls/hls_synth_summary.json
+  parse_summary_json: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/hls/hls_parse_summary.json
+  downstream_csv_path: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/route/vivado_downstream.csv
+  downstream_manifest_path: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/route/vivado_downstream_manifest.yaml
+  downstream_parse_summary_json: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/route/vivado_downstream_parse_summary.json
+  downstream_summary_json: ../../results/zcu104_full_campaign_v1/hardware_lane/mobilenetA_full_dmdc_cfem_v2_recovered/route/vivado_downstream_summary.json
+
+measurement_contract:
+  contract_id: zcu104_mobilenetA_lowresource_recovery_v2
+  search_space_version: mobilenetA_full_dmdc_cfem_v1
+  hardware_lut_version: mobilenetA_full_dmdc_cfem_v2_recovered
+  target_board: ZCU104
+  target_part: xczu7ev-ffvc1156-2-e
+  declaration: Fresh ZCU104 recovery measurements for the 13 terminally blocked v1 rows. The v1 evidence remains immutable.
+  io_style: segmented_packed_stream
+  input_axis_rule: pixel-major channel segments, PACK_CH * 8 bits per token
+  output_axis_rule: pixel-major channel segments, PACK_CH * 8 bits per token
+  control_interface: AXI-Lite
+  parameter_storage: BRAM
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  max_axis_bits: 512
+  pack_ch: 4
+  ch_block: 4
+  pipeline_ii: 8
+  target_ii: 8
+  input_parallelism: 1
+  output_parallelism: 4
+  unroll_factor: 1
+  array_partition_factor: 4
+  dsp_pack: '1'
+
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+    target_clock_mhz: 200.0
+
+implementation_profiles:
+  lowresource_p4_cb4_ii8:
+    pack_ch: 4
+    ch_block: 4
+    input_parallelism: 1
+    output_parallelism: 4
+    array_partition_factor: 4
+    pipeline_ii: 8
+    target_ii: 8
+    unroll_factor: 1
+    dsp_pack: '1'
+
+representative_shapes:
+  dw_ir32_e6_56_c144_s2: {feature_h: 56, feature_w: 56, in_channels: 144, stride: 2, expand_ratio: 6}
+  dw_ir64_e6_28_c192_s2: {feature_h: 28, feature_w: 28, in_channels: 192, stride: 2, expand_ratio: 6}
+  dw_ir96_e3_14_c192_s1: {feature_h: 14, feature_w: 14, in_channels: 192, stride: 1, expand_ratio: 3}
+  dw_ir96_e6_14_c384_s1: {feature_h: 14, feature_w: 14, in_channels: 384, stride: 1, expand_ratio: 6}
+  dw_ir160_e3_14_c288_s2: {feature_h: 14, feature_w: 14, in_channels: 288, stride: 2, expand_ratio: 3}
+  dw_ir160_e6_14_c576_s2: {feature_h: 14, feature_w: 14, in_channels: 576, stride: 2, expand_ratio: 6}
+  dw_ir320_e3_7_c480_s1: {feature_h: 7, feature_w: 7, in_channels: 480, stride: 1, expand_ratio: 3}
+  dw_ir320_e6_7_c960_s1: {feature_h: 7, feature_w: 7, in_channels: 960, stride: 1, expand_ratio: 6}
+  pw_ir160_proj_e6_7_576_160: {feature_h: 7, feature_w: 7, in_channels: 576, out_channels: 160, stride: 1, apply_relu: 0, expand_ratio: 6}
+  pw_ir320_proj_e6_7_960_320: {feature_h: 7, feature_w: 7, in_channels: 960, out_channels: 320, stride: 1, apply_relu: 0, expand_ratio: 6}
+
+operators:
+  dw_conv_k3_recovery:
+    enabled: true
+    template: ../templates/dw_conv_segmented_lowresource.cpp.tmpl
+    top_function: zcu104_dw_conv_k3_lowresource_recovery
+    op_type: dw_conv_k3
+    shape_refs:
+    - dw_ir160_e6_14_c576_s2
+    - dw_ir320_e3_7_c480_s1
+    - dw_ir320_e6_7_c960_s1
+    implementation_refs: [lowresource_p4_cb4_ii8]
+    clock_profile_refs: [main_5ns]
+    parameters: {kernel_size: 3, padding: 1, apply_relu: 1}
+    op_spec_defaults: {op: dw_conv_k3, recovery_for: mobilenetA_full_dmdc_cfem_v1}
+
+  dw_conv_k5_recovery:
+    enabled: true
+    template: ../templates/dw_conv_segmented_lowresource.cpp.tmpl
+    top_function: zcu104_dw_conv_k5_lowresource_recovery
+    op_type: dw_conv_k5
+    shape_refs:
+    - dw_ir32_e6_56_c144_s2
+    - dw_ir64_e6_28_c192_s2
+    - dw_ir96_e3_14_c192_s1
+    - dw_ir96_e6_14_c384_s1
+    - dw_ir160_e3_14_c288_s2
+    - dw_ir160_e6_14_c576_s2
+    - dw_ir320_e3_7_c480_s1
+    - dw_ir320_e6_7_c960_s1
+    implementation_refs: [lowresource_p4_cb4_ii8]
+    clock_profile_refs: [main_5ns]
+    parameters: {kernel_size: 5, padding: 2, apply_relu: 1}
+    op_spec_defaults: {op: dw_conv_k5, recovery_for: mobilenetA_full_dmdc_cfem_v1}
+
+  pw_conv_recovery:
+    enabled: true
+    template: ../templates/pw_conv_fixed_vector_v21.cpp.tmpl
+    top_function: zcu104_pw_conv_lowresource_recovery
+    op_type: pw_conv
+    shape_refs:
+    - pw_ir160_proj_e6_7_576_160
+    - pw_ir320_proj_e6_7_960_320
+    implementation_refs: [lowresource_p4_cb4_ii8]
+    clock_profile_refs: [main_5ns]
+    parameters: {kernel_size: 1, padding: 0}
+    op_spec_defaults: {op: pw_conv, groups: 1, recovery_for: mobilenetA_full_dmdc_cfem_v1}

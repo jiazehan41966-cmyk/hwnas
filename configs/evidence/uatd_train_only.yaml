@@ -1,0 +1,24 @@
+dataset:
+  id: UATD
+  root: ../../datasets/UATD/processed_yolo
+  data_yaml: ../../datasets/UATD/processed_yolo/data.yaml
+  source_modality: MFLS
+  source_task: object_detection
+
+audit:
+  split: train
+  allowed_splits: [train]
+  forbidden_splits: [valid, val, test, test1, test2]
+  fft_size: 256
+  local_context_scale: 1.5
+  edge_gradient_threshold: 0.12
+  small_area_fraction: 0.01
+  medium_area_fraction: 0.10
+
+output:
+  dir: ../../results/evidence/UATD
+
+comparison_artifacts:
+  cylinder2_train_anchor_summary: ../../artifacts/datasets/redownload_audit_20260909/roboflow_official_yolov8_anchor_summary_train_only.json
+  cylinder2_all_anchor_summary: ../../artifacts/datasets/redownload_audit_20260909/roboflow_official_yolov8_anchor_summary.json
+  external_dataset_doc: ../../docs/EXTERNAL_SONAR_DATASETS.md

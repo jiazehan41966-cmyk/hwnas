@@ -51,39 +51,39 @@ module axis_rom_source #(
 localparam integer ADDR_WIDTH = (WORD_COUNT <= 2) ? 1 : $clog2(WORD_COUNT);
 localparam integer LANE_COUNT = KEEP_WIDTH;
 
-reg [DATA_WIDTH-1:0] word_rom [0:WORD_COUNT-1];
-reg [7:0] lane_rom_00 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_01 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_02 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_03 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_04 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_05 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_06 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_07 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_08 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_09 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_10 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_11 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_12 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_13 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_14 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_15 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_16 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_17 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_18 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_19 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_20 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_21 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_22 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_23 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_24 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_25 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_26 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_27 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_28 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_29 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_30 [0:WORD_COUNT-1];
-reg [7:0] lane_rom_31 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [DATA_WIDTH-1:0] word_rom [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_00 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_01 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_02 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_03 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_04 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_05 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_06 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_07 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_08 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_09 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_10 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_11 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_12 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_13 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_14 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_15 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_16 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_17 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_18 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_19 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_20 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_21 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_22 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_23 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_24 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_25 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_26 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_27 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_28 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_29 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_30 [0:WORD_COUNT-1];
+(* rom_style = "block", ram_style = "block" *) reg [7:0] lane_rom_31 [0:WORD_COUNT-1];
 
 reg [ADDR_WIDTH-1:0] index_reg = {ADDR_WIDTH{1'b0}};
 reg active = 1'b0;
@@ -161,13 +161,10 @@ initial begin
     if (MEM_FILE_31 != "") $readmemh(MEM_FILE_31, lane_rom_31);
 end
 
-function [DATA_WIDTH-1:0] read_word;
+function [DATA_WIDTH-1:0] read_lane_word;
     input [ADDR_WIDTH-1:0] idx;
     reg [DATA_WIDTH-1:0] assembled;
 begin
-    if (WORD_MEM_FILE != "") begin
-        read_word = word_rom[idx];
-    end else begin
     assembled = {DATA_WIDTH{1'b0}};
     if (LANE_COUNT > 0) assembled[7:0]     = lane_rom_00[idx];
     if (LANE_COUNT > 1) assembled[15:8]    = lane_rom_01[idx];
@@ -201,7 +198,17 @@ begin
     if (LANE_COUNT > 29) assembled[239:232] = lane_rom_29[idx];
     if (LANE_COUNT > 30) assembled[247:240] = lane_rom_30[idx];
     if (LANE_COUNT > 31) assembled[255:248] = lane_rom_31[idx];
-    read_word = assembled;
+    read_lane_word = assembled;
+end
+endfunction
+
+function [DATA_WIDTH-1:0] rom_word;
+    input [ADDR_WIDTH-1:0] idx;
+begin
+    if (WORD_MEM_FILE != "") begin
+        rom_word = word_rom[idx];
+    end else begin
+        rom_word = read_lane_word(idx);
     end
 end
 endfunction
@@ -226,9 +233,13 @@ always @(posedge clk or negedge rst_n) begin
             index_reg <= {ADDR_WIDTH{1'b0}};
             active <= 1'b1;
             tvalid <= 1'b1;
-            current_word <= read_word({ADDR_WIDTH{1'b0}});
-            tdata <= read_word({ADDR_WIDTH{1'b0}});
-            tlast <= (WORD_COUNT == 1);
+            current_word <= rom_word({ADDR_WIDTH{1'b0}});
+            tvalid <= 1'b0;
+            tlast <= 1'b0;
+        end else if (active && !tvalid) begin
+            tdata <= current_word;
+            tvalid <= 1'b1;
+            tlast <= (index_reg == WORD_COUNT - 1);
         end else if (active && tvalid && tready) begin
             if (index_reg == WORD_COUNT - 1) begin
                 active <= 1'b0;
@@ -237,9 +248,9 @@ always @(posedge clk or negedge rst_n) begin
                 done <= 1'b1;
             end else begin
                 index_reg <= index_reg + {{(ADDR_WIDTH-1){1'b0}}, 1'b1};
-                current_word <= read_word(index_reg + {{(ADDR_WIDTH-1){1'b0}}, 1'b1});
-                tdata <= read_word(index_reg + {{(ADDR_WIDTH-1){1'b0}}, 1'b1});
-                tlast <= ((index_reg + {{(ADDR_WIDTH-1){1'b0}}, 1'b1}) == WORD_COUNT - 1);
+                current_word <= rom_word(index_reg + {{(ADDR_WIDTH-1){1'b0}}, 1'b1});
+                tvalid <= 1'b0;
+                tlast <= 1'b0;
             end
         end
     end

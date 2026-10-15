@@ -3,7 +3,8 @@
 static constexpr int IN_CH = __IN_CHANNELS__;
 static constexpr int OUT_CH = __OUT_CHANNELS__;
 static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
-static constexpr int MAX_AXIS_CHANNELS = 640;
+static constexpr int MAX_AXIS_BITS = __MAX_AXIS_BITS__;
+static constexpr int MAX_AXIS_CHANNELS = ((MAX_AXIS_BITS / 8) > 0) ? (MAX_AXIS_BITS / 8) : 1;
 static constexpr int IN_PACK_CH = (IN_CH > MAX_AXIS_CHANNELS) ? MAX_AXIS_CHANNELS : IN_CH;
 static constexpr int INPUT_PACKETS = (IN_CH + IN_PACK_CH - 1) / IN_PACK_CH;
 

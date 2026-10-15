@@ -1,0 +1,50 @@
+version: sonar_joint_v2
+space: configs/search_space_sonar_v0_1.yaml
+baseline: configs/baseline_sonar_frozen.yaml
+search_seed: 42
+budgets: [40, 60, 80]
+populations: [144, 108, 72]
+shortlist: 12
+confirmation_seeds: [42, 43, 44]
+training:
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  initialization: independent_from_scratch
+checkpoint_selection: best_valid_mAP50_95_earliest_tie
+quant_profiles: [W8A8, HEAD_W8A16, HEAD_W16A16]
+calibration: {split: train, images: 64, augmentation: false}
+admission: {absolute_drop: 0.003, relative_drop: 0.20, improved_seeds: 2}
+mapping_policies: [reference_low, reference_high, reference_min_latency, reference_min_dsp, reference_min_lut, reference_min_bram]
+hardware_budget:
+  scope: operator_peak_and_serial_compute
+  limits: {Latency: 120000, LUT: 161280, DSP: 1209, BRAM: 436}
+  latency_unit: us
+  bram_unit: BRAM18
+  latency_source: configs/baseline_sonar_frozen.yaml
+  resource_source: artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json
+  claim: preliminary_operator_screen_only_not_full_network_admission
+promotion:
+  metric: budget_feasible_quantized_mAP50_95_pareto
+  fraction: 0.15
+  accuracy_epsilon: 0.001
+  resource_fraction: 0.90
+  single_seed_admission: provisional_only
+rejection_audit: one_per_macro_per_stage_to_80_quantized_stop_above_final_top5
+deployment_budget:
+  source: artifacts/zcu104_full_campaign_v1/control/hardware_gate_preregistration_20260810.json
+  resource_scope: full_post_route_design_including_axi_dma_shell
+  limits: {LUT: 161280, DSP: 1209, BRAM18: 436}
+  wns_ns_min: 0.2
+  tns_ns_required: 0.0
+  board_e2e_ms_max: 25.0
+  dynamic_power_w_max: 15.0
+  dynamic_energy_mj_max: 375.0
+evaluation_split: valid
+test_policy: sealed
+cost_scope: HLS_CSYNTH_serial_compute_kernel_resources
+unknown_cost_policy: needs_measurement_excluded_from_pareto
+deployment_claim: false

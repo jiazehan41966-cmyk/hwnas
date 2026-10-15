@@ -107,10 +107,10 @@ static void depthwise_stage(
     data_t incoming_channels[EXP_CH];
     data_t depthwise_channels[EXP_CH];
     acc_t acc_tile[EXP_TILE];
-#pragma HLS ARRAY_PARTITION variable=line_buffer dim=2 complete
 #pragma HLS ARRAY_PARTITION variable=incoming_channels cyclic factor=EXP_TILE dim=1
 #pragma HLS ARRAY_PARTITION variable=depthwise_channels cyclic factor=EXP_TILE dim=1
 #pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+#pragma HLS BIND_STORAGE variable=line_buffer type=ram_2p impl=bram
 
     for (int ec = 0; ec < EXP_CH; ++ec) {
         for (int kh = 0; kh < K; ++kh) {
@@ -299,16 +299,12 @@ DECLARE_CONTROL_INTERFACE()
     hls::stream<expanded_word_t> depthwise_stream("depthwise_stream");
     hls::stream<input_word_t> residual_stream("residual_stream");
 
-#pragma HLS ARRAY_PARTITION variable=expand_weights dim=1 cyclic factor=EXP_TILE
-#pragma HLS ARRAY_PARTITION variable=expand_weights dim=2 cyclic factor=EXP_TILE
-#pragma HLS ARRAY_PARTITION variable=depthwise_weights dim=1 cyclic factor=EXP_TILE
-#pragma HLS ARRAY_PARTITION variable=depthwise_weights dim=2 complete
-#pragma HLS ARRAY_PARTITION variable=depthwise_weights dim=3 complete
-#pragma HLS ARRAY_PARTITION variable=project_weights dim=1 cyclic factor=OUT_TILE
-#pragma HLS ARRAY_PARTITION variable=project_weights dim=2 cyclic factor=EXP_TILE
 #pragma HLS ARRAY_PARTITION variable=expand_bias dim=1 cyclic factor=EXP_TILE
 #pragma HLS ARRAY_PARTITION variable=depthwise_bias dim=1 cyclic factor=EXP_TILE
 #pragma HLS ARRAY_PARTITION variable=project_bias dim=1 cyclic factor=OUT_TILE
+#pragma HLS BIND_STORAGE variable=expand_weights type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=depthwise_weights type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=project_weights type=ram_2p impl=bram
 #pragma HLS STREAM variable=expanded_stream depth=4
 #pragma HLS STREAM variable=depthwise_stream depth=4
 #pragma HLS STREAM variable=residual_stream depth=__RESIDUAL_STREAM_DEPTH__

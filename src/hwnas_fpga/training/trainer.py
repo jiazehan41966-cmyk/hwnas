@@ -226,6 +226,16 @@ def evaluate_classifier(
 def _resolve_selection_score(summary: dict[str, float], selection_metric: str) -> float:
     normalized = str(selection_metric or "macro_f1").strip().lower()
     aliases = {
+        "map": "map",
+        "m_ap": "map",
+        "mean_ap": "map",
+        "mean_average_precision": "map",
+        "map50": "map50",
+        "map75": "map75",
+        "precision": "precision",
+        "recall": "recall",
+        "detection_f1": "f1",
+        "det_f1": "f1",
         "accuracy": "top1",
         "top1": "top1",
         "macro_f1": "macro_f1",
@@ -254,6 +264,7 @@ def train_model(
     early_stopping_patience: Optional[int] = None,
     selection_metric: str = "accuracy",
     topk: int = 5,
+    weight_decay: float = 0.0001,
 ) -> Tuple[float, Dict[str, Any]]:
     """Quickly train a model and return the best validation selection score."""
     if device is None:
@@ -263,7 +274,7 @@ def train_model(
         class_weights = class_weights.to(device)
 
     criterion = nn.CrossEntropyLoss(weight=class_weights)
-    optimizer = create_optimizer(model, optimizer_name="adamw", lr=lr)
+    optimizer = create_optimizer(model, optimizer_name="adamw", lr=lr, weight_decay=weight_decay)
 
     trainer = Trainer(model, optimizer, criterion, device)
     history: Dict[str, Any] = {

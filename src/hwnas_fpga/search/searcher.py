@@ -30,6 +30,16 @@ if TYPE_CHECKING:
 
 def _metric_display_name(selection_metric: str) -> str:
     normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"map", "m_ap", "mean_ap", "mean_average_precision"}:
+        return "mAP"
+    if normalized == "map50":
+        return "mAP50"
+    if normalized == "map75":
+        return "mAP75"
+    if normalized == "precision":
+        return "Precision"
+    if normalized == "recall":
+        return "Recall"
     if normalized in {"macro_f1", "f1"}:
         return "MacroF1"
     if normalized == "f_clean":
@@ -46,6 +56,12 @@ def _metric_display_name(selection_metric: str) -> str:
 def resolve_pareto_task_metric(selection_metric: str) -> str:
     """Map selection_metric config to a CandidateMetrics field name."""
     normalized = str(selection_metric or "macro_f1").strip().lower()
+    if normalized in {"map", "m_ap", "mean_ap", "mean_average_precision"}:
+        return "map"
+    if normalized in {"map50", "map75", "precision", "recall"}:
+        return normalized
+    if normalized in {"detection_f1", "det_f1"}:
+        return "f1"
     if normalized in {"macro_f1", "f1"}:
         return "macro_f1"
     if normalized in {"f_clean", "f_robust"}:
@@ -60,7 +76,13 @@ def resolve_pareto_task_metric(selection_metric: str) -> str:
 def candidate_selection_score(candidate: SearchCandidate, selection_metric: str) -> float:
     metrics = candidate.metrics
     normalized = str(selection_metric or "macro_f1").strip().lower()
-    if normalized in {"macro_f1", "f1"}:
+    if normalized in {"map", "m_ap", "mean_ap", "mean_average_precision"}:
+        value = metrics.map
+    elif normalized in {"map50", "map75", "precision", "recall"}:
+        value = getattr(metrics, normalized, None)
+    elif normalized in {"detection_f1", "det_f1"}:
+        value = metrics.f1
+    elif normalized in {"macro_f1", "f1"}:
         value = metrics.macro_f1
     elif normalized in {"accuracy", "top1"}:
         value = metrics.top1
@@ -580,6 +602,7 @@ def create_searcher(
             seed=seed,
             reward_weights=kwargs.get("reward_weights"),
             reward_cfg=kwargs.get("reward_cfg"),
+            proxy_training_config=kwargs.get("proxy_training_cfg"),
             eval_early_stopping_patience=kwargs.get("eval_early_stopping_patience", 2),
             selection_metric=kwargs.get("selection_metric", "macro_f1"),
             controller_temperature=kwargs.get("controller_temperature", 1.0),

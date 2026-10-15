@@ -1,0 +1,224 @@
+#include "common_defs.h"
+
+static constexpr int IN_CH = __IN_CHANNELS__;
+static constexpr int OUT_CH = __OUT_CHANNELS__;
+static constexpr int IN_H = __FEATURE_H__;
+static constexpr int IN_W = __FEATURE_W__;
+static constexpr int K = 3;
+static constexpr int BRANCHES = 3;
+static constexpr int DILATIONS[BRANCHES] = {2, 3, 5};
+static constexpr int CH_TILE = (__ARRAY_PARTITION_FACTOR__ > 0) ? __ARRAY_PARTITION_FACTOR__ : 1;
+static constexpr int OUT_TILE = (__OUTPUT_PARALLELISM__ > 0) ? __OUTPUT_PARALLELISM__ : 1;
+
+typedef MAKE_AXIS_TYPE(IN_CH * 8) input_axis_t;
+typedef MAKE_AXIS_TYPE(OUT_CH * 8) output_axis_t;
+
+static inline int branch_pw_weight_index(int branch, int oc, int ic) {
+    return (branch * OUT_CH * IN_CH) + (oc * IN_CH) + ic;
+}
+
+static inline int branch_dw_weight_index(int branch, int oc, int kh, int kw) {
+    return (BRANCHES * OUT_CH * IN_CH) + (((branch * OUT_CH + oc) * K + kh) * K) + kw;
+}
+
+static inline int context_proj_weight_index(int oc, int ic) {
+    return (BRANCHES * OUT_CH * IN_CH) + (BRANCHES * OUT_CH * K * K) + (oc * OUT_CH) + ic;
+}
+
+static inline int input_proj_weight_index(int oc, int ic) {
+    return (BRANCHES * OUT_CH * IN_CH) + (BRANCHES * OUT_CH * K * K) + (OUT_CH * OUT_CH) + (oc * IN_CH) + ic;
+}
+
+static inline data_t sample_input_or_zero(data_t frame[IN_CH][IN_H][IN_W], int c, int h, int w) {
+    if (h < 0 || h >= IN_H || w < 0 || w >= IN_W) {
+        return 0;
+    }
+    return frame[c][h][w];
+}
+
+static inline data_t sample_branch_or_zero(
+    data_t frame[BRANCHES][OUT_CH][IN_H][IN_W],
+    int branch,
+    int c,
+    int h,
+    int w
+) {
+    if (h < 0 || h >= IN_H || w < 0 || w >= IN_W) {
+        return 0;
+    }
+    return frame[branch][c][h][w];
+}
+
+void __TOP_FUNCTION__(
+    hls::stream<input_axis_t> &input_stream,
+    hls::stream<output_axis_t> &output_stream,
+    const weight_t weights[
+        (BRANCHES * OUT_CH * IN_CH) +
+        (BRANCHES * OUT_CH * K * K) +
+        (OUT_CH * OUT_CH) +
+        (OUT_CH * IN_CH)
+    ],
+    const acc_t biases[(BRANCHES * OUT_CH) + OUT_CH + OUT_CH]
+) {
+DECLARE_AXIS_INTERFACE()
+DECLARE_BRAM_WEIGHTS()
+DECLARE_CONTROL_INTERFACE()
+
+    data_t input_frame[IN_CH][IN_H][IN_W];
+    data_t branch_pw_frame[BRANCHES][OUT_CH][IN_H][IN_W];
+    data_t incoming_channels[IN_CH];
+    data_t context_channels[OUT_CH];
+    data_t input_projection[OUT_CH];
+    data_t output_channels[OUT_CH];
+    acc_t acc_tile[OUT_TILE];
+#pragma HLS ARRAY_PARTITION variable=incoming_channels dim=1 cyclic factor=CH_TILE
+#pragma HLS ARRAY_PARTITION variable=context_channels dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=input_projection dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=output_channels dim=1 cyclic factor=OUT_TILE
+#pragma HLS ARRAY_PARTITION variable=acc_tile dim=1 complete
+
+    for (int h = 0; h < IN_H; ++h) {
+        for (int w = 0; w < IN_W; ++w) {
+#pragma HLS PIPELINE II=__PIPELINE_II__
+            input_axis_t in_packet = input_stream.read();
+            unpack_axis_channels<IN_CH>(in_packet, incoming_channels);
+            for (int c = 0; c < IN_CH; ++c) {
+#pragma HLS UNROLL factor=CH_TILE
+                input_frame[c][h][w] = incoming_channels[c];
+            }
+        }
+    }
+
+    for (int branch = 0; branch < BRANCHES; ++branch) {
+        for (int h = 0; h < IN_H; ++h) {
+            for (int w = 0; w < IN_W; ++w) {
+                for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        acc_tile[lane] = (oc < OUT_CH) ? biases[(branch * OUT_CH) + oc] : static_cast<acc_t>(0);
+                    }
+                    for (int ic = 0; ic < IN_CH; ++ic) {
+                        const data_t sample = input_frame[ic][h][w];
+                        for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                            const int oc = oc_base + lane;
+                            if (oc < OUT_CH) {
+                                acc_tile[lane] +=
+                                    static_cast<acc_t>(sample) *
+                                    static_cast<acc_t>(weights[branch_pw_weight_index(branch, oc, ic)]);
+                            }
+                        }
+                    }
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        if (oc < OUT_CH) {
+                            branch_pw_frame[branch][oc][h][w] = saturate_to_data(acc_tile[lane]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (int h = 0; h < IN_H; ++h) {
+        for (int w = 0; w < IN_W; ++w) {
+            for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                acc_t context_acc[OUT_TILE];
+#pragma HLS ARRAY_PARTITION variable=context_acc dim=1 complete
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    context_acc[lane] = (oc < OUT_CH) ? biases[(BRANCHES * OUT_CH) + oc] : static_cast<acc_t>(0);
+                }
+                for (int branch = 0; branch < BRANCHES; ++branch) {
+                    const int dilation = DILATIONS[branch];
+                    for (int kh = 0; kh < K; ++kh) {
+                        for (int kw = 0; kw < K; ++kw) {
+                            const int ih = h + ((kh - 1) * dilation);
+                            const int iw = w + ((kw - 1) * dilation);
+                            for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                                const int oc = oc_base + lane;
+                                if (oc < OUT_CH) {
+                                    context_acc[lane] +=
+                                        static_cast<acc_t>(sample_branch_or_zero(branch_pw_frame, branch, oc, ih, iw)) *
+                                        static_cast<acc_t>(weights[branch_dw_weight_index(branch, oc, kh, kw)]);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    if (oc < OUT_CH) {
+                        context_channels[oc] = saturate_to_data(context_acc[lane] / BRANCHES);
+                    }
+                }
+            }
+
+            for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    acc_tile[lane] = (oc < OUT_CH) ? biases[(BRANCHES * OUT_CH) + OUT_CH + oc] : static_cast<acc_t>(0);
+                }
+                for (int ic = 0; ic < IN_CH; ++ic) {
+                    const data_t sample = input_frame[ic][h][w];
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        if (oc < OUT_CH) {
+                            acc_tile[lane] +=
+                                static_cast<acc_t>(sample) *
+                                static_cast<acc_t>(weights[input_proj_weight_index(oc, ic)]);
+                        }
+                    }
+                }
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    if (oc < OUT_CH) {
+                        input_projection[oc] = saturate_to_data(acc_tile[lane]);
+                    }
+                }
+            }
+
+            for (int oc_base = 0; oc_base < OUT_CH; oc_base += OUT_TILE) {
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    acc_tile[lane] = 0;
+                }
+                for (int ic = 0; ic < OUT_CH; ++ic) {
+                    const data_t sample = context_channels[ic];
+                    for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                        const int oc = oc_base + lane;
+                        if (oc < OUT_CH) {
+                            acc_tile[lane] +=
+                                static_cast<acc_t>(sample) *
+                                static_cast<acc_t>(weights[context_proj_weight_index(oc, ic)]);
+                        }
+                    }
+                }
+                for (int lane = 0; lane < OUT_TILE; ++lane) {
+#pragma HLS UNROLL
+                    const int oc = oc_base + lane;
+                    if (oc < OUT_CH) {
+                        const acc_t fused = (acc_tile[lane] + static_cast<acc_t>(input_projection[oc])) / 2;
+                        output_channels[oc] = saturate_to_data(fused);
+                    }
+                }
+            }
+
+            output_axis_t out_packet = make_axis_packet<output_axis_t, OUT_CH>(
+                output_channels,
+                (h == (IN_H - 1)) && (w == (IN_W - 1))
+            );
+            output_stream.write(out_packet);
+        }
+    }
+}

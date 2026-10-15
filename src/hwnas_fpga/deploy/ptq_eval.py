@@ -163,8 +163,9 @@ class FakeQuantizedOp(nn.Module):
         if bit_width != 8:
             raise ValueError("Only INT8 PTQ simulation is supported")
         self.module = module
-        self.register_buffer("act_max_abs", torch.zeros(()))
-        self.register_buffer("act_scale", torch.zeros(()))
+        device = module.weight.device
+        self.register_buffer("act_max_abs", torch.zeros((), device=device))
+        self.register_buffer("act_scale", torch.zeros((), device=device))
         self.calibrating = True
 
         with torch.no_grad():
@@ -180,7 +181,7 @@ class FakeQuantizedOp(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.calibrating:
             with torch.no_grad():
-                batch_max = x.detach().abs().max()
+                batch_max = x.detach().abs().max().to(self.act_max_abs.device)
                 torch.maximum(self.act_max_abs, batch_max, out=self.act_max_abs)
         else:
             x = quantize_dequantize(x, float(self.act_scale.item()))

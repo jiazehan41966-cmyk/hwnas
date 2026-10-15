@@ -13,7 +13,10 @@ Key components:
 from __future__ import annotations
 
 import math
+import hashlib
+import json
 import random
+from itertools import product
 from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Any, Mapping
 from dataclasses import dataclass
@@ -24,11 +27,17 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
 
-from hwnas_fpga.interfaces import SearchCandidate, SearchConstraints
-from hwnas_fpga.search_space import BlockSpec, SearchSpace, ArchitectureSpec, SearchSpaceConfig
+from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate, SearchConstraints
+from hwnas_fpga.search_space import (
+    ArchitectureSpec,
+    BlockSpec,
+    SearchSpace,
+    SearchSpaceConfig,
+    StageSpec,
+)
 from hwnas_fpga.hardware import FPGACostEstimator
 from hwnas_fpga.models import build_model
-from hwnas_fpga.search.pareto import compute_pareto_front
+from hwnas_fpga.search.pareto import compute_pareto_front, compute_pareto_ranks
 from hwnas_fpga.search.searcher import BaseSearcher, candidate_selection_score
 from hwnas_fpga.training import train_model
 
@@ -227,8 +236,8 @@ class Controller(nn.Module):
 
         注意：这是一个按位置分解的策略（factorized policy）——logits 只依赖
         (stage_idx, block_idx)，不建模决策之间的依赖。项目的 strict40 与 B1
-        对比实验均未显示其优于随机搜索；RL 仅作为论文对比方法保留，
-        主线搜索请使用 run_supernet.py（SPOS 权重共享）。
+        对比结论仅适用于对应的历史协议；
+        当前搜索器由配置决定，此MLP控制器不具有RNN递归状态。
 
         Args:
             stage_idx: 当前stage索引
@@ -590,6 +599,7 @@ class RLSearcher(BaseSearcher):
         exploration_epsilon_decay_episodes: int = 0,
         exploration_bonus: float = 0.0,
         robustness_config: Optional[Mapping[str, Any]] = None,
+        proxy_training_config: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(
             search_space,
@@ -598,6 +608,8 @@ class RLSearcher(BaseSearcher):
             robustness_config=robustness_config,
         )
         self.train_epochs_per_arch = train_epochs_per_arch
+        from hwnas_fpga.training.proxy_config import resolve_proxy_training
+        self.proxy_training_config = resolve_proxy_training(proxy_training_config)
         self.eval_early_stopping_patience = eval_early_stopping_patience
         self.selection_metric = selection_metric
         self.device = device
@@ -686,6 +698,120 @@ class RLSearcher(BaseSearcher):
             infeasible_penalty_scale=float(reward_cfg.get("infeasible_penalty_scale", 5.0)),
             normalization_scales=normalization_scales,
         )
+        hardware_normalization = str(
+            reward_cfg.get("hardware_normalization", "constraint")
+        ).strip().lower()
+        if hardware_normalization in {"raw_space", "raw_space_minmax", "minmax"}:
+            hardware_normalization = "raw_space_minmax"
+        if hardware_normalization not in {"constraint", "raw_space_minmax"}:
+            raise ValueError(
+                "reward_cfg.hardware_normalization must be one of: "
+                "constraint, raw_space_minmax"
+            )
+        hardware_scalarization = str(
+            reward_cfg.get("hardware_scalarization", "weighted_sum")
+        ).strip().lower()
+        if hardware_scalarization in {"pareto", "pareto_rank"}:
+            hardware_scalarization = "pareto_rank"
+        if hardware_scalarization not in {"weighted_sum", "pareto_rank"}:
+            raise ValueError(
+                "reward_cfg.hardware_scalarization must be one of: "
+                "weighted_sum, pareto_rank"
+            )
+        default_rank_weight = (
+            self.reward_function.latency_weight
+            + self.reward_function.energy_weight
+            + self.reward_function.dsp_weight
+            + self.reward_function.bram_weight
+            + self.reward_function.lut_weight
+        )
+        self.hardware_normalization = hardware_normalization
+        self.hardware_scalarization = hardware_scalarization
+        self.hardware_rank_weight = max(
+            0.0,
+            float(reward_cfg.get("hardware_rank_weight", default_rank_weight)),
+        )
+        self.repeat_architecture_penalty = max(
+            0.0,
+            float(reward_cfg.get("repeat_architecture_penalty", 0.0)),
+        )
+        self.max_architecture_repeats = max(
+            0,
+            int(reward_cfg.get("max_architecture_repeats", 0)),
+        )
+        self.collapse_resample_attempts = max(
+            1,
+            int(reward_cfg.get("collapse_resample_attempts", 1)),
+        )
+        self.hardware_feasible_resample_attempts = max(
+            1,
+            int(reward_cfg.get("hardware_feasible_resample_attempts", 1)),
+        )
+        self.hardware_feasible_pool_max_architectures = max(
+            0,
+            int(reward_cfg.get("hardware_feasible_pool_max_architectures", 0)),
+        )
+        self.hardware_feasible_architecture_pool: Optional[List[ArchitectureSpec]] = None
+        if self.hardware_feasible_pool_max_architectures > 0:
+            self.hardware_feasible_architecture_pool = (
+                self._build_hardware_feasible_architecture_pool(
+                    max_architectures=self.hardware_feasible_pool_max_architectures,
+                )
+            )
+        self.raw_space_reference_required = bool(
+            reward_cfg.get(
+                "require_raw_space_reference",
+                self.hardware_normalization == "raw_space_minmax"
+                or self.hardware_scalarization == "pareto_rank",
+            )
+        )
+        self.raw_space_reference_max_architectures = max(
+            1,
+            int(reward_cfg.get("raw_space_reference_max_architectures", 10_000)),
+        )
+        self.raw_space_hardware_reference = (
+            self._build_raw_space_hardware_reference(
+                max_architectures=self.raw_space_reference_max_architectures,
+            )
+            if (
+                self.hardware_normalization == "raw_space_minmax"
+                or self.hardware_scalarization == "pareto_rank"
+            )
+            else None
+        )
+        if self.raw_space_reference_required and self.raw_space_hardware_reference is None:
+            raise RuntimeError(
+                "reward_cfg requested RAW-space hardware reward, but the "
+                "search space could not be enumerated into a hardware reference"
+            )
+        self.reward_protocol = {
+            "proxy_training": self.proxy_training_config,
+            "schema_version": 2,
+            "hardware_rank_rule": "fixed_reference_dominance_insertion_v2",
+            "reference_sampling": "seed0_uniform_indices_v2",
+            "reference_sha256": hashlib.sha256(json.dumps(
+                self.raw_space_hardware_reference, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")).hexdigest(),
+            "accuracy_term": self.selection_metric,
+            "hardware_normalization": self.hardware_normalization,
+            "hardware_scalarization": self.hardware_scalarization,
+            "hardware_rank_weight": self.hardware_rank_weight,
+            "repeat_architecture_penalty": self.repeat_architecture_penalty,
+            "max_architecture_repeats": self.max_architecture_repeats,
+            "collapse_resample_attempts": self.collapse_resample_attempts,
+            "hardware_feasible_resample_attempts": self.hardware_feasible_resample_attempts,
+            "hardware_feasible_pool_max_architectures": self.hardware_feasible_pool_max_architectures,
+            "hardware_feasible_pool_size": (
+                None
+                if self.hardware_feasible_architecture_pool is None
+                else len(self.hardware_feasible_architecture_pool)
+            ),
+            "raw_space_reference_size": (
+                None
+                if self.raw_space_hardware_reference is None
+                else self.raw_space_hardware_reference["size"]
+            ),
+        }
 
         # Baseline（用于减少方差）
         self.baseline = 0.0
@@ -921,9 +1047,273 @@ class RLSearcher(BaseSearcher):
         count = self.architecture_visit_counts.get(self._architecture_visit_key(architecture), 0)
         return self.exploration_bonus / math.sqrt(float(count + 1))
 
+    def _collapse_penalty_for(self, architecture: ArchitectureSpec) -> float:
+        if self.repeat_architecture_penalty <= 0.0:
+            return 0.0
+        count = self.architecture_visit_counts.get(self._architecture_visit_key(architecture), 0)
+        return self.repeat_architecture_penalty * float(count)
+
     def _record_architecture_visit(self, architecture: ArchitectureSpec) -> None:
         key = self._architecture_visit_key(architecture)
         self.architecture_visit_counts[key] = self.architecture_visit_counts.get(key, 0) + 1
+
+    def _enumerate_raw_space_architectures(
+        self,
+        *,
+        max_architectures: Optional[int],
+    ) -> Optional[List[ArchitectureSpec]]:
+        config = self.search_space.config
+        if config.stage_block_choices is None:
+            return None
+
+        stage_choices: List[List[Tuple[int, int, Tuple[BlockSpec, ...]]]] = []
+        current_channel_options: Tuple[int, ...] = (config.stem_channels,)
+        for stage_index, stride in enumerate(config.stage_strides):
+            channel_choices = tuple(config.channel_choices_for_stage(stage_index))
+            depth_choices = tuple(config.depth_choices_for_stage(stage_index))
+            options: List[Tuple[int, int, Tuple[BlockSpec, ...]]] = []
+            for channels in channel_choices:
+                for depth in depth_choices:
+                    if depth != 1:
+                        return None
+                    concrete_by_input: List[Tuple[BlockSpec, ...]] = []
+                    for in_channels in current_channel_options:
+                        concrete = self.search_space.concrete_block_choices_for_stage(
+                            stage_index=stage_index,
+                            in_channels=in_channels,
+                            out_channels=channels,
+                            stride=int(stride),
+                        )
+                        if concrete is None:
+                            return None
+                        concrete_by_input.append(concrete)
+                    if not concrete_by_input:
+                        continue
+                    normalized = tuple(
+                        dict.fromkeys(
+                            block
+                            for concrete in concrete_by_input
+                            for block in concrete
+                        )
+                    )
+                    options.append((int(channels), int(depth), normalized))
+            if not options:
+                return None
+            stage_choices.append(options)
+            current_channel_options = channel_choices
+
+        total = 1
+        for options in stage_choices:
+            total *= sum(len(block_choices) for _, _, block_choices in options)
+        # Fixed seed makes the reference reproducible without aliasing the
+        # trailing stage choices (as an arithmetic sampling stride does).
+        import random as reference_random
+        sample_count = total if max_architectures is None else min(total, max_architectures)
+        selected_indices = set(reference_random.Random(0).sample(
+            range(total), sample_count
+        ))
+
+        architectures: List[ArchitectureSpec] = []
+        combination_index = 0
+        for selected_stage_options in product(*stage_choices):
+            per_stage_block_choices = [item[2] for item in selected_stage_options]
+            for selected_blocks in product(*per_stage_block_choices):
+                include = combination_index in selected_indices
+                combination_index += 1
+                if not include:
+                    continue
+                stages = []
+                for stage_index, ((channels, depth, _), block) in enumerate(
+                    zip(selected_stage_options, selected_blocks)
+                ):
+                    stages.append(
+                        StageSpec(
+                            channels=channels,
+                            depth=depth,
+                            stride=int(config.stage_strides[stage_index]),
+                            blocks=(block,),
+                        )
+                    )
+                architectures.append(
+                    ArchitectureSpec(
+                        input_channels=config.input_channels,
+                        stem_channels=config.stem_channels,
+                        stages=tuple(stages),
+                        stem_stride=config.stem_stride,
+                        post_stem_downsample_stride=config.post_stem_downsample_stride,
+                        head_conv_channels=config.head_conv_channels,
+                        head_channels=config.head_channels,
+                        num_classes=config.num_classes,
+                    )
+                )
+                if max_architectures is not None and len(architectures) >= max_architectures:
+                    return architectures
+        return architectures
+
+    def _build_raw_space_hardware_reference(
+        self,
+        *,
+        max_architectures: int,
+    ) -> Optional[Dict[str, Any]]:
+        architectures = self._enumerate_raw_space_architectures(
+            max_architectures=max_architectures,
+        )
+        if not architectures:
+            return None
+
+        metric_names = ("latency_ms", "energy_mj", "dsp", "bram", "lut")
+        candidates: List[SearchCandidate] = []
+        metrics_by_key: Dict[str, Dict[str, float]] = {}
+        for index, architecture in enumerate(architectures):
+            estimate = self.estimator.estimate(architecture, self.search_space)
+            metrics = {
+                "latency_ms": float(estimate.latency_ms),
+                "energy_mj": float(estimate.energy_mj),
+                "dsp": float(estimate.resource_dsp),
+                "bram": float(estimate.resource_bram),
+                "lut": float(estimate.resource_lut),
+            }
+            key = self._architecture_visit_key(architecture)
+            metrics_by_key[key] = metrics
+            candidates.append(
+                SearchCandidate(
+                    arch_id=f"raw_ref_{index}",
+                    encoding=architecture.to_dict(),
+                    metrics=CandidateMetrics(
+                        latency_ms=metrics["latency_ms"],
+                        energy_mj=metrics["energy_mj"],
+                        dsp=int(metrics["dsp"]),
+                        bram=int(metrics["bram"]),
+                        lut=int(metrics["lut"]),
+                    ),
+                )
+            )
+
+        ranges = {}
+        for name in metric_names:
+            values = [record[name] for record in metrics_by_key.values()]
+            ranges[name] = {"min": min(values), "max": max(values)}
+
+        ranks = compute_pareto_ranks(
+            candidates,
+            objectives=list(metric_names),
+            directions=["min"] * len(metric_names),
+        )
+        rank_by_key = {
+            self._architecture_visit_key(
+                ArchitectureSpec.from_dict(candidate.encoding)
+            ): int(rank)
+            for candidate, rank in zip(candidates, ranks)
+        }
+        max_rank = max(ranks, default=0)
+        return {
+            "size": len(architectures),
+            "ranges": ranges,
+            "metrics_by_key": metrics_by_key,
+            "pareto_rank_by_key": rank_by_key,
+            "max_pareto_rank": int(max_rank),
+        }
+
+    @staticmethod
+    def _minmax_normalize(value: float, lower: float, upper: float) -> float:
+        if upper <= lower:
+            return 0.0
+        return (float(value) - float(lower)) / (float(upper) - float(lower))
+
+    def _raw_space_hardware_penalty(self, architecture: ArchitectureSpec, metrics: Mapping[str, float]) -> float:
+        reference = self.raw_space_hardware_reference
+        if reference is None:
+            return 0.0
+        ranges = reference["ranges"]
+        return (
+            self.reward_function.latency_weight
+            * self._minmax_normalize(metrics["latency_ms"], ranges["latency_ms"]["min"], ranges["latency_ms"]["max"])
+            + self.reward_function.energy_weight
+            * self._minmax_normalize(metrics["energy_mj"], ranges["energy_mj"]["min"], ranges["energy_mj"]["max"])
+            + self.reward_function.dsp_weight
+            * self._minmax_normalize(metrics["dsp"], ranges["dsp"]["min"], ranges["dsp"]["max"])
+            + self.reward_function.bram_weight
+            * self._minmax_normalize(metrics["bram"], ranges["bram"]["min"], ranges["bram"]["max"])
+            + self.reward_function.lut_weight
+            * self._minmax_normalize(metrics["lut"], ranges["lut"]["min"], ranges["lut"]["max"])
+        )
+
+    def _hardware_pareto_rank_penalty(
+        self, architecture: ArchitectureSpec,
+        metrics: Optional[Mapping[str, float]] = None,
+    ) -> float:
+        reference = self.raw_space_hardware_reference
+        if reference is None:
+            raise RuntimeError("Pareto hardware reward requires a fixed reference")
+        rank_by_key = reference["pareto_rank_by_key"]
+        key = self._architecture_visit_key(architecture)
+        if key in rank_by_key:
+            rank = int(rank_by_key[key])
+        else:
+            if metrics is None:
+                estimate = self.estimator.estimate(architecture, self.search_space)
+                metrics = dict(latency_ms=estimate.latency_ms, energy_mj=estimate.energy_mj,
+                               dsp=estimate.resource_dsp, bram=estimate.resource_bram,
+                               lut=estimate.resource_lut)
+            names = ("latency_ms", "energy_mj", "dsp", "bram", "lut")
+            values = [float(metrics[name]) for name in names]
+            if not all(math.isfinite(value) for value in values):
+                raise ValueError("hardware reward requires finite metrics")
+            # Insert the query into the fixed reference's dominance layers.
+            # Reference layers never change with evaluation order or resume.
+            rank = 0
+            for ref_key, row in reference["metrics_by_key"].items():
+                other = [float(row[name]) for name in names]
+                if all(a <= b for a, b in zip(other, values)) and any(
+                    a < b for a, b in zip(other, values)
+                ):
+                    rank = max(rank, int(rank_by_key[ref_key]) + 1)
+        denominator = max(1, int(reference["max_pareto_rank"]) + 1)
+        return self.hardware_rank_weight * rank / denominator
+
+    def _compute_controller_reward(
+        self,
+        *,
+        architecture: ArchitectureSpec,
+        task_score: float,
+        metrics: Mapping[str, float],
+        is_feasible: bool,
+        constraint_violation_ratio: float,
+    ) -> float:
+        if not is_feasible:
+            return self.reward_function.compute_reward(
+                accuracy=task_score,
+                latency_ms=float(metrics["latency_ms"]),
+                energy_mj=float(metrics["energy_mj"]),
+                dsp=int(metrics["dsp"]),
+                bram=int(metrics["bram"]),
+                lut=int(metrics["lut"]),
+                is_feasible=False,
+                constraint_violation_ratio=constraint_violation_ratio,
+            )
+
+        if self.hardware_scalarization == "pareto_rank":
+            return (
+                self.reward_function.accuracy_weight * float(task_score)
+                - self._hardware_pareto_rank_penalty(architecture, metrics)
+            )
+
+        if self.hardware_normalization == "raw_space_minmax":
+            return (
+                self.reward_function.accuracy_weight * float(task_score)
+                - self._raw_space_hardware_penalty(architecture, metrics)
+            )
+
+        return self.reward_function.compute_reward(
+            accuracy=task_score,
+            latency_ms=float(metrics["latency_ms"]),
+            energy_mj=float(metrics["energy_mj"]),
+            dsp=int(metrics["dsp"]),
+            bram=int(metrics["bram"]),
+            lut=int(metrics["lut"]),
+            is_feasible=True,
+            constraint_violation_ratio=constraint_violation_ratio,
+        )
 
     def _sample_stage_block_choice(
         self,
@@ -1196,8 +1586,81 @@ class RLSearcher(BaseSearcher):
             num_classes=self.search_space.config.num_classes,
         )
 
+    def _generate_architecture_with_repeat_limit(self) -> ArchitectureSpec:
+        if self.max_architecture_repeats <= 0:
+            return self._generate_architecture_masked()
+
+        last_architecture = None
+        for _ in range(self.collapse_resample_attempts):
+            architecture = self._generate_architecture_masked()
+            last_architecture = architecture
+            visit_count = self.architecture_visit_counts.get(
+                self._architecture_visit_key(architecture),
+                0,
+            )
+            if visit_count < self.max_architecture_repeats:
+                return architecture
+        if last_architecture is None:
+            return self._generate_architecture_masked()
+        return last_architecture
+
+    def _passes_hardware_resample_gate(self, architecture: ArchitectureSpec) -> bool:
+        try:
+            estimate = self.estimator.estimate(architecture, self.search_space)
+        except Exception:
+            return False
+        return len(estimate.violations) == 0
+
+    def _build_hardware_feasible_architecture_pool(
+        self,
+        *,
+        max_architectures: int,
+    ) -> List[ArchitectureSpec]:
+        architectures = self._enumerate_raw_space_architectures(
+            max_architectures=max_architectures,
+        )
+        if not architectures:
+            return []
+        return [
+            architecture
+            for architecture in architectures
+            if self._passes_hardware_resample_gate(architecture)
+        ]
+
+    def _sample_hardware_feasible_pool(self) -> Optional[ArchitectureSpec]:
+        pool = self.hardware_feasible_architecture_pool
+        if not pool:
+            return None
+        if self.max_architecture_repeats > 0:
+            eligible = [
+                architecture
+                for architecture in pool
+                if self.architecture_visit_counts.get(
+                    self._architecture_visit_key(architecture),
+                    0,
+                )
+                < self.max_architecture_repeats
+            ]
+            if eligible:
+                return random.choice(eligible)
+        return random.choice(pool)
+
     def generate_architecture(self) -> ArchitectureSpec:
-        return self._generate_architecture_masked()
+        pooled = self._sample_hardware_feasible_pool()
+        if pooled is not None:
+            return pooled
+        if self.hardware_feasible_resample_attempts <= 1:
+            return self._generate_architecture_with_repeat_limit()
+
+        last_architecture = None
+        for _ in range(self.hardware_feasible_resample_attempts):
+            architecture = self._generate_architecture_with_repeat_limit()
+            last_architecture = architecture
+            if self._passes_hardware_resample_gate(architecture):
+                return architecture
+        if last_architecture is None:
+            return self._generate_architecture_with_repeat_limit()
+        return last_architecture
 
     def _legacy_generate_architecture(self) -> ArchitectureSpec:
         """使用控制器生成一个架构"""
@@ -1368,6 +1831,8 @@ class RLSearcher(BaseSearcher):
                     train_loader=train_loader,
                     num_classes=num_classes,
                     epochs=self.train_epochs_per_arch,
+                    lr=self.proxy_training_config["lr"],
+                    weight_decay=self.proxy_training_config["weight_decay"],
                     device=self.device,
                     val_loader=val_loader,
                     class_weights=class_weights,
@@ -1377,6 +1842,14 @@ class RLSearcher(BaseSearcher):
                     selection_metric=self.selection_metric,
                 )
                 self.last_trained_model = model
+                history["resolved_proxy_training"] = {
+                    **self.proxy_training_config,
+                    "epochs": self.train_epochs_per_arch,
+                    "early_stopping_patience": self.eval_early_stopping_patience,
+                    "selection_metric": self.selection_metric,
+                    "batch_size": getattr(train_loader, "batch_size", None),
+                    "class_weights_applied": class_weights is not None,
+                }
                 self.last_training_history = history
             except Exception as e:
                 print(f"Error training {arch_id}: {e}")
@@ -1423,13 +1896,10 @@ class RLSearcher(BaseSearcher):
         if is_feasible:
             selection_score = candidate_selection_score(candidate, self.selection_metric)
             violation_ratio = self._compute_constraint_violation_ratio(cost_estimate)
-            reward = self.reward_function.compute_reward(
-                accuracy=selection_score,
-                latency_ms=metrics["latency_ms"],
-                energy_mj=metrics["energy_mj"],
-                dsp=metrics["dsp"],
-                bram=metrics["bram"],
-                lut=metrics["lut"],
+            reward = self._compute_controller_reward(
+                architecture=architecture,
+                task_score=selection_score,
+                metrics=metrics,
                 is_feasible=is_feasible,
                 constraint_violation_ratio=violation_ratio,
             )
@@ -1734,20 +2204,22 @@ class RLSearcher(BaseSearcher):
                 if is_feasible
                 else 0.0
             )
-            reward = self.reward_function.compute_reward(
-                accuracy=task_score,
-                latency_ms=metrics["latency_ms"],
-                energy_mj=metrics["energy_mj"],
-                dsp=metrics["dsp"],
-                bram=metrics["bram"],
-                lut=metrics["lut"],
+            reward = self._compute_controller_reward(
+                architecture=architecture,
+                task_score=task_score,
+                metrics=metrics,
                 is_feasible=is_feasible,
                 constraint_violation_ratio=violation_ratio,
             )
 
             # 4. Apply exploration bonus and update controller once.
+            visit_count_before = self.architecture_visit_counts.get(
+                self._architecture_visit_key(architecture),
+                0,
+            )
             exploration_bonus = self._exploration_bonus_for(architecture)
-            reward_with_bonus = reward + exploration_bonus
+            collapse_penalty = self._collapse_penalty_for(architecture)
+            reward_with_bonus = reward + exploration_bonus - collapse_penalty
             self._record_architecture_visit(architecture)
             loss = self.update_controller(architecture, reward_with_bonus)
 
@@ -1762,12 +2234,15 @@ class RLSearcher(BaseSearcher):
                         "reward": reward,
                         "reward_with_bonus": reward_with_bonus,
                         "exploration_bonus": exploration_bonus,
+                        "collapse_penalty": collapse_penalty,
+                        "architecture_visit_count_before": visit_count_before,
                         "exploration_epsilon": self._current_exploration_epsilon(),
                         "constraint_violation_ratio": violation_ratio,
                         "selection_score": task_score,
                         "loss": loss,
                         "baseline": self.baseline,
                         "search_method": "rl",
+                        "reward_protocol": self.reward_protocol,
                     },
                 )
                 artifact_tracker.save_named_checkpoint(
@@ -1842,6 +2317,8 @@ class RLSearcher(BaseSearcher):
                         "reward": reward,
                         "reward_with_bonus": reward_with_bonus,
                         "exploration_bonus": exploration_bonus,
+                        "collapse_penalty": collapse_penalty,
+                        "architecture_visit_count_before": visit_count_before,
                         "exploration_epsilon": self._current_exploration_epsilon(),
                         "loss": loss,
                         "baseline": self.baseline,
@@ -1851,6 +2328,7 @@ class RLSearcher(BaseSearcher):
                             if self.best_reward_candidate is not None
                             else None
                         ),
+                        "reward_protocol": self.reward_protocol,
                     },
                 )
 

@@ -1,5 +1,7 @@
 # ZCU104 算子实测代价表合同 V1
 
+> 历史版本：旧fourstage_cfem20_v1 / RAW20的9行表合同。下文的“当前”“本轮”“必须”仅指原文所绑定的系列，不是现工作区的执行指令。当前MobileNetA分类与检测边界见[方法说明](../method_design.md)和[配置版本索引](../SEARCH_CONFIG_CANONICAL.md)；历史产物与验收记录保持原样。
+
 ## 1. 适用范围
 
 本合同把 `zcu104_full_campaign_v1` 的当前主线绑定到已经冻结的 `fourstage_cfem20_v1`，下一阶段只构建算子代价表。本轮所有硬件代价必须在 ZCU104（XCZU7EV-FFVC1156-2-E）上重新建立。

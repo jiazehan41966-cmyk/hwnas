@@ -1,0 +1,35 @@
+version: sonar_192_chain_v1
+space_version: sonar_backbone_neck192_v2
+purpose: bounded_interface_integration_not_search
+formal_search_enabled: false
+space_source: results/space192_v2_20261013/stage_B/sonar_backbone_neck192_v2.yaml
+checkpoint_selection:
+  weights: ema
+  epoch: 80
+  deployment_seed: 42
+  paired_validation_seeds: [42, 43, 44]
+  select_seed_by_validation_result: false
+  policy: epoch80_ema
+  metrics: evaluate_this_checkpoint_separately
+  stable_epochs_76_80_mean: separate_statistical_summary
+  completed_artifact_registration: independently_reviewed_hashes_in_source
+  allow_cli_registration: false
+quantization:
+  implementation: tools.sonar_192_chain.quantization
+  supported_profiles: [W8A8, HEAD_W8A16, HEAD_W16A16]
+  hardware_profile_admission: separate_source_bound_measurement_required
+  calibration_split: train
+  formal_calibration_images: 64
+  integer_silu: explicit_256_or_65536_entry_LUT_with_frozen_bytes
+hardware_cost:
+  implementation: tools.sonar_192_chain.hardware
+  formal_records_required: true
+  diagnostic_board_records_admitted: false
+  missing_cost: needs_measurement
+  board_operator_aggregation_is_full_network_measurement: false
+handoff:
+  implementation: tools.sonar_192_chain.handoff
+  abi: sonar192_integer_transport_v1
+  existing_bitstream_compatibility: NOT_VERIFIED
+  board_result_must_bind: [identity, checkpoint, quantization, calibration, mapping, graph, loader, bitstream]
+test_policy: sealed

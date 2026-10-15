@@ -830,6 +830,25 @@ def module_names_in_rtl(rtl_files: list[Path]) -> list[str]:
     return names
 
 
+HLS_BRAM_STORAGE_HINT_MODULE_TOKENS = (
+    "_weights_",
+    "_line_buffer_",
+    "_output_channels_",
+    "_fifo_w",
+)
+
+
+def apply_hls_bram_storage_overrides(text: str, source_name: str) -> str:
+    """Bias large HLS-generated memories away from LUTRAM in full-network builds."""
+    if not any(token in source_name for token in HLS_BRAM_STORAGE_HINT_MODULE_TOKENS):
+        return text
+    return re.sub(
+        r'\(\*\s*ram_style\s*=\s*"auto"\s*\*\)',
+        '(* ram_style = "block", ram_decomp = "power", rw_addr_collision = "yes" *)',
+        text,
+    )
+
+
 def rename_and_copy_rtl(src_dir: Path, dst_dir: Path, role: str, top_module: str) -> str:
     dst_dir.mkdir(parents=True, exist_ok=True)
     rtl_files = sorted(src_dir.glob("*.v"))
@@ -842,6 +861,7 @@ def rename_and_copy_rtl(src_dir: Path, dst_dir: Path, role: str, top_module: str
         text = path.read_text(encoding="utf-8", errors="replace")
         for old, new in replacements:
             text = re.sub(rf"\b{re.escape(old)}\b", new, text)
+        text = apply_hls_bram_storage_overrides(text, f"{role}_{path.name}")
         (dst_dir / f"{role}_{path.name}").write_text(text, encoding="utf-8")
     return mapping.get(top_module, f"{role}_{top_module}")
 
@@ -1270,7 +1290,7 @@ module axis_simple_fifo #(
 localparam integer ADDR_WIDTH = (DEPTH <= 2) ? 1 : $clog2(DEPTH);
 localparam integer WORD_WIDTH = DATA_WIDTH + (2 * KEEP_WIDTH) + 1;
 
-(* ram_style = "block" *) reg [WORD_WIDTH-1:0] mem [0:DEPTH-1];
+(* ram_style = "block", ram_decomp = "power", rw_addr_collision = "yes" *) reg [WORD_WIDTH-1:0] mem [0:DEPTH-1];
 reg [ADDR_WIDTH-1:0] wr_ptr = {ADDR_WIDTH{1'b0}};
 reg [ADDR_WIDTH-1:0] rd_ptr = {ADDR_WIDTH{1'b0}};
 reg [ADDR_WIDTH:0] count = {(ADDR_WIDTH+1){1'b0}};
@@ -1519,7 +1539,7 @@ def resetless_simple_dual_port_bram_module_text() -> str:
     output reg  [DATA_WIDTH-1:0]        doutb
 );
 
-reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
+(* ram_style = "block", ram_decomp = "power", rw_addr_collision = "yes" *) reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
 integer i;
 integer byte_idx;
 
@@ -1601,7 +1621,7 @@ def write_constraints(project_root: Path, board_config: Path) -> None:
         line = gh.make_constraint_line(f"status_led[{idx}]", pin, led_cfg.get("iostandard"))
         if line:
             led_constraints.append(line)
-    if "package_pin_p" in clock_cfg:
+    if "port_name_p" in clock_cfg and "port_name_n" in clock_cfg:
         clock_constraints = [
             gh.make_constraint_line(clock_cfg["port_name_p"], clock_cfg.get("package_pin_p"), clock_cfg.get("iostandard")),
             gh.make_constraint_line(clock_cfg["port_name_n"], clock_cfg.get("package_pin_n"), clock_cfg.get("iostandard")),
@@ -1659,6 +1679,9 @@ def write_stitched_top(
     gh.copy_tree_files(BOARD_HARNESS_DIR / "modules", rtl_dir)
     (rtl_dir / "axis_simple_fifo.v").write_text(axis_fifo_module_text(fifo_style), encoding="utf-8")
     (rtl_dir / "axis_width_adapter.v").write_text(axis_width_adapter_module_text(), encoding="utf-8")
+    unused_static_rom = rtl_dir / "axis_rom_source.v"
+    if unused_static_rom.exists():
+        unused_static_rom.unlink()
     if param_reset_style == "const_zero_all":
         (rtl_dir / "simple_dual_port_bram.v").write_text(
             resetless_simple_dual_port_bram_module_text(),
@@ -1690,11 +1713,8 @@ def write_stitched_top(
 
     input_word_count = int(expand["case_meta"]["input_word_count"])
     output_word_count = int(project["case_meta"]["output_word_count"])
-    input_mem_paths = gh.generate_stream_mem_files(data_dir, "input_stream", input_word_count, input_width)
     input_word_mem = gh.generate_stream_word_mem_file(data_dir, "input_stream_words", input_word_count, input_width)
     input_mem_mapping = {f"INPUT_MEM_FILE_{lane_idx:02d}": '""' for lane_idx in range(32)}
-    for lane_idx, mem_path in enumerate(input_mem_paths):
-        input_mem_mapping[f"INPUT_MEM_FILE_{lane_idx:02d}"] = f'"../data/{mem_path.name}"'
 
     param_logic = "\n\n".join(build_param_logic_for_spec(spec, data_dir, param_reset_style) for spec in specs)
     axil_blocks = "\n\n".join(axil_wires_and_ctrl(spec) for spec in specs)
@@ -1752,43 +1772,11 @@ end
 
 {axis_wire_decl("input", input_width, input_keep)}
 wire source_done;
-axis_rom_source #(
+axis_word_rom_source #(
     .DATA_WIDTH(INPUT_TDATA_WIDTH),
     .KEEP_WIDTH(INPUT_KEEP_WIDTH),
     .WORD_COUNT(INPUT_WORD_COUNT),
-    .WORD_MEM_FILE("../data/{input_word_mem.name}"),
-    .MEM_FILE_00({input_mem_mapping["INPUT_MEM_FILE_00"]}),
-    .MEM_FILE_01({input_mem_mapping["INPUT_MEM_FILE_01"]}),
-    .MEM_FILE_02({input_mem_mapping["INPUT_MEM_FILE_02"]}),
-    .MEM_FILE_03({input_mem_mapping["INPUT_MEM_FILE_03"]}),
-    .MEM_FILE_04({input_mem_mapping["INPUT_MEM_FILE_04"]}),
-    .MEM_FILE_05({input_mem_mapping["INPUT_MEM_FILE_05"]}),
-    .MEM_FILE_06({input_mem_mapping["INPUT_MEM_FILE_06"]}),
-    .MEM_FILE_07({input_mem_mapping["INPUT_MEM_FILE_07"]}),
-    .MEM_FILE_08({input_mem_mapping["INPUT_MEM_FILE_08"]}),
-    .MEM_FILE_09({input_mem_mapping["INPUT_MEM_FILE_09"]}),
-    .MEM_FILE_10({input_mem_mapping["INPUT_MEM_FILE_10"]}),
-    .MEM_FILE_11({input_mem_mapping["INPUT_MEM_FILE_11"]}),
-    .MEM_FILE_12({input_mem_mapping["INPUT_MEM_FILE_12"]}),
-    .MEM_FILE_13({input_mem_mapping["INPUT_MEM_FILE_13"]}),
-    .MEM_FILE_14({input_mem_mapping["INPUT_MEM_FILE_14"]}),
-    .MEM_FILE_15({input_mem_mapping["INPUT_MEM_FILE_15"]}),
-    .MEM_FILE_16({input_mem_mapping["INPUT_MEM_FILE_16"]}),
-    .MEM_FILE_17({input_mem_mapping["INPUT_MEM_FILE_17"]}),
-    .MEM_FILE_18({input_mem_mapping["INPUT_MEM_FILE_18"]}),
-    .MEM_FILE_19({input_mem_mapping["INPUT_MEM_FILE_19"]}),
-    .MEM_FILE_20({input_mem_mapping["INPUT_MEM_FILE_20"]}),
-    .MEM_FILE_21({input_mem_mapping["INPUT_MEM_FILE_21"]}),
-    .MEM_FILE_22({input_mem_mapping["INPUT_MEM_FILE_22"]}),
-    .MEM_FILE_23({input_mem_mapping["INPUT_MEM_FILE_23"]}),
-    .MEM_FILE_24({input_mem_mapping["INPUT_MEM_FILE_24"]}),
-    .MEM_FILE_25({input_mem_mapping["INPUT_MEM_FILE_25"]}),
-    .MEM_FILE_26({input_mem_mapping["INPUT_MEM_FILE_26"]}),
-    .MEM_FILE_27({input_mem_mapping["INPUT_MEM_FILE_27"]}),
-    .MEM_FILE_28({input_mem_mapping["INPUT_MEM_FILE_28"]}),
-    .MEM_FILE_29({input_mem_mapping["INPUT_MEM_FILE_29"]}),
-    .MEM_FILE_30({input_mem_mapping["INPUT_MEM_FILE_30"]}),
-    .MEM_FILE_31({input_mem_mapping["INPUT_MEM_FILE_31"]})
+    .WORD_MEM_FILE("../data/{input_word_mem.name}")
 ) u_axis_rom_source (
     .clk(clk_main), .rst_n(rst_n), .start(start_pulse),
     .tdata(input_tdata), .tkeep(input_tkeep), .tstrb(input_tstrb), .tlast(input_tlast),
@@ -2040,6 +2028,9 @@ def write_debug_stitched_top(
     rtl_dir.mkdir(parents=True, exist_ok=True)
     gh.copy_tree_files(BOARD_HARNESS_DIR / "modules", rtl_dir)
     (rtl_dir / "axis_simple_fifo.v").write_text(axis_fifo_module_text(), encoding="utf-8")
+    unused_static_rom = rtl_dir / "axis_rom_source.v"
+    if unused_static_rom.exists():
+        unused_static_rom.unlink()
 
     selected = debug_specs_for_mode(specs, debug_mode)
     input_spec = selected[0]
@@ -2051,11 +2042,8 @@ def write_debug_stitched_top(
     input_word_count = int(input_spec["case_meta"]["input_word_count"])
     output_word_count = int(output_spec["case_meta"]["output_word_count"])
 
-    input_mem_paths = gh.generate_stream_mem_files(data_dir, "input_stream", input_word_count, input_width)
     input_word_mem = gh.generate_stream_word_mem_file(data_dir, "input_stream_words", input_word_count, input_width)
     input_mem_mapping = {f"INPUT_MEM_FILE_{lane_idx:02d}": '""' for lane_idx in range(32)}
-    for lane_idx, mem_path in enumerate(input_mem_paths):
-        input_mem_mapping[f"INPUT_MEM_FILE_{lane_idx:02d}"] = f'"../data/{mem_path.name}"'
 
     chain_body, kernel_instances = debug_chain_text(selected, debug_mode, fifo_depth)
     param_logic = "\n\n".join(build_param_logic_for_spec(spec, data_dir, param_reset_style) for spec in selected)
@@ -2109,43 +2097,11 @@ end
 
 {axis_wire_decl("input", input_width, input_keep)}
 wire source_done;
-axis_rom_source #(
+axis_word_rom_source #(
     .DATA_WIDTH(INPUT_TDATA_WIDTH),
     .KEEP_WIDTH(INPUT_KEEP_WIDTH),
     .WORD_COUNT(INPUT_WORD_COUNT),
-    .WORD_MEM_FILE("../data/{input_word_mem.name}"),
-    .MEM_FILE_00({input_mem_mapping["INPUT_MEM_FILE_00"]}),
-    .MEM_FILE_01({input_mem_mapping["INPUT_MEM_FILE_01"]}),
-    .MEM_FILE_02({input_mem_mapping["INPUT_MEM_FILE_02"]}),
-    .MEM_FILE_03({input_mem_mapping["INPUT_MEM_FILE_03"]}),
-    .MEM_FILE_04({input_mem_mapping["INPUT_MEM_FILE_04"]}),
-    .MEM_FILE_05({input_mem_mapping["INPUT_MEM_FILE_05"]}),
-    .MEM_FILE_06({input_mem_mapping["INPUT_MEM_FILE_06"]}),
-    .MEM_FILE_07({input_mem_mapping["INPUT_MEM_FILE_07"]}),
-    .MEM_FILE_08({input_mem_mapping["INPUT_MEM_FILE_08"]}),
-    .MEM_FILE_09({input_mem_mapping["INPUT_MEM_FILE_09"]}),
-    .MEM_FILE_10({input_mem_mapping["INPUT_MEM_FILE_10"]}),
-    .MEM_FILE_11({input_mem_mapping["INPUT_MEM_FILE_11"]}),
-    .MEM_FILE_12({input_mem_mapping["INPUT_MEM_FILE_12"]}),
-    .MEM_FILE_13({input_mem_mapping["INPUT_MEM_FILE_13"]}),
-    .MEM_FILE_14({input_mem_mapping["INPUT_MEM_FILE_14"]}),
-    .MEM_FILE_15({input_mem_mapping["INPUT_MEM_FILE_15"]}),
-    .MEM_FILE_16({input_mem_mapping["INPUT_MEM_FILE_16"]}),
-    .MEM_FILE_17({input_mem_mapping["INPUT_MEM_FILE_17"]}),
-    .MEM_FILE_18({input_mem_mapping["INPUT_MEM_FILE_18"]}),
-    .MEM_FILE_19({input_mem_mapping["INPUT_MEM_FILE_19"]}),
-    .MEM_FILE_20({input_mem_mapping["INPUT_MEM_FILE_20"]}),
-    .MEM_FILE_21({input_mem_mapping["INPUT_MEM_FILE_21"]}),
-    .MEM_FILE_22({input_mem_mapping["INPUT_MEM_FILE_22"]}),
-    .MEM_FILE_23({input_mem_mapping["INPUT_MEM_FILE_23"]}),
-    .MEM_FILE_24({input_mem_mapping["INPUT_MEM_FILE_24"]}),
-    .MEM_FILE_25({input_mem_mapping["INPUT_MEM_FILE_25"]}),
-    .MEM_FILE_26({input_mem_mapping["INPUT_MEM_FILE_26"]}),
-    .MEM_FILE_27({input_mem_mapping["INPUT_MEM_FILE_27"]}),
-    .MEM_FILE_28({input_mem_mapping["INPUT_MEM_FILE_28"]}),
-    .MEM_FILE_29({input_mem_mapping["INPUT_MEM_FILE_29"]}),
-    .MEM_FILE_30({input_mem_mapping["INPUT_MEM_FILE_30"]}),
-    .MEM_FILE_31({input_mem_mapping["INPUT_MEM_FILE_31"]})
+    .WORD_MEM_FILE("../data/{input_word_mem.name}")
 ) u_axis_rom_source (
     .clk(clk_main), .rst_n(rst_n), .start(start_pulse),
     .tdata(input_tdata), .tkeep(input_tkeep), .tstrb(input_tstrb), .tlast(input_tlast),

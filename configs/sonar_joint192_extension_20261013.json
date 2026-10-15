@@ -1,0 +1,583 @@
+{
+  "version": "sonar_joint192_extensions_fixed_B1_20261013_01",
+  "created_date": "2026-10-13",
+  "source_space": "sonar_backbone_neck192_v1",
+  "space_not_overwritten": true,
+  "scope": "single-factor full-budget screening plus selected-candidate confirmation",
+  "reference": "A00_reference",
+  "arms": {
+    "A00_reference": {
+      "label": "低通参考B1",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A01_strided": {
+      "label": "普通步长2采样",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "strided_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A02_p2_identity": {
+      "label": "P2融合后直连",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "identity",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A03_p2_k5": {
+      "label": "P2 MBConv-k5",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "mbconv_k5",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A04_p2_sonarop": {
+      "label": "P2 SonarOp DW3+DW5",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "sonarop",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A05_p2_frequencylite": {
+      "label": "P2 FrequencyLite",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "frequencylite",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A06_p2_dmdc48": {
+      "label": "P2 DMDC48功能块",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "dmdc48",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A07_p2_cfem48": {
+      "label": "P2 CFEM48功能块",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "cfem48",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A08_stage1_sonarop": {
+      "label": "stage1 SonarOp空间操作",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "sonarop",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A09_stage1_frequencylite": {
+      "label": "stage1 FrequencyLite空间操作",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "frequencylite",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A10_stage2_sonarop": {
+      "label": "stage2 SonarOp空间操作",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "sonarop",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A11_stage2_frequencylite": {
+      "label": "stage2 FrequencyLite空间操作",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "frequencylite",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A12_p2_lateral_only": {
+      "label": "P2仅L2输入",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "lateral_only",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A13_p2_direct_p4": {
+      "label": "P2保留L2并新增T4直达",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "direct_p4",
+          "p2_fusion": "sum"
+        }
+      }
+    },
+    "A14_p2_concat_project": {
+      "label": "P2拼接后1x1投影",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "concat_project"
+        }
+      }
+    },
+    "A15_p2_gated_sum": {
+      "label": "P2门控加权相加",
+      "architecture": {
+        "base_architecture": {
+          "backbone": {
+            "stage1": {
+              "kernel": 3,
+              "downsample": "blur3_after_dense_dw"
+            },
+            "stage2": {
+              "kernel": 5
+            }
+          },
+          "neck": {
+            "td_ops": {
+              "P2": "mbconv_k3",
+              "P3": "mbconv_k3",
+              "P4": "mbconv_k3"
+            },
+            "pan": false
+          }
+        },
+        "changes": {
+          "stage1_spatial": "keep",
+          "stage2_spatial": "keep",
+          "p2_op": "keep",
+          "p2_inputs": "adjacent",
+          "p2_fusion": "gated_sum"
+        }
+      }
+    }
+  },
+  "training": {
+    "epochs": 80,
+    "input": 640,
+    "batch_size": 4,
+    "optimizer": "AdamW",
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "scheduler": "none",
+    "amp": false,
+    "workers": 0
+  },
+  "dataset": {
+    "baseline": "configs/baseline_sonar_frozen.yaml",
+    "train_images": 330,
+    "valid_images": 99,
+    "test_evaluated": false,
+    "test_mounted": false,
+    "label_policy_unresolved": true
+  },
+  "gpu": 1,
+  "concurrency": 2,
+  "maximum_runs": 22,
+  "confirmation": {
+    "maximum_candidates": 2,
+    "seeds": [
+      43,
+      44
+    ],
+    "selection_rule": "after_all16_seed42_complete; positive_best_delta_only; rank_desc_best_delta_then_endpoint_delta_then_ascending_training_MACs_then_id; maximum2; no_forced_winner",
+    "acceptance": "mean_3seed_best>0 AND mean_3seed_endpoint>0 AND >=2/3 best_positive AND >=2/3 endpoint_positive AND both43/44_best_positive AND mean43/44_endpoint>0",
+    "seed42_selection_bias_retained": true,
+    "separate_report_of_seeds43_44": true
+  },
+  "initialization": {
+    "common_tensors": "unchanged_same_named_tensors_copied_from_per_seed_joint192_reference",
+    "new_tensors": "location_operation_semantic_seed_no_global_training_RNG_consumption",
+    "concat_initialization": "block_diagonal_identity_sum_no_added_BN_or_activation",
+    "gated_sum": "per_source_conv1_logits_softmax_over_sources_times_source_count; zero_logits_initially_equal_sum"
+  },
+  "connections": {
+    "lateral_only": [
+      "L2"
+    ],
+    "adjacent": [
+      "L2",
+      "upsample_postop_T3"
+    ],
+    "direct_p4": [
+      "L2",
+      "upsample_postop_T3",
+      "upsample_postop_T4"
+    ],
+    "resize": "nearest_to_exact_L2_HW",
+    "single_input": "no_extra_fusion_parameters_identity",
+    "higher_level_redundancy": "T3_already_contains_T4_information; direct_T4_is_intentional_extra_path"
+  },
+  "measurements": {
+    "primary": "valid_mAP50_95_earliest_best",
+    "secondary": "fixed_epoch80_AP",
+    "diagnostic": [
+      "lowcontrast_recall",
+      "extremely_small_recall",
+      "FP_per_image",
+      "background_FP_per_image",
+      "per_class_recall"
+    ],
+    "grouping": "inherited_train_only_thresholds_full_GT_matching_before_grouping",
+    "cost": "training_and_reparameterized_deploy_Conv_and_fixedfunctional_MACs_and_Params; nonconv_ops_exclusions_explicit",
+    "server_latency": "shared_GPU_FP32_batch1_descriptive_not_claimable_efficiency",
+    "hardware": "not_evaluated_no_integer_HLS_route_board_power_claim"
+  },
+  "stopping": {
+    "failed_run": "preserve_no_auto_retry",
+    "new_campaign_required_on_source_config_drift": true,
+    "no_full_space_search": true,
+    "no_test_or_automatic_hardware_promotion": true
+  }
+}

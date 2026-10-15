@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -15,7 +16,7 @@ import torch
 import torch.nn as nn
 
 from hwnas_fpga.experiment import ExperimentTracker
-from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate, SearchConstraints
+from hwnas_fpga.interfaces import SearchCandidate, SearchConstraints
 from hwnas_fpga.runtime import (
     build_constraints,
     build_cost_estimator,
@@ -113,6 +114,104 @@ def _ensure_proxyless_import_path() -> Path:
     return PROXYLESS_SEARCH
 
 
+def _normalize_official_target_hardware(
+    requested: Any,
+    *,
+    operator_cost_lut_path: Any,
+) -> tuple[Optional[str], dict[str, Any]]:
+    requested_text = None if requested is None else str(requested).strip().lower()
+    uses_zcu104_formal_lut = bool(operator_cost_lut_path)
+    note = {
+        "requested_target_hardware": requested,
+        "uses_zcu104_formal_lut": uses_zcu104_formal_lut,
+        "official_mobile_latency_regularization": "disabled",
+        "reason": (
+            "reference ProxylessNAS mobile latency LUT is ImageNet/mobile-shaped "
+            "and is not valid for ZCU104 formal operator-cost comparison"
+        ),
+    }
+
+    if requested_text in {None, "", "none", "disabled", "off", "zcu104", "zcu104_lut"}:
+        note["resolved_target_hardware"] = None
+        return None, note
+
+    if uses_zcu104_formal_lut and requested_text in {"latency", "latency_ms", "mobile"}:
+        note["resolved_target_hardware"] = None
+        return None, note
+
+    if requested_text in {"mobile", "flops"}:
+        note["official_mobile_latency_regularization"] = (
+            "enabled" if requested_text == "mobile" else "not_applicable"
+        )
+        note["resolved_target_hardware"] = requested_text
+        return requested_text, note
+
+    raise ValueError(f"Unsupported official ProxylessNAS target_hardware: {requested}")
+
+
+def _official_candidate_name(block: Mapping[str, Any]) -> Optional[str]:
+    op = str(block.get("op", "")).strip().lower()
+    kernel_size = int(block.get("kernel_size", 1))
+    expand_ratio = int(block.get("expand_ratio", 1))
+    if op == "conv" and kernel_size == 1:
+        return "1x1_Conv"
+    if op == "mbconv":
+        return f"{kernel_size}x{kernel_size}_MBConv{expand_ratio}"
+    if op == "skip":
+        return "Zero"
+    return None
+
+
+def _infer_official_stage_settings(
+    *,
+    space_cfg: Mapping[str, Any],
+    official_cfg: Mapping[str, Any],
+) -> dict[str, Any]:
+    stage_block_choices = list(space_cfg.get("stage_block_choices") or [])
+    if not stage_block_choices:
+        return {}
+
+    inferred: dict[str, Any] = {"unsupported_stage_block_choices": []}
+    first_stage = list(stage_block_choices[0] or [])
+    if (
+        "first_block_as_stage0" not in official_cfg
+        and len(first_stage) == 1
+        and _official_candidate_name(first_stage[0]) == "1x1_Conv"
+    ):
+        inferred["first_block_as_stage0"] = True
+        inferred["first_block_candidates"] = ["1x1_Conv"]
+
+    first_block_as_stage0 = bool(
+        official_cfg.get(
+            "first_block_as_stage0",
+            inferred.get("first_block_as_stage0", False),
+        )
+    )
+    if "conv_candidates" not in official_cfg and first_block_as_stage0:
+        per_stage_candidates: list[list[str]] = []
+        for stage_index, choices in enumerate(stage_block_choices[1:], start=1):
+            names: list[str] = []
+            for choice in choices:
+                candidate_name = _official_candidate_name(choice)
+                if candidate_name is None:
+                    inferred["unsupported_stage_block_choices"].append(
+                        {"stage_index": stage_index, "choice": dict(choice)}
+                    )
+                    continue
+                # SuperProxylessNASNets appends Zero for stride1 same-channel
+                # stages, so including it here would duplicate the skip path.
+                if candidate_name == "Zero":
+                    continue
+                if candidate_name not in names:
+                    names.append(candidate_name)
+            if names:
+                per_stage_candidates.append(names)
+        if per_stage_candidates:
+            inferred["conv_candidates"] = per_stage_candidates
+
+    return inferred
+
+
 def _resolve_official_settings(config: Mapping[str, Any]) -> dict[str, Any]:
     search_cfg = config.get("search") or {}
     proxyless_cfg = search_cfg.get("proxyless") or {}
@@ -120,6 +219,11 @@ def _resolve_official_settings(config: Mapping[str, Any]) -> dict[str, Any]:
     space_cfg = config.get("search_space") or {}
     dataset_cfg = config.get("dataset") or {}
     training_cfg = config.get("training") or {}
+    hardware_cfg = config.get("hardware") or {}
+    inferred_official_cfg = _infer_official_stage_settings(
+        space_cfg=space_cfg,
+        official_cfg=official_cfg,
+    )
 
     width_stages = official_cfg.get("width_stages") or space_cfg.get("stage_base_channels") or [16, 24, 32, 32]
     n_cell_stages = official_cfg.get("n_cell_stages")
@@ -127,7 +231,12 @@ def _resolve_official_settings(config: Mapping[str, Any]) -> dict[str, Any]:
         depth_choices = space_cfg.get("stage_depth_choices") or [[1], [1], [1], [1]]
         n_cell_stages = [int(choice[0]) for choice in depth_choices]
     stride_stages = official_cfg.get("stride_stages") or space_cfg.get("stage_strides") or [1, 2, 2, 1]
-    first_block_as_stage0 = bool(official_cfg.get("first_block_as_stage0", False))
+    first_block_as_stage0 = bool(
+        official_cfg.get(
+            "first_block_as_stage0",
+            inferred_official_cfg.get("first_block_as_stage0", False),
+        )
+    )
     super_width_stages = official_cfg.get("super_width_stages")
     super_n_cell_stages = official_cfg.get("super_n_cell_stages")
     super_stride_stages = official_cfg.get("super_stride_stages")
@@ -143,18 +252,25 @@ def _resolve_official_settings(config: Mapping[str, Any]) -> dict[str, Any]:
         super_n_cell_stages = super_n_cell_stages or n_cell_stages
         super_stride_stages = super_stride_stages or stride_stages
 
-    conv_candidates = official_cfg.get("conv_candidates")
+    conv_candidates = official_cfg.get("conv_candidates", inferred_official_cfg.get("conv_candidates"))
     if conv_candidates is None:
         conv_candidates = ["3x3_MBConv3", "3x3_MBConv6", "5x5_MBConv3", "5x5_MBConv6"]
-    first_block_candidates = official_cfg.get("first_block_candidates") or ["3x3_MBConv1"]
+    first_block_candidates = (
+        official_cfg.get("first_block_candidates")
+        or inferred_official_cfg.get("first_block_candidates")
+        or ["3x3_MBConv1"]
+    )
 
-    target_hardware = official_cfg.get("target_hardware", proxyless_cfg.get("target_hardware", "mobile"))
-    if target_hardware in {"latency_ms", "latency"}:
-        target_hardware = "mobile"
+    target_hardware, target_hardware_note = _normalize_official_target_hardware(
+        official_cfg.get("target_hardware", proxyless_cfg.get("target_hardware")),
+        operator_cost_lut_path=hardware_cfg.get("operator_cost_lut_path"),
+    )
 
     ref_value = official_cfg.get("ref_value", proxyless_cfg.get("ref_value"))
     if ref_value is None and target_hardware == "mobile":
         ref_value = MOBILE_REF_LATENCY_MS
+    if target_hardware is None:
+        ref_value = None
 
     return {
         "width_stages": [int(v) for v in width_stages],
@@ -168,8 +284,17 @@ def _resolve_official_settings(config: Mapping[str, Any]) -> dict[str, Any]:
         "bridge_skip_fixed_first_block": bool(
             official_cfg.get("bridge_skip_fixed_first_block", not first_block_as_stage0)
         ),
+        "first_block_as_stage0": first_block_as_stage0,
+        "unsupported_stage_block_choices": inferred_official_cfg.get(
+            "unsupported_stage_block_choices", []
+        ),
         "width_mult": float(official_cfg.get("width_mult", 1.0)),
-        "warmup_epochs": int(official_cfg.get("warmup_epochs", proxyless_cfg.get("warmup_epochs", 10))),
+        "warmup_epochs": int(
+            official_cfg.get(
+                "warmup_epochs",
+                proxyless_cfg.get("warmup_epochs", search_cfg.get("eval_epochs", 10)),
+            )
+        ),
         "n_epochs": int(
             official_cfg.get(
                 "n_epochs",
@@ -197,6 +322,12 @@ def _resolve_official_settings(config: Mapping[str, Any]) -> dict[str, Any]:
         "grad_binary_mode": str(official_cfg.get("grad_binary_mode", "full_v2")),
         "target_hardware": target_hardware,
         "ref_value": ref_value,
+        "hardware_regularization_note": target_hardware_note,
+        "evaluator_mode": proxyless_cfg.get("evaluator_mode", "weight_sharing_supernet"),
+        "comparison_boundary": proxyless_cfg.get(
+            "comparison_boundary",
+            "not_equal_to_independent_candidate_train_budget",
+        ),
         "train_batch_size": int(training_cfg.get("batch_size", 32)),
         "test_batch_size": int(official_cfg.get("test_batch_size", training_cfg.get("batch_size", 32))),
         "num_workers": int(dataset_cfg.get("num_workers", 8)),
@@ -371,11 +502,12 @@ def _check_feasibility(constraints: SearchConstraints, cost_estimator, cost_esti
 def run_official_proxyless_search(
     *,
     config_path: str,
+    resolved_config: Optional[Mapping[str, Any]] = None,
     device: str = "cuda",
     resume: bool = False,
 ) -> Path:
     _ensure_proxyless_import_path()
-    config = load_config(config_path)
+    config = copy.deepcopy(resolved_config) if resolved_config is not None else load_config(config_path)
     project_cfg = config.get("project") or {}
     dataset_cfg = config.get("dataset") or {}
     search_cfg = config.get("search") or {}
@@ -469,6 +601,9 @@ def run_official_proxyless_search(
             "backend": "reference/ProxylessNAS",
             "official_settings": settings,
             "hwnas_search_space_family": config.get("search_space", {}).get("macro_type"),
+            "evaluator_mode": settings["evaluator_mode"],
+            "comparison_boundary": settings["comparison_boundary"],
+            "hardware_cost_evaluation": "zcu104_formal_lut_after_search",
         }
     )
 
@@ -488,6 +623,14 @@ def run_official_proxyless_search(
         print(f"[official_proxyless] internal_path={official_path}")
         print(f"[official_proxyless] warmup_epochs={settings['warmup_epochs']} search_epochs={settings['n_epochs']}")
         print(f"[official_proxyless] target_hardware={settings['target_hardware']} ref_value={settings['ref_value']}")
+        print(
+            "[official_proxyless] evaluator_mode="
+            f"{settings['evaluator_mode']} comparison_boundary={settings['comparison_boundary']}"
+        )
+        print(
+            "[official_proxyless] hardware_regularization="
+            f"{settings['hardware_regularization_note']}"
+        )
 
         if resume:
             manager.load_model()
@@ -523,21 +666,12 @@ def run_official_proxyless_search(
         cost_estimate = estimator.estimate(architecture, search_space)
         feasible = _check_feasibility(constraints, estimator, cost_estimate)
 
-        metrics = CandidateMetrics(
-            accuracy=eval_summary.get("top1"),
-            macro_f1=eval_summary.get("macro_f1"),
-            weighted_f1=eval_summary.get("weighted_f1"),
-            top1=eval_summary.get("top1"),
-            top5=eval_summary.get("top5"),
-            latency_ms=cost_estimate.latency_ms,
-            energy_mj=cost_estimate.energy_mj,
-            lut=cost_estimate.resource_lut,
-            bram=cost_estimate.resource_bram,
-            dsp=cost_estimate.resource_dsp,
-            power_w=cost_estimate.power_w,
-            memory_bandwidth_gbps=cost_estimate.memory_bandwidth_gbps,
-            offchip_mem_mb=cost_estimate.offchip_mem_mb,
-        )
+        metrics = cost_estimate.to_candidate_metrics()
+        metrics.accuracy = eval_summary.get("top1")
+        metrics.macro_f1 = eval_summary.get("macro_f1")
+        metrics.weighted_f1 = eval_summary.get("weighted_f1")
+        metrics.top1 = eval_summary.get("top1")
+        metrics.top5 = eval_summary.get("top5")
         candidate = SearchCandidate(arch_id=arch_id, encoding=encoding, metrics=metrics)
         candidate.metrics.selection_score = candidate_selection_score(
             candidate, selection_metric
@@ -552,6 +686,9 @@ def run_official_proxyless_search(
                 "backend": "reference/ProxylessNAS",
                 "official_net_config": net_config,
                 "selection_metric": selection_metric,
+                "evaluator_mode": settings["evaluator_mode"],
+                "comparison_boundary": settings["comparison_boundary"],
+                "hardware_regularization_note": settings["hardware_regularization_note"],
             },
         )
         tracker.save_best_candidate(
@@ -561,6 +698,9 @@ def run_official_proxyless_search(
                 "backend": "reference/ProxylessNAS",
                 "official_net_config_path": str(official_path / "learned_net" / "net.config"),
                 "selection_metric": selection_metric,
+                "evaluator_mode": settings["evaluator_mode"],
+                "comparison_boundary": settings["comparison_boundary"],
+                "hardware_regularization_note": settings["hardware_regularization_note"],
             },
         )
 
@@ -621,10 +761,10 @@ def run_official_proxyless_search(
             encoding="utf-8",
         )
 
-        status = "completed" if feasible else "failed"
+        status = "completed"
         if not feasible:
-            raise RuntimeError(
-                "Official ProxylessNAS result is infeasible under strict board LUT constraints: "
+            print(
+                "[official_proxyless] completed with infeasible ZCU104 candidate: "
                 f"{cost_estimate.violations}"
             )
 
@@ -639,6 +779,10 @@ def run_official_proxyless_search(
                 "selection_metric": selection_metric,
                 "backend": "reference/ProxylessNAS",
                 "official_settings": settings,
+                "evaluator_mode": settings["evaluator_mode"],
+                "comparison_boundary": settings["comparison_boundary"],
+                "best_candidate_feasible": feasible,
+                "best_candidate_violations": cost_estimate.violations,
                 "best_selection_score": candidate_selection_score(candidate, selection_metric),
             },
         )

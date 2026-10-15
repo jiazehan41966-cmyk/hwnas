@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -168,7 +169,11 @@ def ensure_csynth(case_dir: Path, vitis_hls: Path, force: bool, timeout_seconds:
         }
     if _has_csynth_artifacts(case_dir) and not force:
         return {"status": "skipped_existing", "synth_tcl": str(synth_tcl)}
-    command = ["cmd", "/c", str(vitis_hls), "-f", str(synth_tcl)]
+    command = (
+        ["cmd", "/c", str(vitis_hls), "-f", str(synth_tcl)]
+        if os.name == "nt"
+        else [str(vitis_hls), "-f", str(synth_tcl)]
+    )
     result, timeout_payload = run_command(command, cwd=case_dir, timeout_seconds=timeout_seconds)
     if timeout_payload is not None:
         timeout_payload["synth_tcl"] = str(synth_tcl)
@@ -241,7 +246,11 @@ def build_bitstream(harness_project_dir: Path, vivado: Path, force: bool, timeou
     if bitstream.exists() and not force:
         return {"status": "skipped_existing", "bitstream": str(bitstream)}
     tcl_path = harness_project_dir / "scripts" / "build_bitstream.tcl"
-    command = ["cmd", "/c", str(vivado), "-mode", "batch", "-source", str(tcl_path)]
+    command = (
+        ["cmd", "/c", str(vivado), "-mode", "batch", "-source", str(tcl_path)]
+        if os.name == "nt"
+        else [str(vivado), "-mode", "batch", "-source", str(tcl_path)]
+    )
     result, timeout_payload = run_command(command, cwd=ROOT, timeout_seconds=timeout_seconds)
     if timeout_payload is not None:
         timeout_payload["bitstream"] = str(bitstream) if bitstream.exists() else None

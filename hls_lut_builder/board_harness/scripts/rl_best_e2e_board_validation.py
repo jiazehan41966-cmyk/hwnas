@@ -35,12 +35,30 @@ REFERENCE_SUMMARY = (
     / "sonar_classifier_e2e_summary.json"
 )
 CANDIDATE_HLS_CACHE_ROOT = ROOT / "hls_lut_builder" / "results" / "candidate_hls_cache"
+ZCU104_BOARD_CONFIG = BOARD_HARNESS_DIR / "configs" / "board_zcu104.yaml"
+ZCU104_MOBILENETA_FORMAL_HLS_ROOT = (
+    ROOT
+    / "results"
+    / "zcu104_full_campaign_v1"
+    / "hardware_lane"
+    / "mobilenetA_full_dmdc_cfem_v1"
+    / "hls"
+    / "p"
+)
+ZCU104_MOBILENETA_GAP1280_V3_HLS_ROOT = (
+    ROOT
+    / "results"
+    / "zcu104_full_campaign_v1"
+    / "hardware_lane"
+    / "mobilenetA_gap1280_v3"
+    / "hls"
+    / "p"
+)
 
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from batch_measure_ops import DEFAULT_BOARD_CONFIG, DEFAULT_VIVADO, build_bitstream  # noqa: E402
+from batch_measure_ops import DEFAULT_VIVADO, build_bitstream  # noqa: E402
 import current84_fullcombo_board_validation as fullcombo  # noqa: E402
-import export_retrained_weights_to_e2e_mem as trained_export  # noqa: E402
 import sonar_classifier_e2e_board_planning as planning  # noqa: E402
 import sonar_classifier_e2e_board_validation as e2e  # noqa: E402
 import sonar_classifier_e2e_variant_build as variant  # noqa: E402
@@ -134,11 +152,11 @@ def parse_args() -> argparse.Namespace:
         default=str(CANDIDATE_HLS_CACHE_ROOT),
         help="Candidate HLS cache root used to resolve exact component RTL without overwriting prior caches.",
     )
-    parser.add_argument("--board-config", default=str(DEFAULT_BOARD_CONFIG))
+    parser.add_argument("--board-config", default=str(ZCU104_BOARD_CONFIG))
     parser.add_argument("--serial-port", default="COM5")
     parser.add_argument("--vivado", default=str(DEFAULT_VIVADO))
     parser.add_argument("--hw-server-url", default="TCP:localhost:3121")
-    parser.add_argument("--hw-device-pattern", default="*xc7k325t*")
+    parser.add_argument("--hw-device-pattern", default="*xczu7*")
     parser.add_argument("--hw-target-index", type=int, default=0)
     parser.add_argument("--program-retries", type=int, default=2)
     parser.add_argument("--runs", type=int, default=1)
@@ -146,7 +164,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--post-program-delay-seconds", type=float, default=1.0)
     parser.add_argument("--measurement-timeout-minutes", type=int, default=30)
     parser.add_argument("--fifo-depth", type=int, default=64)
-    parser.add_argument("--fifo-style", choices=("lut", "lut_registered", "bram"), default="lut_registered")
+    parser.add_argument("--fifo-style", choices=("lut", "lut_registered", "bram"), default="bram")
     parser.add_argument("--timing-variant", default="place_altspread_route_more_global")
     parser.add_argument("--impl-profile", choices=("default", "fanout_only", "fanout_floorplan"), default="default")
     parser.add_argument("--argmax-pipeline", action="store_true")
@@ -335,6 +353,55 @@ def measurement_json_path(run_name: str) -> Path:
     return run_root(run_name) / "measurements" / f"{target_name(run_name)}.measurement.json"
 
 
+def float_or_none(value: Any) -> float | None:
+    try:
+        if value in ("", None):
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def derive_throughput_metrics(
+    *,
+    source_metrics: dict[str, Any],
+    latency_ms: Any,
+    power_w: Any = None,
+) -> dict[str, Any]:
+    latency = float_or_none(latency_ms)
+    macs = float_or_none(source_metrics.get("macs"))
+    power = float_or_none(power_w)
+    if latency is None or latency <= 0.0:
+        return {
+            "macs": macs,
+            "latency_ms": latency_ms,
+            "fps": None,
+            "gmac_per_s": None,
+            "gops": None,
+            "gops_definition": "2 * MACs / latency_s / 1e9",
+            "power_w": power,
+            "energy_mj": None,
+            "fps_per_w": None,
+        }
+    latency_s = latency / 1000.0
+    fps = 1.0 / latency_s
+    gmac_per_s = macs / latency_s / 1e9 if macs is not None else None
+    gops = 2.0 * macs / latency_s / 1e9 if macs is not None else None
+    energy_mj = power * latency_s * 1000.0 if power is not None else None
+    fps_per_w = fps / power if power not in (None, 0.0) else None
+    return {
+        "macs": macs,
+        "latency_ms": latency,
+        "fps": fps,
+        "gmac_per_s": gmac_per_s,
+        "gops": gops,
+        "gops_definition": "2 * MACs / latency_s / 1e9",
+        "power_w": power,
+        "energy_mj": energy_mj,
+        "fps_per_w": fps_per_w,
+    }
+
+
 def normalize_identity(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
     normalized: list[dict[str, str]] = []
     for row in rows:
@@ -391,6 +458,7 @@ def apply_candidate_hls_report_mapping(
     *,
     report_path: Path,
     candidate_path: Path,
+    candidate_hls_cache_root: Path | None = None,
 ) -> dict[str, Any]:
     report = read_json(report_path)
     if report.get("evidence_complete") is not True:
@@ -458,7 +526,19 @@ def apply_candidate_hls_report_mapping(
                 f"Role {report_role_name!r} is not measured_csynth: {evidence_status!r}"
             )
         if not role_report_path.is_file():
-            raise FileNotFoundError(f"Role csynth report not found: {role_report_path}")
+            case_dir = resolve_rl_best_case_dir(
+                case_name,
+                candidate_hls_cache_root=candidate_hls_cache_root,
+            )
+            report_candidates = sorted(
+                (case_dir / "project" / "solution1" / "syn" / "report").glob("*.xml")
+            )
+            for candidate_report in report_candidates:
+                if role_report_sha and sha256_file(candidate_report) == role_report_sha:
+                    role_report_path = candidate_report
+                    break
+            else:
+                raise FileNotFoundError(f"Role csynth report not found: {role_report_path}")
         if not role_report_sha or sha256_file(role_report_path) != role_report_sha:
             raise ValueError(f"Role csynth report hash mismatch: {role_report_path}")
 
@@ -542,6 +622,8 @@ def resolve_rl_best_case_dir(case_name: str, candidate_hls_cache_root: Path | No
     cache_roots = [cache_root]
     if cache_root.resolve() != CANDIDATE_HLS_CACHE_ROOT.resolve():
         cache_roots.append(CANDIDATE_HLS_CACHE_ROOT)
+    cache_roots.append(ZCU104_MOBILENETA_FORMAL_HLS_ROOT)
+    cache_roots.append(ZCU104_MOBILENETA_GAP1280_V3_HLS_ROOT)
     for candidate_root in cache_roots:
         candidate_cache_case = candidate_root / case_name
         if candidate_cache_case.exists() and (
@@ -637,6 +719,7 @@ def write_plan_outputs(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
             trace_rows,
             report_path=Path(args.candidate_hls_report).expanduser().resolve(),
             candidate_path=candidate_path,
+            candidate_hls_cache_root=Path(args.candidate_hls_cache_root).expanduser().resolve(),
         )
     gate = identity_gate(trace_rows, REFERENCE_TRACE)
     spec = build_harness_spec(
@@ -734,6 +817,7 @@ def component_metadata_case_name(row: dict[str, Any]) -> str:
     aliases = {
         "stem": "stem_conv_k3_s2",
         "head_conv": "pw_conv",
+        "global_avg_pool": "global_avg_pool",
         "fc_classifier": "fc_layer",
     }
     return aliases.get(str(row.get("layer_role") or ""), case_name)
@@ -882,6 +966,8 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
     manifest_path = project / "harness_manifest.json"
     write_json(manifest_path, manifest)
     if args.parameter_mode == "trained_checkpoint_mem":
+        import export_retrained_weights_to_e2e_mem as trained_export
+
         trained_manifest = (
             Path(args.trained_weight_manifest).expanduser().resolve()
             if args.trained_weight_manifest
@@ -898,10 +984,10 @@ def generate_harness(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_harness(args: argparse.Namespace) -> dict[str, Any]:
-    name, _ = load_spec_for_run(args)
+    name, spec = load_spec_for_run(args)
     project = project_root(name)
     if not (project / "harness_manifest.json").exists() or args.force:
-        generate_harness(args)
+        spec = generate_harness(args)
     vivado = Path(args.vivado).expanduser().resolve()
     timeout_seconds = args.bitstream_timeout_minutes * 60 if args.bitstream_timeout_minutes > 0 else None
     result = build_bitstream(project, vivado, force=args.force, timeout_seconds=timeout_seconds)
@@ -930,13 +1016,23 @@ def build_harness(args: argparse.Namespace) -> dict[str, Any]:
         or ""
     )
     failure_summary = result.get("failure_summary", "") or variant.summarize_build_failure(stdout_text)
+    bitstream_text = str(result.get("bitstream") or "")
+    bitstream_path = Path(bitstream_text) if bitstream_text else Path()
+    bitstream_exists = bool(bitstream_text) and bitstream_path.is_file()
+    source_metrics = (
+        spec.get("source", {}).get("metrics", {})
+        if isinstance(spec.get("source"), dict)
+        else {}
+    )
     payload = {
         "generated_at": timestamp(),
         "run_name": name,
         "target_name": target_name(name),
         "status": result.get("status", ""),
         "returncode": result.get("returncode", ""),
-        "bitstream": result.get("bitstream") or "",
+        "bitstream": bitstream_text,
+        "bitstream_sha256": sha256_file(bitstream_path) if bitstream_exists else "",
+        "bitstream_size_bytes": bitstream_path.stat().st_size if bitstream_exists else "",
         "wns_ns": wns,
         "timing_clean": (variant.parse_float(wns) is not None and variant.parse_float(wns) >= 0.0),
         "lut": util.get("board_harness_lut", ""),
@@ -949,6 +1045,11 @@ def build_harness(args: argparse.Namespace) -> dict[str, Any]:
         "stderr_log": str(logs_dir / "vivado_bitstream.err.log"),
         "evidence": evidence,
         "failure_summary": failure_summary,
+        "source_candidate": spec.get("source", {}),
+        "route_metrics_pending_board_latency": derive_throughput_metrics(
+            source_metrics=source_metrics,
+            latency_ms=None,
+        ),
     }
     write_json(root / "build_result.json", payload)
     write_measurement_preflight(name, payload)
@@ -1175,6 +1276,30 @@ def measure_harness(args: argparse.Namespace) -> dict[str, Any]:
         timeout_seconds=args.measurement_timeout_minutes * 60 if args.measurement_timeout_minutes > 0 else None,
         skip_measure=args.skip_measure,
     )
+    source_metrics = (
+        build_payload.get("source_candidate", {}).get("metrics", {})
+        if isinstance(build_payload.get("source_candidate"), dict)
+        else {}
+    )
+    latency_ms = measurement.get("latency_ms") or fullcombo.frame_value(
+        measurement,
+        "latency_ms",
+    )
+    power_w = (
+        measurement.get("power_w")
+        or measurement.get("chip_average_power_w")
+        or measurement.get("dynamic_power_w")
+    )
+    measurement["derived_metrics"] = derive_throughput_metrics(
+        source_metrics=source_metrics,
+        latency_ms=latency_ms,
+        power_w=power_w,
+    )
+    if measurement_path.exists():
+        stored_measurement = read_json(measurement_path)
+        if stored_measurement:
+            stored_measurement["derived_metrics"] = measurement["derived_metrics"]
+            write_json(measurement_path, stored_measurement)
     stdout_text = str(measurement.get("stdout", ""))
     (logs_dir / "measurement.out.log").write_text(
         stdout_text,

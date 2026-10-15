@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -26,11 +27,95 @@ from common import (
     resolve_workspace_path,
     select_pilot_cases,
 )
-from hwnas_fpga.hardware import (
-    parse_vivado_power_text,
-    parse_vivado_timing_summary_text,
-    parse_vivado_utilization_text,
-)
+
+
+def _search_float(pattern: str, text: str) -> float | None:
+    match = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
+    if not match:
+        return None
+    return float(match.group(1).replace(",", ""))
+
+
+def _approximate_fmax_from_wns(*, target_clock_ns: float, wns_ns: float | None) -> float | None:
+    if wns_ns is None or target_clock_ns <= 0:
+        return None
+    effective_period = float(target_clock_ns) - float(wns_ns)
+    if effective_period <= 0:
+        return None
+    return 1_000.0 / effective_period
+
+
+def parse_vivado_utilization_text(report_text: str) -> dict[str, Any]:
+    lut = _search_float(r"\|\s*(?:Slice|CLB) LUTs\*?\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    ff = _search_float(r"\|\s*(?:Slice Registers|CLB Registers)\*?\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    block_ram_tile = _search_float(r"\|\s*Block RAM Tile\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    ramb36 = _search_float(r"\|\s*RAMB36/FIFO\*?\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    ramb18 = _search_float(r"\|\s*RAMB18\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    dsp = _search_float(r"\|\s*DSPs\s*\|\s*([0-9,.]+)\s*\|", report_text)
+    return {
+        "lut": int(lut) if lut is not None else 0,
+        "ff": int(ff) if ff is not None else 0,
+        "block_ram_tile": block_ram_tile if block_ram_tile is not None else 0.0,
+        "ramb36": int(ramb36) if ramb36 is not None else 0,
+        "ramb18": int(ramb18) if ramb18 is not None else 0,
+        "dsp": int(dsp) if dsp is not None else 0,
+        "report_format": "text",
+    }
+
+
+def parse_vivado_power_text(report_text: str) -> dict[str, Any]:
+    power_w = (
+        _search_float(r"\|\s*Total\s+On-Chip\s+Power\s*\(W\)\s*\|\s*([0-9.]+)\s*\|", report_text)
+        or _search_float(r"Total\s+On-Chip\s+Power\s*\(W\)\s*[:=|]?\s*([0-9.]+)", report_text)
+        or _search_float(r"Total\s+On-Chip\s+Power\s*[:=|]?\s*([0-9.]+)\s*W", report_text)
+    )
+    return {
+        "power_w": power_w,
+        "power_source": "implementation_vectorless_report" if power_w is not None else "",
+        "report_format": "text",
+    }
+
+
+def parse_vivado_timing_summary_text(
+    report_text: str,
+    *,
+    target_clock_ns: float | None = None,
+) -> dict[str, Any]:
+    endpoint_pattern = r"Failing Endpoint(?:s)?"
+    setup_wns = _search_float(
+        rf"Setup\s*:\s*\d+\s+{endpoint_pattern}\s*,\s*Worst Slack\s+([-0-9.]+)ns",
+        report_text,
+    )
+    setup_tns = _search_float(
+        rf"Setup\s*:\s*\d+\s+{endpoint_pattern}\s*,\s*Worst Slack\s+[-0-9.]+ns,\s+Total Violation\s+([-0-9.]+)ns",
+        report_text,
+    )
+    hold_whs = _search_float(
+        rf"Hold\s*:\s*\d+\s+{endpoint_pattern}\s*,\s*Worst Slack\s+([-0-9.]+)ns",
+        report_text,
+    )
+    hold_ths = _search_float(
+        rf"Hold\s*:\s*\d+\s+{endpoint_pattern}\s*,\s*Worst Slack\s+[-0-9.]+ns,\s+Total Violation\s+([-0-9.]+)ns",
+        report_text,
+    )
+    requirement = _search_float(r"Requirement:\s*([-0-9.]+)ns", report_text)
+    data_path_delay = _search_float(r"Data Path Delay:\s*([-0-9.]+)ns", report_text)
+    logic_delay = _search_float(r"logic\s+([-0-9.]+)ns", report_text)
+    route_delay = _search_float(r"route\s+([-0-9.]+)ns", report_text)
+    clock_period_ns = requirement if requirement is not None else target_clock_ns
+    approx_fmax = _approximate_fmax_from_wns(target_clock_ns=clock_period_ns or 0.0, wns_ns=setup_wns)
+    return {
+        "setup_wns_ns": setup_wns,
+        "setup_tns_ns": setup_tns,
+        "hold_whs_ns": hold_whs,
+        "hold_ths_ns": hold_ths,
+        "target_clock_ns": clock_period_ns,
+        "data_path_delay_ns": data_path_delay,
+        "logic_delay_ns": logic_delay,
+        "route_delay_ns": route_delay,
+        "fmax_est_mhz": approx_fmax,
+        "report_format": "text",
+    }
 
 
 def parse_args() -> argparse.Namespace:

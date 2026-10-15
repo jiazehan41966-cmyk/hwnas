@@ -81,8 +81,18 @@ class CostEstimate:
         return self.total_lut
 
     def to_candidate_metrics(self) -> CandidateMetrics:
+        latency_s = self.latency_ms / 1000.0 if self.latency_ms > 0 else None
+        fps = None if latency_s is None else 1.0 / latency_s
+        gmac_per_s = None if latency_s is None else self.macs / latency_s / 1e9
+        gops = None if latency_s is None else (2.0 * self.macs) / latency_s / 1e9
         return CandidateMetrics(
+            params=self.params,
+            macs=self.macs,
+            flops=2 * self.macs,
             latency_ms=self.latency_ms,
+            fps=fps,
+            gmac_per_s=gmac_per_s,
+            gops=gops,
             energy_mj=self.energy_mj,
             lut=self.resource_lut,
             bram=self.resource_bram,
@@ -96,6 +106,37 @@ class CostEstimate:
             fanout_pressure=self.physical_metrics.get("fanout_pressure"),
             stream_width=self.physical_metrics.get("stream_width"),
             physical_risk=self.physical_metrics.get("physical_risk"),
+            zcu104_operator_lutram_heuristic_pressure=self.physical_metrics.get(
+                "zcu104_operator_lutram_heuristic_pressure"
+            ),
+            zcu104_predicted_lut_as_memory=self.physical_metrics.get(
+                "zcu104_predicted_lut_as_memory"
+            ),
+            zcu104_predicted_lut_as_memory_pressure=self.physical_metrics.get(
+                "zcu104_predicted_lut_as_memory_pressure"
+            ),
+            zcu104_predicted_bram18=self.physical_metrics.get("zcu104_predicted_bram18"),
+            zcu104_predicted_bram18_pressure=self.physical_metrics.get(
+                "zcu104_predicted_bram18_pressure"
+            ),
+            zcu104_lut_as_memory_scale=self.physical_metrics.get(
+                "zcu104_lut_as_memory_scale"
+            ),
+            zcu104_requested_bram18_before_fallback=self.physical_metrics.get(
+                "zcu104_requested_bram18_before_fallback"
+            ),
+            zcu104_predicted_bram18_overflow=self.physical_metrics.get(
+                "zcu104_predicted_bram18_overflow"
+            ),
+            whole_network_storage_calibration_validated=self.physical_metrics.get(
+                "whole_network_storage_calibration_validated"
+            ),
+            full_network_route_established=self.physical_metrics.get(
+                "full_network_route_established"
+            ),
+            full_network_power_established=self.physical_metrics.get(
+                "full_network_power_established"
+            ),
         )
 
 
@@ -1460,8 +1501,28 @@ class FPGACostEstimator:
             ("stream_width", "max_stream_width"),
             ("physical_risk", "max_physical_risk"),
         )
+        checked_threshold_keys = {config_key for _, config_key in threshold_keys}
         for metric_name, config_key in threshold_keys:
             limit = self._optional_float(physical.get(config_key))
+            value = physical_metrics.get(metric_name)
+            if limit is not None and value is not None and float(value) > limit:
+                violations.append(
+                    "physical hard constraint: "
+                    f"{metric_name} {float(value):.6g} exceeds {limit:g}"
+                )
+
+        # Board-specific estimators may add extra route-risk metrics to
+        # ``physical_metrics``.  Let configs gate them with ``max_<metric>``
+        # while keeping the common constraint plumbing unchanged.
+        for config_key, raw_limit in physical.items():
+            if not isinstance(config_key, str) or not config_key.startswith("max_"):
+                continue
+            if config_key in checked_threshold_keys:
+                continue
+            metric_name = config_key[len("max_") :]
+            if metric_name not in physical_metrics:
+                continue
+            limit = self._optional_float(raw_limit)
             value = physical_metrics.get(metric_name)
             if limit is not None and value is not None and float(value) > limit:
                 violations.append(

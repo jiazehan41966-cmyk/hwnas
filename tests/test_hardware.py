@@ -29,12 +29,25 @@ class HardwareEstimatorTests(unittest.TestCase):
             )
         )
         estimate = estimator.estimate(self.architecture, self.space)
+        metrics = estimate.to_candidate_metrics()
         self.assertGreater(estimate.macs, 0)
         self.assertGreater(estimate.latency_ms, 0)
         self.assertGreaterEqual(estimate.peak_dsp, 0)
         self.assertGreaterEqual(estimate.total_dsp, estimate.peak_dsp)
         self.assertGreaterEqual(estimate.total_bram, estimate.peak_bram)
         self.assertGreaterEqual(estimate.total_lut, estimate.peak_lut)
+        self.assertEqual(metrics.params, estimate.params)
+        self.assertEqual(metrics.macs, estimate.macs)
+        self.assertEqual(metrics.flops, 2 * estimate.macs)
+        self.assertAlmostEqual(metrics.fps or 0.0, 1000.0 / estimate.latency_ms)
+        self.assertAlmostEqual(
+            metrics.gmac_per_s or 0.0,
+            estimate.macs / (estimate.latency_ms / 1000.0) / 1e9,
+        )
+        self.assertAlmostEqual(
+            metrics.gops or 0.0,
+            2.0 * estimate.macs / (estimate.latency_ms / 1000.0) / 1e9,
+        )
         self.assertFalse(estimate.violations)
 
     def test_estimate_includes_explicit_stem_layer(self) -> None:
@@ -165,6 +178,31 @@ class HardwareEstimatorTests(unittest.TestCase):
         self.assertIsNotNone(metrics.early_expand_pressure)
         self.assertIsNotNone(metrics.physical_risk)
         self.assertGreater(metrics.physical_risk or 0.0, 0.0)
+
+    def test_physical_constraints_can_gate_board_specific_metrics(self) -> None:
+        constraints = SearchConstraints(
+            physical={
+                "enabled": True,
+                "max_zcu104_route_lutram_pressure": 1.0,
+            }
+        )
+        estimator = FPGACostEstimator(
+            hardware_spec=HardwareSpec(name="test-fpga", clock_mhz=200),
+            constraints=constraints,
+        )
+
+        violations = estimator._check_physical_constraints(
+            resource_dsp=0,
+            resource_bram=0,
+            resource_lut=0,
+            physical_metrics={"zcu104_route_lutram_pressure": 1.25},
+            resolved_blocks=(),
+        )
+
+        self.assertIn(
+            "physical hard constraint: zcu104_route_lutram_pressure 1.25 exceeds 1",
+            violations,
+        )
 
 
 class SonarOpsCostTests(unittest.TestCase):

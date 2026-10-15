@@ -20,69 +20,6 @@ STAGE3_ALLOWED_METHODS = frozenset(
     }
 )
 
-
-def zcu104_cfem20_search_gate_status(
-    lut_stats: Mapping[str, Any], *, dataset_name: str = "nksid"
-) -> dict[str, Any]:
-    """Gate the fresh ZCU104 RAW20 lane without reusing legacy AV7K325 gates."""
-
-    data_kind = str(lut_stats.get("data_kind") or "")
-    gates = {
-        "fresh_cost_source": (
-            lut_stats.get("cost_source")
-            == "zcu104_cfem20_exact_shape_operator_cost_v1"
-        ),
-        "operator_rows_9_of_9": int(lut_stats.get("operator_rows", 0)) == 9,
-        "candidate_mappings_20_of_20": int(lut_stats.get("candidate_mappings", 0))
-        == 20,
-        "zero_fallback": float(lut_stats.get("fallback_rate", 1.0)) == 0.0,
-        "formal_measured_data": data_kind == "FORMAL_ZCU104_MEASURED",
-    }
-    if data_kind == "TEST_ONLY_SYNTHETIC" or dataset_name == "dummy":
-        return {
-            "schema_version": 1,
-            "stage": 3,
-            "status": "SMOKE_ONLY",
-            "may_start_new_claimable_search": False,
-            "dummy_smoke_permitted": True,
-            "semantic_safe_search_space_cardinality": 20,
-            "gates": gates,
-            "evidence": {
-                "operator_cost_file": lut_stats.get("operator_cost_file"),
-                "operator_cost_file_sha256": lut_stats.get(
-                    "operator_cost_file_sha256"
-                ),
-                "coverage_file": lut_stats.get("coverage_file"),
-                "coverage_file_sha256": lut_stats.get("coverage_file_sha256"),
-            },
-            "boundary": "Synthetic costs are interface evidence only.",
-        }
-    if not all(gates.values()):
-        failed = [name for name, passed in gates.items() if not passed]
-        raise RuntimeError(
-            "ZCU104 CFEM20 search gate is not ready; failed: " + ", ".join(failed)
-        )
-    return {
-        "schema_version": 1,
-        "stage": 3,
-        "status": "PASS_ZCU104_CFEM20_OPERATOR_COST",
-        "may_start_new_claimable_search": True,
-        "semantic_safe_search_space_cardinality": 20,
-        "gates": gates,
-        "evidence": {
-            "operator_cost_file": lut_stats.get("operator_cost_file"),
-            "operator_cost_file_sha256": lut_stats.get("operator_cost_file_sha256"),
-            "coverage_file": lut_stats.get("coverage_file"),
-            "coverage_file_sha256": lut_stats.get("coverage_file_sha256"),
-        },
-        "boundary": (
-            "PASS authorizes the fresh RAW20 search input only. Search feasibility "
-            "remains search-admissibility; it is not full-network route, board, or "
-            "power evidence. Legacy AV7K325 Gate0/G2/G4 artifacts are not inputs."
-        ),
-    }
-
-
 def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None

@@ -1,0 +1,47 @@
+# Local diagnostic strategy defaults. Research protocol, GPU model and GPU-hour cap remain unfrozen.
+version: sonar_light_rl_v1
+space_version: elastic_neck72_v1
+seed: 42
+base_config: configs/search/sonar_joint_v2_elastic_light_cost_v1.yaml
+budgets:
+- 40
+- 60
+- 80
+episodes_per_stage:
+- 8
+- 4
+- 2
+populations:
+- 72
+- 54
+- 36
+learning_rate: 0.005
+baseline_momentum: 0.9
+entropy_weight: 0.001
+reward:
+  accuracy_weight: 1.0
+  latency_weight: 0.2
+  dsp_weight: 0.1
+  bram_weight: 0.1
+  lut_weight: 0.1
+  energy_weight: 0.0
+  constraint_penalty: 1.0
+hardware_budget:
+  scope: operator_peak_and_serial_compute
+  limits:
+    Latency: 120000.0
+    LUT: 161280.0
+    DSP: 1209.0
+    BRAM: 436.0
+  latency_unit: us
+  bram_unit: BRAM18
+promotion:
+  fraction: 0.15
+  accuracy_epsilon: 0.001
+  resource_fraction: 0.9
+gpu_model: null
+gpu_h_cap: null
+research_protocol_frozen: false
+evaluation_split: valid
+test_policy: sealed
+deployment_claim: false

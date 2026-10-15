@@ -1,8 +1,8 @@
 # 冻结评估协议 (nksid_outer5fold_inner_contiguous_v1)
 
-生效日期：2026-07-04。本协议取代 legacy fold-0 单折协议；此后所有可对外声明的
-分类指标必须由本协议产出。fold-0 单折、单 seed、best-epoch 选在同一验证集上的
-历史数字一律标注为 legacy proxy。
+版本范围：本文记录2026-07-04的V1协议。当前实现还支持[Protocol V2](../configs/evaluation/nksid_frozen_protocol_v2.yaml)，应按候选绑定的版本选择，不能把V1写成全项目唯一版本。fold-0单折代理不能代替冻结外层评估。
+
+`run_eval_protocol.py` 评价固定架构，不执行每个外层单元独立的NAS；`nas_generalization_claimable` 不会因此成立。当前入口会核验 `--source-freeze-manifest`：V1缺少已验证来源时不能获得可声明结果；正式V2还须通过契约与来源绑定，缺失时拒绝运行。`--save-checkpoints` 默认开启，关闭会影响证据完整性。
 
 ## 动机（对应 2026-07-03 第一性原理审计）
 
@@ -40,32 +40,37 @@
   取代逆频率类权重；`--logit-adjust-tau 0` 可关闭；
 - 评估 loss 始终用未调整的交叉熵，argmax 用原始 logits。
 
-## 基线三连（阶段 1 命令）
+## 历史V1命令模板（不是当前实验执行清单）
+
+下面保留原候选与预算用于识别历史调用，并补上当前入口要求的来源参数。`<verified_source_freeze_manifest.json>` 必须替换为与该运行一致且通过验证的来源清单；不能仅复制占位符启动运行。V2另有契约绑定，不能将以下V1模板直接改名作为V2结果。
 
 ```powershell
 # ① MobileNetV2 from scratch（灰度单通道）
 python run_eval_protocol.py --arch mobilenet_v2 --epochs 150 `
   --folds 0,1,2,3,4 --seeds 42,43,44 --device cuda `
+  --source-freeze-manifest <verified_source_freeze_manifest.json> `
   --run-name baseline_mnv2_scratch
 
 # ② 灰度适配 ImageNet 预训练 MobileNetV2（首层权重按通道均值折叠）
 python run_eval_protocol.py --arch mobilenet_v2 --pretrained --epochs 150 `
   --folds 0,1,2,3,4 --seeds 42,43,44 --device cuda `
+  --source-freeze-manifest <verified_source_freeze_manifest.json> `
   --run-name baseline_mnv2_pretrained
 
 # ③ v4 搜索最优 rl_arch_135（18.8K 参数）
 python run_eval_protocol.py `
   --candidate-path "hls_lut_builder\board_harness\results\pareto_route_gate_phase0_v4_sonar_stage3_k3_lowdsp\candidates\003_rl_arch_135.candidate.json" `
   --epochs 150 --folds 0,1,2,3,4 --seeds 42,43,44 --device cuda `
+  --source-freeze-manifest <verified_source_freeze_manifest.json> `
   --run-name baseline_rl_arch_135
 ```
 
-每个命令产出 `results/protocol/<run-name>/protocol_summary.{json,md}`，
+满足输入与证据要求且全部单元完成后，运行产出 `results/protocol/<run-name>/protocol_summary.{json,md}`，
 含 15 次运行（5 折 × 3 seed）的 mean ± std 与 per-class F1。
 
 ## 判读规则
 
-- 两个模型的差异只有在 |Δmean| > 合并 std 时才值得讨论；
+- mean±std是描述性统计，不能用“均值差超过合并std”代替显著性检验；方法比较须按冻结的配对统计协议解释；
 - 若 ② 显著高于 ③，说明当前搜索空间的精度收益低于一次预训练初始化，
   论文叙事应以"约束下可部署性"为主，精度为辅；
 - 与 PLUD (83.68) / DMCL (89.47) 的对比必须注明协议差异

@@ -21,15 +21,15 @@ resources:
   uram: 96
 
 clock:
-  source: ps_fclk
-  port_name: pl_clk0
+  source: differential_pin
+  port_name_p: sys_clk_p
+  port_name_n: sys_clk_n
   period_ns: 5.0
   freq_hz: 200000000
-  generator: zynq_ultra_ps_e_FCLK_CLK0
 
 reset:
-  source: processor_system_reset
-  port_name: pl_resetn0
+  source: external_reset
+  port_name: sys_rst_n
   active_low: true
 
 transport:

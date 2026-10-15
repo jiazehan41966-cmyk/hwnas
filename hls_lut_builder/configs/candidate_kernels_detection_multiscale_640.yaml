@@ -1,0 +1,337 @@
+toolchain:
+  part: xczu7ev-ffvc1156-2-e
+  solution_name: solution1
+  flow_target: vivado
+  cpp_standard: c++14
+  vitis_hls_bin: /opt/Xilinx/Vitis_HLS/2022.2/bin/vitis_hls
+  vivado_bin: /opt/Xilinx/Vivado/2022.2/bin/vivado
+workspace:
+  project_root: ../results/detection_multiscale_640_zcu104/p
+  report_archive: ../results/detection_multiscale_640_zcu104/r
+  csv_path: ../results/detection_multiscale_640_zcu104/hls.csv
+  manifest_path: ../results/detection_multiscale_640_zcu104/hls_manifest.yaml
+  synthesis_summary_json: ../results/detection_multiscale_640_zcu104/hls_synth_summary.json
+  parse_summary_json: ../results/detection_multiscale_640_zcu104/hls_parse_summary.json
+  downstream_csv_path: ../results/detection_multiscale_640_zcu104/vivado_downstream.csv
+  downstream_manifest_path: ../results/detection_multiscale_640_zcu104/vivado_downstream_manifest.yaml
+  downstream_summary_json: ../results/detection_multiscale_640_zcu104/vivado_downstream_summary.json
+  downstream_parse_summary_json: ../results/detection_multiscale_640_zcu104/vivado_downstream_parse_summary.json
+  formal_lut_json: ../results/detection_multiscale_640_zcu104/formal_lut.json
+  formal_lut_status_json: ../results/detection_multiscale_640_zcu104/formal_lut_status.json
+  case_dir_names:
+    detection_fpn_lateral_1x1_p3_lateral_80_32_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p3_lat
+    detection_fpn_lateral_1x1_p4_lateral_40_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p4_lat
+    detection_fpn_lateral_1x1_p5_lateral_20_320_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p5_lat
+    detection_fpn_output_3x3_p3_output_80_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p3_out3
+    detection_fpn_output_3x3_p4_output_40_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p4_out3
+    detection_fpn_output_3x3_p5_output_20_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p5_out3
+    detection_fpn_upsample_add_p4_to_p3_add_80_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p4_p3_add
+    detection_fpn_upsample_add_p5_to_p4_add_40_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p5_p4_add
+    detection_head_pred_1x1_p3_pred_80_96_24_detection_fixed_stage1_pi8_po8_u1_main_5ns: p3_pred
+    detection_head_pred_1x1_p4_pred_40_96_24_detection_fixed_stage1_pi8_po8_u1_main_5ns: p4_pred
+    detection_head_pred_1x1_p5_pred_20_96_24_detection_fixed_stage1_pi8_po8_u1_main_5ns: p5_pred
+    detection_head_tower_3x3_p3_tower_80_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p3_tower
+    detection_head_tower_3x3_p4_tower_40_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p4_tower
+    detection_head_tower_3x3_p5_tower_20_96_96_detection_fixed_stage1_pi8_po8_u1_main_5ns: p5_tower
+measurement_contract:
+  contract_id: zcu104_detection_multiscale_640_fixed_neck_head_packed_stream_v1
+  declaration: Fixed first-stage detection Neck/Head LUT rows for 640x640 multi-scale P3/P4/P5 detection on ZCU104 XCZU7EV-FFVC1156-2-E. Rows are operator-level HLS/Vivado evidence only, not board-level detection accuracy or external power evidence.
+  target_part: xczu7ev-ffvc1156-2-e
+  io_style: packed_stream
+  control_interface: AXI-Lite
+  parameter_storage: BRAM
+  activation_type: ap_int<8>
+  weight_type: ap_int<8>
+  accumulator_type: ap_int<32>
+defaults:
+  data_type: ap_int<8>
+  accum_type: ap_int<32>
+  bitwidth: 8
+  pipeline_ii: 1
+  input_parallelism: 8
+  output_parallelism: 8
+  unroll_factor: 1
+  array_partition_factor: 8
+  max_axis_bits: 4096
+clock_profiles:
+  main_5ns:
+    period_ns: 5.0
+implementation_profiles:
+  detection_fixed_stage1_pi8_po8_u1:
+    input_parallelism: 8
+    output_parallelism: 8
+    unroll_factor: 1
+    array_partition_factor: 8
+representative_shapes:
+  p3_lateral_80_32_96:
+    feature_h: 80
+    feature_w: 80
+    in_channels: 32
+    out_channels: 96
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 1
+    op_spec:
+      detection_role: p3_lateral_1x1
+      detection_level: p3
+  p4_lateral_40_96_96:
+    feature_h: 40
+    feature_w: 40
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 1
+    op_spec:
+      detection_role: p4_lateral_1x1
+      detection_level: p4
+  p5_lateral_20_320_96:
+    feature_h: 20
+    feature_w: 20
+    in_channels: 320
+    out_channels: 96
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 1
+    op_spec:
+      detection_role: p5_lateral_1x1
+      detection_level: p5
+  p4_to_p3_add_80_96:
+    feature_h: 80
+    feature_w: 80
+    source_h: 40
+    source_w: 40
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 0
+    op_spec:
+      detection_role: p4_to_p3_nearest_upsample_add
+      detection_level: p3
+  p5_to_p4_add_40_96:
+    feature_h: 40
+    feature_w: 40
+    source_h: 20
+    source_w: 20
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 0
+    op_spec:
+      detection_role: p5_to_p4_nearest_upsample_add
+      detection_level: p4
+  p3_output_80_96_96:
+    feature_h: 80
+    feature_w: 80
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 3
+    padding: 1
+    apply_relu: 1
+    op_spec:
+      detection_role: p3_output_3x3
+      detection_level: p3
+  p4_output_40_96_96:
+    feature_h: 40
+    feature_w: 40
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 3
+    padding: 1
+    apply_relu: 1
+    op_spec:
+      detection_role: p4_output_3x3
+      detection_level: p4
+  p5_output_20_96_96:
+    feature_h: 20
+    feature_w: 20
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 3
+    padding: 1
+    apply_relu: 1
+    op_spec:
+      detection_role: p5_output_3x3
+      detection_level: p5
+  p3_tower_80_96_96:
+    feature_h: 80
+    feature_w: 80
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 3
+    padding: 1
+    apply_relu: 1
+    op_spec:
+      detection_role: p3_tower_3x3
+      detection_level: p3
+  p4_tower_40_96_96:
+    feature_h: 40
+    feature_w: 40
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 3
+    padding: 1
+    apply_relu: 1
+    op_spec:
+      detection_role: p4_tower_3x3
+      detection_level: p4
+  p5_tower_20_96_96:
+    feature_h: 20
+    feature_w: 20
+    in_channels: 96
+    out_channels: 96
+    stride: 1
+    kernel_size: 3
+    padding: 1
+    apply_relu: 1
+    op_spec:
+      detection_role: p5_tower_3x3
+      detection_level: p5
+  p3_pred_80_96_24:
+    feature_h: 80
+    feature_w: 80
+    in_channels: 96
+    out_channels: 24
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 0
+    op_spec:
+      detection_role: p3_pred_1x1
+      detection_level: p3
+  p4_pred_40_96_24:
+    feature_h: 40
+    feature_w: 40
+    in_channels: 96
+    out_channels: 24
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 0
+    op_spec:
+      detection_role: p4_pred_1x1
+      detection_level: p4
+  p5_pred_20_96_24:
+    feature_h: 20
+    feature_w: 20
+    in_channels: 96
+    out_channels: 24
+    stride: 1
+    kernel_size: 1
+    padding: 0
+    apply_relu: 0
+    op_spec:
+      detection_role: p5_pred_1x1
+      detection_level: p5
+operators:
+  detection_fpn_lateral_1x1:
+    enabled: true
+    template: ../templates/pw_conv.cpp.tmpl
+    top_function: detection_fpn_lateral_1x1_kernel
+    op_type: detection_fpn_lateral_1x1
+    shape_refs:
+      - p3_lateral_80_32_96
+      - p4_lateral_40_96_96
+      - p5_lateral_20_320_96
+    implementation_refs:
+      - detection_fixed_stage1_pi8_po8_u1
+    clock_profile_refs:
+      - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+    op_spec_defaults:
+      op: conv
+      groups: 1
+      expand_ratio: 1
+  detection_fpn_upsample_add:
+    enabled: true
+    template: ../templates/upsample_add_packed.cpp.tmpl
+    top_function: detection_fpn_upsample_add_kernel
+    op_type: detection_fpn_upsample_add
+    shape_refs:
+      - p4_to_p3_add_80_96
+      - p5_to_p4_add_40_96
+    implementation_refs:
+      - detection_fixed_stage1_pi8_po8_u1
+    clock_profile_refs:
+      - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+    op_spec_defaults:
+      op: detection_fpn_upsample_add
+      groups: 1
+      expand_ratio: 1
+  detection_fpn_output_3x3:
+    enabled: true
+    template: ../templates/standard_conv_packed.cpp.tmpl
+    top_function: detection_fpn_output_3x3_kernel
+    op_type: detection_fpn_output_3x3
+    shape_refs:
+      - p3_output_80_96_96
+      - p4_output_40_96_96
+      - p5_output_20_96_96
+    implementation_refs:
+      - detection_fixed_stage1_pi8_po8_u1
+    clock_profile_refs:
+      - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+    op_spec_defaults:
+      op: conv
+      groups: 1
+      expand_ratio: 1
+  detection_head_tower_3x3:
+    enabled: true
+    template: ../templates/standard_conv_packed.cpp.tmpl
+    top_function: detection_head_tower_3x3_kernel
+    op_type: detection_head_tower_3x3
+    shape_refs:
+      - p3_tower_80_96_96
+      - p4_tower_40_96_96
+      - p5_tower_20_96_96
+    implementation_refs:
+      - detection_fixed_stage1_pi8_po8_u1
+    clock_profile_refs:
+      - main_5ns
+    parameters:
+      kernel_size: 3
+      padding: 1
+    op_spec_defaults:
+      op: conv
+      groups: 1
+      expand_ratio: 1
+  detection_head_pred_1x1:
+    enabled: true
+    template: ../templates/pw_conv.cpp.tmpl
+    top_function: detection_head_pred_1x1_kernel
+    op_type: detection_head_pred_1x1
+    shape_refs:
+      - p3_pred_80_96_24
+      - p4_pred_40_96_24
+      - p5_pred_20_96_24
+    implementation_refs:
+      - detection_fixed_stage1_pi8_po8_u1
+    clock_profile_refs:
+      - main_5ns
+    parameters:
+      kernel_size: 1
+      padding: 0
+    op_spec_defaults:
+      op: conv
+      groups: 1
+      expand_ratio: 1

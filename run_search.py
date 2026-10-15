@@ -7,10 +7,11 @@ import sys
 from pathlib import Path
 
 import torch
+import yaml
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from hwnas_fpga.experiment import ExperimentTracker
+from hwnas_fpga.experiment import ExperimentTracker, _slugify
 from hwnas_fpga.interfaces import CandidateMetrics, SearchCandidate
 from hwnas_fpga.runtime import (
     apply_operator_policies_to_search_space,
@@ -25,7 +26,6 @@ from hwnas_fpga.runtime import (
 )
 from hwnas_fpga.research_gates import (
     require_stage3_search_gate,
-    zcu104_cfem20_search_gate_status,
 )
 from hwnas_fpga.search import (
     ParetoFrontSelector,
@@ -35,6 +35,7 @@ from hwnas_fpga.search import (
     build_pareto_selection_summary,
     candidate_selection_score,
     compute_hypervolume,
+    compute_normalized_hypervolume,
     compute_pareto_front,
     compute_pareto_ranks,
     create_searcher,
@@ -68,6 +69,57 @@ def _candidate_from_dict(payload: dict | None) -> SearchCandidate | None:
     )
 
 
+def _formal_operator_cost_gate_status(lut_stats: dict, *, dataset_name: str) -> dict:
+    """Return a launch gate for the MobileNetA formal operator-cost LUT."""
+
+    expected_data_kind = "FRESH_ZCU104_HLS_ROUTE_OPERATOR_COST_WITH_RECOVERY"
+    passed = bool(lut_stats.get("search_ready")) and str(
+        lut_stats.get("data_kind")
+    ) == expected_data_kind
+    blockers = []
+    if dataset_name != "nksid":
+        blockers.append(
+            f"dataset={dataset_name!r} is not the formal NKSID classification task"
+        )
+    if not lut_stats.get("search_ready"):
+        blockers.append("formal operator-cost LUT is not search_ready")
+    if str(lut_stats.get("data_kind")) != expected_data_kind:
+        blockers.append(
+            "formal operator-cost LUT data_kind is not fresh ZCU104 HLS/route evidence"
+        )
+    if blockers:
+        raise RuntimeError(
+            "Formal ZCU104 MobileNetA operator-cost preflight failed; "
+            + "; ".join(blockers)
+        )
+    return {
+        "schema_version": 1,
+        "stage": "zcu104_mobilenetA_operator_cost_preflight",
+        "status": "PASS_FORMAL_ZCU104_OPERATOR_COST_LUT_PREFLIGHT",
+        "may_start_new_claimable_search": passed,
+        "semantic_safe_search_space_cardinality": int(
+            lut_stats.get("search_space_cardinality", 0) or 0
+        ),
+        "gates": {
+            "dataset_is_nksid_classification": dataset_name == "nksid",
+            "formal_lut_search_ready": bool(lut_stats.get("search_ready")),
+            "formal_lut_data_kind_fresh_zcu104_hls_route": str(
+                lut_stats.get("data_kind")
+            ) == expected_data_kind,
+        },
+        "evidence": {
+            "operator_cost_lut": lut_stats.get("operator_cost_path"),
+            "coverage_audit": lut_stats.get("coverage_path"),
+            "preflight": lut_stats.get("preflight_path"),
+            "payload_sha256": lut_stats.get("payload_sha256"),
+        },
+        "boundary": (
+            "This gate admits the RL search launch only. It is not board "
+            "classification, full-network route, or measured board power evidence."
+        ),
+    }
+
+
 def _resolve_family_profile(args: argparse.Namespace, config: dict) -> tuple[str | None, str | None]:
     search_space_cfg = config.setdefault("search_space", {})
 
@@ -85,6 +137,16 @@ def _resolve_family_profile(args: argparse.Namespace, config: dict) -> tuple[str
     if existing_profile is not None:
         return str(existing_profile), "config"
     return None, None
+
+
+def _validate_rl_resume_config(output_root: Path, run_name: str | None, config: dict) -> None:
+    """Reject incompatible resume before the tracker can overwrite run evidence."""
+    if not run_name:
+        raise ValueError("RL resume requires an explicit existing run name")
+    saved_path = output_root / _slugify(run_name) / "config.yaml"
+    saved = yaml.safe_load(saved_path.read_text(encoding="utf-8"))
+    if saved != config:
+        raise ValueError("RL resume config differs from saved run; start a new versioned run")
 
 
 def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) -> int:
@@ -107,6 +169,8 @@ def _restore_rl_resume_state(searcher, tracker: ExperimentTracker, device: str) 
         if line.strip()
     ]
     search_state = json.loads(search_state_path.read_text(encoding="utf-8"))
+    if search_state.get("extra", {}).get("reward_protocol") != searcher.reward_protocol:
+        raise ValueError("Resume reward protocol/reference differs; start a new versioned run")
     latest_ckpt = torch.load(controller_latest_path, map_location=device)
     best_ckpt = (
         torch.load(controller_best_path, map_location=device)
@@ -257,6 +321,13 @@ def main() -> None:
     project_cfg = config.get("project", {})
     training_cfg = config.get("training", {})
     search_cfg = config.get("search", {})
+    task_cfg = config.get("task", {})
+    if str(task_cfg.get("name", "")).strip().lower() == "detection":
+        raise ValueError(
+            "run_search.py is the classification NAS entrypoint. Detection "
+            "configs use the fixed multi-scale Neck/Head branch and require a "
+            "detection trainer/search entrypoint."
+        )
 
     seed = pick(args.seed, project_cfg.get("seed"), 42)
     torch.manual_seed(seed)
@@ -274,7 +345,26 @@ def main() -> None:
     # Validate the fresh exact-shape table before repository-level launch
     # approvals so a ZCU104 run reports the actual missing/invalid cost input
     # and never appears ready merely because historical gates happen to pass.
-    if config.get("hardware", {}).get("zcu104_operator_cost_path"):
+    if config.get("hardware", {}).get("estimator") == "zcu104_width_e_operator_cost_v1":
+        # This new mapping must pass its own current calibration/seed gates.
+        # Loading the estimator fails before data loading or training when blocked.
+        preflight_estimator = build_cost_estimator(
+            config, hardware_spec=build_hardware_spec(config), constraints=build_constraints(config)
+        )
+        preflight_estimator.require_search_ready()
+        from hwnas_fpga.hardware.mobilenetA_operator_cost import load_hashed_json
+        _, width_e_preflight = load_hashed_json(config['hardware']['operator_cost_lut_preflight_path'])
+        if (width_e_preflight.get('nas_resume_allowed') is not True
+            or width_e_preflight.get('operator_cost_payload_sha256') != preflight_estimator.table['payload_sha256']
+            or width_e_preflight.get('calibration_payload_sha256') != preflight_estimator.calibration['payload_sha256']):
+            raise ValueError('Width/e NAS requires a current, nonempty calibrated feasibility preflight')
+        stage3_gate = require_stage3_search_gate(
+            Path(__file__).resolve().parent, dataset_name=dataset_name, config=config
+        )
+    elif (
+        config.get("hardware", {}).get("estimator")
+        == "zcu104_mobilenetA_full_operator_cost_lut_v1"
+    ):
         preflight_constraints = build_constraints(config)
         preflight_hardware_spec = build_hardware_spec(config)
         preflight_estimator = build_cost_estimator(
@@ -282,8 +372,14 @@ def main() -> None:
             hardware_spec=preflight_hardware_spec,
             constraints=preflight_constraints,
         )
-        stage3_gate = zcu104_cfem20_search_gate_status(
+        stage3_gate = _formal_operator_cost_gate_status(
             preflight_estimator.get_lut_stats(), dataset_name=dataset_name
+        )
+    elif config.get("hardware", {}).get("zcu104_operator_cost_path"):
+        raise RuntimeError(
+            "hardware.zcu104_operator_cost_path refers to the retired RAW20/CFEM20 "
+            "9-row ZCU104 adapter. Use the MobileNetA 88-row formal LUT preflight "
+            "and MobileNetA-bound estimator before launching a claimable search."
         )
     else:
         # Gate the final resolved request, including any CLI method override.
@@ -294,25 +390,6 @@ def main() -> None:
             config=config,
         )
 
-    if search_method == "proxyless":
-        _default_device = (
-            "cuda" if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available()
-            else "cpu"
-        )
-        device = pick(args.device, None, _default_device)
-        if not args.config:
-            raise ValueError("--config is required for official ProxylessNAS search")
-        from hwnas_fpga.search.official_proxyless_runner import run_official_proxyless_search
-
-        print("[run_search] proxyless method delegates to reference/ProxylessNAS clone")
-        run_official_proxyless_search(
-            config_path=args.config,
-            device=device,
-            resume=args.resume,
-        )
-        return
-
     _default_device = (
         "cuda" if torch.cuda.is_available()
         else "mps" if torch.backends.mps.is_available()
@@ -321,7 +398,8 @@ def main() -> None:
     device = pick(args.device, None, _default_device)
     image_size = pick(args.image_size, dataset_cfg.get("image_size"), 224)
     input_channels = dataset_cfg.get("input_channels", 1)
-    batch_size = pick(args.batch_size, training_cfg.get("batch_size"), 32)
+    batch_size = pick(args.batch_size, search_cfg.get("proxy_training", {}).get("batch_size"),
+                      pick(None, training_cfg.get("batch_size"), 32))
     num_workers = pick(args.num_workers, dataset_cfg.get("num_workers"), 0)
     fold = pick(args.fold, dataset_cfg.get("fold"), 0)
     data_dir = pick(args.data_dir, dataset_cfg.get("data_dir"), None)
@@ -356,7 +434,7 @@ def main() -> None:
 
     # Persist the resolved protocol, not only the source YAML.  This is
     # essential for matched-seed/matched-budget comparisons launched through
-    # CLI overrides.
+    # CLI overrides, including the ProxylessNAS delegation path below.
     resolved_project_cfg = config.setdefault("project", {})
     resolved_project_cfg["seed"] = int(seed)
     resolved_project_cfg["output_dir"] = str(output_root)
@@ -376,7 +454,13 @@ def main() -> None:
     )
     if num_classes is not None:
         resolved_dataset_cfg["num_classes"] = int(num_classes)
-    config.setdefault("training", {})["batch_size"] = int(batch_size)
+    if search_method == "rl":
+        from hwnas_fpga.training.proxy_config import resolve_proxy_training
+        config.setdefault("search", {})["proxy_training"] = resolve_proxy_training({
+            **search_cfg.get("proxy_training", {}), "batch_size": int(batch_size),
+        })
+    else:
+        config.setdefault("training", {})["batch_size"] = int(batch_size)
     resolved_search_cfg = config.setdefault("search", {})
     resolved_search_cfg.update(
         {
@@ -387,8 +471,26 @@ def main() -> None:
             "timeout_minutes": timeout_minutes,
         }
     )
+
+    if search_method == "proxyless":
+        if not args.config:
+            raise ValueError("--config is required for official ProxylessNAS search")
+        from hwnas_fpga.search.official_proxyless_runner import run_official_proxyless_search
+
+        print("[run_search] proxyless method delegates to reference/ProxylessNAS clone")
+        run_official_proxyless_search(
+            config_path=args.config,
+            resolved_config=config,
+            device=device,
+            resume=args.resume,
+        )
+        return
+
     if family_profile is not None:
         config.setdefault("search_space", {})["family_profile"] = family_profile
+
+    if args.resume and search_method == "rl":
+        _validate_rl_resume_config(output_root, run_name, config)
 
     tracker = ExperimentTracker(
         output_root=output_root,
@@ -399,7 +501,8 @@ def main() -> None:
         run_name=run_name,
         resume=args.resume,
     )
-    tracker.save_config(config, vars(args))
+    if not (args.resume and search_method == "rl"):
+        tracker.save_config(config, vars(args))
 
     try:
         with tracker.capture_console():
@@ -622,6 +725,7 @@ def main() -> None:
                 device=device,
                 reward_weights=objective_weights,
                 reward_cfg=reward_cfg,
+                proxy_training_cfg=search_cfg.get("proxy_training"),
                 proxyless_cfg=proxyless_cfg,
                 aging_cfg=aging_cfg,
                 pareto_cfg=pareto_cfg,
@@ -651,7 +755,10 @@ def main() -> None:
                     f"constraint_penalty={reward_cfg.get('constraint_penalty', 10.0)}, "
                     f"mode={reward_cfg.get('infeasible_penalty_mode', 'fixed')}, "
                     f"base={reward_cfg.get('infeasible_base_penalty', 1.0)}, "
-                    f"scale={reward_cfg.get('infeasible_penalty_scale', 5.0)}"
+                    f"scale={reward_cfg.get('infeasible_penalty_scale', 5.0)}, "
+                    f"hardware_normalization={reward_cfg.get('hardware_normalization', 'constraint')}, "
+                    f"hardware_scalarization={reward_cfg.get('hardware_scalarization', 'weighted_sum')}, "
+                    f"repeat_architecture_penalty={reward_cfg.get('repeat_architecture_penalty', 0.0)}"
                 )
             if search_method == "aging_evolution":
                 print(
@@ -832,14 +939,37 @@ def main() -> None:
                 directions=pareto_directions,
             )
             hypervolume = 0.0
+            hypervolume_metadata = {
+                "schema_version": 1,
+                "kind": "not_available",
+                "reason": "empty_pareto_front",
+            }
             if pareto_front:
-                reference_point = selector._default_reference_point(pareto_front)
-                hypervolume = compute_hypervolume(
-                    pareto_front,
-                    reference_point=reference_point,
-                    objectives=pareto_objectives,
-                    directions=pareto_directions,
-                )
+                try:
+                    hypervolume, hypervolume_metadata = compute_normalized_hypervolume(
+                        pareto_front,
+                        objectives=pareto_objectives,
+                        directions=pareto_directions,
+                        constraints=constraints,
+                    )
+                except ValueError as exc:
+                    reference_point = selector._default_reference_point(pareto_front)
+                    hypervolume = compute_hypervolume(
+                        pareto_front,
+                        reference_point=reference_point,
+                        objectives=pareto_objectives,
+                        directions=pareto_directions,
+                    )
+                    hypervolume_metadata = {
+                        "schema_version": 1,
+                        "kind": "exact_raw_hypervolume",
+                        "reason": str(exc),
+                        "reference_point": list(reference_point),
+                        "claim_boundary": (
+                            "Raw HV is exact but not normalized; use as diagnostic "
+                            "unless frozen normalization bounds are available."
+                        ),
+                    }
             pareto_summary = build_pareto_selection_summary(
                 candidates=searcher.feasible_candidates,
                 pareto_front=pareto_front,
@@ -850,6 +980,7 @@ def main() -> None:
                 selection_method=pareto_method,
                 topk=pareto_topk,
                 hypervolume=hypervolume,
+                hypervolume_metadata=hypervolume_metadata,
             )
             write_pareto_selection_artifacts(tracker.results_dir, pareto_summary)
             representative_roles = build_pareto_representative_roles(

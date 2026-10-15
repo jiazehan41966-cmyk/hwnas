@@ -90,7 +90,14 @@ def main() -> int:
     parser.add_argument("--calibration-samples", type=int, default=512)
     parser.add_argument("--fold", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--deployment-target", default="rl_arch_193")
+    parser.add_argument(
+        "--deployment-target",
+        default=None,
+        help=(
+            "Optional arch_id guard. When omitted, the candidate passed by "
+            "--candidate-path is the deployment target."
+        ),
+    )
     parser.add_argument("--max-allowed-drop", type=float, default=0.02)
     parser.add_argument(
         "--integer-reference",
@@ -117,23 +124,18 @@ def main() -> int:
     args = parser.parse_args()
 
     if not args.candidate_path:
-        raise ValueError("G4 requires the frozen rl_arch_193 candidate artifact")
+        raise ValueError("INT8/PTQ evaluation requires a frozen candidate artifact")
     candidate_payload = json.loads(
         Path(args.candidate_path).read_text(encoding="utf-8")
     )
     candidate_record = candidate_payload.get("candidate", candidate_payload)
     candidate_arch_id = str(candidate_record.get("arch_id", ""))
-    if candidate_arch_id != args.deployment_target:
+    if args.deployment_target and candidate_arch_id != args.deployment_target:
         raise ValueError(
             f"G4 target must be {args.deployment_target}, got {candidate_arch_id!r}"
         )
-    fixed_target = (
-        candidate_arch_id == "rl_arch_193"
-        and args.fold == 1
-        and args.seed == 42
-    )
-    if not fixed_target:
-        raise ValueError("first board-accuracy chain is fixed to rl_arch_193/fold1/seed42")
+    if not candidate_arch_id:
+        raise ValueError("candidate artifact is missing arch_id")
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     run_dir = Path(args.protocol_run)

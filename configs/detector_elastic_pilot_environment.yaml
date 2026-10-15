@@ -1,0 +1,17 @@
+schema_version: 1
+provider: user_owned_existing_ssh_server
+policy: reuse_existing_environment_without_install_or_rebuild
+environment_role: local_protocol_adaptation_not_author_original_runtime
+interpreter: /home/jiajia/experiments/zcu104_full_campaign_v1/.venv/bin/python
+expected:
+  python: 3.13.11
+  torch: 2.7.1+cu128
+  numpy: 2.4.4
+  cuda_runtime: '12.8'
+gpu: NVIDIA GeForce RTX 5090
+runtime_validation: actual_batch4_train_backward_and_valid4_for_each_prototype
+source_attribution:
+  elastic_repository: https://github.com/NAIL-UH/ELASTIC
+  inspected_commit: 4fc82c4fb2dc4b2e31df722470ce5ce0185d68ea
+  author_environment_installed: false
+test_policy: train_valid_only_test_split_not_mounted

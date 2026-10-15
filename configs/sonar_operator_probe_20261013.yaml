@@ -1,0 +1,170 @@
+version: sonar_operator_probe_20261013_01
+scope: exploratory_operator_screen
+formal_eligible: false
+result_root: results/sonar_operator_probe_20261013_01/remote
+authorization:
+  date: '2026-10-13'
+  request: 有正向结果的是哪几个，没有正向结果的现在开始跑实验
+preregistration:
+  path: results/sonar_operator_probe_20261013_01/PREREGISTRATION.md
+  sha256: 08c942042c07014a8875e5f0ac028e2bfd03c0f0842556b0bd8ac2a743e1f4a4
+author:
+  source_root: reference/yolov9
+  commit: 5b1ea9a8b3f0ffe4fe0e203ec6232d788bb3fcff
+baseline: configs/baseline_sonar_frozen.yaml
+environment_spec: configs/sonar_head_factorial_environment.yaml
+subset_contract: results/experiment0_similarity_supplement_20261012_01/subset_contract.json
+subset_contract_sha256: 09c8966f213764e8076318e1404c1201407e0909565af8946971db244deaf824
+evaluation:
+  splits:
+  - train
+  - valid
+  ap_score_threshold: 0.0
+  precision_recall_score_threshold: 0.5
+  pre_nms_topk: 500
+  nms_iou_threshold: 0.5
+  max_detections: 100
+  class_agnostic_nms: false
+seeds:
+- 42
+- 43
+- 44
+screening_seed: 42
+variants:
+- control
+- dw3_stage7
+- dw3_stage2
+- nagr_p2_ungated
+- sonarop_stage7
+- nagr_p2
+- dmdc_p2
+- cfem_p2
+- p2_lateral_only
+- p2_extra_p4
+- p2_concat
+- p2_gated
+- sonarop_weighted_stage7
+- sonarop_stage2
+- dilated_dw3_stage2
+- directional_dw_stage5
+- dcn_stage1
+- frequency_lite_stage1
+- p3_weighted
+- blur_stage1
+- dense_decimate_stage1
+comparisons:
+  dw3_stage7:
+  - control
+  dw3_stage2:
+  - control
+  nagr_p2_ungated:
+  - control
+  sonarop_stage7:
+  - control
+  - dw3_stage7
+  nagr_p2:
+  - control
+  - nagr_p2_ungated
+  dmdc_p2:
+  - control
+  cfem_p2:
+  - control
+  p2_lateral_only:
+  - control
+  p2_extra_p4:
+  - control
+  p2_concat:
+  - control
+  p2_gated:
+  - control
+  sonarop_weighted_stage7:
+  - control
+  - sonarop_stage7
+  sonarop_stage2:
+  - control
+  - dw3_stage2
+  dilated_dw3_stage2:
+  - control
+  - dw3_stage2
+  directional_dw_stage5:
+  - control
+  dcn_stage1:
+  - control
+  frequency_lite_stage1:
+  - control
+  p3_weighted:
+  - control
+  blur_stage1:
+  - control
+  dense_decimate_stage1:
+  - control
+  - blur_stage1
+confirmation_eligible_variants:
+- sonarop_stage7
+- nagr_p2
+- dmdc_p2
+- cfem_p2
+- p2_lateral_only
+- p2_extra_p4
+- p2_concat
+- p2_gated
+- sonarop_weighted_stage7
+- sonarop_stage2
+- dilated_dw3_stage2
+- directional_dw_stage5
+- dcn_stage1
+- frequency_lite_stage1
+- p3_weighted
+training:
+  epochs: 80
+  batch_size: 4
+  input: 640
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  ema: false
+  accumulation: 1
+  save_prediction_epochs:
+  - 76
+  - 77
+  - 78
+  - 79
+  - 80
+queue:
+  allowed_gpus:
+  - 1
+  maximum_hours_per_run: 2
+  maximum_gpu_hours: 48
+  adaptive_seed_extension: true
+  maximum_confirm_variants: 3
+  gpu_memory_admission_mib: 1024
+  retry: none
+  resource_wait_maximum_hours: 6
+  resource_poll_seconds: 30
+decision:
+  metric: mAP50_95
+  primary_checkpoint: mean_epochs_76_80
+  primary_epochs:
+  - 76
+  - 77
+  - 78
+  - 79
+  - 80
+  primary_subset: full99
+  automatic_search: false
+  automatic_hardware: false
+  final_positive_stable_seeds_minimum: 2
+  final_positive_endpoint_seeds_minimum: 2
+test_policy: sealed_not_mounted
+extra_source_paths:
+- tools/sonar_joint192_validation/model.py
+- tools/sonar_joint192_extension_20261013/model.py
+- tools/sonar_operator_probe/README.md
+- configs/sonar_head_c01b_20261013.yaml
+- results/sonar_operator_probe_20261013_01/review/STATIC_REVIEW_REVISION2.json
+runtime_readiness:
+  static_review: results/sonar_operator_probe_20261013_01/review/STATIC_REVIEW_REVISION2.json
+  method: TEAM_STATIC_REVIEW_PLUS_INDEPENDENT_RUNTIME_CHECKER

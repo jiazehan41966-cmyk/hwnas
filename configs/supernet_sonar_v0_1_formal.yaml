@@ -1,0 +1,72 @@
+protocol_version: sonar_supernet_v0_1_formal_v1
+space: configs/search_space_sonar_v0_1.yaml
+space_sha256: ebb1708b394af20258c920eb29204d5cc9504f5908fdfdae62a62d78042eb7c4
+baseline: configs/baseline_sonar_frozen.yaml
+baseline_sha256: 23989d09cae29139be7bd74a92bf9c53f75605047b7d8b2d2e2601b98d2eb56e
+baseline_manifest_sha256: 450c4db58045d241753f7ed8c8bd0e8ef34b3941d52fe6153917d6d33db4f074
+baseline_initialization_reference:
+  path: reports/phase2c_supernet/local_seed42_initialization_probe.pt
+  sha256: eb58f60b61ef924458b8db6f40151c3669c072ebb879df339cba94527ebff381
+  purpose: untrained_seed42_state_matching_original_freeze_manifest_exactly
+training:
+  epochs: 80
+  input: 640
+  batch_size: 4
+  seed: 42
+  optimizer: AdamW
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: none
+  amp: false
+  workers: 0
+  architecture_sampling: uniform_output_combination_then_independent_bernoulli_kernel_v1
+  inherited_protocol: dataset_augmentation_sampler_loss_anchors_assignment_evaluator_from_frozen_baseline
+  checkpoint_policy: epoch_boundary_latest_atomic
+  supernet_selection: final_epoch_80_no_valid_selection
+  resume: next_epoch_only
+calibration:
+  split: train
+  augmentation: false
+  shuffle: false
+  workers: 0
+  seed: 42
+  batch_size: 4
+  batches: 16
+  images: 64
+  order: frozen_loader_sorted_first_64
+  statistics: cumulative_batch_BN_mean_variance_in_independent_export
+ranking:
+  split: valid
+  images: 99
+  bn: calibrated_only
+  tie_break: architecture_id_ascending
+  metrics: [AP50, AP75, mAP50_95, Precision, Recall]
+  complexity: Conv_Linear_MACs_not_hardware_latency
+witness:
+  count: 12
+  within_combination: [top, lower_median_zero_based_floor_n_minus_1_over_2, bottom]
+  remaining: seeded_random_sample_3_from_id_sorted_unselected
+  seed: 42
+  kernel_coverage: report_only_do_not_override_rank_and_random_rule
+  immutable_before_standalone: true
+standalone:
+  initialization: from_scratch
+  epochs: 80
+  seed: 42
+  selection: best_valid_mAP50_95_earliest_tie
+reliability:
+  metrics: [spearman, kendall_tau_b, pearson_supplementary]
+  rank_ties: average
+  topk_ties: architecture_id_ascending
+  bootstrap: paired_architecture_resampling
+  bootstrap_samples: 10000
+  bootstrap_seed: 42
+  confidence: 0.95
+  population: purposively_stratified_12_witnesses_not_all_144
+  universal_acceptance_threshold: null
+  final_gate: independent_interpretation_required_no_automatic_final_selection
+gate:
+  original_audit: reports/phase2b_independent_audit_tmp/independent_findings.json
+  closure: reports/phase2c_supernet/INDEPENDENT_GATE_CLOSURE.json
+  require_source_bound_independent_pass: true
+test_policy: sealed_no_performance_access

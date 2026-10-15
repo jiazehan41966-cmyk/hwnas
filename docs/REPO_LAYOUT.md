@@ -1,7 +1,9 @@
 # Repository Layout
 
-This document is the canonical map of the repository after the cleanup pass on
-branch `codex/repo-cleanup-review`.
+This document records the repository layout after the earlier cleanup pass on
+branch `codex/repo-cleanup-review`. For the current file-cleanup order and verified
+method implementation paths, use [FILE_CLEANUP_PLAN.md](FILE_CLEANUP_PLAN.md).
+The [document index](INDEX.md) separates protocols from historical records.
 
 ## Active Top-Level Entry Points
 

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import math
+import subprocess
+import sys
+import json
 from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from hwnas_fpga.metrics import (
     compute_image_quality,
@@ -96,3 +100,36 @@ def test_ssi_below_one_after_smoothing():
 def test_measure_script_importable():
     script = Path("scripts/measure_sonar_image_quality.py")
     assert script.exists()
+
+
+def test_measure_script_accepts_generic_image_root(tmp_path: Path):
+    image_root = tmp_path / "external_images"
+    (image_root / "train").mkdir(parents=True)
+    (image_root / "valid").mkdir(parents=True)
+    Image.fromarray(np.full((16, 16), 64, dtype=np.uint8)).save(image_root / "train" / "a.png")
+    Image.fromarray(np.full((16, 16), 192, dtype=np.uint8)).save(image_root / "valid" / "b.png")
+    output_dir = tmp_path / "quality_results"
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/measure_sonar_image_quality.py",
+            "--image-root",
+            str(image_root),
+            "--dataset-name",
+            "test_external",
+            "--transforms",
+            "identity,denoise,denoise_edge",
+            "--output-dir",
+            str(output_dir),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads((output_dir / "sonar_image_quality_summary.json").read_text(encoding="utf-8"))
+    assert payload["metadata"]["dataset_name"] == "test_external"
+    assert payload["metadata"]["samples"] == 2
+    assert {row["transform"] for row in payload["overall"]} == {"identity", "denoise", "denoise_edge"}
+    assert {row["class_name"] for row in payload["by_class"]} == {"train", "valid"}

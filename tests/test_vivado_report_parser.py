@@ -28,6 +28,23 @@ class VivadoReportParserTests(unittest.TestCase):
         self.assertEqual(metrics["ramb18"], 9)
         self.assertEqual(metrics["dsp"], 335)
 
+    def test_parse_ultrascale_clb_utilization_text(self) -> None:
+        report_text = """\
+| CLB LUTs          | 12,345 |     0 |          0 |    230400 |  5.36 |
+| CLB Registers     | 18,765 |     0 |          0 |    460800 |  4.07 |
+| Block RAM Tile    |   12.5 |     0 |          0 |       312 |  4.01 |
+|   RAMB36/FIFO*    |      7 |     0 |          0 |       312 |  2.24 |
+|   RAMB18          |     11 |     0 |          0 |       624 |  1.76 |
+| DSPs              |      4 |     0 |          0 |      1728 |  0.23 |
+"""
+        metrics = parse_vivado_utilization_text(report_text)
+        self.assertEqual(metrics["lut"], 12345)
+        self.assertEqual(metrics["ff"], 18765)
+        self.assertEqual(metrics["block_ram_tile"], 12.5)
+        self.assertEqual(metrics["ramb36"], 7)
+        self.assertEqual(metrics["ramb18"], 11)
+        self.assertEqual(metrics["dsp"], 4)
+
     def test_parse_vivado_timing_summary_text(self) -> None:
         report_text = """\
 Setup :            0  Failing Endpoints,  Worst Slack        0.075ns,  Total Violation        0.000ns

@@ -209,6 +209,19 @@ def find_case_report(repo_root: Path, case_name: str) -> Path | None:
     return None
 
 
+def resolve_status_report_path(
+    repo_root: Path,
+    status: Mapping[str, Any],
+    case_name: str,
+) -> Path | None:
+    report_value = status.get("report_path")
+    if report_value:
+        report_path = Path(str(report_value)).expanduser()
+        if report_path.exists():
+            return report_path.resolve()
+    return find_case_report(repo_root, case_name)
+
+
 def hls_metrics(path: Path, *, clock_mhz: float = 200.0) -> dict[str, Any]:
     parsed = parse_hls_report(path)
     cycles = int(parsed["cycles"])
@@ -267,7 +280,11 @@ def assemble_candidate_hls_report(
             resolved_roles.append(resolved)
             continue
         case_name = str(status.get("case_name")) if status else ""
-        report_path = find_case_report(root, case_name) if case_name else None
+        report_path = (
+            resolve_status_report_path(root, status, case_name)
+            if status and case_name
+            else None
+        )
         if status is None or status.get("status") != "measured" or report_path is None:
             reason = (
                 "no_status_entry"

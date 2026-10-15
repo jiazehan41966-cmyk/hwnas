@@ -1,0 +1,59 @@
+version: sonar_detector_deployment_gate_v1
+task: detection
+dataset: Cylinder2
+evaluation_split: valid
+test_evaluated: false
+reference_network: D
+reference_precision: same_as_candidate
+metrics: [mAP50_95, Recall]
+aggregation: mean_over_seeds_42_43_44
+require_both_metrics: true
+absolute_application_threshold: null
+application_accuracy_claim: not_established_relative_only
+checkpoint_policy: ALL_BEST_PT
+training_budget: 80
+search_control:
+  surrogate_experiments: stopped
+  max_new_architecture_evaluations: 0
+  reuse_frozen_candidates: [B1, C, D]
+  partial_epoch_futility_rule: not_calibrated_do_not_apply_to_frozen_runs
+execution_priority: [D, C, B1]
+initial_board_precision: W8A8
+initial_board_seed: 42
+seed_selection_reason: fixed_engineering_reference_not_best_seed_selection
+mixed_precision_policy: preserve_frozen_Q_but_require_same_precision_control_and_backend
+board_artifact_aliases:
+  source_manifest.json: results/detector_execution_20260922/dma_attempt02/manifest.json
+  pynq_dma_runner.py: tools/detector_preflight/pynq_dma_runner.py
+  pw/reference.bin: results/detector_execution_20260922/dma_attempt02/pw/reference.bin
+  pw/low.bin: results/detector_execution_20260922/dma_attempt02/pw/low.bin
+  pw/input.bin: results/detector_execution_20260922/dma_attempt02/pw/input.bin
+  pw/biases.bin: results/detector_execution_20260922/dma_attempt02/pw/biases.bin
+  pw/weights.bin: results/detector_execution_20260922/dma_attempt02/pw/weights.bin
+  pw/numeric.bin: results/detector_execution_20260922/dma_attempt02/pw/numeric.bin
+  fpn/reference.bin: results/detector_execution_20260922/dma_attempt02/fpn/reference.bin
+  fpn/low.bin: results/detector_execution_20260922/dma_attempt02/fpn/low.bin
+  fpn/input.bin: results/detector_execution_20260922/dma_attempt02/fpn/input.bin
+  fpn/biases.bin: results/detector_execution_20260922/dma_attempt02/fpn/biases.bin
+  fpn/weights.bin: results/detector_execution_20260922/dma_attempt02/fpn/weights.bin
+  fpn/numeric.bin: results/detector_execution_20260922/dma_attempt02/fpn/numeric.bin
+stop_rules:
+  candidate_below_D_either_metric: stop_candidate_downstream
+  all_candidates_below_D: stop_pipeline
+  missing_or_mismatched_evidence: block_not_accuracy_failure
+  per_seed_negative_delta: report_not_automatic_stop
+  metrics_journal_failure: stop_before_dispatch
+source_paths:
+  checkpoint_manifest: reports/phase5a_quantization/CHECKPOINT_SELECTION_MANIFEST.json
+  ptq_manifest: reports/phase5a_quantization/PTQ_MANIFEST.json
+  quant_config: reports/phase5a_quantization/quant_config.yaml
+  calibration_manifest: reports/phase5a_quantization/CALIBRATION_MANIFEST.json
+  baseline: configs/baseline_sonar_frozen.yaml
+  baseline_manifest: reports/baseline_sonar_frozen/freeze_manifest.json
+  search_space: configs/search_space_sonar_v0_1.yaml
+  candidate_set: reports/phase2f_multiseed/network_candidate_set.json
+  frozen_q: reports/phase5e_mixed_precision/Q_OF_X.json
+  mixed_results: reports/phase5e_mixed_precision/MIXED_PRECISION_RESULTS.csv
+  hardware_summary: results/fpga_h4_joint_search/summary.json
+  board_manifest: results/detector_execution_20260922/board_evidence/board_manifest.json
+  board_results: results/detector_execution_20260922/board_evidence/board_results.json

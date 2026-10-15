@@ -27,13 +27,14 @@ from hwnas_fpga.search import (
     build_pareto_selection_summary,
     compute_pareto_front,
     compute_pareto_ranks,
+    compute_normalized_hypervolume,
     crowding_distances,
     create_searcher,
     write_pareto_selection_artifacts,
     merge_search_efficiency,
     resolve_pareto_objectives,
 )
-from hwnas_fpga.search_space import SearchSpace, SearchSpaceConfig
+from hwnas_fpga.search_space import ArchitectureSpec, BlockSpec, SearchSpace, SearchSpaceConfig
 from hwnas_fpga.training import evaluate_sonar_robustness, resolve_sonar_robustness_config
 
 
@@ -616,6 +617,119 @@ class SearchFactoryTests(unittest.TestCase):
 
         self.assertEqual(sampled, {(3, 3), (5, 3), (3, 6), (5, 6)})
 
+    def test_rl_searcher_resamples_after_repeat_limit(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 16,
+                "stem_stride": 2,
+                "stage_strides": [2],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3, 5],
+                "expand_choices": [3],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 5, "expand_ratio": 3},
+                    ]
+                ],
+                "num_classes": 8,
+            }
+        )
+        searcher = RLSearcher(
+            search_space=SearchSpace(config),
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=11,
+            reward_cfg={
+                "max_architecture_repeats": 1,
+                "collapse_resample_attempts": 3,
+            },
+        )
+        first = searcher._generate_architecture_masked()
+        second = ArchitectureSpec.from_dict(first.to_dict())
+        second_stage = second.stages[0]
+        second_block = BlockSpec(op="mbconv", kernel_size=5, expand_ratio=3, stride=2)
+        second = ArchitectureSpec(
+            input_channels=second.input_channels,
+            stem_channels=second.stem_channels,
+            stem_stride=second.stem_stride,
+            post_stem_downsample_stride=second.post_stem_downsample_stride,
+            stages=(
+                type(second_stage)(
+                    channels=second_stage.channels,
+                    depth=second_stage.depth,
+                    stride=second_stage.stride,
+                    blocks=(second_block,),
+                ),
+            ),
+            head_conv_channels=second.head_conv_channels,
+            head_channels=second.head_channels,
+            num_classes=second.num_classes,
+        )
+        generated = iter([first, first, second])
+        searcher.architecture_visit_counts[searcher._architecture_visit_key(first)] = 1
+
+        def fixed_generate(_self):
+            return next(generated)
+
+        searcher._generate_architecture_masked = MethodType(fixed_generate, searcher)
+
+        self.assertIs(searcher.generate_architecture(), second)
+
+    def test_rl_searcher_builds_raw_space_reward_reference(self) -> None:
+        config = SearchSpaceConfig.from_dict(
+            {
+                "input_channels": 1,
+                "image_size": 224,
+                "stem_channels": 16,
+                "stem_stride": 2,
+                "stage_strides": [2],
+                "stage_base_channels": [24],
+                "width_multipliers": [1.0],
+                "stage_depth_choices": [[1]],
+                "op_choices": ["mbconv"],
+                "kernel_choices": [3, 5],
+                "expand_choices": [3],
+                "stage_block_choices": [
+                    [
+                        {"op": "mbconv", "kernel_size": 3, "expand_ratio": 3},
+                        {"op": "mbconv", "kernel_size": 5, "expand_ratio": 3},
+                    ]
+                ],
+                "num_classes": 8,
+            }
+        )
+        searcher = RLSearcher(
+            search_space=SearchSpace(config),
+            cost_estimator=self.estimator,
+            constraints=self.constraints,
+            controller_hidden_dim=8,
+            train_epochs_per_arch=0,
+            device="cpu",
+            seed=11,
+            reward_cfg={
+                "hardware_normalization": "raw_space_minmax",
+                "hardware_scalarization": "pareto_rank",
+                "hardware_rank_weight": 0.05,
+                "raw_space_reference_max_architectures": 2,
+            },
+        )
+
+        self.assertEqual(searcher.raw_space_hardware_reference["size"], 2)
+        self.assertEqual(
+            searcher.reward_protocol["hardware_normalization"],
+            "raw_space_minmax",
+        )
+        self.assertEqual(searcher.reward_protocol["hardware_scalarization"], "pareto_rank")
+
     def test_rl_searcher_updates_controller_once_with_exploration_bonus(self) -> None:
         searcher = RLSearcher(
             search_space=self.search_space,
@@ -841,6 +955,38 @@ class SearchFactoryTests(unittest.TestCase):
             csv_text = (output_dir / "pareto_ranked_candidates.csv").read_text(encoding="utf-8")
             self.assertIn("physical_risk", csv_text.splitlines()[0])
             self.assertIn("selected_low_risk", csv_text)
+
+    def test_normalized_hypervolume_uses_frozen_constraints_for_high_dimensional_front(self) -> None:
+        candidates = [
+            SearchCandidate(
+                "accurate",
+                {},
+                CandidateMetrics(
+                    macro_f1=0.8,
+                    latency_ms=5.0,
+                    energy_mj=20.0,
+                    dsp=100,
+                    bram=10,
+                    lut=1000,
+                ),
+            )
+        ]
+        hv, metadata = compute_normalized_hypervolume(
+            candidates,
+            objectives=["macro_f1", "latency_ms", "energy_mj", "dsp", "bram", "lut"],
+            directions=["max", "min", "min", "min", "min", "min"],
+            constraints=SearchConstraints(
+                max_latency_ms=10.0,
+                max_energy_mj=100.0,
+                max_dsp=200,
+                max_bram=20,
+                max_lut=2000,
+            ),
+        )
+
+        self.assertAlmostEqual(hv, 0.8 * 0.5 * 0.8 * 0.5 * 0.5 * 0.5)
+        self.assertEqual(metadata["kind"], "exact_normalized_hypervolume")
+        self.assertEqual(metadata["complete_candidate_count"], 1)
 
     def test_rl_searcher_inherits_base_feasibility_checks(self) -> None:
         constraints = SearchConstraints(max_energy_mj=1.0)

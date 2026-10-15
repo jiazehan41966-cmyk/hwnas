@@ -22,6 +22,15 @@ from .dataset import (
     # 常量
     NKSID_CLASSES,
 )
+from .detection import (
+    YoloDetectionDataset,
+    create_yolo_detection_dataloader,
+    create_yolo_detection_dataloaders,
+    detection_collate_fn,
+    network_boxes_to_original,
+    yolo_normalized_to_original_xyxy,
+    yolo_normalized_to_xyxy,
+)
 from .protocol import (
     OuterFold,
     ProtocolError,
@@ -36,11 +45,15 @@ __all__ = [
     "DummySonarDataset",
     "NKSIDDataset",
     "SonarImageDataset",
+    "YoloDetectionDataset",
     # 数据加载器工厂函数
     "create_dataloader",
     "create_dummy_dataloaders",
     "create_nksid_dataloaders",
     "create_protocol_dataloaders",
+    "create_yolo_detection_dataloader",
+    "create_yolo_detection_dataloaders",
+    "detection_collate_fn",
     # 冻结评估协议
     "OuterFold",
     "ProtocolError",
@@ -51,6 +64,9 @@ __all__ = [
     # 工具函数
     "get_sonar_transforms",
     "download_nksid_dataset",
+    "network_boxes_to_original",
+    "yolo_normalized_to_original_xyxy",
+    "yolo_normalized_to_xyxy",
     # 常量
     "NKSID_CLASSES",
 ]

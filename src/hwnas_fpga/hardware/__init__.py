@@ -44,15 +44,26 @@ from .power_measurement import (
 from .deployment_binding import (
     audit_zcu104_deployment_binding,
 )
-from .zcu104_operator_cost import ZCU104CFEM20OperatorCostEstimator
+from .detection_cost import (
+    DEFAULT_DETECTION_FEATURE_INDICES,
+    FixedMultiscaleDetectionCostConfig,
+    detection_cost_table_payload,
+    detection_feature_shape_table,
+    estimate_multiscale_detection_cost,
+    fixed_detection_head_layers,
+    resolve_detection_feature_blocks,
+)
+from .mobilenetA_operator_cost import ZCU104MobileNetAOperatorCostEstimator
 
 __all__ = [
     "BOARD_PROFILES",
+    "DEFAULT_DETECTION_FEATURE_INDICES",
     "BackboneCostEstimate",
     "BackboneCostEstimator",
     "BackboneLayerCost",
     "CostEstimate",
     "FPGACostEstimator",
+    "FixedMultiscaleDetectionCostConfig",
     "GapAcceptanceAuditInputs",
     "LayerCost",
     "LutBuilder",
@@ -66,12 +77,16 @@ __all__ = [
     "audit_power_campaign",
     "audit_power_manifest",
     "audit_zcu104_deployment_binding",
-    "ZCU104CFEM20OperatorCostEstimator",
+    "detection_cost_table_payload",
+    "detection_feature_shape_table",
+    "ZCU104MobileNetAOperatorCostEstimator",
     "classify_route_gate_result",
     "create_dummy_fpga_lut",
     "dedupe_candidates_by_signature",
+    "estimate_multiscale_detection_cost",
     "encoding_signature",
     "get_board_profile",
+    "fixed_detection_head_layers",
     "load_lut_manifest",
     "load_and_audit_power_manifest",
     "list_board_profiles",
@@ -85,6 +100,7 @@ __all__ = [
     "parse_vivado_timing_summary_text",
     "parse_vivado_utilization_text",
     "resolve_board_profile",
+    "resolve_detection_feature_blocks",
     "save_lut_from_manifest",
     "select_route_clean_best",
 ]

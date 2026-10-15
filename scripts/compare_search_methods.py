@@ -101,6 +101,14 @@ def fairness_payload(config: Mapping[str, Any], summary: Mapping[str, Any]) -> d
     }
 
 
+def resolve_evaluator_mode(method: str, config: Mapping[str, Any]) -> str:
+    search = config.get("search") if isinstance(config.get("search"), Mapping) else {}
+    if method == "proxyless":
+        proxyless = search.get("proxyless") if isinstance(search.get("proxyless"), Mapping) else {}
+        return str(proxyless.get("evaluator_mode") or "weight_sharing_supernet")
+    return "independent_candidate_train"
+
+
 def candidate_signature(candidate: Mapping[str, Any]) -> str:
     return canonical_sha256(candidate.get("encoding") or {})
 
@@ -137,6 +145,7 @@ def summarize_run(run_root: Path) -> dict[str, Any]:
     representatives = read_json(representatives_path) if representatives_path.exists() else {}
     roles = dict(representatives.get("roles") or {})
     method = str((summary.get("extra") or {}).get("search_method") or efficiency.get("search_method"))
+    evaluator_mode = resolve_evaluator_mode(method, config)
     gpu_hours = float(efficiency.get("gpu_reserved_hours") or 0.0)
     wall_seconds = float(efficiency.get("wall_clock_seconds") or 0.0)
     job_wall_seconds = (
@@ -153,6 +162,7 @@ def summarize_run(run_root: Path) -> dict[str, Any]:
     return {
         "run_root": str(run_root),
         "method": method,
+        "evaluator_mode": evaluator_mode,
         "seed": seed,
         "run_label": f"{method}:seed={seed}:{run_root.name}",
         "status": summary.get("status"),
@@ -170,10 +180,22 @@ def summarize_run(run_root: Path) -> dict[str, Any]:
         "best_f_clean": max(f_clean_values) if f_clean_values else None,
         "best_f_robust": max(f_robust_values) if f_robust_values else None,
         "accuracy_first_arch_id": (roles.get("accuracy_first") or {}).get("arch_id"),
+        "knee_point_arch_id": (roles.get("knee_point") or {}).get("arch_id"),
+        "latency_energy_first_arch_id": (roles.get("latency_energy_first") or {}).get("arch_id"),
         "sonar_robust_arch_id": (roles.get("sonar_robust") or {}).get("arch_id"),
         "deployment_balanced_arch_id": (roles.get("deployment_balanced") or {}).get("arch_id"),
         "best_top1": metrics.get("top1"),
         "best_latency_ms": metrics.get("latency_ms"),
+        "best_params": metrics.get("params"),
+        "best_macs": metrics.get("macs"),
+        "best_flops": metrics.get("flops"),
+        "best_fps": metrics.get("fps"),
+        "best_gmac_per_s": metrics.get("gmac_per_s"),
+        "best_gops": metrics.get("gops"),
+        "best_power_w": metrics.get("power_w"),
+        "best_chip_average_power_w": metrics.get("chip_average_power_w"),
+        "best_dynamic_power_w": metrics.get("dynamic_power_w"),
+        "best_fps_per_w": metrics.get("fps_per_w"),
         "wall_clock_seconds": wall_seconds,
         "gpu_reserved_hours": gpu_hours,
         "job_efficiency_available": job_efficiency is not None,
@@ -385,6 +407,12 @@ def build_method_aggregates(rows: Sequence[Mapping[str, Any]]) -> list[dict[str,
         "best_f_robust",
         "best_macro_f1",
         "pareto_front_size",
+        "best_top1",
+        "best_latency_ms",
+        "best_fps",
+        "best_gmac_per_s",
+        "best_gops",
+        "best_power_w",
         "joint_pareto_contribution_count",
         "wall_clock_seconds",
         "gpu_reserved_hours",
@@ -628,6 +656,7 @@ def write_outputs(
     output_dir.mkdir(parents=True, exist_ok=True)
     fingerprints = sorted({str(row["protocol_fingerprint"]) for row in rows})
     candidate_counts = {int(row["candidate_count"]) for row in rows}
+    evaluator_modes = sorted({str(row.get("evaluator_mode") or "unknown") for row in rows})
     methods = sorted({str(row["method"]) for row in rows})
     seed_sets = {
         method: sorted(int(row["seed"]) for row in rows if str(row["method"]) == method)
@@ -658,12 +687,14 @@ def write_outputs(
     )
     same_protocol = len(fingerprints) == 1
     equal_actual_candidate_count = len(candidate_counts) == 1
+    same_evaluator_mode = len(evaluator_modes) == 1
     payload = {
         "schema_version": 1,
         "comparison_ready": (
             len(methods) >= 2
             and same_protocol
             and equal_actual_candidate_count
+            and same_evaluator_mode
             and matched_seed_sets
             and unique_method_seed_pairs
             and all_completed
@@ -682,6 +713,8 @@ def write_outputs(
         ),
         "same_protocol": same_protocol,
         "equal_actual_candidate_count": equal_actual_candidate_count,
+        "same_evaluator_mode": same_evaluator_mode,
+        "evaluator_modes": evaluator_modes,
         "matched_seed_sets": matched_seed_sets,
         "unique_method_seed_pairs": unique_method_seed_pairs,
         "seed_sets": seed_sets,
@@ -698,7 +731,17 @@ def write_outputs(
             "gpu_event_seconds",
             "job_wall_clock_seconds",
         ],
-        "quality_metrics": ["best_f_clean", "best_f_robust", "pareto_front_size"],
+        "quality_metrics": ["best_f_clean", "best_f_robust", "best_macro_f1", "best_top1", "pareto_front_size"],
+        "hardware_metrics": [
+            "best_params",
+            "best_macs",
+            "best_flops",
+            "best_latency_ms",
+            "best_fps",
+            "best_gmac_per_s",
+            "best_gops",
+            "best_power_w",
+        ],
         "joint_pareto": joint_pareto,
         "exact_hypervolume": exact_hypervolume_report,
         "formal_exact_hv_ready": bool(exact_hypervolume_report.get("available")),
@@ -713,6 +756,11 @@ def write_outputs(
         "hypervolume_boundary": (
             "reported_hypervolume is retained only as legacy evidence. The formal primary metric "
             "is exact_hypervolume and is unavailable unless --latency-limit-ms is explicitly frozen."
+        ),
+        "evaluator_mode_boundary": (
+            "ProxylessNAS remains reportable as a separate method, but formal equal-budget "
+            "claims require same_evaluator_mode=true. Weight-sharing supernet results are "
+            "not interchangeable with independent candidate training."
         ),
     }
     (output_dir / "comparison.json").write_text(
@@ -730,6 +778,7 @@ def write_outputs(
         f"- Structural smoke ready: `{payload['structural_smoke_ready']}`",
         f"- Same protocol: `{payload['same_protocol']}`",
         f"- Equal actual candidate count: `{payload['equal_actual_candidate_count']}`",
+        f"- Same evaluator mode: `{payload['same_evaluator_mode']}`",
         f"- Matched seed sets: `{payload['matched_seed_sets']}`",
         f"- Quality metrics available: `{payload['quality_available']}`",
         f"- Full-job GPU efficiency ready: `{payload['gpu_efficiency_ready']}`",
@@ -737,14 +786,14 @@ def write_outputs(
         "- Primary compute metric: `job_gpu_reserved_hours`",
         "- Boundary: search proxy only; no retrain/route/board/power claim.",
         "",
-        "| method | seed | candidates | unique | feasible | Pareto | joint contribution | best F_clean | best F_robust | search wall s | search GPU h | full-job GPU h | GPU event s | peak CUDA bytes |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| method | mode | seed | candidates | unique | feasible | Pareto | joint contribution | best Macro-F1 | best Top-1 | latency ms | FPS | GOPS | search wall s | search GPU h | full-job GPU h |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in rows:
         lines.append(
-            "| {method} | {seed} | {candidate_count} | {unique_encoding_count} | {feasible_count} | "
-            "{pareto_front_size} | {joint_pareto_contribution_count} | {best_f_clean} | {best_f_robust} | {wall_clock_seconds:.3f} | "
-            "{gpu_reserved_hours:.6f} | {job_gpu_reserved_hours} | {gpu_event_seconds} | {peak_cuda_memory_bytes} |".format(**row)
+            "| {method} | {evaluator_mode} | {seed} | {candidate_count} | {unique_encoding_count} | {feasible_count} | "
+            "{pareto_front_size} | {joint_pareto_contribution_count} | {best_macro_f1} | {best_top1} | {best_latency_ms} | "
+            "{best_fps} | {best_gops} | {wall_clock_seconds:.3f} | {gpu_reserved_hours:.6f} | {job_gpu_reserved_hours} |".format(**row)
         )
     if paired_comparison.get("available"):
         lines.extend(

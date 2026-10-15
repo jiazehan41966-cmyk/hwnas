@@ -20,7 +20,7 @@ module simple_dual_port_bram #(
     output reg  [DATA_WIDTH-1:0]        doutb
 );
 
-reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
+(* ram_style = "block", ram_decomp = "power", rw_addr_collision = "yes" *) reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
 integer i;
 integer byte_idx;
 
