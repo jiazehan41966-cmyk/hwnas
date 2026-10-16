@@ -1,0 +1,8 @@
+path: .
+train: train/images
+val: valid/images
+test: test/images
+names:
+  0: aircraft
+  1: human
+  2: ship

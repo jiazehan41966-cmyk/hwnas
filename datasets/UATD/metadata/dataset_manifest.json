@@ -1,0 +1,1788 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-17T07:25:32+00:00",
+  "official_source": {
+    "official_name": "Underwater acoustic target detection (UATD) dataset",
+    "paper_url": "https://www.nature.com/articles/s41597-022-01854-w",
+    "paper_doi": "https://doi.org/10.1038/s41597-022-01854-w",
+    "figshare_url": "https://figshare.com/articles/dataset/UATD_Dataset/21331143",
+    "figshare_api_url": "https://api.figshare.com/v2/articles/21331143",
+    "figshare_doi": "10.6084/m9.figshare.21331143.v3",
+    "license": {
+      "value": 1,
+      "name": "CC BY 4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "version": 3,
+    "citation": "jian, yang; Kaibing, Xie (2022). Underwater acoustic target detection (UATD) dataset. figshare. Dataset. https://doi.org/10.6084/m9.figshare.21331143.v3",
+    "description": "<p>This dataset file includes a training set named UATD_Trainging.zip, two test sets named UATD_Test_1.zip and UATD_Test_2.zip respectively, and a sonar image label tool named UATD_OpenSLT.zip</p>"
+  },
+  "files": [
+    {
+      "figshare_file_id": 37883163,
+      "name": "UATD_Training.zip",
+      "path": "F:\\hwnas_datasets\\UATD\\raw\\archives\\UATD_Training.zip",
+      "download_url": "https://ndownloader.figshare.com/files/37883163",
+      "bytes": 3869955319,
+      "expected_bytes": 3869955319,
+      "md5": "891b146871edcda313cdbd8cd6252f39",
+      "expected_md5": "891b146871edcda313cdbd8cd6252f39",
+      "sha256": "49a8c38e3cb98b04405b378c034a5e259249cd14102a3c8f3c1323e806cf5f7d"
+    },
+    {
+      "figshare_file_id": 37857276,
+      "name": "UATD_Test_1.zip",
+      "path": "F:\\hwnas_datasets\\UATD\\raw\\archives\\UATD_Test_1.zip",
+      "download_url": "https://ndownloader.figshare.com/files/37857276",
+      "bytes": 421934004,
+      "expected_bytes": 421934004,
+      "md5": "267818131310873c05950879bfec3e6f",
+      "expected_md5": "267818131310873c05950879bfec3e6f",
+      "sha256": "9dce42baba978aba59d3601dbc086e744afa24c7565c628086eb35acf95f9b64"
+    },
+    {
+      "figshare_file_id": 37857279,
+      "name": "UATD_Test_2.zip",
+      "path": "F:\\hwnas_datasets\\UATD\\raw\\archives\\UATD_Test_2.zip",
+      "download_url": "https://ndownloader.figshare.com/files/37857279",
+      "bytes": 424608381,
+      "expected_bytes": 424608381,
+      "md5": "979479864b52925edca49074a09c1b3d",
+      "expected_md5": "979479864b52925edca49074a09c1b3d",
+      "sha256": "fbe8fd7f33063d735f51711fea46f7c057ffdea8c9b7b1cc74c6a8dcd6dc727e"
+    },
+    {
+      "figshare_file_id": 37901247,
+      "name": "UATD_OpenSLT.zip",
+      "path": "F:\\hwnas_datasets\\UATD\\raw\\archives\\UATD_OpenSLT.zip",
+      "download_url": "https://ndownloader.figshare.com/files/37901247",
+      "bytes": 79823319,
+      "expected_bytes": 79823319,
+      "md5": "d62542fa284a4cc1119687bfa9141754",
+      "expected_md5": "d62542fa284a4cc1119687bfa9141754",
+      "sha256": "da3f9b9f39231b08ffba7748264d5dc0ad55722926870f99d742999754daefb9"
+    }
+  ],
+  "inventory": {
+    "generated_at": "2026-09-17T07:24:14+00:00",
+    "root": "F:\\hwnas_datasets\\UATD",
+    "extracted_root": "F:\\hwnas_datasets\\UATD\\raw\\extracted",
+    "file_count": 18665,
+    "total_bytes": 34484016512,
+    "all_image_count_including_auxiliary": 9214,
+    "auxiliary_image_count_excluded": 14,
+    "image_count": 9200,
+    "image_extensions": {
+      ".bmp": 9200
+    },
+    "all_annotation_like_files_including_auxiliary": 9206,
+    "auxiliary_annotation_like_files_excluded": 3,
+    "annotation_files": 9203,
+    "annotation_extensions": {
+      ".json": 3,
+      ".xml": 9200
+    },
+    "annotation_formats": {
+      "pascal_voc_xml": 14639
+    },
+    "bbox_formats": {
+      "xyxy_pixel": 14639
+    },
+    "class_counts": {
+      "ball": 3463,
+      "circle cage": 860,
+      "cube": 2987,
+      "cylinder": 657,
+      "human body": 1434,
+      "metal bucket": 487,
+      "plane": 1065,
+      "rov": 1000,
+      "square cage": 1318,
+      "tyre": 1368
+    },
+    "classes": [
+      "ball",
+      "circle cage",
+      "cube",
+      "cylinder",
+      "human body",
+      "metal bucket",
+      "plane",
+      "rov",
+      "square cage",
+      "tyre"
+    ],
+    "class_count": 10,
+    "box_count": 14639,
+    "resolution_distribution": [
+      {
+        "width": 1024,
+        "height": 1026,
+        "count": 735
+      },
+      {
+        "width": 1024,
+        "height": 1028,
+        "count": 548
+      },
+      {
+        "width": 1024,
+        "height": 1257,
+        "count": 526
+      },
+      {
+        "width": 512,
+        "height": 1840,
+        "count": 452
+      },
+      {
+        "width": 512,
+        "height": 1227,
+        "count": 402
+      },
+      {
+        "width": 1024,
+        "height": 1542,
+        "count": 387
+      },
+      {
+        "width": 1024,
+        "height": 1541,
+        "count": 363
+      },
+      {
+        "width": 512,
+        "height": 1776,
+        "count": 359
+      },
+      {
+        "width": 1024,
+        "height": 1973,
+        "count": 353
+      },
+      {
+        "width": 1024,
+        "height": 1387,
+        "count": 260
+      },
+      {
+        "width": 1024,
+        "height": 1027,
+        "count": 235
+      },
+      {
+        "width": 512,
+        "height": 1841,
+        "count": 205
+      },
+      {
+        "width": 512,
+        "height": 1229,
+        "count": 203
+      },
+      {
+        "width": 1024,
+        "height": 1438,
+        "count": 180
+      },
+      {
+        "width": 1024,
+        "height": 1336,
+        "count": 166
+      },
+      {
+        "width": 1024,
+        "height": 1508,
+        "count": 160
+      },
+      {
+        "width": 512,
+        "height": 1168,
+        "count": 150
+      },
+      {
+        "width": 1024,
+        "height": 1540,
+        "count": 140
+      },
+      {
+        "width": 1024,
+        "height": 1735,
+        "count": 138
+      },
+      {
+        "width": 512,
+        "height": 1230,
+        "count": 118
+      },
+      {
+        "width": 512,
+        "height": 1844,
+        "count": 114
+      },
+      {
+        "width": 512,
+        "height": 1228,
+        "count": 113
+      },
+      {
+        "width": 512,
+        "height": 1167,
+        "count": 90
+      },
+      {
+        "width": 1024,
+        "height": 2041,
+        "count": 86
+      },
+      {
+        "width": 1024,
+        "height": 1961,
+        "count": 85
+      },
+      {
+        "width": 512,
+        "height": 1166,
+        "count": 83
+      },
+      {
+        "width": 512,
+        "height": 1107,
+        "count": 81
+      },
+      {
+        "width": 1024,
+        "height": 1836,
+        "count": 74
+      },
+      {
+        "width": 1024,
+        "height": 1429,
+        "count": 73
+      },
+      {
+        "width": 1024,
+        "height": 1386,
+        "count": 67
+      },
+      {
+        "width": 1024,
+        "height": 1644,
+        "count": 65
+      },
+      {
+        "width": 1024,
+        "height": 1745,
+        "count": 62
+      },
+      {
+        "width": 1024,
+        "height": 2011,
+        "count": 61
+      },
+      {
+        "width": 1024,
+        "height": 1531,
+        "count": 60
+      },
+      {
+        "width": 1024,
+        "height": 1838,
+        "count": 60
+      },
+      {
+        "width": 1024,
+        "height": 1530,
+        "count": 58
+      },
+      {
+        "width": 512,
+        "height": 1780,
+        "count": 57
+      },
+      {
+        "width": 512,
+        "height": 1595,
+        "count": 56
+      },
+      {
+        "width": 1024,
+        "height": 1634,
+        "count": 55
+      },
+      {
+        "width": 512,
+        "height": 1969,
+        "count": 53
+      },
+      {
+        "width": 1024,
+        "height": 1130,
+        "count": 51
+      },
+      {
+        "width": 1024,
+        "height": 1077,
+        "count": 50
+      },
+      {
+        "width": 512,
+        "height": 1045,
+        "count": 49
+      },
+      {
+        "width": 1024,
+        "height": 1974,
+        "count": 47
+      },
+      {
+        "width": 1024,
+        "height": 1327,
+        "count": 47
+      },
+      {
+        "width": 1024,
+        "height": 2012,
+        "count": 46
+      },
+      {
+        "width": 512,
+        "height": 1967,
+        "count": 41
+      },
+      {
+        "width": 1024,
+        "height": 1469,
+        "count": 39
+      },
+      {
+        "width": 1024,
+        "height": 1939,
+        "count": 37
+      },
+      {
+        "width": 512,
+        "height": 1968,
+        "count": 34
+      },
+      {
+        "width": 1024,
+        "height": 1471,
+        "count": 31
+      },
+      {
+        "width": 1024,
+        "height": 1950,
+        "count": 30
+      },
+      {
+        "width": 1024,
+        "height": 1837,
+        "count": 28
+      },
+      {
+        "width": 1024,
+        "height": 1593,
+        "count": 26
+      },
+      {
+        "width": 1024,
+        "height": 1428,
+        "count": 25
+      },
+      {
+        "width": 1024,
+        "height": 1078,
+        "count": 25
+      },
+      {
+        "width": 1024,
+        "height": 1182,
+        "count": 23
+      },
+      {
+        "width": 1024,
+        "height": 1633,
+        "count": 23
+      },
+      {
+        "width": 1024,
+        "height": 1734,
+        "count": 23
+      },
+      {
+        "width": 1024,
+        "height": 1468,
+        "count": 22
+      },
+      {
+        "width": 1024,
+        "height": 1695,
+        "count": 22
+      },
+      {
+        "width": 1024,
+        "height": 1224,
+        "count": 22
+      },
+      {
+        "width": 1024,
+        "height": 1025,
+        "count": 21
+      },
+      {
+        "width": 1024,
+        "height": 1940,
+        "count": 20
+      },
+      {
+        "width": 1024,
+        "height": 1744,
+        "count": 20
+      },
+      {
+        "width": 512,
+        "height": 1108,
+        "count": 20
+      },
+      {
+        "width": 512,
+        "height": 1970,
+        "count": 20
+      },
+      {
+        "width": 1024,
+        "height": 1031,
+        "count": 19
+      },
+      {
+        "width": 1024,
+        "height": 1436,
+        "count": 18
+      },
+      {
+        "width": 1024,
+        "height": 1747,
+        "count": 17
+      },
+      {
+        "width": 1024,
+        "height": 1472,
+        "count": 17
+      },
+      {
+        "width": 1024,
+        "height": 1233,
+        "count": 16
+      },
+      {
+        "width": 1024,
+        "height": 1157,
+        "count": 16
+      },
+      {
+        "width": 512,
+        "height": 1194,
+        "count": 16
+      },
+      {
+        "width": 512,
+        "height": 1721,
+        "count": 16
+      },
+      {
+        "width": 1024,
+        "height": 1847,
+        "count": 15
+      },
+      {
+        "width": 1024,
+        "height": 1473,
+        "count": 15
+      },
+      {
+        "width": 512,
+        "height": 1226,
+        "count": 15
+      },
+      {
+        "width": 1024,
+        "height": 1470,
+        "count": 14
+      },
+      {
+        "width": 512,
+        "height": 1106,
+        "count": 14
+      },
+      {
+        "width": 1024,
+        "height": 1710,
+        "count": 14
+      },
+      {
+        "width": 1024,
+        "height": 1335,
+        "count": 13
+      },
+      {
+        "width": 512,
+        "height": 1902,
+        "count": 13
+      },
+      {
+        "width": 1024,
+        "height": 1173,
+        "count": 12
+      },
+      {
+        "width": 1024,
+        "height": 1079,
+        "count": 12
+      },
+      {
+        "width": 1024,
+        "height": 1029,
+        "count": 12
+      },
+      {
+        "width": 512,
+        "height": 1598,
+        "count": 12
+      },
+      {
+        "width": 1024,
+        "height": 1709,
+        "count": 11
+      },
+      {
+        "width": 512,
+        "height": 1178,
+        "count": 11
+      },
+      {
+        "width": 512,
+        "height": 1195,
+        "count": 11
+      },
+      {
+        "width": 1024,
+        "height": 1467,
+        "count": 11
+      },
+      {
+        "width": 1024,
+        "height": 1053,
+        "count": 10
+      },
+      {
+        "width": 1024,
+        "height": 1975,
+        "count": 10
+      },
+      {
+        "width": 512,
+        "height": 1596,
+        "count": 10
+      },
+      {
+        "width": 1024,
+        "height": 1030,
+        "count": 9
+      },
+      {
+        "width": 1024,
+        "height": 1328,
+        "count": 9
+      },
+      {
+        "width": 512,
+        "height": 1180,
+        "count": 8
+      },
+      {
+        "width": 1024,
+        "height": 1901,
+        "count": 8
+      },
+      {
+        "width": 1024,
+        "height": 1539,
+        "count": 8
+      },
+      {
+        "width": 1024,
+        "height": 1458,
+        "count": 8
+      },
+      {
+        "width": 512,
+        "height": 1143,
+        "count": 8
+      },
+      {
+        "width": 1024,
+        "height": 1180,
+        "count": 8
+      },
+      {
+        "width": 1024,
+        "height": 1330,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1408,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1033,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1972,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1642,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1459,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1207,
+        "count": 7
+      },
+      {
+        "width": 512,
+        "height": 1718,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1430,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1106,
+        "count": 7
+      },
+      {
+        "width": 1024,
+        "height": 1464,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1334,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1490,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1592,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1181,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1466,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1462,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1032,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1129,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1632,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1509,
+        "count": 6
+      },
+      {
+        "width": 1024,
+        "height": 1911,
+        "count": 6
+      },
+      {
+        "width": 512,
+        "height": 1184,
+        "count": 5
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "count": 5
+      },
+      {
+        "width": 1024,
+        "height": 1232,
+        "count": 5
+      },
+      {
+        "width": 512,
+        "height": 1656,
+        "count": 5
+      },
+      {
+        "width": 1024,
+        "height": 1283,
+        "count": 5
+      },
+      {
+        "width": 1024,
+        "height": 1532,
+        "count": 5
+      },
+      {
+        "width": 1024,
+        "height": 1307,
+        "count": 5
+      },
+      {
+        "width": 1024,
+        "height": 1976,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 2044,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 2047,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1590,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1104,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1056,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 2046,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 2033,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1333,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1308,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1488,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1231,
+        "count": 4
+      },
+      {
+        "width": 512,
+        "height": 1179,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1760,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1860,
+        "count": 4
+      },
+      {
+        "width": 1024,
+        "height": 1357,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 1693,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 1609,
+        "count": 3
+      },
+      {
+        "width": 512,
+        "height": 1901,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 1643,
+        "count": 3
+      },
+      {
+        "width": 512,
+        "height": 1473,
+        "count": 3
+      },
+      {
+        "width": 512,
+        "height": 1534,
+        "count": 3
+      },
+      {
+        "width": 512,
+        "height": 1537,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 1071,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 1329,
+        "count": 3
+      },
+      {
+        "width": 512,
+        "height": 1196,
+        "count": 3
+      },
+      {
+        "width": 512,
+        "height": 1177,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 1081,
+        "count": 3
+      },
+      {
+        "width": 1024,
+        "height": 2031,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 2017,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1943,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1949,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1641,
+        "count": 2
+      },
+      {
+        "width": 512,
+        "height": 1182,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1964,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1543,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1050,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 2004,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1810,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1861,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1559,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1385,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1850,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1292,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1746,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1284,
+        "count": 2
+      },
+      {
+        "width": 512,
+        "height": 1717,
+        "count": 2
+      },
+      {
+        "width": 512,
+        "height": 1411,
+        "count": 2
+      },
+      {
+        "width": 512,
+        "height": 1779,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1489,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1437,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1122,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1938,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1225,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1524,
+        "count": 2
+      },
+      {
+        "width": 512,
+        "height": 1538,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1957,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1659,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 1131,
+        "count": 2
+      },
+      {
+        "width": 512,
+        "height": 1160,
+        "count": 2
+      },
+      {
+        "width": 1024,
+        "height": 2020,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1155,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1156,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1075,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1971,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1696,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1166,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2003,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1849,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1213,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1349,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1288,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1533,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1591,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1185,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1127,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1826,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2030,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1412,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1046,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1439,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1353,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1475,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1722,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1275,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2040,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2042,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1547,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1331,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1475,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1474,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1962,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2019,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1165,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2035,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2001,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 2025,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1188,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1472,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1843,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1845,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1034,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1898,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1657,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1338,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1337,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1332,
+        "count": 1
+      },
+      {
+        "width": 512,
+        "height": 1104,
+        "count": 1
+      },
+      {
+        "width": 1024,
+        "height": 1796,
+        "count": 1
+      }
+    ],
+    "image_modes": {
+      "RGB": 9200
+    },
+    "channel_counts": {
+      "3": 9200
+    },
+    "corrupted_images": [],
+    "empty_annotation_images": {
+      "count": 0,
+      "examples": []
+    },
+    "duplicate_filenames": {
+      "count": 800,
+      "examples": [
+        {
+          "filename": "00001.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00001.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00001.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00001.bmp"
+          ]
+        },
+        {
+          "filename": "00002.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00002.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00002.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00002.bmp"
+          ]
+        },
+        {
+          "filename": "00003.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00003.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00003.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00003.bmp"
+          ]
+        },
+        {
+          "filename": "00004.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00004.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00004.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00004.bmp"
+          ]
+        },
+        {
+          "filename": "00005.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00005.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00005.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00005.bmp"
+          ]
+        },
+        {
+          "filename": "00006.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00006.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00006.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00006.bmp"
+          ]
+        },
+        {
+          "filename": "00007.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00007.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00007.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00007.bmp"
+          ]
+        },
+        {
+          "filename": "00008.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00008.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00008.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00008.bmp"
+          ]
+        },
+        {
+          "filename": "00009.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00009.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00009.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00009.bmp"
+          ]
+        },
+        {
+          "filename": "00010.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00010.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00010.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00010.bmp"
+          ]
+        },
+        {
+          "filename": "00011.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00011.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00011.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00011.bmp"
+          ]
+        },
+        {
+          "filename": "00012.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00012.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00012.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00012.bmp"
+          ]
+        },
+        {
+          "filename": "00013.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00013.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00013.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00013.bmp"
+          ]
+        },
+        {
+          "filename": "00014.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00014.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00014.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00014.bmp"
+          ]
+        },
+        {
+          "filename": "00015.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00015.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00015.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00015.bmp"
+          ]
+        },
+        {
+          "filename": "00016.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00016.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00016.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00016.bmp"
+          ]
+        },
+        {
+          "filename": "00017.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00017.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00017.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00017.bmp"
+          ]
+        },
+        {
+          "filename": "00018.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00018.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00018.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00018.bmp"
+          ]
+        },
+        {
+          "filename": "00019.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00019.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00019.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00019.bmp"
+          ]
+        },
+        {
+          "filename": "00020.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00020.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00020.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00020.bmp"
+          ]
+        },
+        {
+          "filename": "00021.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00021.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00021.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00021.bmp"
+          ]
+        },
+        {
+          "filename": "00022.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00022.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00022.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00022.bmp"
+          ]
+        },
+        {
+          "filename": "00023.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00023.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00023.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00023.bmp"
+          ]
+        },
+        {
+          "filename": "00024.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00024.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00024.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00024.bmp"
+          ]
+        },
+        {
+          "filename": "00025.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00025.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00025.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00025.bmp"
+          ]
+        },
+        {
+          "filename": "00026.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00026.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00026.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00026.bmp"
+          ]
+        },
+        {
+          "filename": "00027.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00027.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00027.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00027.bmp"
+          ]
+        },
+        {
+          "filename": "00028.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00028.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00028.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00028.bmp"
+          ]
+        },
+        {
+          "filename": "00029.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00029.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00029.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00029.bmp"
+          ]
+        },
+        {
+          "filename": "00030.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00030.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00030.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00030.bmp"
+          ]
+        },
+        {
+          "filename": "00031.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00031.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00031.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00031.bmp"
+          ]
+        },
+        {
+          "filename": "00032.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00032.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00032.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00032.bmp"
+          ]
+        },
+        {
+          "filename": "00033.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00033.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00033.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00033.bmp"
+          ]
+        },
+        {
+          "filename": "00034.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00034.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00034.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00034.bmp"
+          ]
+        },
+        {
+          "filename": "00035.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00035.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00035.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00035.bmp"
+          ]
+        },
+        {
+          "filename": "00036.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00036.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00036.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00036.bmp"
+          ]
+        },
+        {
+          "filename": "00037.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00037.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00037.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00037.bmp"
+          ]
+        },
+        {
+          "filename": "00038.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00038.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00038.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00038.bmp"
+          ]
+        },
+        {
+          "filename": "00039.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00039.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00039.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00039.bmp"
+          ]
+        },
+        {
+          "filename": "00040.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00040.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00040.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00040.bmp"
+          ]
+        },
+        {
+          "filename": "00041.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00041.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00041.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00041.bmp"
+          ]
+        },
+        {
+          "filename": "00042.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00042.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00042.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00042.bmp"
+          ]
+        },
+        {
+          "filename": "00043.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00043.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00043.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00043.bmp"
+          ]
+        },
+        {
+          "filename": "00044.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00044.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00044.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00044.bmp"
+          ]
+        },
+        {
+          "filename": "00045.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00045.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00045.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00045.bmp"
+          ]
+        },
+        {
+          "filename": "00046.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00046.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00046.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00046.bmp"
+          ]
+        },
+        {
+          "filename": "00047.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00047.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00047.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00047.bmp"
+          ]
+        },
+        {
+          "filename": "00048.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00048.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00048.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00048.bmp"
+          ]
+        },
+        {
+          "filename": "00049.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00049.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00049.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00049.bmp"
+          ]
+        },
+        {
+          "filename": "00050.bmp",
+          "paths": [
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images\\00050.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images\\00050.bmp",
+            "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images\\00050.bmp"
+          ]
+        }
+      ]
+    },
+    "official_split": {
+      "provided": true,
+      "detected_from": "Figshare archive names and extracted path segments",
+      "splits": {
+        "test1": 800,
+        "test2": 800,
+        "train": 7600
+      },
+      "validation_split_detected": false,
+      "note": "UATD provides training and two test archives; no fixed validation split was detected."
+    },
+    "leakage_risks": {
+      "sequence_like_path_tokens": [],
+      "numeric_or_frame_like_stems": 9200,
+      "largest_parent_directories": [
+        {
+          "value": "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Training\\UATD_Training\\images",
+          "count": 7600
+        },
+        {
+          "value": "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_1\\UATD_Test_1\\images",
+          "count": 800
+        },
+        {
+          "value": "F:\\hwnas_datasets\\UATD\\raw\\extracted\\UATD_Test_2\\UATD_Test_2\\images",
+          "count": 800
+        }
+      ],
+      "risk_note": "Official train/test archives exist, but no validation split was detected. Do not create a random validation split until sequence/acquisition grouping is reviewed."
+    }
+  },
+  "conversion": {
+    "processed_yolo_root": "F:\\hwnas_datasets\\UATD\\processed_yolo",
+    "converted_images": 9200,
+    "converted_boxes": 14623,
+    "combined_test_images": 1600,
+    "combined_test_boxes": 2327,
+    "skipped_boxes": 21,
+    "split_counts": {
+      "test": 1600,
+      "test1": 800,
+      "test2": 800,
+      "train": 7600
+    },
+    "image_materialization": {
+      "copy": 10800
+    },
+    "current_loader_compatibility": {
+      "YoloDetectionDataset": true,
+      "create_yolo_detection_dataloaders_train_valid_test": false,
+      "reason": "No official validation split was detected; the project factory expects train/valid/test."
+    }
+  }
+}

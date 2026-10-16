@@ -4,3 +4,5 @@
 /configs/baseline_sonar_frozen.yaml -text whitespace=cr-at-eol
 /configs/search_space_sonar_v0_1.yaml -text whitespace=cr-at-eol
 /configs/detector_elastic_pilot_model.yaml -text whitespace=cr-at-eol
+/datasets/** -text -whitespace
+/datasets/*/raw/** filter=lfs diff=lfs merge=lfs -text

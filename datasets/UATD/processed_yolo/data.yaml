@@ -1,0 +1,15 @@
+train: ../train/images
+test: ../test/images
+
+nc: 10
+names:
+  0: ball
+  1: circle cage
+  2: cube
+  3: cylinder
+  4: human body
+  5: metal bucket
+  6: plane
+  7: rov
+  8: square cage
+  9: tyre

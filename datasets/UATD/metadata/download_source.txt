@@ -1,0 +1,13 @@
+Official UATD download source
+Paper: https://www.nature.com/articles/s41597-022-01854-w
+Paper DOI: https://doi.org/10.1038/s41597-022-01854-w
+Figshare article: https://figshare.com/articles/dataset/UATD_Dataset/21331143
+Figshare API: https://api.figshare.com/v2/articles/21331143
+Figshare DOI: https://doi.org/10.6084/m9.figshare.21331143.v3
+Retrieved at: 2026-09-17T07:25:32+00:00
+
+Files:
+- UATD_Training.zip | https://ndownloader.figshare.com/files/37883163 | bytes=3869955319 | md5=891b146871edcda313cdbd8cd6252f39 | sha256=49a8c38e3cb98b04405b378c034a5e259249cd14102a3c8f3c1323e806cf5f7d
+- UATD_Test_1.zip | https://ndownloader.figshare.com/files/37857276 | bytes=421934004 | md5=267818131310873c05950879bfec3e6f | sha256=9dce42baba978aba59d3601dbc086e744afa24c7565c628086eb35acf95f9b64
+- UATD_Test_2.zip | https://ndownloader.figshare.com/files/37857279 | bytes=424608381 | md5=979479864b52925edca49074a09c1b3d | sha256=fbe8fd7f33063d735f51711fea46f7c057ffdea8c9b7b1cc74c6a8dcd6dc727e
+- UATD_OpenSLT.zip | https://ndownloader.figshare.com/files/37901247 | bytes=79823319 | md5=d62542fa284a4cc1119687bfa9141754 | sha256=da3f9b9f39231b08ffba7748264d5dc0ad55722926870f99d742999754daefb9

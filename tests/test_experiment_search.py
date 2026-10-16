@@ -66,3 +66,25 @@ def test_runtime_blocks_missing_hardware_before_any_dataset_or_model_access(tmp_
     cfg=load_config(ROOT/'configs/search.yaml')
     with pytest.raises(ValueError,match='before training'):
         CandidateEvaluator(cfg,{},tmp_path,config_path=ROOT/'configs/search.yaml',device='cpu')
+
+
+def test_run_source_freeze_uses_dataset_index_without_reading_lfs_archives(tmp_path,monkeypatch):
+    import experiment
+    from experiment import create_run
+    dataset=tmp_path/'datasets'
+    (dataset/'UATD/raw').mkdir(parents=True)
+    (dataset/'UATD/raw/archive.zip').write_bytes(b'fixture archive must not be read by source freeze')
+    (dataset/'dataset_sources.json').write_text('{"schema_version":1}',encoding='utf-8')
+    (tmp_path/'module.py').write_text('pass\n',encoding='utf-8')
+    monkeypatch.setattr(experiment,'ROOT',tmp_path)
+    monkeypatch.setattr(experiment,'git_info',lambda:dict(commit='a'*40,branch='test',dirty=False))
+    monkeypatch.setattr(experiment.subprocess,'check_output',lambda *a,**k:
+        b'module.py\0datasets/dataset_sources.json\0datasets/UATD/raw/archive.zip\0')
+    original_sha=experiment.sha_file
+    def guarded(path):
+        if str(path).endswith('archive.zip'):raise AssertionError('Planning must not read dataset archives')
+        return original_sha(path)
+    monkeypatch.setattr(experiment,'sha_file',guarded)
+    _,run=create_run(ROOT/'configs/search.yaml',tmp_path/'run',command='fixture source freeze')
+    assert 'datasets/dataset_sources.json' in run['source_files']
+    assert 'datasets/UATD/raw/archive.zip' not in run['source_files']

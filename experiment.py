@@ -96,6 +96,11 @@ def create_run(config_path, output, *, command, require_clean=True):
     files = {}
     raw = subprocess.check_output(["git","ls-files","-z"],cwd=ROOT).decode("utf-8")
     for relative in raw.split("\0"):
+        # Dataset bytes are bound by the portable publication index and the
+        # actual loader manifests. Planning must not read multi-GB archives.
+        if relative.startswith("datasets/") and relative not in {
+                "datasets/dataset_sources.json", "datasets/publication_summary.json"}:
+            continue
         path = ROOT / relative
         if relative and path.is_file():
             files[relative] = sha_file(path)

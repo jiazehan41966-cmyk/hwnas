@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 2
+names: ['cylider', 'manta']
+
+roboflow:
+  workspace: yeesonmin-naver-com
+  project: cylider2
+  version: 6
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/yeesonmin-naver-com/cylider2/dataset/6

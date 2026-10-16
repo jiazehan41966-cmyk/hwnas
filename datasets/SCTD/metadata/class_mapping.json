@@ -1,0 +1,19 @@
+{
+  "source_id": "classic_sctd_1_0_mingqiangning_github",
+  "annotation_source": "Pascal VOC XML class names",
+  "mapping_policy": "alphabetical stable order over observed classes",
+  "classes": [
+    {
+      "id": 0,
+      "name": "aircraft"
+    },
+    {
+      "id": 1,
+      "name": "human"
+    },
+    {
+      "id": 2,
+      "name": "ship"
+    }
+  ]
+}

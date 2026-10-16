@@ -1,0 +1,3999 @@
+{
+  "schema_version": "phase3b-clean-transfer-split-v1",
+  "created_at": "2026-09-18T03:07:28.527682+00:00",
+  "dataset_id": "classic_sctd_1_0",
+  "modality": "SSS",
+  "identity": {
+    "dataset": "classic SCTD / SCTD 1.0",
+    "is_sctd_3_0": false,
+    "num_classes": 3
+  },
+  "source_root": "datasets\\SCTD\\processed",
+  "clean_root": "datasets\\SCTD\\clean_phase3b",
+  "raw_data_modified": false,
+  "seed": 42,
+  "policy": {
+    "source_official_split": "trainval_only",
+    "derived_split": "fixed-seed multi-label greedy allocation over union(exact-hash groups, consecutive numeric runs)",
+    "ratios": {
+      "train": 0.7,
+      "valid": 0.15,
+      "test": 0.15
+    },
+    "acquisition_group_status": "WEAK_NUMERIC_RUN_PROXY"
+  },
+  "summary": {
+    "train": {
+      "images": 251,
+      "objects": 257,
+      "class_counts": {
+        "0": 34,
+        "1": 35,
+        "2": 188
+      }
+    },
+    "valid": {
+      "images": 53,
+      "objects": 53,
+      "class_counts": {
+        "0": 12,
+        "2": 41
+      }
+    },
+    "test": {
+      "images": 53,
+      "objects": 53,
+      "class_counts": {
+        "0": 11,
+        "2": 42
+      }
+    }
+  },
+  "excluded_source_items": [],
+  "members": {
+    "train": [
+      {
+        "file": "000002.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000002.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000002.txt",
+        "image_sha256": "f1f50667e9bbd88f95c857835986d692b96d25190e97b6b2464bcf5e4b2652ed",
+        "label_sha256": "4523400ef68f4a73b839915c83d0225a47b310faf8a2eb1d72f713d694e2a117",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000006.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000006.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000006.txt",
+        "image_sha256": "490796e47df2cc3001331a78ab6e3f2a41b1b83185a5460457612f87287538aa",
+        "label_sha256": "565ba6bbd66ece861408d7aa1910cd33bd8d156db8c77e5091b6641a19ef5794",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000007.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000007.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000007.txt",
+        "image_sha256": "530bdfc80a18fe0e7433dc9b70b6f6840a54a4e38596bb7873d0343adbd2ab85",
+        "label_sha256": "41f3fc160eb68e6cc212105c3cdb688bbba615c4324a2a9e7634a753f30374ef",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000008.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000008.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000008.txt",
+        "image_sha256": "21ea90c2c8a8381398c9384bbf93e52ea41c650aea1809654552ec48c98efd11",
+        "label_sha256": "f9faf5632d247f88315abab24a9b789ac556c80799ab34ee821a720149259b77",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000010.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000010.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000010.txt",
+        "image_sha256": "f10b21464434ad80ca00eca945e5a5e6e35d4ff45bddf6d3a3f311c1ca2005a5",
+        "label_sha256": "e1bf6bd6722ae331edaef178106623f97f65e870a0d5e4fd0e8a63ee9990c3e7",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000017.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000017.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000017.txt",
+        "image_sha256": "819b4c7c94c3262c7af2894137d48ec9f1f585f7279dda6e8c8fe525479a4d1c",
+        "label_sha256": "011323c199d59b72acda4b4ddfedca3442074fdc721e0c0cc5e1eee3c912684e",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000018.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000018.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000018.txt",
+        "image_sha256": "d50bb0ca874a817e272b073cf2e5e0a89655eb54489928589cd95a5d64563f80",
+        "label_sha256": "f28e1d5e05e574cc72b58b5d2e83e26f8c19b0d04f895338c9abfe174a16d690",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000020.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000020.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000020.txt",
+        "image_sha256": "388195932a398023b775f404066836bd9e50828881a23b7a86727b7dc5658d90",
+        "label_sha256": "d6d560c7cd0d1e0199dd55db490df48fe40becae0cf6e14346063a72319a6162",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000023.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000023.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000023.txt",
+        "image_sha256": "f818a136e395620e95e7828f7a8bea6b7b3ad1427ad0f74b82934cb812874c97",
+        "label_sha256": "4d9f862f3cdab7a0be8107cdee1b53771d315c1a5c3295a0f496278891f6916c",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000024.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000024.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000024.txt",
+        "image_sha256": "41933749591ddeba412608763c824497cdc273daf880d98909caf63ff222b461",
+        "label_sha256": "bf92097dd070501bf5f81b1db083d8aba32008e410261237e0386214dcd33186",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000026.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000026.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000026.txt",
+        "image_sha256": "1469ad22cc52ff8f471ac9b27278f0119122e30a3063414d6f3574c445be3984",
+        "label_sha256": "0f10042394d526d5e7b434c15be94c842cc43d11f9549982d73f208aef22c818",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000027.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000027.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000027.txt",
+        "image_sha256": "b17b76cc553fb7046e4dcd4eb41914396eaf0df0c3c4d71751a2650676d38c4d",
+        "label_sha256": "9939d45f926baa47ca3398420acf4a5cc49498cec59f840e338c5f7719e40014",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000029.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000029.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000029.txt",
+        "image_sha256": "96a79e27e17548a59c85cce98fa8363ae1f01114e4d21ac6a126ced8af52eaf0",
+        "label_sha256": "a104f1380109f2bb349d8e4edc59165bb9f3f74d2890ebffb9ec49e5478a4883",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000037.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000037.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000037.txt",
+        "image_sha256": "54631bfc36bb1ea906317f48a91f803243da92a8ae7df4e68a9dfd0cb201b926",
+        "label_sha256": "6da1e2c2eeafc9f77ae03635ad483e3bd572cd2709f181f742edb21334c0c040",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000038.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000038.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000038.txt",
+        "image_sha256": "d854668ee0509b22ef12465dc390cec7d9aacacf944d0152220bab6d159568d6",
+        "label_sha256": "b8cd457f8f9c199e42261492fe1579f4dfb618ed8cbd030731f7bf77857cf9f4",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000039.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000039.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000039.txt",
+        "image_sha256": "1cf7b8cee44058532b41eb8e450eb271222c658eea03acf52ba8332257f95428",
+        "label_sha256": "2282471b0352681858abfb5dcb426792c51db5d7bd8cf73472a48b04e762998b",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000040.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000040.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000040.txt",
+        "image_sha256": "5a42024d2584996f0f143e78421a9e89bf8c7817b972a5b8b7a13758f794e185",
+        "label_sha256": "909596c543184e7e21008cb4ed2d9d99c38af81624f759dc9f550ebb26c5b2a0",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000041.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000041.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000041.txt",
+        "image_sha256": "faef73003423aea13171c9723d6503e906a0d34e7585c398cc3ca4a68db8e7e8",
+        "label_sha256": "e976d3f31b8b81f33664f2d7fb562f64bf67ddfb9b8cac33af2ca44e7f67d33a",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000044.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000044.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000044.txt",
+        "image_sha256": "2449c6912a9465110985dc47aafca19760063e89a8af6e409a266c3a113ac684",
+        "label_sha256": "954eb0e637d75da6776d513146280e1061c6dcb658cc4979ecac7dae58fb645e",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000045.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000045.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000045.txt",
+        "image_sha256": "2033a184c5e30740035a819251e0e9a7379f8c61553baafd9b91b86ddf2e1ce9",
+        "label_sha256": "fbd2bb478c9438d463c44a17eae607b5581df3091fe7df7a5483c25271e8fd54",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000046.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000046.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000046.txt",
+        "image_sha256": "e6c559ba057510f91c95a418f0824625b4f74c14b1c32aa9bf35ca45bd7080f8",
+        "label_sha256": "f3e57f741956f1d8309e9c9398d7eb1f254cda1e674ebe51860e779c96c7b4e7",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000051.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000051.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000051.txt",
+        "image_sha256": "24768ef2285f97143b0cd2a05220dc00b872a6e7146722f08422b8aa3f92ad6c",
+        "label_sha256": "1090aee1f7ef3f631bd14da60417707ca0fb091712f62ab1eec02653adbed09b",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000063.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000063.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000063.txt",
+        "image_sha256": "0d1d6de456f1fbb7486f549377bcdb8ee120ed97e4489b7e099767446ceb4697",
+        "label_sha256": "acadd4df107859e859a5b2171ec6e7b7ba3ad36e312ca3b9e6455932bfb319ba",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000065.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000065.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000065.txt",
+        "image_sha256": "acb15e31fa4ddeb841477caf5f9ba345bce982bc8aeced7b2e74d250332a34bc",
+        "label_sha256": "8371b562cffa8504c5f294c5c47522e5fbd15879e4ac432b9d1a034d645e2e7c",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000066.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000066.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000066.txt",
+        "image_sha256": "674a98d0bc4fb5bd260bcacec6c61ec5a2da357ff6395de535118a13d9b0f3dd",
+        "label_sha256": "b88791676595b754b01be0fc00b61897370a909fcf7d2e541f1a2e3308027472",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000068.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000068.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000068.txt",
+        "image_sha256": "02f15121ff4a93ad17d5f4a25fd52ad88448e481a4f7a15fed8fed10358c2cfe",
+        "label_sha256": "3bdcba3e4b02fbc32798bd970a3c4a8a7cd4eb120ed6bfadf5a500f3bae581e8",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000069.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000069.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000069.txt",
+        "image_sha256": "e4a2dcdf240fc825fb35d60035e83f3af5b97a25427e86621824641bcc6eee36",
+        "label_sha256": "2b39ed479223b69bbeea82d89dfa47a06f6988569a6afbeda21df2dad9af7362",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000070.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000070.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000070.txt",
+        "image_sha256": "d857ce703d2bc66dd10e4e7781807c4833eb8344d1aab180eaab68054b2d13fd",
+        "label_sha256": "71125bef814087f4f2a5658aa2e95d15c909f8c3e9c5041482ead3b82d0a4d1b",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000071.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000071.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000071.txt",
+        "image_sha256": "6be339664dd612040ef0761d60b2d55668bdf7d3c50b72c636308e5e5e63a842",
+        "label_sha256": "52534bf04cc57418887096cb8b992e96db13817465476a773b255bef6fa7692a",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000085.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000085.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000085.txt",
+        "image_sha256": "c112d3783bcc5e2f2e0f06262c13d74d0b477eeb8dcc3b340cb39f67426a546e",
+        "label_sha256": "bab6c50e65150a114a3034ee12d4ff5d9ea84c219786fc3f9eb985d70d55a4e7",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000086.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000086.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000086.txt",
+        "image_sha256": "fcc8afd4764e8ba31bad515c296b8dcd275672790b5179738686795d371a6180",
+        "label_sha256": "041363c70bed39c2a0d957297c1678dc1a30232bb9ca39ddf7a8180b1322396a",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000088.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000088.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000088.txt",
+        "image_sha256": "67cac4621e70159658364f8c02e57988748761808ec42c559d8c9365a97eff19",
+        "label_sha256": "29021f657ffada192f7b1cd6c1b7e9728384c699b75c0ee37094400be7596890",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000089.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000089.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000089.txt",
+        "image_sha256": "e6884d88b9b1db42b722dfa5b5af4bac65a6854895f312abd069f2fb4b4703ea",
+        "label_sha256": "589ba844b08dac83f7551fefbc3c35a4bd598357e0b57a8ef447bb8405f47685",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000090.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000090.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000090.txt",
+        "image_sha256": "2fdb89761dae450b534967a698e931d7dadfd43c719cda1175d0d417d260f913",
+        "label_sha256": "4ca0fdc3889c53f676e004857117e21491bb7aa21bfceb9bce3d69b62a66d96d",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000091.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000091.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000091.txt",
+        "image_sha256": "022b79c8af8e3118966fbd06caa17404e56606d0373ad72c5e02b869111653c4",
+        "label_sha256": "97d959a7ddb2d3bed7d24f1e5bb208c70e1c62c9ea43cde77e3d37513159ae0f",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000092.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000092.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000092.txt",
+        "image_sha256": "44e6b7f240a975a94ff52a359447fcf6da72fcd037fefeb0f638c729a8cb1410",
+        "label_sha256": "647bc358115b9567c6c1542eb31125eb2adbccc618e02c3a1a0755dd70789904",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000093.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000093.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000093.txt",
+        "image_sha256": "11e51c9205f95d8bf8f661e7da7639f00e68b5acbe025bda6f0831e790191416",
+        "label_sha256": "f55e9a992757898f19b9669922b9e890ec4bea3ad4467697c18136eeb4988913",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000094.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000094.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000094.txt",
+        "image_sha256": "221eb61a8eac2ac96708b3de4cbb3cfeb9358a54ea759d202e8c3f6e7319e828",
+        "label_sha256": "d46284624fd78a92462e7661fecac58d2093cc163e903c16ad42ada09fc43ec8",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000095.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000095.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000095.txt",
+        "image_sha256": "5ad466639c5faca19ff77caab7ad8c1c0c0cbb5eaaa6e8eff79499bfe3ec8052",
+        "label_sha256": "5aa983d6504d4a7bcb33d212699794983106ba47e0d83dafbc9a71754e8a0960",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000096.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000096.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000096.txt",
+        "image_sha256": "124a317d64dc7e886942d960b63787e211ca60efb227c8dd5c68dae6d31e0083",
+        "label_sha256": "3bd2ba10eec045ca8d31abca2a793c91ddbe7fab67cd8c8b7831f7c551810f5d",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000097.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000097.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000097.txt",
+        "image_sha256": "d6187d06eef06a07d6e9cf897d675013c9c623c2e8239926b5a82ff37af6a00a",
+        "label_sha256": "2cc93101b36afea66f3c29da94d55595f7c180972b8aaae88a6f3ab480259883",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000098.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000098.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000098.txt",
+        "image_sha256": "3bc3ad54dcf2cb07fb4b0b6a5762779d2fd53f070baa12e3ea798efdb2b69351",
+        "label_sha256": "5cc229b96306dacc9fc4146619a54e4d4afd1f2126c1b63d7628b6b75eec7454",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000099.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000099.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000099.txt",
+        "image_sha256": "166cceff1af7d97d8b0e15852e94d7a178fb475eeaa373d79d661ca16edd1d8d",
+        "label_sha256": "2153ddfeff123a69c799b175c0dd3f790f4173bedc764144637813870cc058c0",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000100.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000100.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000100.txt",
+        "image_sha256": "bdb856e6481bc71d7083dfd6bbe3adf740e9ff31d64f3110638d75c81f3f3e80",
+        "label_sha256": "a86017547d96e6be88022f50b4ee9ef087a70d5d0ce49502a63ae703269eaa6f",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000101.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000101.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000101.txt",
+        "image_sha256": "4996a5f7c83d1314f58ce08ad0c937c75c3b5497c828d2654dbf669dab5d1351",
+        "label_sha256": "9fbe21ba43540fda4770ba8aeefd830aa235387f58eeb3803a4c70686bfa4478",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000102.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000102.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000102.txt",
+        "image_sha256": "bedba296a6b02d755292cd0f3017b489959302ed9a015d64e234d79d9cb789ef",
+        "label_sha256": "3a6fc8a509a95f33ea47391d14429418c5e9d7b7980fec2051321cb05e20934e",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000104.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000104.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000104.txt",
+        "image_sha256": "83f4418d59c5adf84047306d81dd125a455075bd0b25af44a3bf1f946ac42c8f",
+        "label_sha256": "53bd4ef5ff1f10d73797d77b62e4e2daa72ef84601102f449d711fd20b0a2792",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000105.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000105.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000105.txt",
+        "image_sha256": "13c37d3efe8f911315b37f8ff9de9f7a2f9e8f777aa54a2f5fcbd1583974db5a",
+        "label_sha256": "8332df53d285035233c5b87f031097105c28f8fb61a05e4c31b98e1b0db13824",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000106.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000106.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000106.txt",
+        "image_sha256": "9b8a63102e37e5d4ff8d0af72d12ffc38600698b6ed7cb67a7c12070dbe71778",
+        "label_sha256": "bce79da413ddc76933e9cc2bd87dc752329094d8a22b93033376ddd97ef946c2",
+        "classes": [
+          1,
+          1
+        ]
+      },
+      {
+        "file": "000108.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000108.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000108.txt",
+        "image_sha256": "63c825c1a1e07e5e377b82cea39a20afcf1bcdd39755ac6a67977aca83113cfe",
+        "label_sha256": "186fbcc9ca017bffda493afb7fe765d58af672ca53c2a2ae11ce859f78f50835",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000109.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000109.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000109.txt",
+        "image_sha256": "85261ff304047b7e0bd69ee3cc02fc6f666c9ab59e63a531a7bb788aa9186d95",
+        "label_sha256": "93d91261fb7b28a4246cc8e070304ffcee8504bdb2c2d8ce0892d00baf0b43af",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000110.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000110.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000110.txt",
+        "image_sha256": "6af696e8156315ea6c9419fcc361efd334984e666bdead5212ba6272d7f69112",
+        "label_sha256": "44e0f8878322023007e59eb12a20a99426f1c6135d90d4151dc7525f097e9c81",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000111.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000111.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000111.txt",
+        "image_sha256": "f7d3f6cf9ce9d3e20e6e47f0e3d32b371cc5af3c1b7e094aaab6197d15c17970",
+        "label_sha256": "f7464acfb0ed2d5df5ed918bcd0f8a476ea6b1b59688dcc3aa55fc8cf55cf47c",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000112.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000112.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000112.txt",
+        "image_sha256": "c72554815f91210fad44303b185fd59bfb5554fea6ddd3c873f2f0356a37c361",
+        "label_sha256": "d266b0e8f39ec54a2fe70f6ebd60636da794578d28d4a9f57ef9db3db4abe991",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000113.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000113.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000113.txt",
+        "image_sha256": "022b79c8af8e3118966fbd06caa17404e56606d0373ad72c5e02b869111653c4",
+        "label_sha256": "f2a7eac67fcf4b998ee9d1f01ca7d9bd1b6aeab4dd475de066d8fcccab2814f2",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000114.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000114.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000114.txt",
+        "image_sha256": "44e6b7f240a975a94ff52a359447fcf6da72fcd037fefeb0f638c729a8cb1410",
+        "label_sha256": "6c9ecd1f9f0a5689bb848ece063712b0e8bf574ee55c1e923b58afc1921152fa",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000115.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000115.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000115.txt",
+        "image_sha256": "11e51c9205f95d8bf8f661e7da7639f00e68b5acbe025bda6f0831e790191416",
+        "label_sha256": "25637c0925e642a5f0b0786812da974cb464c0a67b2eb3052c2d0f9b6123c881",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000117.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000117.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000117.txt",
+        "image_sha256": "5ad466639c5faca19ff77caab7ad8c1c0c0cbb5eaaa6e8eff79499bfe3ec8052",
+        "label_sha256": "bb2ea9c18208d7538b4142808463caa8976498cb7d192a2d389286f470c68f43",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000122.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000122.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000122.txt",
+        "image_sha256": "bdb856e6481bc71d7083dfd6bbe3adf740e9ff31d64f3110638d75c81f3f3e80",
+        "label_sha256": "7855c0c7ab0eb281efd7231f2b8eaf3e766c8ee49b0a3814e7372010081bf837",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000124.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000124.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000124.txt",
+        "image_sha256": "bedba296a6b02d755292cd0f3017b489959302ed9a015d64e234d79d9cb789ef",
+        "label_sha256": "7a198fe57a5065389ae8b10d2fef667db1d33c48609e5a36d003f123aedd6914",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000125.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000125.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000125.txt",
+        "image_sha256": "8da383cf2bab75884bd0a98731e9291cdf0aa2676aac4a88bba77c928c2a3d5a",
+        "label_sha256": "d2e8e5285e715c96af153cb7e711a4d3420e929bf26126cc23c46dbb2d24cdd9",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000126.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000126.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000126.txt",
+        "image_sha256": "83f4418d59c5adf84047306d81dd125a455075bd0b25af44a3bf1f946ac42c8f",
+        "label_sha256": "72beb4d0c480a7c3ac1dbb9532f3d969e2e53105bd897cc85c7f545243ea002e",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000127.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000127.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000127.txt",
+        "image_sha256": "13c37d3efe8f911315b37f8ff9de9f7a2f9e8f777aa54a2f5fcbd1583974db5a",
+        "label_sha256": "8aea77a5d2b381ea41197b700b64465702a3d935bc9b02726c4ea49b694c32aa",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000129.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000129.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000129.txt",
+        "image_sha256": "0b9ce23588bde7e8ddd18b04c1a80e659e730a119097c68e81d965b45ac15ba9",
+        "label_sha256": "6b9d7addd1b3a4eee921274cc4122560650067aff6d033633050ba8959704373",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000130.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000130.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000130.txt",
+        "image_sha256": "63c825c1a1e07e5e377b82cea39a20afcf1bcdd39755ac6a67977aca83113cfe",
+        "label_sha256": "4430b336b2e082b1bcc56489c3629f4e23080275fee2d10446c248de9c913dae",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000131.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000131.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000131.txt",
+        "image_sha256": "85261ff304047b7e0bd69ee3cc02fc6f666c9ab59e63a531a7bb788aa9186d95",
+        "label_sha256": "20a4d41aa31332ddfdc71ce77e63c88390b84f81d977dea9d0a4a19915e0635d",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000133.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000133.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000133.txt",
+        "image_sha256": "f7d3f6cf9ce9d3e20e6e47f0e3d32b371cc5af3c1b7e094aaab6197d15c17970",
+        "label_sha256": "0766481f2a6e49d3db198d339bde8a255864f25587e873450d49fa6146c86d14",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000134.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000134.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000134.txt",
+        "image_sha256": "c72554815f91210fad44303b185fd59bfb5554fea6ddd3c873f2f0356a37c361",
+        "label_sha256": "acfc9450b470dbc23aeea50c846d1658ec7fd447bc3baa9954f47bb4cdde5229",
+        "classes": [
+          1
+        ]
+      },
+      {
+        "file": "000135.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000135.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000135.txt",
+        "image_sha256": "c896c63cf9e5eb6797f32321512146b4849945fcd4b16cfbbce49ef5d22d96f2",
+        "label_sha256": "e13aa5d2ede393048c08f852b014d63d602dc111b4c10b6a5dd040204c2fa7f7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000136.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000136.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000136.txt",
+        "image_sha256": "d57c0cef2b2c2926987ece5ea6f05319988a5bba11c6436bd143c486514bdd4a",
+        "label_sha256": "eab3b93c79610d4950227bc4aa5af48a7687fcfcbcb8a4c03527e2626433dce5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000138.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000138.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000138.txt",
+        "image_sha256": "08573f27ea9d0df8d80508b43034e953a2d83927d0c895151d6c681719b03ddf",
+        "label_sha256": "15d683289deea0c3d9408acabf971b95cd3d59e0362706bfa7a8f5ffb01ce914",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000139.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000139.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000139.txt",
+        "image_sha256": "f78b90951d9934c3179100afbfc1f234f5289fbc8347e45bdbe77ec529f8f7b9",
+        "label_sha256": "ff73e65b7a1ab6c7fc27de256118d764586f6fb72777d1c24180510da4d977ac",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000142.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000142.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000142.txt",
+        "image_sha256": "e88f916542bcef869b174194c0c5680641381433a332334e30a6d33efbf31463",
+        "label_sha256": "b4c1eb8a342aea0db0bac9f2f464a2484a59879b05fb09114bbcaa36d9b40670",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000143.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000143.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000143.txt",
+        "image_sha256": "7162e098b1c541a9de69b7369ef9552620f5e5b9eac0168c6a18f3a3db624837",
+        "label_sha256": "5f0eabb0c8edca96229ee8317e3c7b088b568b7ad6cd20d484ae54a07896b673",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000145.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000145.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000145.txt",
+        "image_sha256": "d19cf096cb57445f8b57b1a0a1c8f8e230a5f20582af7dd5fe7e5118e43b07fd",
+        "label_sha256": "e011ee7724ed785d218eb03b67664fd6f8fe1d8f3207f24464d8693bfe09801b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000147.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000147.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000147.txt",
+        "image_sha256": "f8cd934a9f0cc40b0eef175700be0ecc78686281b303925604ba9018884766de",
+        "label_sha256": "345877c195fea1fa3acf76f62f86614534e5b021a25495cd2890c4a9c5b742cb",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000149.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000149.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000149.txt",
+        "image_sha256": "fac5b6cd341321bb694a68f70857531b34dc326fb786514aa59268d2b85d7b4a",
+        "label_sha256": "b79ea432210eca15c07b83e1b6c77851dd56676f1cdaca7c7f37ef1a50df1071",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000150.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000150.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000150.txt",
+        "image_sha256": "df37f0a7ee3a26b3f7137ecb4be25c6d465d064912ef09c51c8598ac60fa90da",
+        "label_sha256": "217b9e3b44ff150466db48c4fa06a50e8e5d1a4366658247fa5089d903963257",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000153.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000153.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000153.txt",
+        "image_sha256": "141f0977977efba497960a843487a59036a1bde5b5c23faf396b865cdb52d575",
+        "label_sha256": "9dd5d046a9fe2879f5cb562e932f455b03ffa590b8359b5c291277fb75bbacd5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000154.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000154.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000154.txt",
+        "image_sha256": "1bbc1d26b2a24122780ed9afd7624def0c031f86b6f3c6670ca0a5e3cc58c058",
+        "label_sha256": "3792ae1c4a11bc47755681943fb36c49dd42f2e8d8471a051e379df02b688604",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000155.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000155.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000155.txt",
+        "image_sha256": "f5fbf790c1d10b566c49be4640ae18558ead11f9b61d797f95bc883975773926",
+        "label_sha256": "6cb14ddc5b1542f08ceac4837a83c777b42e2b4815e4730ec67fd83a787cd63c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000167.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000167.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000167.txt",
+        "image_sha256": "7c56787fab4ca2e5a532af6e4d704fb0bbde9ae501462a728190376ff98b6dec",
+        "label_sha256": "d834156cd6e2a779a97fc59f72862073a28c3fd8ef97bbc91c712efb2db375a8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000168.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000168.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000168.txt",
+        "image_sha256": "4e2adabccb54104908cc9254e10bf42484feab6631c3d0cf4ee5ef5ca9446090",
+        "label_sha256": "61d33ee9192301de9d7c19e36cb5434fb5f059e9650578afdd932d8560c1f890",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000169.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000169.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000169.txt",
+        "image_sha256": "3daf75ba73a5f6698d694e8c3c6ba6db7c3cc77105f25acff169a2d454dab919",
+        "label_sha256": "60f0b605ba040632b128124dbe0199d6f01eba375a4ddce5d334105551e540d2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000177.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000177.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000177.txt",
+        "image_sha256": "24f0c53bcd7b3b1a2aa798d87a7964072a4b48e4665b9d74d358cdb6aab1cfdb",
+        "label_sha256": "16e74ef7ddf9d9e93a477603810ee01cbb8f07ad85e1a211f022e806108a0b62",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000179.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000179.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000179.txt",
+        "image_sha256": "83a40bed6e59e6506fe33f4b0a62f7ec1b8fcfd718ce61e63a140779d733ae6d",
+        "label_sha256": "39acd14981fd64b1af70ba76c64a8b2c21aca73fabd04da009f6b9847ea19e38",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000180.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000180.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000180.txt",
+        "image_sha256": "701a748a2e9a223af0d26c269dfa0b0949e32b6392731da02d56988e14bd7176",
+        "label_sha256": "69bfd4b7152ceb25184aab3e4b2664d7e2df1f150127867d9aab4262ed5275c6",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000181.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000181.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000181.txt",
+        "image_sha256": "fef7c20c68b918652b7d29a5f0a04d3bc9a1b9fa5440e34fa8fb3749742300d5",
+        "label_sha256": "9697fd49ecb90aa94468fccf83197579455d4bd83a0f2409d1e5e04a5739a9dc",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000182.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000182.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000182.txt",
+        "image_sha256": "3a401321b26f2fc6639bb2e190dfdedc7159e1c9f25a05c6c2874dcda99bce9a",
+        "label_sha256": "a1111a83b26a7fd1268aeab581b3eb0b08d543e679cb4e31e97dfe0afe3e59ed",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000183.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000183.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000183.txt",
+        "image_sha256": "4c0cd133973f0793d44406b053bd3d528860111c02a59d1617d0f842cd9f9d7d",
+        "label_sha256": "0a05dabb2ab2e44072a1ffd069c87b121a084d54f16b05ee976d966aa9b7ff3b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000185.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000185.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000185.txt",
+        "image_sha256": "cd413ed64e92e4d826b905ed078aca48e63a1a6abd9d442c6dfa3505e53080e9",
+        "label_sha256": "eedaa5ef847e9df08d26546fa053457062e57e65c64c0935e9fda71de70bc6b1",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000187.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000187.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000187.txt",
+        "image_sha256": "fe925131783c72c4a697a70c3086b856f91590d0946d6b0e8ed8856dc99b108c",
+        "label_sha256": "f5fc75b1637c894b4e4fca7663b75e229344b491243bd30aca2cd20e684e2d1f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000192.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000192.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000192.txt",
+        "image_sha256": "09fa66fdb7456900535d703815757e947b58adc8f9618ace5867cfeeddc7f959",
+        "label_sha256": "d3ad155a57f092a32571cde9143110c0b1289845558bc330f454d45a9a161653",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000193.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000193.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000193.txt",
+        "image_sha256": "c7bb94048a215cd2a765592c489fec75c8fcd827b4909562743b337df9e9bfb1",
+        "label_sha256": "55351258d0730e48399da4d08a4eaf28e6ce0e02d1130bb26e685be8698ffb04",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000194.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000194.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000194.txt",
+        "image_sha256": "7768bc6d79e1075639114e748e1de666a71e5324f69cf54f09976a0b4beb04a4",
+        "label_sha256": "8d61b0a5542ef94efdb5610ab1e607aee23f22fd378403edfe59ef7f750ff9c5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000195.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000195.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000195.txt",
+        "image_sha256": "28630959ef5f007b7ee42df0bfefe7cf632ee31f26c19f6709bf06de2b6e945d",
+        "label_sha256": "4d27f74c3ecd9165bc6ff5bdb984636ae674c1826a9de57138adec4abedb97ca",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000196.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000196.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000196.txt",
+        "image_sha256": "d2fe1d9b30639776b584d0f562ea1f3a4c5c34d8065872b914badb6f2e009e1d",
+        "label_sha256": "c3fcaa17905a8142aff97dd357cfec24b08c962e0f125f65d9f31c5718e4a200",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000197.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000197.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000197.txt",
+        "image_sha256": "a761b58b31f87f2575fbac4fb32a21a65e3ec7fd921419a9b07a84a6372a3eff",
+        "label_sha256": "3dedc71867189bcd8834072c9454999c447a37de3e17424e53718dbc3012e24c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000208.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000208.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000208.txt",
+        "image_sha256": "30dc5752dc2b947ed1a65bffa3800f371370bed7f6b731b40451c1d6846ce0d4",
+        "label_sha256": "7f14b06a4ce415380446805f285c87561eaef50815eabb9a5c1cd9e7973f675e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000209.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000209.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000209.txt",
+        "image_sha256": "7137d60f025b01975d93c9b29dd0a393eca983eee839ef012c7daa35ba0cf4d6",
+        "label_sha256": "cb1b5e9b70a0d11c599ddceee71fe1e0e46e1d6ac4d1e7dd1ea06ad232af27f2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000211.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000211.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000211.txt",
+        "image_sha256": "b4ef78b274ec6ffdd18f32f1c7e458045498fd76d2d94f51d40c71d1a6f3cb26",
+        "label_sha256": "65e154117b9786aad977951866bb31f66f1a99828ae6b0841ec405b5be2ccd66",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000212.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000212.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000212.txt",
+        "image_sha256": "e45bc06f457c173ca282deb707d81cee21ddf2d96a5b021544df6f46d49f64db",
+        "label_sha256": "520bfe8fbc9f1d8e0fb20099c929ef0a2087348c66ee596ff96218a2e3061aac",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000213.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000213.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000213.txt",
+        "image_sha256": "df956032de059ebea04703ecd33ff060dec9f9c66a2b9f93af639a151ae0f53a",
+        "label_sha256": "e1c51d86927153067c6c2c69e01fba5ff3052e3c4e2e9049f9359beeb8e1006b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000214.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000214.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000214.txt",
+        "image_sha256": "d83699990b75691ddc59154cc38d1343b282bdbf33340bb060738dc17728138f",
+        "label_sha256": "2fe8902b4a5d1a4e3f4893d92155fe2959db6a6665010009a79de6e943c1da11",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000215.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000215.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000215.txt",
+        "image_sha256": "6d0edb73bcb24064dfb843d0204703d92c35bb411ed48bd0a822bb298819c85a",
+        "label_sha256": "a1d9962f6fc002034582b3bccb2086ad732de7f9b311902059e9565154fa4da4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000216.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000216.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000216.txt",
+        "image_sha256": "f6f129967f9e0b08fb850054475b29289c60578741aa14668c69abe325c53280",
+        "label_sha256": "6adce55ad86c1108a88da35aaaa4f031794f428e1404611a90efc02a36020393",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000217.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000217.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000217.txt",
+        "image_sha256": "f6f129967f9e0b08fb850054475b29289c60578741aa14668c69abe325c53280",
+        "label_sha256": "6d68ce58cb4b324f24403029807583193a1793f689ca8e8334626bac10208970",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000218.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000218.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000218.txt",
+        "image_sha256": "47df8eff669ade5b5b2239811690287e1dc3bcb5cd0713b77dd16cb75cbe43cf",
+        "label_sha256": "06e4cb721429aa1b1a5a78193a558673eb2a158595a53853cb39bf8e7c446d94",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000219.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000219.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000219.txt",
+        "image_sha256": "2c4f1b22bcd5e6dd3c2354cbff207a729517e94599d3c8b2e893914b464c5686",
+        "label_sha256": "3782f6d58e8e7ea7ceb4ffafee9f55dc5c96d3b08e42a2676e5a6003551b001e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000220.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000220.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000220.txt",
+        "image_sha256": "de586bcbb89d20a762ace4ad594f73526c32eed3ca7d6fa907ce1209ef3da026",
+        "label_sha256": "e67553f2208d153af15f6d6675fe199638d228c7b0d45e8e0d5b7123d9c58aa4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000221.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000221.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000221.txt",
+        "image_sha256": "77867eb7135501a2637e1694d9492182723588b34998eee4e33530d5b124d051",
+        "label_sha256": "7f48c58ecf1230b9854efbcc2bebeccb8e0d2b3c1e95f58f62b2b67526b690e5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000223.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000223.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000223.txt",
+        "image_sha256": "c386cd892f4059c7f262558888b897095e6c3611828d96ca296fc6dfcaa8beea",
+        "label_sha256": "ef8559bde9d3356453cdb317b4ee63f1f38ca03ef2a0e5954e0740a36c00e4eb",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000225.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000225.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000225.txt",
+        "image_sha256": "597f3b752feef792b57cfcc68aa132992976028cd34cebe583c83b837c676fd4",
+        "label_sha256": "d6828eaab71bc3be4d1b1271d2164e88d6fc53be41b876f280590a05766e78af",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000226.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000226.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000226.txt",
+        "image_sha256": "8bea9895deecf0474f61b3ca9dc05dada7c38007fd6e159c01cd4a6dba7e2185",
+        "label_sha256": "d5c532ac76b833429f6b3986d0f254e4040add6d816a1101c0a5243d025b3cbd",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000227.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000227.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000227.txt",
+        "image_sha256": "501007ac4cbe78730c3f73bb1b878ebbe9844b29427f46e3026f6153b619b48b",
+        "label_sha256": "c9b80a641e3f4de490c861a4d174dfec4be0a259d7aca2e93131ac023b64fa56",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000228.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000228.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000228.txt",
+        "image_sha256": "f91cc5b86a64756f0f345ffb024d9799994701de7bece13376c1edea6f5a7573",
+        "label_sha256": "678160d27401ec20f17c69d2ad25cbf031c096a3fd913f27e0c48ecc1e6702fc",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000229.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000229.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000229.txt",
+        "image_sha256": "edad0d7820cb585c3d91ebf3d9b601089d3565fdb03ce39cffae7b66c35e3962",
+        "label_sha256": "5060c1ef6169b54f0a0997bd5230ba2aea85ebacdde8bded9ffb9ca5226fef97",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000231.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000231.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000231.txt",
+        "image_sha256": "e100d88764541b229db54574ce9520896e0af46ad34e9692cfe8dde6c6207d65",
+        "label_sha256": "d50f282e31eb7f25e38be335f5302e657f7f354a6bac1a88c4a9e1529284b370",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000232.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000232.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000232.txt",
+        "image_sha256": "5f0f2a296c03d0807922b1fcbfbb7d012a3c51316b7ddff457eeccf48afb1eb2",
+        "label_sha256": "f5457bffbfe4b3571b5046f6f24f0f871eed5f81c94ab26771e9730d8ce90089",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000233.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000233.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000233.txt",
+        "image_sha256": "5f0f2a296c03d0807922b1fcbfbb7d012a3c51316b7ddff457eeccf48afb1eb2",
+        "label_sha256": "28081d159104fee67e438fec628095e91851738a8e97ac49b8d2e22af3fb0338",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000234.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000234.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000234.txt",
+        "image_sha256": "efd1ddafc457065faac399971bc4f1afb4d7bf00a09627bad3f73f0c27369fb8",
+        "label_sha256": "b004d80c2e76fba6e804607e08798d4dc5766bfe34db7e3492d30921be76351d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000235.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000235.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000235.txt",
+        "image_sha256": "075628c37d6789d86d609de4fbee5214af41b92712d94a80ebb5a0efe085281d",
+        "label_sha256": "3dbd9ac3ee88656ce096027f89c90fbf3bdc7cd14bf1614658ecd5bb089a9425",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000240.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000240.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000240.txt",
+        "image_sha256": "2a2aab4e8fdb46a202c0b8450abc085527532d1bcf528012e95b46e22e0afe9a",
+        "label_sha256": "4c221b5ba1895843fb518d1aa78685fbd726d8d934804d3c487d84c81048de28",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000241.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000241.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000241.txt",
+        "image_sha256": "849b61e1a4ae49e0155a2be7c1f20bda9d9feb511a696b2382efc47147c4b4be",
+        "label_sha256": "6ae06e38dd59f0b696c17771f33d5867444e6ac27f066c4573c717ba4cb72394",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000242.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000242.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000242.txt",
+        "image_sha256": "f266612ac6602b18874cf4d6fa10070be010732ecb1a58d77602d3a764248235",
+        "label_sha256": "1acae013d420fe51497f477fbf5dcdbc92b4d7f470c8fbd217d106a5a0b352da",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000243.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000243.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000243.txt",
+        "image_sha256": "3fefd0f847c02a9f782709d88839a1204094f8a2260e55c205d1bc4fca128cc5",
+        "label_sha256": "9262a08f4119df2c47d2a385a097f969e877be22dd361d01c0c955a43e46ac27",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000244.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000244.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000244.txt",
+        "image_sha256": "8d3a15bc36c66d38fb03134924ab8df1f9ed2f81a8d2b5b6dd0c84dc5ff6febb",
+        "label_sha256": "94bdace46825a53bfacad3dcb8bf11842e78192eca3b0fe56580db335dd613b6",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000246.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000246.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000246.txt",
+        "image_sha256": "2efd54c33dbc1898b12a90ba59578fca1271e353f907dc60033e56b71085280c",
+        "label_sha256": "72b0012a2138477fa56ef815eb664ad6a695a0f81f105e5f8ada115f1697891b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000247.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000247.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000247.txt",
+        "image_sha256": "0e1414e596f59f89b3a3ad84c33cfdf6974f56db45ecda3db06d88b60663dc2d",
+        "label_sha256": "f7acbf24eb6f7c358d12ed7c6a1f0136434fa5519fc725b82ae39a1e58c91d01",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000252.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000252.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000252.txt",
+        "image_sha256": "fe6a4e7517f784fa620024ff169960601c6bfc97c0381006fb4519bf108a8cb8",
+        "label_sha256": "6e9297d688078b0c8d4bee6255ce8ca1fa91863eeaa9dc20d1b7227768320ab5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000253.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000253.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000253.txt",
+        "image_sha256": "fc7c0edba402aa6445d84449f7b70105cce81b67227881a7d889e3abc0e6d1cd",
+        "label_sha256": "a3bc78c9f7ab0fab132623cc8dde97c3e7cc00f88a0f3924e3379e47d0c1b2ec",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000254.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000254.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000254.txt",
+        "image_sha256": "60515b132cf7c244799940744107367cba296c561ba08225fe0e87ed9ee61dda",
+        "label_sha256": "291cca8bc7a3e21897dde7bc47ce3bdead1108a18a21c9081d305779c3e68acf",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000255.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000255.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000255.txt",
+        "image_sha256": "597f3b752feef792b57cfcc68aa132992976028cd34cebe583c83b837c676fd4",
+        "label_sha256": "67403b5bf64c90c86f7e6bd9ab7d21b1fc53f3b57e47b8cc7055ee6b6b50a3c4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000256.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000256.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000256.txt",
+        "image_sha256": "e1533b49d1740b0a882f6a10c25efde5303ddbc39758657496f2f726e0df95bf",
+        "label_sha256": "187742513788f7929856d66f21076f6d06d70a9a16b883aedf9acee361b8210e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000261.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000261.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000261.txt",
+        "image_sha256": "3a27b544fd115c961bf88c383f1ac511b7fdc07402f78b9f311274df0e9b4bf1",
+        "label_sha256": "f6ab929e3ca1df42c1d3983ede3eace6928299df55fbd7dd1b58d1f0d7ffeb2b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000262.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000262.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000262.txt",
+        "image_sha256": "2c2cc2be4252ec387e9c9608bb9dc89b475e1c720cf98d3164d9b6ba8c4db749",
+        "label_sha256": "ae673034dbd437715ea379ef88982f2abd6b638087b48d26fd3654fd403d81d5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000264.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000264.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000264.txt",
+        "image_sha256": "c3beaa5b33f148b263d0df619ff0b8fac7674bc993cfe00011ed8c898e4b94e4",
+        "label_sha256": "1468fe2d6033af66b844281b9e66a7c4b0cb136752c5ac5db5a60488125c0991",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000267.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000267.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000267.txt",
+        "image_sha256": "c3eeff2bc5b6a87baf6d4176bca5e4412ea8b9a8160723a8522a89de3e9b6202",
+        "label_sha256": "bc73de621eccdab5db9f0e2e76de5613bf4c03d7f41ef9bf8217d16695c869ff",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000268.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000268.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000268.txt",
+        "image_sha256": "4acc4fd06064b0cd51e42950b0ed22d632caa77d27240737f258406ce520f39f",
+        "label_sha256": "703f7abd5a80b28b298caaabdd3a9c3b2463d68a7a1088aff48bc4b2c3a203e7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000269.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000269.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000269.txt",
+        "image_sha256": "d571c4fed6fb23c77c25011136821d9eca4cc1ed10a8ad5e59ce98cc599c36cf",
+        "label_sha256": "013a20f7dd2be3b9bb43c3380d61a78a2ebd54c6fca09246f5c890add78e6d5d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000270.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000270.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000270.txt",
+        "image_sha256": "30af90cdcc3d4e9123c72ea22647b11b5d1be0cbd2f0fe6d8243cf7681dc20c3",
+        "label_sha256": "696cdd94270925fe6fca503918d9b6b7e2043495200eaba453f31129544eff2f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000271.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000271.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000271.txt",
+        "image_sha256": "dae66ee749f9799ccf7904ee2b650aabebd5b55cc11287f61b91dfa7cc48694f",
+        "label_sha256": "a40a25a8bcc19cf2715812fb3d6c1dbca2c7c2110effe48a3ae8dd2b60273224",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000274.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000274.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000274.txt",
+        "image_sha256": "2f1a272bbbcb30e8588a62b453bf5b47cfdbee24ce90a22a5f3a85f1fed3a25e",
+        "label_sha256": "61ea7762f283e3231e409498c603cb134515a80623a2cc1b3c2a4653b479e76d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000276.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000276.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000276.txt",
+        "image_sha256": "94d20a8d84b8488060a70d6361abc6024291ba8c334bee568861b9f1c61b5741",
+        "label_sha256": "6684a2716212cde1a6f5cb9a689e4af501dae7ccd6427085fcddcfdda00a990c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000278.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000278.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000278.txt",
+        "image_sha256": "d571c4fed6fb23c77c25011136821d9eca4cc1ed10a8ad5e59ce98cc599c36cf",
+        "label_sha256": "05f047ed57488d7df3ec201959819ceb7e4886b85131a888328d8128c7e5dba1",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000279.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000279.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000279.txt",
+        "image_sha256": "8981989ec89cce539c29466efe8726520371becb5ce399909c7af8d84b626b92",
+        "label_sha256": "7630ea1bc97353b7785e761eca7ba5157e0abaad09d9e0d89f92bd2de08e2a54",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000281.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000281.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000281.txt",
+        "image_sha256": "4650f554f0cef5e6f335ff87063ce90e4687bbc20d4bab93e34811dd86ee83a3",
+        "label_sha256": "641defe9923fc129686a500e6d885c0d45a42599fc2a1c333c9ec4ace005ddea",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000282.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000282.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000282.txt",
+        "image_sha256": "6112a98e0b3eb5bd61f8b75224de76f81c2bd7bd8e75d54a14a0ce886d5c75ab",
+        "label_sha256": "77927569870ef8ded58d9f6a735d89b0cdbee5857b149fb24766c1c002aed0c8",
+        "classes": [
+          2,
+          2
+        ]
+      },
+      {
+        "file": "000283.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000283.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000283.txt",
+        "image_sha256": "6603b2c1943a444325d58d6cbdac0c5a457f40e985c5a028d12a784189f45bc4",
+        "label_sha256": "1855ac0cd67fa116d05f0c9689317180c3c75844f74fbed4c485769bc6fad8d6",
+        "classes": [
+          2,
+          2
+        ]
+      },
+      {
+        "file": "000284.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000284.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000284.txt",
+        "image_sha256": "d8f78968e154b79df606d80bd85f5c001c16e0d62f6c5b0db06fbbd5cc3e4dd0",
+        "label_sha256": "1d9488f17510bd8fe85acfd46db62778ccf833d8b379898372c08bcae7a95180",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000285.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000285.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000285.txt",
+        "image_sha256": "ed4101dd1c0be81b4f6d482e303c10f0d9d3b567b2a66a463e362c0625fe56d0",
+        "label_sha256": "6fd88caf311234b96b0f8b024732cbc947c250b1c3ce9f87a732b0482380b42c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000286.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000286.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000286.txt",
+        "image_sha256": "7905a30cc03fb9daf12e7f9e246aa0cad288546985fd1e736505aae59864672f",
+        "label_sha256": "68330cfaead38605f603dfaaf6f4016a768de2affd97f2e711e6d79ca48265e5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000287.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000287.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000287.txt",
+        "image_sha256": "36c064213281aeb14e73e2954948eb695b691f9750a67eb0a577f4cc69415208",
+        "label_sha256": "d4c6ec08ac0e495af7508a286e50d7bb5631b501b4f3c8650a5a06b31f3596b2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000288.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000288.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000288.txt",
+        "image_sha256": "0cff63fbd4bc1f8c4a37dc36a2c78f1d0860d9a8a9cea1b5abd48df5890b0fcb",
+        "label_sha256": "ce29476572b88583a81beb05f547ede8110926cea3ba96873bf1b9a4bba7539c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000289.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000289.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000289.txt",
+        "image_sha256": "1795cc2e1ccbc62db3cbef1b0da6f1617800c23345da18648c880f528a8b7e43",
+        "label_sha256": "df1e1e5f6de80f6768b46f5290a91dc7153dffaad38c6c585ca6eb27f1817ddf",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000290.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000290.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000290.txt",
+        "image_sha256": "7010247c7587f4f74a52c6f096162ccb581ec7b651ba3d8246cf5aa5eccc03b9",
+        "label_sha256": "3672403fafa851339758da9cfe75553eec3c87ba2b28cb919435cc37be7aceb9",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000291.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000291.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000291.txt",
+        "image_sha256": "710dfa898c15549e2e19b1b5766388c693b30c0ccdae3b70d4344a19f51b8052",
+        "label_sha256": "e473913d870bb206272d39a62111d40fbd9344a4461ecfd12ebfcb4a0cafe651",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000292.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000292.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000292.txt",
+        "image_sha256": "214f572adddfe6575b1de9d87f470e8b50bb88e7f6a51f64060c188b279c0109",
+        "label_sha256": "59ba4a771879cc33ed4ce5ed009a7b4536a7bfd6c7ee8c951f4f9288a274af7b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000294.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000294.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000294.txt",
+        "image_sha256": "1e8bed70685240188494ae261bc8c0faa87665fcf9b67569124a51c7797a1cc4",
+        "label_sha256": "7bccbcd3545d5ef8d3dba0fe15d610d32fd9bdffd2337b65927d5e3699a5fcbf",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000295.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000295.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000295.txt",
+        "image_sha256": "4a133229376dc242a26b24d7ac5fb6be637e06556f3c46ff5d5ea14ac02ec93e",
+        "label_sha256": "cbf805ebda9e92b51bd12f057be1563b5a9f267f81399076979272aeacf7fedc",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000298.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000298.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000298.txt",
+        "image_sha256": "79161d6e6f31749d2adf1549c558e7394d1be7aab83bdd764151e0895ac7cceb",
+        "label_sha256": "978bd359663d0b40e59aca46032c20a7980d01dc3297b234ffd7b7358cb2a095",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000302.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000302.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000302.txt",
+        "image_sha256": "3bd6fba06627a28bbe35a6846a0ed2f1853b00999e5b9de4f27d96ac9c17a7ff",
+        "label_sha256": "6fe37113f698256d1a0c8c65ba3450ece4f86d3c2ed492a795f3f01035de31f4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000306.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000306.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000306.txt",
+        "image_sha256": "09be9f0ee101d0a8316ee33f11c2e0a4a723e523c4943ab827cf67295e763c2c",
+        "label_sha256": "0fe860d85a8b3af16b30ae2f5e0901c1f19f7b20f090c10b1c35786f349072d7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000307.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000307.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000307.txt",
+        "image_sha256": "64c0572d042ef398b446205ed6a691322b1f18a0764000f038e2c3312ce8a939",
+        "label_sha256": "a26ea4ba25b710932bf585a1f4201b0d14f8b73f36716471b6626732f0ef8b43",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000308.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000308.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000308.txt",
+        "image_sha256": "331f384a2a3073646a1a9777666f30edc20bb05a6bdbf7d04d51c7b9206211d5",
+        "label_sha256": "8fe2bfe396b210dd45cb0e515a599bdc0d9e8340a670f5a19a4136ad38f62c86",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000311.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000311.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000311.txt",
+        "image_sha256": "9ab13edd3d99de8e513e0c4bddb8c7ff9b9123e1fff2828669b58777d28a3785",
+        "label_sha256": "ceb819303da76ed6a42bd429a34177ca92e2b41ad96aac0d6dd7b57681d9467e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000312.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000312.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000312.txt",
+        "image_sha256": "f459cb5b893f15f365b57e8d5692719e121a6213487194ca168bec5592eb01f8",
+        "label_sha256": "48e752288a872e4db7637de376ada453e48bbdab7fe8553a708a722c96e65f70",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000313.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000313.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000313.txt",
+        "image_sha256": "88def1d4e649eba425fe7ba04efd53ff63d748e0a620bcc66a0122a3ab89e750",
+        "label_sha256": "844058bfc5c1d6cf9b5e0f688d72a17a55c96d93aff9961d5bff560d2446e857",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000314.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000314.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000314.txt",
+        "image_sha256": "8fa2e36897dbf8d0fa83b423d0dcf794bda70a7e4a1503d051481547734a4c6a",
+        "label_sha256": "5e733e7394e46ae1aa32bdfb35a5e17045161e37eb902ec1d4fe72819ecbdc52",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000315.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000315.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000315.txt",
+        "image_sha256": "67bdaa3654f2bff60188bf16cf4e9392d440e212476b7e188fa551f38c7c7bd5",
+        "label_sha256": "85052367cc1269e74918bffbb945d673699596ad1d9ec9560a3b93a3de0f5ea8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000316.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000316.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000316.txt",
+        "image_sha256": "24993fdbcc78f12a9e4c867c8e936e856b9de9ed266019630de27c708c8d38aa",
+        "label_sha256": "a6bca88de1b44f189e362c511e5e6af5fd26d84ea87af20851a29807bc62b3d2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000317.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000317.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000317.txt",
+        "image_sha256": "cd160f8ca6c5816a837f26962c3837935da5f6aab2c347c2cc2b5999aea6de2a",
+        "label_sha256": "3f9cfdef010cfa20c71a265f3996188b65c6f95e5524c3a5c2d99e9f9ef03467",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000333.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000333.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000333.txt",
+        "image_sha256": "067e7d0244874780ec0f81d30870cbe1eb5c91fefecfb01687a861273e703aab",
+        "label_sha256": "fecb43ef423c83c65d9e7cbe78c3edb43015c5670979a944d174797b3b1c20fb",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000335.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000335.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000335.txt",
+        "image_sha256": "de6e0cd6419722e3d92b231931d4b0e4181c7e756e4d270ac5f728ecc80a537a",
+        "label_sha256": "0ac1a9696a2807789f2555f69259706bc9e39a2bb5917cae282e3de73898984d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000336.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000336.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000336.txt",
+        "image_sha256": "48abafa09cb43e9e9f1bcefdbf4d2bc068bbcc2750ce975a6cfb40b762b69efc",
+        "label_sha256": "13c08b51ade76bb1805e5ca54b15a22cac04d735792d1351a5c9888d315c8847",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000339.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000339.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000339.txt",
+        "image_sha256": "48abafa09cb43e9e9f1bcefdbf4d2bc068bbcc2750ce975a6cfb40b762b69efc",
+        "label_sha256": "fc88650ac30a1c0944d05aa8b6e9e5164dc0f7d769692b53d439ace5159d4f26",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000340.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000340.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000340.txt",
+        "image_sha256": "48abafa09cb43e9e9f1bcefdbf4d2bc068bbcc2750ce975a6cfb40b762b69efc",
+        "label_sha256": "0a71bd4c2d16fc63bd1e5b9ddbc6617d0c3d52a201b31776435242485e6567ff",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000341.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000341.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000341.txt",
+        "image_sha256": "01436ef56a71b9bcb9b7b46a9d2d244313e221ba427beb585fa898843175c382",
+        "label_sha256": "969637fa454635153a2e6c3c0295fda110c380232d50973d22bdec77d416ebe8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000342.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000342.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000342.txt",
+        "image_sha256": "70701a17b362669346670089c81b75f22eabe692716ad0303e6bded9c31ee426",
+        "label_sha256": "7afcaa9feef32b75dc90442a61beb8281e325131acd64aed7a5a7952d388b0c4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000343.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000343.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000343.txt",
+        "image_sha256": "48abafa09cb43e9e9f1bcefdbf4d2bc068bbcc2750ce975a6cfb40b762b69efc",
+        "label_sha256": "ee35ac5026721ca6395b611e8d77b328a605c7ad253339aac17434dd67119aad",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000344.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000344.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000344.txt",
+        "image_sha256": "99bdbd8a2e13e2df30301a8fea0e80105f46d97b824edd3b864116b88c605157",
+        "label_sha256": "db7f602f651abbd2095cb451c66f5986a65d5bf09d7b4655d0ce408680c84ecd",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000345.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000345.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000345.txt",
+        "image_sha256": "067e7d0244874780ec0f81d30870cbe1eb5c91fefecfb01687a861273e703aab",
+        "label_sha256": "edbed5056c75da29de810a17cd15587acdc0ed19973f18c9c4a4d57f05ec88a3",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000346.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000346.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000346.txt",
+        "image_sha256": "779447d1327dc4d6094d549590dcbcad2ce4e748e2d052d29e6bedfe6a546e71",
+        "label_sha256": "402c618de077e04a5268c3ac255fd6bb60053cc53f700b05866b53fdad35d853",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000348.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000348.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000348.txt",
+        "image_sha256": "e12f876f4c26dd394c24b3534c3088f202761efa7fe986ad533fbde4d93eb702",
+        "label_sha256": "327e9598e6be4f34cf59ca99bdb1e611cdc44af1ddfd5fa04403e2c12a2967df",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000349.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000349.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000349.txt",
+        "image_sha256": "70701a17b362669346670089c81b75f22eabe692716ad0303e6bded9c31ee426",
+        "label_sha256": "e7930c3d575541c5599877e6a9b426d3777e5c8c8366bd5cb0af5458b90ecbba",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000351.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000351.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000351.txt",
+        "image_sha256": "99bdbd8a2e13e2df30301a8fea0e80105f46d97b824edd3b864116b88c605157",
+        "label_sha256": "3e6449d97cffa31f670fb37c6faef57312f4e58d3acedbf26c4e605973b4902d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000352.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000352.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000352.txt",
+        "image_sha256": "9a4c17016a9d4a4d26e1315391ae98b52d656c2f861a495bff8ff71b765acf4a",
+        "label_sha256": "ef5f99aa1526fde166c81f4fe8c98d6b31424500c7a28fcea801ea8232105262",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000353.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000353.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000353.txt",
+        "image_sha256": "e12f876f4c26dd394c24b3534c3088f202761efa7fe986ad533fbde4d93eb702",
+        "label_sha256": "ea026cde22724e30b1ad013c5288248bb312a6af6894486f6413663de5cf2680",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000354.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000354.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000354.txt",
+        "image_sha256": "067e7d0244874780ec0f81d30870cbe1eb5c91fefecfb01687a861273e703aab",
+        "label_sha256": "344aae76c16cb3b6f95b52e9b82e127f9af314b077e16e35897e040ab057e426",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000356.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000356.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000356.txt",
+        "image_sha256": "e12f876f4c26dd394c24b3534c3088f202761efa7fe986ad533fbde4d93eb702",
+        "label_sha256": "911af93c7ced8ab25f99e2d63a049a0a63886ac8c162a02c4763f350630a55b8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000357.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000357.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000357.txt",
+        "image_sha256": "779447d1327dc4d6094d549590dcbcad2ce4e748e2d052d29e6bedfe6a546e71",
+        "label_sha256": "776a468f8ca3f03d7fa5b3f0668ae88e4c78dc4f1fab0de29e59bd7d789beda7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000358.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000358.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000358.txt",
+        "image_sha256": "99bdbd8a2e13e2df30301a8fea0e80105f46d97b824edd3b864116b88c605157",
+        "label_sha256": "c37365dd0ce390a8085cab7a078c22999136338ef03610f63c19eaf4a739f01f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000359.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000359.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000359.txt",
+        "image_sha256": "51edb6c90b26e68b3f8f38e8368e0ac68c06fdc280143cb108bfa4bddd2555d3",
+        "label_sha256": "e02862a3b0416f3455ce3c255867b36b5f6590815164f7ab2083721ab6a9fc83",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000360.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000360.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000360.txt",
+        "image_sha256": "89fd82b192d5ff20bdf6d2e7a7ebd950f0aba1a09ab897775f15714583127f34",
+        "label_sha256": "0c58b28ff8498d1d2ba8dd0bc1140f39427c5d489ef0b6fad02f0ec7913d3518",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000361.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000361.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000361.txt",
+        "image_sha256": "ade4bec670d837045fb43a02dd469609c25eca8fe34af7a51435b46bb554f6cc",
+        "label_sha256": "540f5c701be3155e170966cc433de68467e657cde151ddd5ff035c49ca9f3dd7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000363.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000363.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000363.txt",
+        "image_sha256": "f1ae8f67754a738688f62b949b3a08349cd9cb93ee614495490e184b42469a7a",
+        "label_sha256": "f6c45a32b94dd5c365118edc4c7b55faafeeb5c9ef814484eb486e5f4456e4c2",
+        "classes": [
+          2,
+          2
+        ]
+      },
+      {
+        "file": "000364.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000364.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000364.txt",
+        "image_sha256": "224a577d4eb82e11862d3be13f80fae0eabf539058d39acb932e6415c0aedb2d",
+        "label_sha256": "d07f1b7eb7ff19c81fbecbf678fdcfa680531df3efd2e8b303c47f698e2bc6db",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000365.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000365.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000365.txt",
+        "image_sha256": "167136cb6e2401baa1a93b33637687d4a82be775289c272aa369596db058a607",
+        "label_sha256": "bb596d217ee73bf6ae13c501f937688c5b1f90cece4e8c5ed322e28eb525d3b9",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000366.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000366.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000366.txt",
+        "image_sha256": "f78b90951d9934c3179100afbfc1f234f5289fbc8347e45bdbe77ec529f8f7b9",
+        "label_sha256": "871aa5a3c7ea59eefb68594862b99d96d5e33059f627717e28189471f85c9992",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000367.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000367.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000367.txt",
+        "image_sha256": "63c56a28a214d9c846883c9ec3a821ae4294c9b43af27a773a8a650f3a96e80c",
+        "label_sha256": "d363d40aac39a1edc1a366a683b91b308577162b9742196415ff39dcac9fd346",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000368.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000368.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000368.txt",
+        "image_sha256": "ed4101dd1c0be81b4f6d482e303c10f0d9d3b567b2a66a463e362c0625fe56d0",
+        "label_sha256": "a6485d815ec6c3a7f6d374ad6db0047be980718fbf7bf718a853a98df698d0d7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000369.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000369.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000369.txt",
+        "image_sha256": "7e55aba07717a38c85aa411f68ec0a8aafe201057915898b2ae7686fc09afec7",
+        "label_sha256": "bcc43a1fc17c0729a5240f33507c8148151d1f78f34e20238d324d215bbbe979",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000370.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000370.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000370.txt",
+        "image_sha256": "6695ba4e066a52fdef3ba6b43fec253b64ffb470279939b6f1019dc069c53189",
+        "label_sha256": "dfc68f1737540cfb2a4aba2491b514ca8fc3a37b33d413d9a740e9e78ce8e93b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000372.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000372.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000372.txt",
+        "image_sha256": "075628c37d6789d86d609de4fbee5214af41b92712d94a80ebb5a0efe085281d",
+        "label_sha256": "31d8ad1a4a3b258528e17eb63aaf481034e18bf2000257ff821a5935190a134e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000373.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000373.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000373.txt",
+        "image_sha256": "71ded3644c1052d99eaff57fb315c7165429f6c50e47d88eb3d0a3de002f5f15",
+        "label_sha256": "88fd28272d83120b3bcbe0e04c4e8a74c2993b2a1abe256adb994f6e94aacc6a",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000376.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000376.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000376.txt",
+        "image_sha256": "dce9ce45869692b1eabe6d382322479869576b66665db00dfe387a1e070e17c6",
+        "label_sha256": "a0cefc46fd8a22468aa15dfd82a7df4f64f77daa4f7aeef8542702ed5db8b8f7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000377.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000377.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000377.txt",
+        "image_sha256": "d68e3c282189d98007cc3264bd6a1f2fdc9bbb71ad4aa6bb360fd3b139c0a373",
+        "label_sha256": "4c5c3e2e2bd82ba8ae2c84ae9ffb9e6417fde28c945608f82e19adf3e33164c4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000378.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000378.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000378.txt",
+        "image_sha256": "80429b0404c98b58ed4428cb458bf2506326fc1c9ba580f808da292443bc51b7",
+        "label_sha256": "20f3579c9bc12e1bd49873eba4d1044f6f4e711fb8ffd0053264bda22f6f7d88",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000379.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000379.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000379.txt",
+        "image_sha256": "a8f97c81222205cbfe98dd6ecaa7c89a5e7c1f95e363eb7670e493850baceb3f",
+        "label_sha256": "10c7f18cb0adf2db22b9ebd80fd8b255de15c5e26286887f42016104117076c4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000381.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000381.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000381.txt",
+        "image_sha256": "97711b31897b8d9ebe311d69acfb319e11085f61666b5f842875af723028aa28",
+        "label_sha256": "60338057f7a09bfa297eb891c3e67f3a2e4040e998b3549603ebc175acf4aad8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000382.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000382.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000382.txt",
+        "image_sha256": "45f8181ea34e26b569c9f5fa744ec7d1ba80e189582ad6d6700960d48e6bfa48",
+        "label_sha256": "9e64a3279c1534ce1e1b8eeb2afddb21758a6d24980738086a499cf631b00f4d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000383.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000383.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000383.txt",
+        "image_sha256": "bd56599624538cb8d4cef22ad5d30df02016ccb65cebb8a8ef6b20558c4a80c1",
+        "label_sha256": "dd47193759c00f8e6672224c36b0d47084f98376efd1932e9a55a11f70e0a6b2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000384.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000384.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000384.txt",
+        "image_sha256": "a71be60f80f77b06a000b2f17a62649c82ad3adf4d60793fb522971b46d7afa4",
+        "label_sha256": "af7e8d0f97086d945584f3c7d426b5242e65e8da5cedf4e10000b951eb9fc987",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000385.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000385.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000385.txt",
+        "image_sha256": "53de70ea955a71ad899ebc0685d3ca4223d765468f610aebb0886122ae711627",
+        "label_sha256": "1064fa0538c3c32d10b1b6068abfc7b5a3b54a3b350619011aad2a33d0fd2fef",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000386.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000386.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000386.txt",
+        "image_sha256": "93e6b633108f09e24d7c83542c42780dfff4a81e005c51a34e23c4387beb7980",
+        "label_sha256": "0eb5f78b5033b1de754101c991a18f943c446871312184b810a1fafe04403a83",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000387.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000387.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000387.txt",
+        "image_sha256": "a989e40f07405ebc55695aaae0dd813bb3d176cc73819ed050b182924d28adae",
+        "label_sha256": "50977f997391ea791b5512d0ff314fb12a82e4ec77bc3e1d64f7bc33781782da",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000388.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000388.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000388.txt",
+        "image_sha256": "146036f0fbd6f42013fee55594a440bc7a04653e4f616dbb56a70ced7eb314e6",
+        "label_sha256": "a0b4a1948441a9557c2db993a4d405cdb6014617aa319ba77de3b3d4163e2bee",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000389.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000389.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000389.txt",
+        "image_sha256": "a1d289a851498153b626c07b3dd787b3c62364cc96f1fda957c26c0a591cc6c3",
+        "label_sha256": "9d10fdb05fc111fa25ff069009b89a795f453b03d7602d532b3e79b9f4b3d221",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000390.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000390.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000390.txt",
+        "image_sha256": "1893c0fd9b169e48fde75f34d5b3df2e259aecfe3d89bd34f4ab9a33665c6e46",
+        "label_sha256": "7112e82cf97707d8c80e948fdbf4c2dfea92e666f2f4ecf982e5457e995ca537",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000405.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000405.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000405.txt",
+        "image_sha256": "41832494e400c1483e1e81ca2085476809e94a99bc952825611fb1ebb1b0d50a",
+        "label_sha256": "9da312401727fee64c29143dc4ed2b8d34f9d061f69d8c6a20d2d53a0ba1194e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000406.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000406.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000406.txt",
+        "image_sha256": "e3cd7252929d211dc2e3acc6ea4adad510d2998ed8e47fc29274d3091a675f42",
+        "label_sha256": "971c83dc27908d10a5dc4a7f28cb55312ae94b29f91bc7173905d180e17ae263",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000408.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000408.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000408.txt",
+        "image_sha256": "44c403c7e75f10afd2bbfedf5197e6611481f3e978e24e070ede315c32003d74",
+        "label_sha256": "61fd8e340615fef52bc83c94d32f772a5d6e927ac077404ccfc3c85af3f6080f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000409.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000409.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000409.txt",
+        "image_sha256": "8a0d3a0edcc0fcb25a896ae7c1e19bda63db7b09d33d082438a59efc130154c3",
+        "label_sha256": "f673355b0bf9499da343208e7e5ea5353e28deef712974bc1e7331a4b92cfb2c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000431.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000431.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000431.txt",
+        "image_sha256": "197d86d274361ac2d3ef59d410dd4e1d4078e14cddd9611dbbc818d910b3c9b8",
+        "label_sha256": "0e38cdc591dfa27985c286bcec8721db9310878162b940264e0d01bc962b61b4",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000432.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000432.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000432.txt",
+        "image_sha256": "c755da256ae2d7846618abc940ad1704856b67bbcc9099df16d94a0643b9f76c",
+        "label_sha256": "c7c09d23d9e500fc7b93f1e9738e61ab591d8b0e645d042b78ebed8887a8bdde",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000433.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000433.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000433.txt",
+        "image_sha256": "59c870ea0e6c15527ee528d80f50a86fd2c0dad401bddbaf329707ba16ba21f5",
+        "label_sha256": "25816cfac2e089a7d54aec82b29bea90cf9c030a2655547f827d57991dd1a3b7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000434.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000434.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000434.txt",
+        "image_sha256": "abd09b3cd07ce0c8a26a4440ac17573cdef99dd8cb96117bcf808347935edd35",
+        "label_sha256": "bbee897fec0172bd458a05d1073bda7904d0f28d9077b9e7b550792d80e1e95f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000435.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000435.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000435.txt",
+        "image_sha256": "41112681e50681a257072f94c28fef5d063113e0e2d42fc06b0b6f5dfd0741c3",
+        "label_sha256": "0dd7a925c426449cbb1bf51b199b42e1c17acb873355542f9fc18e89ce8834e9",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000438.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000438.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000438.txt",
+        "image_sha256": "aef0e1c0d0f270f24dd601ca4061ffebbb76a723d6132cf6f88efdcf8c6d2805",
+        "label_sha256": "8f8a34880996c5e634fc6cab5a846c5b5a8f0a458dee59d99c8b1ea3e3e0f730",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000439.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000439.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000439.txt",
+        "image_sha256": "5234091e7660ab26fb0ba9cbacb0d24de177bd17fd87fff5668e3b9fc54f3298",
+        "label_sha256": "e97e5cc5145c76b38199d5617dfc52c21c9c8a14db34774016b7d8128f657c50",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000440.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000440.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000440.txt",
+        "image_sha256": "f9c33f6fba602788da55ceb2f5ad3f0350c3d6c3281bf7c586e4db21f4c2894a",
+        "label_sha256": "8a49f3ea35342fa561dc553d4dd7640c9da23f763ac2345b83625556bf5976b3",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000441.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000441.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000441.txt",
+        "image_sha256": "535a38d340018e6b8425f53ffecd64e3ea1b8cea2a4bdb3b189da0b73ee3e0e3",
+        "label_sha256": "d96da17a2c7d9aca663f1f6bb36f1af7dfc10953e546237f3b036bc692f94011",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000442.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000442.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000442.txt",
+        "image_sha256": "0ccb425e27cdb92f305dfd683d127cf012935e32b36940160c98baa06acc2bc0",
+        "label_sha256": "1fa0b3bb4245c0130ee1c9ba2f73761217e85f43315c10cad0d34367d419a8c9",
+        "classes": [
+          2,
+          2
+        ]
+      },
+      {
+        "file": "000443.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000443.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000443.txt",
+        "image_sha256": "35e16e350fdb7485a5c190e76b479043b76ee7bccba445096036b87c30e23505",
+        "label_sha256": "814898c9503ef93f6f701f6a6a8dbf4b822d41e3d6ba137520f6e9e119da483d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000444.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000444.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000444.txt",
+        "image_sha256": "c2d48af6b1594c1c5d9e207482220c6a397a838cb57f30831666de0e393b077f",
+        "label_sha256": "8ede264f0c95e371013067a22f229334acb4cca23d8e0fbf1819e81a99b39490",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000445.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000445.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000445.txt",
+        "image_sha256": "ed2b8f44694c6a6e7d31716227dc1b775300ce1d244375c5571c86d86d49e776",
+        "label_sha256": "3c83c3fcff085548581b72911404b85eccb6413c4e89492f0dac3b3b3e87dfd1",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000446.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000446.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000446.txt",
+        "image_sha256": "68f14d020c627aba3ba6332df809e97b0dfe96744699c0200c9a5bf221ab7a93",
+        "label_sha256": "ac250b63d4f3ead0e6436f3b3055c09daf759a65540c36c725ae327cf13b9ecd",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000447.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000447.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000447.txt",
+        "image_sha256": "24185bf429d3ca7a13e400a7cb29742dfafa03304b66d788cae97880ed17550a",
+        "label_sha256": "69708c0a1ac6aaa16512b6f42a45311262db870473d9e64ea467ead739f595ff",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000452.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000452.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000452.txt",
+        "image_sha256": "7e3ea10ecd8901cfc7d34061967f8948dd255c503857e0de0f855094d66e9d85",
+        "label_sha256": "81df40fafe79cea96499277c36aeb101428b04e9c1d34f84085e69b09116b7b5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000455.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000455.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000455.txt",
+        "image_sha256": "a3d48d7da136165c9cab178efbbca837a1f39dcb8ab6d0a17fcffd7c3dc724b0",
+        "label_sha256": "99ee16815d0633304fce8fb313dfb14659ab8189a4765a412daad031e2a92378",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000456.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000456.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000456.txt",
+        "image_sha256": "3965e5075c07a8b4326a91d43bbf7a0215b7d833c1ab68a7f327e7d0797020bc",
+        "label_sha256": "f94b79d94529f19881a6984ba24502c50a07fbdd9e5f25555cb6514bc375b1b2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000457.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000457.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000457.txt",
+        "image_sha256": "1059932a8fbfa549994836532bb7167f193abc44bf23b553a7b5c852a374d120",
+        "label_sha256": "d092ab6e64561c567aafcabb25a93a30b5221d21f0d069e5c814dca9fbcc6d98",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000458.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000458.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000458.txt",
+        "image_sha256": "3419296cd4e0095f7bc08d4dc4dce48de95707ee7a2fb5774cc9c282586e3ec3",
+        "label_sha256": "54f81389c0acb8fe3a64fe64c350c6535887eaa1067374d3a68566e8c61ab11e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000481.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000481.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000481.txt",
+        "image_sha256": "bb0ee1b28675ded76f9326f4046e2f74fce0454cefefcf1ab6e5ca6766bdea91",
+        "label_sha256": "321652e1eef2de9d7319d30f294ff269fa3461ae77033754c4a140a2cc43ee09",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000482.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000482.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000482.txt",
+        "image_sha256": "852592525aeee2ae351a89888a9d78140170155842b52ef8b3f9f9738ee2e541",
+        "label_sha256": "f7f36cbdaf36709cdf8bff72b9d3115891746d5735868443a0222d99783c705d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000493.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000493.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000493.txt",
+        "image_sha256": "86ee57e1e03cc49e3b1f43dc4a869d97cc89ef5bda3e0a33ac7c1c436b5307e1",
+        "label_sha256": "b8872118264aacbcb95f9035292fa3c9f342098cdb043e896d89b5101a5acf22",
+        "classes": [
+          2,
+          2
+        ]
+      },
+      {
+        "file": "000495.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000495.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000495.txt",
+        "image_sha256": "b5de1f09bd9ec4f8c3b2119c0e1fc38008b93d43310ca24c9e7ba1a27a5612e2",
+        "label_sha256": "697989ad2c059a32cafa477fb0dcc14ad0bb1662f9b846cf65134bb8f9f1b3fc",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000496.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000496.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000496.txt",
+        "image_sha256": "490918f1aeee378fbae2fe07eef3de5f9528d5590aa1c750f93d834be70f2bbb",
+        "label_sha256": "fb15489ab4f2f5941b47089b349121d0adfec2449295ce273897e126e03e0945",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000497.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000497.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000497.txt",
+        "image_sha256": "fa0c9265d146c8d60a4ab3767d48f04a849e9e9fa1b6375fa95d15f07a3dd8c7",
+        "label_sha256": "991c3c6a566a80cbc633ac5bb96414b9f9a998984bf99029ef84130dd1f7dd77",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000498.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000498.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000498.txt",
+        "image_sha256": "1a13538d19f022a8b6caecbda963fc2ec477d9b6caf5057296e7823b29f1f666",
+        "label_sha256": "69dfeb5943fd1bdd89449e7b481ce89d130b7f33eb73ffac3bee0051ef83b539",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000499.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000499.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000499.txt",
+        "image_sha256": "b07ae019b8e2d96bce7b96b8e26c8debf36ddd4805b70396a9a59d179e9b802b",
+        "label_sha256": "06db0c2ff2d436a9609b0b5951d21b1367ffd14daffa642060ce581fea4ccffa",
+        "classes": [
+          2
+        ]
+      }
+    ],
+    "valid": [
+      {
+        "file": "000032.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000032.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000032.txt",
+        "image_sha256": "474143628bc0b32b5c7880437372f890f2577b5e922deae8ce2107c82647cda3",
+        "label_sha256": "e1e9144805c4728c4eb57f629833cca7e2d3ad01cf83ee88e53338f024ada818",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000033.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000033.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000033.txt",
+        "image_sha256": "2d8376ac59e6ee83f48228ecd4cd14f53294e0fbec333960f0ad5552014b65a1",
+        "label_sha256": "c94fb86b255d5487c8b93124f4c697cff576202d3e462aab56364d7d953e1096",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000034.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000034.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000034.txt",
+        "image_sha256": "e71c15f3797639686728e67ce59c4ce382ff70df9bf88f48f44d4e346b11c207",
+        "label_sha256": "6d82fe3d496e94e42b85131c605773f6d94cefdb6a8995bffa82b0bd575806ae",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000073.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000073.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000073.txt",
+        "image_sha256": "a03fce969fa16227ee0d9d3832d97c404e9da05f39a38f02decedaca6b8d2277",
+        "label_sha256": "cd7824e64b32bb56e756e0b5e3df36bb5bb4949ef7374b2c32e5a873fd46f32b",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000074.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000074.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000074.txt",
+        "image_sha256": "b7af6cb5fcfe18f8d68e9a94786cfba69b0e5a4becf5e2ebaaca94fbbbb9f129",
+        "label_sha256": "8afc9d500f3eb32746fa4e873e2a0dad8e86bd3065b8583d51d39c2311d6492f",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000075.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000075.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000075.txt",
+        "image_sha256": "8bb48de18ad8980c5aa67c7509bb9e5d0f3d403056d621796e13d8879635fa3f",
+        "label_sha256": "9a543be30e7dadc74875a90ffb82a1d927c1f51abf9cdb17f0579b2cbb3b392e",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000076.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000076.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000076.txt",
+        "image_sha256": "4ed8d8ac04036787abfc163cb7ce998161380ef85422f25969a32a8501597d87",
+        "label_sha256": "a61b1196e23537cb61899ff5696f24afc3ca39fbf36c9fcf1aac648031b4a3ee",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000077.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000077.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000077.txt",
+        "image_sha256": "3829ca63936d69073f7e523a88d1172a29a54fa6a9fd755a4cd227d462ec067c",
+        "label_sha256": "e30532a92f4c4aa355786dfa25e0ce4db59d7a8465095252d7c3908774cea89d",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000078.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000078.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000078.txt",
+        "image_sha256": "11b5fd5114a62fe85c27f4e59f09675e2484e4ead93b2d913ebdfd0c06d1bd57",
+        "label_sha256": "baa7a226edd90dd143b69b6c5579d41ff2a284e8d3c04cac4efbcb0961c21fee",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000079.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000079.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000079.txt",
+        "image_sha256": "d43428e0f99fa2cdb278357c1a729330d907309608f60320d6338c29c65ff4aa",
+        "label_sha256": "d6ead089c4118b80d980725447d55d3dc85182564dd5c219ed8caaa4361827d1",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000080.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000080.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000080.txt",
+        "image_sha256": "5ef0c2457747c9e17af1aa4412fe1c9f3b3e56af2bfda2bd3cdcae983f766619",
+        "label_sha256": "45ee9342eae4cf4a06b07b4e61dccabda6f51f5282843590ca7ba913eec363e2",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000081.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000081.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000081.txt",
+        "image_sha256": "41ec666565aa723d0139477cfef11ce9535b64fab0e4f038cb3e3536b8e978f5",
+        "label_sha256": "443f63c8c04d08522c37b579965569544d7898915b00989c20e488ac9fff927a",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000160.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000160.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000160.txt",
+        "image_sha256": "77bc9f02e779da04313d18015fe8ec2f04901e451d77f1d309464a5ec0bd6a78",
+        "label_sha256": "969d2ec62e7e8f625d7320fcf8f87f19771d95eaad326b5a35f4ea183352dbe8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000161.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000161.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000161.txt",
+        "image_sha256": "6e598b26444b11fb084c63479020a67a8a4e268e62283e6ac64b4fb04a98e31c",
+        "label_sha256": "f7c206e5ad5e10fa58ce000e9cfc0c56272855590f5c5af2b82e8781643b6e3f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000162.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000162.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000162.txt",
+        "image_sha256": "fa767c82898bcf6fd5d83ad88adc5ccaf8a11e78ae5f493c79133a5239c32dbf",
+        "label_sha256": "eb884362d89546d8ee42b7b42bf329cdd2f38e072b103cb0107f12a6769df83f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000163.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000163.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000163.txt",
+        "image_sha256": "7fceb4edd48812cf02785f6c76394a774962719ec823a840677c08803f373452",
+        "label_sha256": "0e09d50599a1e861eb4f33fac86eea260e4b680d98d1fcbb6f37ba37eb066356",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000164.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000164.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000164.txt",
+        "image_sha256": "de47a15ad9f137aba39a779f105beec778b6d1fd3efc44ffd3a251d259d347b3",
+        "label_sha256": "84a901af078e038eb45041e05140931483f2288024324ef06790b0687490421b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000165.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000165.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000165.txt",
+        "image_sha256": "eac9d2f36c640783337c1a8024d4466784516084f09f341014eaef7d58ba378b",
+        "label_sha256": "dc53cf8660c4456ea86fa36a437772e5f3ed3c5733153cdc9084314dfb5e8a05",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000174.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000174.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000174.txt",
+        "image_sha256": "f562c487048722043a674811f8ecf0ce6b3e721398717d81020d634f71f5591d",
+        "label_sha256": "9e9170c4c34625978983eb2b5034fb3d1f537120851ff0a9ed8bbef5260acd8e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000175.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000175.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000175.txt",
+        "image_sha256": "b8ca53841e60d00f87b315241556ceaacbcc1836fa09e6878d234c95ec595e48",
+        "label_sha256": "34d6482c5d4e9c2a95a7a9ecdef42649e96411051c68389636104078f4819528",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000206.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000206.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000206.txt",
+        "image_sha256": "884d5cb4d15bd719f739a198da1c179009f346818865b978dc9f7aa801b99ea2",
+        "label_sha256": "6f1503faf6bd892998c14f9d7581b4c3eaaabb835edce0c125b2e930f9d4277d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000237.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000237.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000237.txt",
+        "image_sha256": "e46b349a2725dc3008c255245febd4929622491e9a3bc09ebb4314e53c92e191",
+        "label_sha256": "e879367ff9f512673923b6ed501c77658ba4daf9da4c96db0c74cab69bfb30c5",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000238.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000238.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000238.txt",
+        "image_sha256": "d152d9e0fcea8f3ef27a345596d4a1adc9c161ea43ff81287329a094c5e052c1",
+        "label_sha256": "c5d12118791585f6ebd119503dfc9cbfb20aee51ed76a9c423e63c1833a0656a",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000258.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000258.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000258.txt",
+        "image_sha256": "cafd608be56f4af21f49ab758ff8889d33b3537eb21435b022ad55d72a178818",
+        "label_sha256": "69a466718b4f914dc9a2390dcbfbb9d0d817cc77049adc4930800f50ca4b7da0",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000259.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000259.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000259.txt",
+        "image_sha256": "de489731bcf3a22434c2f26d61328f469eaa8d9a1f7648064117872326fbbb9d",
+        "label_sha256": "67ed2d6cb37b662ac48a8e79fa4764a3aecc0c9f777c275b9430f82f0b40ce38",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000319.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000319.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000319.txt",
+        "image_sha256": "78e93d07e01c86a6b16fea08bdfd8872a0f1acdaca3286cc7857a48b58eb6706",
+        "label_sha256": "58f16c27d589945e07e911d1c76c9f612e2cec725a158ac90e563a0c3c0d22bd",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000320.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000320.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000320.txt",
+        "image_sha256": "9c62eaef2772d43f9003d7f8ac25ff08335008e9c140233414b2f7d939f62e0f",
+        "label_sha256": "a5202aea146a78b95bde70b09a132a9a61a95201eea92682fcdf6155de8905f8",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000321.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000321.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000321.txt",
+        "image_sha256": "abf0b99b3cdf2b1db092c8dd5763809a00409b0eb24f40df0e7c8ef45aee17ed",
+        "label_sha256": "201ca380a04244a973c9e871afbda2afea1e49f76a412a72c85dec1caef81ace",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000322.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000322.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000322.txt",
+        "image_sha256": "ec54de2f7b7c5f9c66b7513b67e2a529863d0520678ab3b37e4da2773771f2c6",
+        "label_sha256": "438e13d97532978e52d8ded19de976f0d312a5d057bed64698f87b3cd4e6ec1e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000323.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000323.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000323.txt",
+        "image_sha256": "4fc0ef398f44bf5dd3316ad00b66f0d986504a35f8a7c6d592182b9c2c64c35a",
+        "label_sha256": "b2efd9b2b8f7d1f9c1451a6058e6af6707a9a595ae50b06c6cf0b4dd46d7fd42",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000324.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000324.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000324.txt",
+        "image_sha256": "b5a5ac77fa59c0a2b2ef7646fa2c12ff2492d5f018614c966a208104a90a4ee4",
+        "label_sha256": "1560c506c4aa35c26419e21e4062bea59151e3202328a2ddecddaba5107185a9",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000325.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000325.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000325.txt",
+        "image_sha256": "469b18c763b439a84847c27683f1f9d3d754103b62d85e7ee890743fc621c4c0",
+        "label_sha256": "80b919ac56db623b0b88c3aa36abfbc740a9140dfe3abab3411c236c415026d2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000326.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000326.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000326.txt",
+        "image_sha256": "76b095dd9fe5a094747ff16c05e8de9ee8a33533cc08f030b0e40b0b2facce26",
+        "label_sha256": "5b20a004e235d4bb136677e76f04d4791de32fea7dfa08aad9335f17b94bf391",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000327.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000327.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000327.txt",
+        "image_sha256": "0668ed6e0315659beebe0672956089f8a5b33c6bcdc0b5d30b881377d8dc135c",
+        "label_sha256": "e01c729655060babaebbc410e863aa865588c3a16dc03b237d464f9cc6e48ea9",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000328.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000328.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000328.txt",
+        "image_sha256": "0e28502b1eaf087bc386fb41491731c61f71c13bcdb5232427c300a153aa66d4",
+        "label_sha256": "f43e39251ab0d11c08a2299b70c4178312626d5857fdd39660fb4ed3d170382f",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000329.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000329.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000329.txt",
+        "image_sha256": "a82f8ea30bab4ad8b6a145f346d21ce920970e097b9f44e3980c216025ce7da0",
+        "label_sha256": "6334ef37c88218302e52f4622abc739f446d0f9811dff519d0caa79f71acd34c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000330.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000330.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000330.txt",
+        "image_sha256": "2beb3c529f8a4d8f227219c44cbe2b960b1fad8db5a73aead9b22b969cd770f7",
+        "label_sha256": "9320bd8e171b3edd995ffa0218dc696de952c0b070d99a6eee7e3e7f899e5d26",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000331.jpg",
+        "source_split": "test",
+        "source_image": "datasets\\SCTD\\processed\\test\\images\\000331.jpg",
+        "source_label": "datasets\\SCTD\\processed\\test\\labels\\000331.txt",
+        "image_sha256": "da39e06489403c7ed9987b051071fb933fb533495e5347a4ee34e4eda6f8feb2",
+        "label_sha256": "9cfa1be8eef4155305c5f205373553cc2f5457e9e261ea9d51f5866bba84d037",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000392.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000392.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000392.txt",
+        "image_sha256": "27c07df3ea97614296209a317c55d61bc960c705225757e2f11850b4e6f6182d",
+        "label_sha256": "67a74bfc171c94fe68511dd587989e94d873a0ac9f2baae31e5c64f3a76bae4e",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000393.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000393.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000393.txt",
+        "image_sha256": "1a9f0da8ac8614fa737963631d86b9daebf57960beee9d23944685cde2af73ff",
+        "label_sha256": "aedb5809aceec50392723c32890e41498ff8caebb0e28d7836a0179d7b6723ad",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000394.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000394.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000394.txt",
+        "image_sha256": "9f5e3271a56e39015310ed060145cd7976f811840b52d1916253df46edf699a1",
+        "label_sha256": "ec3fb45989ea99a69c1801d193ce9c8d70d29081857adfda3a2b39ad6441231d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000395.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000395.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000395.txt",
+        "image_sha256": "4ca0557746cdf830a1b4b41a73e6588be5977b94d8158bf30010eb79b9e46a9c",
+        "label_sha256": "567d24ed4867c74ee2370be5e4a72f22486087b8d7046a80234ccbf5f05ba617",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000411.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000411.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000411.txt",
+        "image_sha256": "b7dc12ac39955e087621a8216aeb2229d20470ba515c477f4d5b65f91d00b183",
+        "label_sha256": "7d3ce464675505f739593a72cf317b0ba617b7110cb4e6f01d0e6b4c55a5c0c1",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000412.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000412.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000412.txt",
+        "image_sha256": "fee74427078c4793230cea3538d4280f307c851d962d8450bee5375252b7edf4",
+        "label_sha256": "6b5e3febef54b50e465c55031d3276f46af1bfdf91d782a70a098234652543c3",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000413.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000413.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000413.txt",
+        "image_sha256": "5250740d2734aa6c38624273c67b2306c53a3680d2da53462a2e97db1ec0996e",
+        "label_sha256": "0e369248cd31f7c341eddf6962aa744f3c198445fa573e95bfc3fd0143cec0f7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000414.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000414.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000414.txt",
+        "image_sha256": "8b67ad1c740aae5e6f7a5ea075d994cd340bc4831358bf33223b276ae7b63138",
+        "label_sha256": "9cd5004175f45d614a62b37ebf9e0f92c2a7b8a45a02e106d4c6e1a67492d331",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000415.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000415.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000415.txt",
+        "image_sha256": "860de90cb75f4b6081b7e452e4f08c151b66f2c7ca5eb02dd246296170ce2cf7",
+        "label_sha256": "87d80cdbcf67342a79b713415265762b8264392f494c0a67d8426e4940c142ca",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000416.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000416.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000416.txt",
+        "image_sha256": "74db6542d654d448ba2389ddf63fa4f877cb1555a30923df247db9aee7ac00db",
+        "label_sha256": "0f60f1a62d245fcff582d51e750fc6bcf0d33ffefda09141b65752a86b2f4eca",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000417.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000417.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000417.txt",
+        "image_sha256": "4c2bdfe1475284092f2f2d5e0b8ed061d80fecf76e17eb0776a51613b84f9416",
+        "label_sha256": "0e6a8fa013aa091f0776b12648c9c6cbc3617efde2eddd282f985fd1e082679b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000418.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000418.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000418.txt",
+        "image_sha256": "684f080ff57e3869c00c9d9bb32a0809fcbe14e5d7cc47fba6dc7cf58cf81db9",
+        "label_sha256": "7ba848f8651a6de819576b114325d8e1110702b87d417b099bd2ab6f6ba834ea",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000419.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000419.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000419.txt",
+        "image_sha256": "a8046a8d6161de16ba971f85e3a07fb72f8acec9b9c2bc2b056efd37736e906d",
+        "label_sha256": "b37cbbae7763f3c6fc5ed7b061807c8e6bcba3532db90ccd3ed161b37bf6efa3",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000420.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000420.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000420.txt",
+        "image_sha256": "21bd5ba90ea404cb71d34e60036a18f7aafdeec70b7f7b01c4681a44c0d52789",
+        "label_sha256": "64a7856c7be66a4239399f81217337fd7abfb6e9f5e5eff35da3aaaf0fdab983",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000450.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000450.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000450.txt",
+        "image_sha256": "1e5eb7b629fbbf38eda44bee5508912ea6d5781411452e31f8185aeb347dea1d",
+        "label_sha256": "76ac39324e8b94d6a57282aa8d35e615c067d2ed8dd086d1e954d52baa5dd499",
+        "classes": [
+          2
+        ]
+      }
+    ],
+    "test": [
+      {
+        "file": "000012.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000012.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000012.txt",
+        "image_sha256": "a64ca5b9c6895c3159851734a98a5e30c75a6f35e54f8e3630a3f612ecb9e47a",
+        "label_sha256": "2b960f2256b318c8a976bb29cba81ecfcedd7b29946824fd67c0ec69c47c23e7",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000013.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000013.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000013.txt",
+        "image_sha256": "f1814498966767ad0090606485e6f64155679263deff15075f65735bb8ddbd6b",
+        "label_sha256": "c3a94ac67c272e1dc88416d76b56d27bc80aa18fdfc94c95f3370ff33a688cc2",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000014.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000014.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000014.txt",
+        "image_sha256": "c3cea64a7a03931c109682e5f54665eaf31f7197b821f6b36e4e15058b04f571",
+        "label_sha256": "f65d6016adfa36da7e3724dc0fd9cabb33e46244f613192bcfc779ab3f382029",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000054.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000054.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000054.txt",
+        "image_sha256": "f1c0aa7731b102ab25f311893021c986724732fe1a8615a7d1cdbcb13b73dddb",
+        "label_sha256": "92f2857953e5c530e38a6bd6ad9fb48170eb62139bc74a95a57350fbd46dabbf",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000055.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000055.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000055.txt",
+        "image_sha256": "3602977fcd89c37fdf4946e6b41e38d4c869c348fb8a9ae2c8c76d05646fdc4d",
+        "label_sha256": "1c1f77579cb6643f9045f2fd28f2ab3131b3b92a0d00b43d8e3604d541aed043",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000056.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000056.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000056.txt",
+        "image_sha256": "4017f3cf851299673952fd2f0a232b93bbba8c03ce11168418f2cc32a46e0645",
+        "label_sha256": "ca9b0534bb7dc4565fc26f96fabfc429db200c3d12a418a67391e2a607d08604",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000057.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000057.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000057.txt",
+        "image_sha256": "86b1d049dcf44cd2fe969f5d6a23b1935025b72534beb35c8a763a39035e370d",
+        "label_sha256": "8efd1687d8f97be3e139a0201a7ce675b41e7d99e89efa9942fe6db9bddf871b",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000058.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000058.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000058.txt",
+        "image_sha256": "4daa01a6f6a139fbdcf071687d0537462282ad308f421f41f86f95eee30f435c",
+        "label_sha256": "f94ddefdb696965125f6f2768b3e6d3f8f4e9993d652b99e0f59cd6cbeef4262",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000059.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000059.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000059.txt",
+        "image_sha256": "14327cfbae526100e41b40a25fc0d85fc4afda7d92487c7919971d28155df253",
+        "label_sha256": "4e96ca33642935f36a0e6fa6a444f9df395b7447330b85db27b7c9e45c4c81aa",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000060.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000060.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000060.txt",
+        "image_sha256": "873112d460ce187c7b2e105fe6a17bca9d489e435192f1d1c03f1159f28b3009",
+        "label_sha256": "3f6745c573bcc08bd1443b565ed90d5975eb9d63701e6e1e8ea1db9867da8523",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000061.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000061.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000061.txt",
+        "image_sha256": "bc015b012436f32c8f2a74c77dab43f70d1cc3d358395648d3fa18fdb553ff9c",
+        "label_sha256": "8456e3ab1643b2e7ef702497a7dce2140ec1d2a3f83d68c0662f8169a9c78b95",
+        "classes": [
+          0
+        ]
+      },
+      {
+        "file": "000157.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000157.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000157.txt",
+        "image_sha256": "db5670f6fd5406801634095f8efc0e778c9fefd09d026db861bfaa34aa4e3f93",
+        "label_sha256": "10e4d076e61eb4d3f9a25cd7b01ff2697f37555e059240905f284e62d3debe15",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000158.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000158.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000158.txt",
+        "image_sha256": "2e6eaec7b399950784dd358536c611a48f89e92d1bd6cf56c3414350cc10ed42",
+        "label_sha256": "834aa8163459abac6a2b99e4701eed873f1d58701c8eb3f8bb58cf5ff23aa3f6",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000171.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000171.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000171.txt",
+        "image_sha256": "f044f667d0735fe72f3653102ff2aa6077c335dc3a8026818b161af71305defa",
+        "label_sha256": "b13dfe00f3d52488de038bfec185b70ff7a7d58727df0f97255bd8ac9943ab8d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000172.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000172.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000172.txt",
+        "image_sha256": "f8b3a9bb262332853599de5d0ec30bc177de02539d7494083cf8527587873ac9",
+        "label_sha256": "4d7700edfb3575a5853e980fdf11bf6ef5640d2d4e7ceaa0bc37217181fa157c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000189.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000189.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000189.txt",
+        "image_sha256": "a81a22b24c04075a978bbc478199e6c25399669a4de63f9223cfb61826955d5d",
+        "label_sha256": "d1ffea4d6a7354029e33bc19dc230ea22576463dadb3c44dd82485b15ac89bae",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000200.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000200.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000200.txt",
+        "image_sha256": "57682860fbabf7423f6c43e7b200c41e07f1a84e6b8490997797ac791a439349",
+        "label_sha256": "488d8d2903e411b8f3b37a19139f4ac004503431cdb621aca750138f3c7094e2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000201.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000201.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000201.txt",
+        "image_sha256": "10c1641ec1d590c74f597ec9eb529944cb6b7aad2037c600e48ad10a19dba121",
+        "label_sha256": "e985ecc09778f54b4d4e550540bcea71771f081fde36132296f31523d76db3fb",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000202.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000202.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000202.txt",
+        "image_sha256": "bdfd336ea2895ad789b00fc43a222cf376529ebf1b62138ff1b8fb57ce6dfc60",
+        "label_sha256": "867647e501fdaf344f6c94d0338403bf008d0d12105b7af4aa6c73bdf70fd1c0",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000203.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000203.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000203.txt",
+        "image_sha256": "26b7d8d246c2741c9a621f5622811998a76d12d25f700a8f8926b54c51bf0cb6",
+        "label_sha256": "ee66817023d0c7827680f6ba136edce5a1c9bbc3e71817dbef8a3be8c13a2861",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000204.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000204.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000204.txt",
+        "image_sha256": "a837325ae07fdd3caeaa80da34b141fa2e78879c96d0c832e80fa43feab94521",
+        "label_sha256": "a75eeb3cbd3f75ba043eb89197562ffaa3393c4f7a556b39ac38adec0875d3a6",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000398.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000398.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000398.txt",
+        "image_sha256": "4f48e2c7eca3d4193c19c0f26933d43dae187987ef27e5419dfdecf08c8f4ed6",
+        "label_sha256": "c92a9a6817dc5710a5e775548ed3612d0af9b32cbc5b5137c0e213ea3548053d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000399.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000399.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000399.txt",
+        "image_sha256": "aa6217240e718f0267171f40af1ab96e63433400efefcb50bff932a0b3d8afc9",
+        "label_sha256": "3ebaa419d746113c3d6e108431897b52439e3a225eac33689548af47f612cbb7",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000400.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000400.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000400.txt",
+        "image_sha256": "199d8326fb40cf57fe3cf845cbe5f94c2d24dee036f497605b53e18453bc1ad5",
+        "label_sha256": "866c2e78e542fe3723ae7de00576c9959f26c94a3f6fdfff7efde5b229b2bdc0",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000401.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000401.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000401.txt",
+        "image_sha256": "cffffea7ee34e231f8250aa5d26d59e1fc4ab0070d4258aac6c5589ca3c0e6d8",
+        "label_sha256": "709f2b5e1a143092dbc346e2bda7a18edb130964021a80cdab4777cec03b37cd",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000402.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000402.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000402.txt",
+        "image_sha256": "7f2202c712fc3c6ca76a997930548805e819afe128d5093cd381e5dbd2a28656",
+        "label_sha256": "170db3f2600243b18d76020aed8076398e9be15af79992fa6cbe9956453a474a",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000403.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000403.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000403.txt",
+        "image_sha256": "93a7707dd52d66dc175445f6c1e3ee1359d86f64d3239e969232d73be5499ce3",
+        "label_sha256": "67516cebb89aa0db1d0980c548659b2ac2fbd94f3c8261bb0cb0d3426eb621dd",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000422.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000422.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000422.txt",
+        "image_sha256": "9b76d451af579b78d70f58e58c8c4ecc89fe525609443383e1e2bb750ebe7382",
+        "label_sha256": "e7a687f398cf7782140dbc95d9f239e5707300293562b31203c54df9735f9df0",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000461.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000461.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000461.txt",
+        "image_sha256": "25096f6212b89a11b9c38c084216431ceb28ce89fe727aff1a5728dfe5713d02",
+        "label_sha256": "a7fd8e98c6385c8ffa7e8a8b70489e11c6a676a2ce6550abab73a4dfa4b23032",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000462.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000462.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000462.txt",
+        "image_sha256": "16562c9d42078ed554269e34ccf17209c44924b9346325522d9298253763fb59",
+        "label_sha256": "b0cb7fd68186407f259247caa9141cf7343c7865475eb39457dfa4a45a3ce0cb",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000463.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000463.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000463.txt",
+        "image_sha256": "a37667ceeef92171f120e15640a944d6e29bda7181873800372b042901916c11",
+        "label_sha256": "fc4c81875562f75721d689674cfce6ac6bcf1e4807cb0ca0d039a453b3363ebb",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000466.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000466.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000466.txt",
+        "image_sha256": "401558a7ceb35527bfcf936568dbbac4f9259025ff0a4901f4e7cd742462cd02",
+        "label_sha256": "ffaefbd1363af6f162bf4aa96d0f0c799ace59004a3e70f14c53f1bbe9b5c379",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000467.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000467.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000467.txt",
+        "image_sha256": "6868e83ed6cf822fe68934a65940b690f908406ae258ead56ae9d9ba90a6c103",
+        "label_sha256": "a7e044757a94f7efd5c87405981b594b0753d9ab6221613f17a33e4c0606b154",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000468.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000468.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000468.txt",
+        "image_sha256": "9e51089ad82eedce8da026640aa11566b9c4e00411e02b1891860337e3806879",
+        "label_sha256": "4459aa3d96a1e22816c8d8f722159fddb867239a648743920f80f90012c9a440",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000469.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000469.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000469.txt",
+        "image_sha256": "b074b8c33c31dbd945f9087e8a568fe07bb14fe7a99bd325873a9741172056d0",
+        "label_sha256": "431c7ea7fb78b6a44a99774ca2cade3ada0d13946899eb7e36325b7af21edf21",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000470.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000470.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000470.txt",
+        "image_sha256": "46c8f876a381e0c11493e0672aae2055078bb2128bb42fe924200176c8e15f9d",
+        "label_sha256": "265e89d7e7fd5a680b7f8c781e8c932aaa7c6ebf88b9631cf2fcfd0ff7727a50",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000471.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000471.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000471.txt",
+        "image_sha256": "d84151041a49406ea3a52f9ac65d3f3b3dfd5f5b38ccc86271a7dfe2e07e5f2a",
+        "label_sha256": "65cef9255556229455d881f4a1d8aa297bc59d7ed4bcca7d03acd13a5573223d",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000472.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000472.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000472.txt",
+        "image_sha256": "653675808a0a7de50cda35532309df78988f73995c5e0f7171fdd45f6cc3022c",
+        "label_sha256": "22b00266c44d838d23faeed423b8dfbc6735ae5a663c724d038be304706c6284",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000473.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000473.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000473.txt",
+        "image_sha256": "4c7163d40db550518a345a5606c9b55c3b3cfff723ce9641be4b10bc4f062c3f",
+        "label_sha256": "54be7b66677210af0df9e15f39d4d842f9db4dae3d3bb50e22497950c38ecd54",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000474.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000474.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000474.txt",
+        "image_sha256": "1b9aa2f678a9608cf94589c1ee1c7f1d6f26f176092c673f172f27b5bd2109c4",
+        "label_sha256": "40d8362e874fefccba2d4c23b6b2648f1f151e1f003fd8d34d2bfb1982ecef40",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000475.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000475.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000475.txt",
+        "image_sha256": "465eb02e32457a2c0c91cec619b00495119bcdebddeddddef4e0c554d89945cc",
+        "label_sha256": "606d95bcff96f79896bb03725f2e89ae783ec74541bfbdbdb0772096681722e6",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000476.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000476.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000476.txt",
+        "image_sha256": "0c30f4b51275433c524d838d72144ea60ef730f65c2cf71464298d636fac89d4",
+        "label_sha256": "70073666bc9804c0b0e7437c7b19e5f63a001f45319bf1567452900da64d067b",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000477.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000477.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000477.txt",
+        "image_sha256": "dbdfedc463c21466f85d48eeba5ec1a599e928ca003493a5b8e83a299ecbb10f",
+        "label_sha256": "7a05979f501d40f0dff4fe8ffa45e7c2a2014048365b59af2790640f493d29c0",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000478.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000478.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000478.txt",
+        "image_sha256": "2f44ee0cdd7740c08028ec190902d41f5718bc759607a63e70160b5db2e037d9",
+        "label_sha256": "35369c2500c4c5b750daa40c37ef1fd88b418602b1712111c949a6167a08eeab",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000479.jpg",
+        "source_split": "valid",
+        "source_image": "datasets\\SCTD\\processed\\valid\\images\\000479.jpg",
+        "source_label": "datasets\\SCTD\\processed\\valid\\labels\\000479.txt",
+        "image_sha256": "53973643d6e985afc97b6f83f8bc5f1867ff6e27bbc6509aaab16a2905328c32",
+        "label_sha256": "a1a1ceabff0f63a7d5d7ecbaec472b867fa7d945e9bcb75df016838e7dd2736c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000484.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000484.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000484.txt",
+        "image_sha256": "deea3259942bd8d309da8a5208f8ab9cac083470ef5f14700f89e72ac6b16c34",
+        "label_sha256": "bceb9a4156bdb51f6bcb2692f7ad92d841a28d4b6ffca6077ab65aaf5ecd6499",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000485.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000485.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000485.txt",
+        "image_sha256": "b968c140ca03f65d3235607b742d125616b706be5cf79c1c6da2b3a0df3d4c9d",
+        "label_sha256": "cd7b99885b9970adf1659a2324ba8ac1e3000bb2c16e95e6204f38cf7d7be3a0",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000486.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000486.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000486.txt",
+        "image_sha256": "ac5e17bf2bba1c9f0cf50d7263bd09283e38d0440695dd3a856ca8a31b2f0958",
+        "label_sha256": "7f478cbe6991afc0c84f1ea595bdff0696c4db3b84b374f32b0547e7765ef725",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000487.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000487.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000487.txt",
+        "image_sha256": "425a1ff4b4457954424787c0a5bed65d13b6859c82477aa483eb411889521884",
+        "label_sha256": "ca170c88a3e69423dd3fc2c4ea893939ed24c65b1def4d31d2e64b3db6f5eb20",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000488.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000488.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000488.txt",
+        "image_sha256": "0969256f80734f72c2781152b02cb70b2a059671dafeb8014bfd99f77ddb15eb",
+        "label_sha256": "c06e825d56a527ec867ad232eddfd11c38d12b46e9cbce35841acac77df91bb2",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000489.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000489.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000489.txt",
+        "image_sha256": "56b0998a3d9fdeabe65bd0d476c888245bc0b476257685bc69d64de4797ec8dd",
+        "label_sha256": "6cc3bd7b04ebc31c2d12e345ab67b5684d9ece149000223ae56059d12c4133e1",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000490.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000490.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000490.txt",
+        "image_sha256": "8383c8df41101044309cea8e7af1c852fee83493dca6e185856471353b0767cb",
+        "label_sha256": "b3902b6ff511e072e9aabfbd640fc6989d62b63b48af1265f165c9f21803389c",
+        "classes": [
+          2
+        ]
+      },
+      {
+        "file": "000491.jpg",
+        "source_split": "train",
+        "source_image": "datasets\\SCTD\\processed\\train\\images\\000491.jpg",
+        "source_label": "datasets\\SCTD\\processed\\train\\labels\\000491.txt",
+        "image_sha256": "603b97a189da2d2f9efeeeeef973ef3e0d5ca3340f1dde87ccfd64ade9de1e42",
+        "label_sha256": "c38b1c9af94ebe959ef2deac6d74227f48553e9f751cb9557d4fa57da8d32a79",
+        "classes": [
+          2
+        ]
+      }
+    ]
+  },
+  "membership_sha256": "eafd07404472d71b2c802bcf2646c9a8b980392373883867e97f94a0ea07d19b",
+  "duplicate_groups_cross_derived_split": 0,
+  "test_membership_frozen": true,
+  "model_metrics_used": false,
+  "architecture_used": false
+}

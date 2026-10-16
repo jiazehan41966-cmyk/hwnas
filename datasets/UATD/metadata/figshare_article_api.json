@@ -1,0 +1,134 @@
+{
+  "files": [
+    {
+      "id": 37883163,
+      "name": "UATD_Training.zip",
+      "size": 3869955319,
+      "is_link_only": false,
+      "download_url": "https://ndownloader.figshare.com/files/37883163",
+      "supplied_md5": "891b146871edcda313cdbd8cd6252f39",
+      "computed_md5": "891b146871edcda313cdbd8cd6252f39",
+      "mimetype": "application/zip"
+    },
+    {
+      "id": 37857276,
+      "name": "UATD_Test_1.zip",
+      "size": 421934004,
+      "is_link_only": false,
+      "download_url": "https://ndownloader.figshare.com/files/37857276",
+      "supplied_md5": "267818131310873c05950879bfec3e6f",
+      "computed_md5": "267818131310873c05950879bfec3e6f",
+      "mimetype": "application/zip"
+    },
+    {
+      "id": 37857279,
+      "name": "UATD_Test_2.zip",
+      "size": 424608381,
+      "is_link_only": false,
+      "download_url": "https://ndownloader.figshare.com/files/37857279",
+      "supplied_md5": "979479864b52925edca49074a09c1b3d",
+      "computed_md5": "979479864b52925edca49074a09c1b3d",
+      "mimetype": "application/zip"
+    },
+    {
+      "id": 37901247,
+      "name": "UATD_OpenSLT.zip",
+      "size": 79823319,
+      "is_link_only": false,
+      "download_url": "https://ndownloader.figshare.com/files/37901247",
+      "supplied_md5": "d62542fa284a4cc1119687bfa9141754",
+      "computed_md5": "d62542fa284a4cc1119687bfa9141754",
+      "mimetype": "application/zip"
+    }
+  ],
+  "folder_structure": {},
+  "authors": [
+    {
+      "id": 13956708,
+      "full_name": "yang jian",
+      "first_name": "yang",
+      "last_name": "jian",
+      "is_active": true,
+      "url_name": "yang_jian",
+      "orcid_id": ""
+    },
+    {
+      "id": 13959051,
+      "full_name": "Xie Kaibing",
+      "first_name": "Xie",
+      "last_name": "Kaibing",
+      "is_active": false,
+      "url_name": "_",
+      "orcid_id": "0000-0002-6990-3545"
+    }
+  ],
+  "custom_fields": [],
+  "figshare_url": "https://figshare.com/articles/dataset/UATD_Dataset/21331143",
+  "download_disabled": false,
+  "description": "<p>This dataset file includes a training set named UATD_Trainging.zip, two test sets named UATD_Test_1.zip and UATD_Test_2.zip respectively, and a sonar image label tool named UATD_OpenSLT.zip</p>",
+  "funding": null,
+  "funding_list": [],
+  "version": 3,
+  "status": "public",
+  "size": 4796321023,
+  "created_date": "2022-10-18T09:44:53Z",
+  "modified_date": "2022-10-18T09:44:54Z",
+  "is_public": true,
+  "is_confidential": false,
+  "is_metadata_record": false,
+  "confidential_reason": "",
+  "metadata_reason": "",
+  "license": {
+    "value": 1,
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "tags": [
+    "Sonar Image, Object Detection",
+    "Ocean Engineering"
+  ],
+  "keywords": [
+    "Sonar Image, Object Detection",
+    "Ocean Engineering"
+  ],
+  "categories": [
+    {
+      "id": 26701,
+      "title": "Ocean engineering",
+      "parent_id": 26692,
+      "path": "/26212/26692/26701",
+      "source_id": "401503",
+      "taxonomy_id": 100
+    }
+  ],
+  "references": [],
+  "has_linked_file": false,
+  "citation": "jian, yang; Kaibing, Xie (2022). Underwater acoustic target detection (UATD) dataset. figshare. Dataset. https://doi.org/10.6084/m9.figshare.21331143.v3",
+  "related_materials": [],
+  "is_embargoed": false,
+  "embargo_date": null,
+  "embargo_type": "file",
+  "embargo_title": "",
+  "embargo_reason": "",
+  "embargo_options": [],
+  "id": 21331143,
+  "title": "Underwater acoustic target detection (UATD) dataset",
+  "doi": "10.6084/m9.figshare.21331143.v3",
+  "handle": "",
+  "url": "https://api.figshare.com/v2/articles/21331143",
+  "published_date": "2022-10-18T09:44:53Z",
+  "thumb": "",
+  "defined_type": 3,
+  "defined_type_name": "dataset",
+  "group_id": null,
+  "url_private_api": "https://api.figshare.com/v2/account/articles/21331143",
+  "url_public_api": "https://api.figshare.com/v2/articles/21331143",
+  "url_private_html": "https://figshare.com/account/articles/21331143",
+  "url_public_html": "https://figshare.com/articles/dataset/UATD_Dataset/21331143",
+  "timeline": {
+    "posted": "2022-10-18T09:44:53",
+    "firstOnline": "2022-10-17"
+  },
+  "resource_title": null,
+  "resource_doi": null
+}

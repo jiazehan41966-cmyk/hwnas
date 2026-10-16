@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "dataset_id": "roboflow_cylider2_v6",
+  "retrieved_at": "2026-09-10T12:09:09+00:00",
+  "source": {
+    "requested_url": "https://universe.roboflow.com/yeesonmin-naver-com/cylider2",
+    "workspace": "yeesonmin-naver-com",
+    "project": "cylider2",
+    "version": 6,
+    "license": "CC BY 4.0",
+    "task": "object_detection",
+    "source_image_count": 476,
+    "published_version_count": 6,
+    "published_classes": [
+      "cylinder",
+      "cylider",
+      "manta"
+    ]
+  },
+  "acquisition": "local_export_zip",
+  "project_api_endpoint": null,
+  "api_endpoint": null,
+  "project_metadata_summary": null,
+  "export_format": "yolov8",
+  "archive": {
+    "path": "E:\\1\\hwnas\\hwnas\\data\\external_redownload_audit_20260909\\roboflow_cylider2\\raw\\cylider2_v6_yolov8.zip",
+    "bytes": 232076741,
+    "md5": "c96514d7c4d46df52141432b2edb847d",
+    "sha256": "4254f9787aa3d37114c63f5ec3f91435e2ddca2bb1d600f0b1c418432468fc55"
+  },
+  "extracted": true,
+  "inventory": {
+    "root": "E:\\1\\hwnas\\hwnas\\data\\external_redownload_audit_20260909\\roboflow_cylider2\\extracted\\v6_yolov8",
+    "file_count": 959,
+    "total_bytes": 231824588,
+    "image_count": 478,
+    "annotation_file_count": 481,
+    "suffix_counts": {
+      ".jpg": 478,
+      ".txt": 480,
+      ".yaml": 1
+    }
+  },
+  "task_boundary": {
+    "current_hwnas_pipeline_compatible": false,
+    "reason": "The dataset is object detection data. The labels 'cylinder' and 'cylider' remain distinct until a reviewed label-mapping policy exists."
+  }
+}

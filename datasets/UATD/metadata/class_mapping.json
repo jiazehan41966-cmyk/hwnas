@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-17T07:25:32+00:00",
+  "source_annotation_formats": {
+    "pascal_voc_xml": 14639
+  },
+  "source_classes_sorted": [
+    "ball",
+    "circle cage",
+    "cube",
+    "cylinder",
+    "human body",
+    "metal bucket",
+    "plane",
+    "rov",
+    "square cage",
+    "tyre"
+  ],
+  "class_name_to_yolo_id": {
+    "ball": 0,
+    "circle cage": 1,
+    "cube": 2,
+    "cylinder": 3,
+    "human body": 4,
+    "metal bucket": 5,
+    "plane": 6,
+    "rov": 7,
+    "square cage": 8,
+    "tyre": 9
+  },
+  "yolo_id_to_class_name": {
+    "0": "ball",
+    "1": "circle cage",
+    "2": "cube",
+    "3": "cylinder",
+    "4": "human body",
+    "5": "metal bucket",
+    "6": "plane",
+    "7": "rov",
+    "8": "square cage",
+    "9": "tyre"
+  },
+  "bbox_conversion": {
+    "source_supported": [
+      "pascal_voc_xml:xyxy_pixel",
+      "coco_json:xywh_pixel",
+      "yolo_txt:cxcywh_normalized"
+    ],
+    "target": "YOLO normalized class cx cy width height",
+    "coordinate_note": "Pixel boxes are interpreted in the image coordinate frame recorded by the file."
+  }
+}

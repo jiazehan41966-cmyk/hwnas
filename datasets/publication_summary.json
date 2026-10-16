@@ -1,0 +1,52 @@
+{
+  "datasets": {
+    "Cylinder2": {
+      "archive_bytes": 232076741,
+      "parts": 1,
+      "restorable_images": 478,
+      "tracked_view_files": 481,
+      "views": [
+        {
+          "datasets/Cylinder2/processed": 478
+        }
+      ]
+    },
+    "SCTD": {
+      "archive_bytes": 83140304,
+      "parts": 1,
+      "restorable_images": 1071,
+      "tracked_view_files": 1074,
+      "views": [
+        {
+          "datasets/SCTD/processed": 357
+        },
+        {
+          "datasets/SCTD/clean_phase3b": 357
+        },
+        {
+          "datasets/SCTD/clean_phase3b_v2": 357
+        }
+      ]
+    },
+    "UATD": {
+      "archive_bytes": 4796321023,
+      "parts": 7,
+      "restorable_images": 19998,
+      "tracked_view_files": 20000,
+      "views": [
+        {
+          "datasets/UATD/processed_yolo": 10800
+        },
+        {
+          "datasets/UATD/clean_phase3b": 9198
+        }
+      ]
+    }
+  },
+  "verified_image_references": 21547,
+  "unique_physical_images_hashed": 11635,
+  "original_data_modified": false,
+  "redundant_unpacked_views_excluded": true,
+  "excluded_redundant_transfer_archive": "UATD/phase3c_clean_phase3b.tar.zst",
+  "unrelated_figshare_mine_detection_excluded": true
+}

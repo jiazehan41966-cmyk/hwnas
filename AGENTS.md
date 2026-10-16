@@ -1,6 +1,6 @@
 # Sonar HW-NAS layered mainline
 
-- This source-only worktree migrates E0/E1 / elastic_neck72_v1 detection. Read README.md and docs/MIGRATION.md before changing protocol or importing legacy results.
+- This worktree migrates E0/E1 / elastic_neck72_v1 detection and versions source dataset archives separately through Git LFS. Read README.md, docs/MIGRATION.md and datasets/README.md before changing protocol or importing legacy results.
 - Preserve unrelated work and immutable experiment artifacts. Plans and audits remain read-only; implementation authorization does not authorize training, HLS, board activity, remote jobs or cloud spending.
 - Space is the immutable identity layer. Models may depend on space; models must never import training, quantization, hardware or search. Search consumes evaluator interfaces and never builds models. scripts/ is the composition root.
 - Genotype JSON and full SHA256 identify candidates; precision plans have separate q_hash. Seed, budget, checkpoint, calibration, hardware mapping, device, clock, toolchain and bitstream identities must remain explicit.

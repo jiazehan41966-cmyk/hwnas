@@ -2,7 +2,7 @@
 
 当前主线为 **E0/E1 → elastic_neck72_v1** 声呐检测：固定 B1 八阶段骨干、640×640 灰度输入、P2/P3/P4/P5、48 通道融合与直接 1×1 检测头。搜索 8 个 E0 与 64 个 E1 结构；3 种量化 × 6 种映射，共 1296 个联合决策。
 
-这是独立的源码迁移分支，保留原网络、语义初始化、训练损失和验证协议。历史数据与研究结果仍在原工作区。本分支没有因为重构而获得新的精度、硬件可行性或部署结论。
+这是独立的迁移分支，保留原网络、语义初始化、训练损失和验证协议。Cylinder2、SCTD、UATD 的原始数据包通过 Git LFS 纳入，原本地数据与历史研究结果保留。本分支没有因为重构而获得新的精度、硬件可行性或部署结论。
 
 ```text
 configs/   OmegaConf 实验配置及原始冻结协议
@@ -14,6 +14,7 @@ hw/        分层证据导入、报告解析与上下文 SQLite 缓存
 search/    原 Pareto 晋升、40/60/80 调度、弃选抽查与三种子确认
 results/   每次运行及每候选不可变记录；不纳入源码提交
 scripts/   search / retrain / quantize / deploy / collect / tables
+datasets/  三套原始数据包、标签、冻结划分与离线恢复清单
 ```
 
 依赖由上层消费下层；`scripts/` 负责组合执行器。`space` 不依赖 PyTorch，`models` 不依赖训练或搜索，搜索中没有模型构建代码。静态测试守住这些边界。
@@ -28,6 +29,17 @@ scripts/   search / retrain / quantize / deploy / collect / tables
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -e ".[dev]"
 ```
+
+拉取并恢复数据（字节校验与解包，不运行模型）：
+
+```powershell
+git lfs install
+git lfs pull
+python -m scripts.restore_datasets --dataset all --verify-only
+python -m scripts.restore_datasets --dataset all
+```
+
+数据包约 5.11 GB；恢复的图像不再次提交 Git。恢复器按保存的映射重建已有视图，不重新划分样本；默认在本仓库的 `datasets/` 下恢复，支持 `--output-root` 指定足够空间的目录。数据版本、许可来源及实际恢复范围见 [datasets/README.md](datasets/README.md)。
 
 先生成无数据访问、无训练的预检：
 

@@ -1,0 +1,9 @@
+dataset: classic SCTD / SCTD 1.0
+source_repository: https://github.com/MingqiangNing/SCTD
+download_url: https://raw.githubusercontent.com/MingqiangNing/SCTD/master/SCTD.zip
+downloaded_archive: datasets\SCTD\raw\SCTD.bits.zip
+sha256: 329801ace811aced3dc7c842cc0d695877c5aae0a75545f5d544be399b8a0d9a
+download_status: success
+failed_attempts: GitHub codeload master zip was truncated; curl raw download timed out/reset; final BITS raw download succeeded.
+sctd_3_0_reference_repo_not_used: https://github.com/automlresearch/SCTD-3.0
+sctd_3_0_reference_arxiv_not_used: https://arxiv.org/abs/2608.08106
