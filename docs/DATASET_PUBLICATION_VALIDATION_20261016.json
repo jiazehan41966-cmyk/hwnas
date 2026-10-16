@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "validation_date": "2026-10-16",
+  "data_commit": "10f2a423f258ec303f7555d5a6d10cacf80618da",
+  "restore_script_sha256": "f203804d1eb7ac318ce68571c929c2fd225772108eed461a72cdd85ff351d437",
+  "dataset_sources_sha256": "5d4ad573c400f2e275bed3f476d7769464a57f9a171e089e27b01f4831039ee7",
+  "command": "python -B -m scripts.restore_datasets --dataset all --output-root F:/hwnas_dataset_restore_validation_20261016",
+  "validation_output_root": "F:/hwnas_dataset_restore_validation_20261016",
+  "archive_bytes": 5111538068,
+  "lfs_objects_uploaded": 9,
+  "git_labels_and_metadata_blob_hashes_verified": 21574,
+  "tests_passed": 76,
+  "test_failures": 0,
+  "datasets": [
+    {
+      "dataset": "Cylinder2",
+      "status": "RESTORED_AND_HASH_VERIFIED",
+      "images_restored": 478,
+      "images_linked": 0,
+      "metadata_copied": 481,
+      "image_bytes_written": 231801592,
+      "images_reused": 0,
+      "metadata_reused": 0,
+      "image_view_references": 478,
+      "archives": [
+        {
+          "id": "cylider2_v6_yolov8",
+          "size": 232076741,
+          "sha256": "4254f9787aa3d37114c63f5ec3f91435e2ddca2bb1d600f0b1c418432468fc55",
+          "parts": 1,
+          "status": "VERIFIED"
+        }
+      ]
+    },
+    {
+      "dataset": "SCTD",
+      "status": "RESTORED_AND_HASH_VERIFIED",
+      "images_restored": 357,
+      "images_linked": 714,
+      "metadata_copied": 1074,
+      "image_bytes_written": 83491053,
+      "images_reused": 0,
+      "metadata_reused": 0,
+      "image_view_references": 1071,
+      "archives": [
+        {
+          "id": "SCTD",
+          "size": 83140304,
+          "sha256": "329801ace811aced3dc7c842cc0d695877c5aae0a75545f5d544be399b8a0d9a",
+          "parts": 1,
+          "status": "VERIFIED"
+        }
+      ]
+    },
+    {
+      "dataset": "UATD",
+      "status": "RESTORED_AND_HASH_VERIFIED",
+      "images_restored": 9200,
+      "images_linked": 10798,
+      "metadata_copied": 20000,
+      "image_bytes_written": 34251367584,
+      "images_reused": 0,
+      "metadata_reused": 0,
+      "image_view_references": 19998,
+      "archives": [
+        {
+          "id": "UATD_OpenSLT",
+          "size": 79823319,
+          "sha256": "da3f9b9f39231b08ffba7748264d5dc0ad55722926870f99d742999754daefb9",
+          "parts": 1,
+          "status": "VERIFIED"
+        },
+        {
+          "id": "UATD_Test_1",
+          "size": 421934004,
+          "sha256": "9dce42baba978aba59d3601dbc086e744afa24c7565c628086eb35acf95f9b64",
+          "parts": 1,
+          "status": "VERIFIED"
+        },
+        {
+          "id": "UATD_Test_2",
+          "size": 424608381,
+          "sha256": "fbe8fd7f33063d735f51711fea46f7c057ffdea8c9b7b1cc74c6a8dcd6dc727e",
+          "parts": 1,
+          "status": "VERIFIED"
+        },
+        {
+          "id": "UATD_Training",
+          "size": 3869955319,
+          "sha256": "49a8c38e3cb98b04405b378c034a5e259249cd14102a3c8f3c1323e806cf5f7d",
+          "parts": 4,
+          "status": "VERIFIED"
+        }
+      ]
+    }
+  ],
+  "all_image_references_verified": 21547,
+  "network_required_for_restore": false,
+  "original_dataset_modified": false,
+  "model_training": false,
+  "model_evaluation": false,
+  "hardware_operations": false
+}
